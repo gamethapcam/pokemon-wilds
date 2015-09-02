@@ -91,6 +91,15 @@ class Tile {
 			
 			//this.sprite.setColor(new Color(.1f, .1f, .1f, 1f)); //debug
 		}
+		else if (tileName == "flower1") {
+			Texture playerText = new Texture(Gdx.files.internal("tiles/flower1.png"));
+			this.sprite = new Sprite(playerText, 0, 0, 16, 16);
+		}
+		else if (tileName == "ground3") {
+			Texture playerText = new Texture(Gdx.files.internal("tiles/ground3.png"));
+			this.sprite = new Sprite(playerText, 0, 0, 16, 16);
+		}
+
 
 		else if (tileName == "tree_large1") { //
 			Texture playerText = new Texture(Gdx.files.internal("tiles/tree_large1.png"));

@@ -58,8 +58,9 @@ public class GenForest2 extends Action {
 	
 	ArrayList<Vector2> freePositions;
 	
-	ArrayList<Tile> tilesToAdd;
-
+	//ArrayList<Tile> tilesToAdd; 
+	HashMap<Vector2, Tile> tilesToAdd;
+	
 	ArrayList<Action> doActions;
 	
 	Vector2 topLeft, bottomRight;
@@ -84,22 +85,33 @@ public class GenForest2 extends Action {
 			return;
 		}
 
-		Tile currTile = this.tilesToAdd.get(0);
+		Tile currTile = this.tilesToAdd.values().iterator().next();
 		game.map.tiles.put(currTile.position.cpy(), currTile);
-		this.tilesToAdd.remove(0);
+		this.tilesToAdd.remove(currTile.position.cpy());
 		
 		//do twice more (to speed up)
 		if (!this.tilesToAdd.isEmpty()) {
-			currTile = this.tilesToAdd.get(0);
+			currTile = this.tilesToAdd.values().iterator().next();
 			game.map.tiles.put(currTile.position.cpy(), currTile);
-			this.tilesToAdd.remove(0);
+			this.tilesToAdd.remove(currTile.position.cpy());
 		}
 		if (!this.tilesToAdd.isEmpty()) {
-			currTile = this.tilesToAdd.get(0);
+			currTile = this.tilesToAdd.values().iterator().next();
 			game.map.tiles.put(currTile.position.cpy(), currTile);
-			this.tilesToAdd.remove(0);
+			this.tilesToAdd.remove(currTile.position.cpy());
 		}
-		
+		if (!this.tilesToAdd.isEmpty()) {
+			currTile = this.tilesToAdd.values().iterator().next();
+			game.map.tiles.put(currTile.position.cpy(), currTile);
+			this.tilesToAdd.remove(currTile.position.cpy());
+		}
+		if (!this.tilesToAdd.isEmpty()) {
+			currTile = this.tilesToAdd.values().iterator().next();
+			game.map.tiles.put(currTile.position.cpy(), currTile);
+			this.tilesToAdd.remove(currTile.position.cpy());
+		}
+
+		//System.out.println("print: "+String.valueOf(currTile.name));
 	}
 
 
@@ -111,7 +123,7 @@ public class GenForest2 extends Action {
 		
 		
 		this.rand = new Random();
-		this.tilesToAdd = new ArrayList<Tile>();
+		this.tilesToAdd = new HashMap<Vector2, Tile>();
 		this.freePositions = new ArrayList<Vector2>();
 		this.doActions = new ArrayList<Action>();
 		
@@ -145,58 +157,6 @@ public class GenForest2 extends Action {
 		HashMap<Vector2, MazeNode> nodes = Maze_Algo1(width, height, density, complexity, squareSize);
 
 		
-		//make a random pair (for now) of maze nodes to be platforms
-		List<Vector2> keysAsArray = new ArrayList<Vector2>(nodes.keySet());
-		Vector2 platform1 = keysAsArray.get(this.rand.nextInt(keysAsArray.size()));
-
-		//if there is a val to the right, and right wall is open, add to otherNodes
-		ArrayList<Vector2> otherNodes = new ArrayList<Vector2>();
-		Vector2 checkNode = platform1.cpy().add(1, 0);
-		if (nodes.get(checkNode) != null) {
-			if (nodes.get(checkNode).leftOpen)
-				otherNodes.add(checkNode);
-		}
-		//if node to the left and this leftopen, add
-		checkNode = platform1.cpy().add(-1, 0);
-		if (nodes.get(checkNode) != null) {
-			if (nodes.get(platform1).leftOpen)
-				otherNodes.add(checkNode);
-		}
-		//if node above and above is downOpen, add
-		checkNode = platform1.cpy().add(0, 1);
-		if (nodes.get(checkNode) != null) {
-			if (nodes.get(checkNode).downOpen)
-				otherNodes.add(checkNode);
-		}
-		//if node below and this is downOpen, add
-		checkNode = platform1.cpy().add(0, -1);
-		if (nodes.get(checkNode) != null) {
-			if (nodes.get(platform1).downOpen)
-				otherNodes.add(checkNode);
-		}
-		
-		//should be guaranteed to have two. 
-		if (!otherNodes.isEmpty()) {
-			nodes.get(platform1).type = "platform1";
-			Vector2 platform2 = otherNodes.get(this.rand.nextInt(otherNodes.size()));
-			nodes.get(platform2).type = "platform1";
-			if (platform1.x < platform2.x) {
-				nodes.get(platform1).rampLoc = "left";
-				nodes.get(platform2).rampLoc = "right";
-			}
-			else if (platform1.x > platform2.x) {
-				nodes.get(platform1).rampLoc = "right";
-				nodes.get(platform2).rampLoc = "left";
-			}
-			else if (platform1.y < platform2.y) {
-				nodes.get(platform1).rampLoc = "down";
-				nodes.get(platform2).rampLoc = "up";
-			}
-			else if (platform1.y > platform2.y) {
-				nodes.get(platform1).rampLoc = "up";
-				nodes.get(platform2).rampLoc = "down";
-			}
-		}
 		
 		
 		
@@ -217,21 +177,17 @@ public class GenForest2 extends Action {
 			//add these to tilesToAdd
 			for (Tile tile : tileSquare) {
 				
-				//if it's a qmark_tile, add it to 'freePositions' as well
-				if (tile.attrs.get("qmark") == true) {
-					this.freePositions.add(tile.position.cpy()); 
-				}
-				
+				//System.out.println("here");
 				//translate tile to be in line with map
 				 //bottom left corner node.x == 0, node.y == 0
-				this.tilesToAdd.add(tile);
+				this.tilesToAdd.put(tile.position.cpy(), tile);
 			}
 		}
 
-		//TODO - apply forest biome
 		//this.doActions.add(new ApplyForestBiome(game, this.tilesToAdd, startLoc, endLoc, this)); //if you want to apply later
-		//actually just - Action temp = new ApplyForestBiome(game, this.tilesToAdd, startLoc, endLoc, this)
-		//temp.step(game); //this way map is rendered in pretty way, but apply biome is still an action
+		//actually just - 
+		Action temp = new ApplyForestBiome(game, this.tilesToAdd, startLoc, endLoc.cpy(), this); //TODO - fix this 
+		temp.step(game); //this way map is rendered in pretty way, but apply biome is still an action
 		 //contains placement of water and grass
 
 
@@ -253,6 +209,326 @@ public class GenForest2 extends Action {
 	}
 	
 
+	//unused - switched to templated tile method
+	public class ApplyForestBiome extends Action {
+
+		public int layer = 120;
+		public int getLayer(){return this.layer;}
+
+		Random rand;
+
+		HashMap<Vector2, Tile> tilesToAdd;
+		ArrayList<Vector2> freePositions; //TODO - remove if unused
+
+		Action nextAction;
+		
+		Vector2 bottomLeft;
+		Vector2 topRight;
+	
+
+		@Override
+		public void step(PkmnGen game) {
+			
+			
+			//add ponds
+			 //just make this a square
+			
+			addPond();
+			addPond();
+			
+			
+			//for everything between bottomLeft and topRight
+			//add solid sprites
+			for (float i=this.bottomLeft.x; i < this.topRight.x + 64 + 64; i += 16) {
+				for (float j=this.bottomLeft.y; j < this.topRight.y + 64 + 64 + 64; j += 16) {
+					Tile temp = this.tilesToAdd.get(new Vector2(i,j));
+					if (temp != null) {
+						if (temp.name == "solid") {
+							boolean noTileYet = true;
+							Tile temp2 = this.tilesToAdd.get(new Vector2(i+16,j));
+							Tile temp3 = this.tilesToAdd.get(new Vector2(i,j+16));
+							Tile temp4 = this.tilesToAdd.get(new Vector2(i+16,j+16));
+							if (temp.position.x % 32 == 0 && Math.abs(temp.position.y) % 32 == 16
+								&& temp2 != null && temp3 != null && temp4 != null) {
+								//put tree there
+								if (temp2.name == "solid" && temp3.name == "solid" && temp4.name == "solid") {
+									this.tilesToAdd.put(temp.position.cpy().add(0,0), new Tile("tree_large1", temp.position.cpy().add(0,0)));
+									this.tilesToAdd.put(temp.position.cpy().add(16,0), new Tile("tree_large1_noSprite", temp.position.cpy().add(16,0)));
+									this.tilesToAdd.put(temp.position.cpy().add(0,16), new Tile("tree_large1_noSprite", temp.position.cpy().add(0,16)));
+									this.tilesToAdd.put(temp.position.cpy().add(16,16), new Tile("tree_large1_noSprite", temp.position.cpy().add(16,16)));									
+									noTileYet = false;
+								}
+							}
+							if (noTileYet){
+								//TODO - add small tree here
+								this.tilesToAdd.put(temp.position.cpy().add(0,0), new Tile("bush1", temp.position.cpy().add(0,0)));
+							}
+						}
+					}
+				}
+			}
+			
+			//plant grass in random areas
+			plantGrass();
+			plantGrass();
+			plantGrass();
+			plantGrass();
+			plantGrass();
+			plantGrass();
+			plantGrass();
+			
+			
+			//fill with nothing, ground or flowers
+			fillAllEmptyTiles();
+			
+		}
+
+		public ApplyForestBiome(PkmnGen game, HashMap<Vector2, Tile> tilesToAdd, Vector2 bottomLeft, Vector2 topRight,  Action nextAction) {
+			
+			this.nextAction = nextAction;
+			this.rand = new Random();
+			this.tilesToAdd = tilesToAdd;
+			
+			this.bottomLeft = bottomLeft;
+			this.topRight = topRight;
+			
+		}
+		
+		
+		public void fillAllEmptyTiles() {
+			
+			String[] randomTile = {"ground3", "ground1", "ground3", "ground1", "ground3", "ground1", "ground3", "ground1", "flower1"};
+
+			for (float i=this.bottomLeft.x; i < this.topRight.x + 64 + 64; i += 16) {
+				for (float j=this.bottomLeft.y; j < this.topRight.y + 64 + 64 + 64; j += 16) {
+					Tile temp = this.tilesToAdd.get(new Vector2(i,j));
+					//check if there is nothing there yet
+					String tileName = randomTile[this.rand.nextInt(randomTile.length)];
+					if (temp == null && tileName != "") {
+						//add random element
+						this.tilesToAdd.put(new Vector2(i,j), new Tile(tileName, new Vector2(i,j)));
+					}
+				}
+			}
+		}
+		
+		public void addPond() {
+
+			int maxSize = 12;
+			ArrayList<Vector2> keySet = new ArrayList<Vector2>(this.tilesToAdd.keySet());
+			Vector2 randBLCorner = keySet.get(this.rand.nextInt(keySet.size())).cpy();
+			Vector2 randTRCorner = randBLCorner.cpy().add(this.rand.nextInt(maxSize)*16 + 32, this.rand.nextInt(maxSize)*16 + 32);
+			ArrayList<Vector2> pondGoesHere = new ArrayList<Vector2>();
+			
+			for (float i=randBLCorner.x; i < randTRCorner.x; i += 16) {
+				for (float j=randBLCorner.y; j < randTRCorner.y; j += 16) {
+					int surroundedBy = 0;
+					Tile temp2 = this.tilesToAdd.get(new Vector2(i+16,j));
+					if (temp2 != null) {
+						if (temp2.name == "solid") {
+							surroundedBy++;
+						}
+					}
+					temp2 = this.tilesToAdd.get(new Vector2(i-16,j));
+					if (temp2 != null) {
+						if (temp2.name == "solid") {
+							surroundedBy++;
+						}
+					}
+					temp2 = this.tilesToAdd.get(new Vector2(i,j+16));
+					if (temp2 != null) {
+						if (temp2.name == "solid") {
+							surroundedBy++;
+						}
+					}
+					temp2 = this.tilesToAdd.get(new Vector2(i,j-16));
+					if (temp2 != null) {
+						if (temp2.name == "solid") {
+							surroundedBy++;
+						}
+					}
+					Tile temp = this.tilesToAdd.get(new Vector2(i,j));
+					if (temp != null && surroundedBy > 1) {
+						if (temp.name == "solid" ) {
+							pondGoesHere.add(temp.position.cpy());
+						}
+					}
+				}
+			}
+			
+			//for each qmark_tile
+			for (Vector2 pos : pondGoesHere) {
+								
+				//decide when type of platform it should be
+				//Tile currTile;
+				
+				boolean upPond = false;
+				boolean leftPond = false;
+				boolean rightPond = false;
+				boolean downPond = false;
+				//check if right platform
+				if (pondGoesHere.contains(new Vector2(pos.x+16, pos.y))) {
+					rightPond = true;
+				}
+				//check if left platform
+				if (pondGoesHere.contains(new Vector2(pos.x-16, pos.y))) {
+					leftPond = true;
+				}
+				//check if up platform
+				if (pondGoesHere.contains(new Vector2(pos.x, pos.y+16))) {
+					upPond = true;
+				}
+				//check if down platform
+				if (pondGoesHere.contains(new Vector2(pos.x, pos.y-16))) {
+					downPond = true;
+				}
+				
+				
+				//check if left edge
+				if (rightPond && !leftPond && upPond && downPond) {
+					this.tilesToAdd.put(pos.cpy(), new Tile("water1_ledge1_left", new Vector2(pos.x, pos.y) ));
+				}
+				//check if right edge
+				else if (!rightPond && leftPond && upPond && downPond) {
+					this.tilesToAdd.put(pos.cpy(), new Tile("water1_ledge1_right", new Vector2(pos.x, pos.y) ));
+				}
+				//check if up ledge
+				else if (rightPond && leftPond && !upPond && downPond) {
+					this.tilesToAdd.put(pos.cpy(), new Tile("water1_ledge1_top", new Vector2(pos.x, pos.y) ));
+				}
+				//check if tl corner
+				else if (rightPond && !leftPond && !upPond && downPond) {
+					this.tilesToAdd.put(pos.cpy(), new Tile("water1_ledge1_tl", new Vector2(pos.x, pos.y) ));
+				}
+				//check if tr corner
+				else if (!rightPond && leftPond && !upPond && downPond) {
+					this.tilesToAdd.put(pos.cpy(), new Tile("water1_ledge1_tr", new Vector2(pos.x, pos.y) ));
+				}
+				//check if bl corner
+				else if (rightPond && !leftPond && upPond && !downPond) {
+					this.tilesToAdd.put(pos.cpy(), new Tile("water1_ledge1_left", new Vector2(pos.x, pos.y) ));
+				}
+				//check if br corner
+				else if (!rightPond && leftPond && upPond && !downPond) {
+					this.tilesToAdd.put(pos.cpy(), new Tile("water1_ledge1_right", new Vector2(pos.x, pos.y) ));
+				}
+				//else, it's a regular platform top
+				else if ((rightPond ? 1 : 0) + (leftPond ? 1 : 0) + (upPond ? 1 : 0) + (downPond ? 1 : 0) > 1){
+					this.tilesToAdd.put(pos.cpy(), new Tile("water1", new Vector2(pos.x, pos.y) ));
+				}
+				
+				
+			}
+			
+		}
+		
+		public void plantGrass() {
+
+			int minNumPatches = 2;
+			int maxNumPatches = 12;
+			//if no start position specified, 
+			 //get random position to plant tree
+			Vector2 startPosition = null;
+		
+			
+			int randomIndex;
+			Vector2 randomPos;
+			int iter = 0;
+			while (startPosition == null && iter < 20) {
+//				ArrayList<Vector2> keySet = new ArrayList<Vector2>(this.tilesToAdd.keySet());
+//				randomPos = keySet.get(this.rand.nextInt(keySet.size())).cpy();
+				iter++; //prevents infinite loop
+				
+				int randX = (int)((this.rand.nextInt((int)topRight.x-(int)bottomLeft.x) + (int)bottomLeft.x)/16) * 16;
+				int randY = (int)((this.rand.nextInt((int)topRight.y-(int)bottomLeft.y) + (int)bottomLeft.y)/16) * 16;
+				randomPos = new Vector2(randX, randY);
+				
+				if (this.tilesToAdd.get(randomPos.cpy().add(0,0)) != null) {
+					continue;
+				}
+				if (this.tilesToAdd.get(randomPos.cpy().add(16,0)) != null) {
+					continue;
+				}
+				if (this.tilesToAdd.get(randomPos.cpy().add(0,16)) != null) {
+					continue;
+				}
+				if (this.tilesToAdd.get(randomPos.cpy().add(16,16)) != null) {
+					continue;
+				}
+				startPosition = randomPos;
+			}
+			
+
+			
+			this.tilesToAdd.put(startPosition.cpy(), new Tile("grass1", startPosition.cpy()));
+			this.tilesToAdd.put(startPosition.cpy().cpy().add(16,0), new Tile("grass1", startPosition.cpy().add(16,0))); 
+			this.tilesToAdd.put(startPosition.cpy().cpy().add(0,16), new Tile("grass1", startPosition.cpy().add(0,16)));
+			this.tilesToAdd.put(startPosition.cpy().cpy().add(16,16), new Tile("grass1", startPosition.cpy().add(16,16)));
+			
+			Vector2 currPos = startPosition.cpy();
+			
+			//get number of grass patches to plant
+			
+			int randomNum = this.rand.nextInt(maxNumPatches-minNumPatches) + minNumPatches; //1 - 4
+
+//			System.out.println("new grass: "+String.valueOf(startPosition.x)+", "+String.valueOf(startPosition.y)); //debug 
+//			System.out.println("rand: "+String.valueOf(randomNum)); //debug 
+//
+//			System.out.println("randomNum: "+String.valueOf(randomNum));
+			for (int i=0; i < randomNum; i++) {
+
+				
+				ArrayList<Vector2> nextPositions = new ArrayList<Vector2>();
+				//
+				
+				//left
+				if (this.tilesToAdd.get(currPos.cpy().add(-16,0)) == null) {
+					if (this.tilesToAdd.get(currPos.cpy().add(-16,+16)) == null) {
+						nextPositions.add(currPos.cpy().add(-16,0));
+					}
+				}
+				//right
+				if (this.tilesToAdd.get(currPos.cpy().add(+32,0)) == null) {
+					if (this.tilesToAdd.get(currPos.cpy().add(+32,+16)) == null) {
+						nextPositions.add(currPos.cpy().add(+16,0));
+					}
+				}
+				//up
+				if (this.tilesToAdd.get(currPos.cpy().add(0,32)) == null) {
+					if (this.tilesToAdd.get(currPos.cpy().add(+16,+32)) == null) {
+						nextPositions.add(currPos.cpy().add(0,16));
+					}
+				}
+				//down
+				if (this.tilesToAdd.get(currPos.cpy().add(0,-16)) == null) {
+					if (this.tilesToAdd.get(currPos.cpy().add(+16,-16)) == null) {
+						nextPositions.add(currPos.cpy().add(0,-16));
+					}
+				}
+								
+				//if you can't go anywhere, stop trying to add grass
+				if (nextPositions.isEmpty()) {
+					break;
+				}
+				//choose one randomly from nextPositions
+				randomIndex = this.rand.nextInt(nextPositions.size());
+
+				Vector2 newPos = nextPositions.get(randomIndex);
+				//put it in tilesToAdd
+				this.tilesToAdd.put(newPos.cpy(), new Tile("grass1", newPos.cpy()));
+				this.tilesToAdd.put(newPos.cpy().add(16,0), new Tile("grass1", newPos.cpy().add(16,0))); 
+				this.tilesToAdd.put(newPos.cpy().add(0,16), new Tile("grass1", newPos.cpy().add(0,16)));
+				this.tilesToAdd.put(newPos.cpy().add(16,16), new Tile("grass1", newPos.cpy().add(16,16)));
+				
+				currPos = newPos;
+			}
+			return;
+		}
+		
+	}
+	
+
+	//TODO - this still returns forest biome tiles
 	public ArrayList<Tile> getTileSquarePlatform1(MazeNode node, Vector2 startLoc) {
 		
 		//README - when creating these, DONT block the middle two tiles of walls that should be open.
@@ -568,7 +844,6 @@ public class GenForest2 extends Action {
 		Vector2 bottomLeft;
 		Vector2 topRight;
 		
-
 		@Override
 		public void step(PkmnGen game) {
 			
@@ -846,14 +1121,14 @@ public class GenForest2 extends Action {
 		ArrayList<Tile> square = new ArrayList<Tile>();
 
 		String[][] format = new String[][]{};
+
+
 		
-		String[] rn = {"ground1", "qmark", "grass1"}; //random non-solid objects
-		 //bug - qmark can potentially be solid
-		
-		//choose from temp because I want more uniformity
-		String[] temp = {"bush1", "tree_small1"};
-		String[] rs = {temp[this.rand.nextInt(temp.length)], "ground1", "ground1"}; //random solid or non-solid objects
-		
+		//random ledge for use later
+
+		//TODO - unused
+		String[] ledge = {"ledge_grass_down","ledge_grass_down","ledge_grass_down",	"ledge_grass_down",	"ledge_grass_down",	"ledge_grass_down"};
+		ledge[this.rand.nextInt(ledge.length)] = "ledge_grass_ramp";
 		 
 		//bl corner
 		if (Arrays.equals(node.isOpen, new boolean[]{false, false})) {
@@ -904,7 +1179,7 @@ public class GenForest2 extends Action {
 
 			//1
 			format = new String[][]{
-		 			  new String[]{"either", 				"either", 						"either",				"either", 						"either", 				"either"},
+		 			  new String[]{"either", 				"either", 						"",						"", 						"either", 				"either"},
 		 			  
 		 			  new String[]{"", 						"",								"", 					"", 							"", 					""},
 		 			  
@@ -925,7 +1200,29 @@ public class GenForest2 extends Action {
 //					}
 //					System.out.print("\n");
 //				}
-				
+				//insert random ledge
+				int randRowIndex = this.rand.nextInt(format.length-2)+1;
+				String[] randRow = format[randRowIndex];
+				boolean onGround = false;
+				ArrayList<Integer> ledgesGoHere = new ArrayList<Integer>();
+				for (int i=0; i < randRow.length; i++) {
+					if (randRow[i] != "solid") {
+						onGround = true;
+						ledgesGoHere.add(i);
+					}
+					else if (onGround == true) {
+						break;
+					}
+				}
+				int randIndexForRamp = ledgesGoHere.get(this.rand.nextInt(ledgesGoHere.size()));
+				for (Integer index : ledgesGoHere) {
+					randRow[index] = "ledge_grass_down";
+					if (index == randIndexForRamp) {
+						randRow[index] = "ledge_grass_ramp";
+						format[randRowIndex-1][index] = ""; //prevent solid object from blocking ramp
+						format[randRowIndex+1][index] = ""; //same
+					}
+				}
 			}
 			square = GenTiles(format, offSetx, offSetY);
 			squares.add(square);
@@ -946,6 +1243,26 @@ public class GenForest2 extends Action {
 					 };
 			if (node.downOpen == true) {
 				FlipFormat(format);
+				//insert random ledge
+				String[] randRow = format[this.rand.nextInt(format.length-2)+1];
+				boolean onGround = false;
+				ArrayList<Integer> ledgesGoHere = new ArrayList<Integer>();
+				for (int i=0; i < randRow.length; i++) {
+					if (randRow[i] != "solid") {
+						onGround = true;
+						ledgesGoHere.add(i);
+					}
+					else if (onGround == true) {
+						break;
+					}
+				}
+				int randIndexForRamp = ledgesGoHere.get(this.rand.nextInt(ledgesGoHere.size()));
+				for (Integer index : ledgesGoHere) {
+					randRow[index] = "ledge_grass_down";
+					if (index == randIndexForRamp) {
+						randRow[index] = "ledge_grass_ramp";
+					}
+				}
 			}
 			square = GenTiles(format, offSetx, offSetY);
 			squares.add(square);
@@ -959,34 +1276,34 @@ public class GenForest2 extends Action {
 			
 			//2
 			format = new String[][]{
-		 			  new String[]{"", 						"",								"", 						"", 							"tree_large1_noSprite", 			"tree_large1_noSprite"},
+		 			  new String[]{"", 						"",								"", 						"", 							"solid", 			"solid"},
 		 			  
-		 			  new String[]{"", 						"",								"", 						rs[this.rand.nextInt(rs.length)], "tree_large1", 					"tree_large1_noSprite"},
+		 			  new String[]{"", 						"",								"", 						"either",						"solid", 			"solid"},
 		 			  
-		 			  new String[]{"", 						"",								"", 						"", 							rs[this.rand.nextInt(rs.length)], 	""},
+		 			  new String[]{"", 						"",								"", 						"", 							"either", 			""},
 		 			  
-		 			  new String[]{"", 						rs[this.rand.nextInt(rs.length)],"", 						"", 							"", 								""},
+		 			  new String[]{"", 						"either",						"", 						"", 							"", 				""},
 		 			  
-		 			  new String[]{"tree_large1_noSprite", 	"tree_large1_noSprite",			rs[this.rand.nextInt(rs.length)],"",						"", 								"",},
+		 			  new String[]{"solid", 				"solid",						"either",					"",								"", 				"",},
 		 			  
-		 			  new String[]{"tree_large1", 			"tree_large1_noSprite",			"", 						"",								"", 								"",},
+		 			  new String[]{"solid", 				"solid",						"", 						"",								"", 				"",},
 					 };
 			square = GenTiles(format, offSetx, offSetY);
 			squares.add(square);
 			
 			//3 - all qmark.
 			format = new String[][]{
-		 			  new String[]{"qmark", 	"qmark",			"qmark", 						"qmark", 							"qmark", 			"qmark"},
+		 			  new String[]{"", 	"",			"", 						"", 							"", 			""},
 		 			  
-		 			  new String[]{"qmark", 	"qmark",			"qmark", 						"qmark", 							"qmark", 			"qmark"},
+		 			  new String[]{"", 	"",			"", 						"", 							"", 			""},
 		 			  
-		 			  new String[]{"qmark", 	"qmark",			"qmark", 						"qmark", 							"qmark", 			"qmark"},
+		 			  new String[]{"", 	"",			"", 						"", 							"", 			""},
 		 			  
-		 			  new String[]{"qmark", 	"qmark",			"qmark", 						"qmark", 							"qmark", 			"qmark"},
+		 			  new String[]{"", 	"",			"", 						"", 							"", 			""},
 		 			  
-		 			  new String[]{"qmark", 	"qmark",			"qmark", 						"qmark",							"qmark", 			"qmark",},
+		 			  new String[]{"solid", 	"solid",			"", 						"",								"", 			"",},
 		 			  
-		 			  new String[]{"qmark", 	"qmark",			"qmark", 						"qmark",							"qmark", 			"qmark",},
+		 			  new String[]{"solid", 	"solid",			"", 						"",								"", 			"",},
 					 };
 			square = GenTiles(format, offSetx, offSetY);
 			squares.add(square);
@@ -1029,6 +1346,7 @@ public class GenForest2 extends Action {
 
 //		System.out.println("offSetX: "+String.valueOf(offSetX));
 //		System.out.println("offSetY: "+String.valueOf(offSetY));
+		String[] emptyOrSolid = {"solid", ""};
 		
 		int i=5;
 		for (String[] sub : format) {
@@ -1036,8 +1354,13 @@ public class GenForest2 extends Action {
 			int j=0;
 			for (String tileName : sub) {
 				
+				//if tile can be 'either', pick 'solid' or ''
+				if (tileName == "either") {
+					int randomNum = this.rand.nextInt(emptyOrSolid.length);
+					tileName = emptyOrSolid[randomNum];
+				}
 				if (tileName != "") {
-					System.out.println("tileName: "+String.valueOf(tileName));
+					//System.out.println("tileName: "+String.valueOf(tileName)); //debug
 					tiles.add(new Tile( tileName, new Vector2(0+j*16+offSetX, 0+i*16+offSetY) ));
 				}
 				j++;
@@ -1053,6 +1376,63 @@ public class GenForest2 extends Action {
 
 
 /* unused code
+
+//make two mazenodes 'platform' nodes
+ * 
+ * 
+		//make a random pair (for now) of maze nodes to be platforms
+		List<Vector2> keysAsArray = new ArrayList<Vector2>(nodes.keySet());
+		Vector2 platform1 = keysAsArray.get(this.rand.nextInt(keysAsArray.size()));
+
+		//if there is a val to the right, and right wall is open, add to otherNodes
+		ArrayList<Vector2> otherNodes = new ArrayList<Vector2>();
+		Vector2 checkNode = platform1.cpy().add(1, 0);
+		if (nodes.get(checkNode) != null) {
+			if (nodes.get(checkNode).leftOpen)
+				otherNodes.add(checkNode);
+		}
+		//if node to the left and this leftopen, add
+		checkNode = platform1.cpy().add(-1, 0);
+		if (nodes.get(checkNode) != null) {
+			if (nodes.get(platform1).leftOpen)
+				otherNodes.add(checkNode);
+		}
+		//if node above and above is downOpen, add
+		checkNode = platform1.cpy().add(0, 1);
+		if (nodes.get(checkNode) != null) {
+			if (nodes.get(checkNode).downOpen)
+				otherNodes.add(checkNode);
+		}
+		//if node below and this is downOpen, add
+		checkNode = platform1.cpy().add(0, -1);
+		if (nodes.get(checkNode) != null) {
+			if (nodes.get(platform1).downOpen)
+				otherNodes.add(checkNode);
+		}
+		
+		//should be guaranteed to have two. 
+		if (!otherNodes.isEmpty()) {
+			nodes.get(platform1).type = "platform1";
+			Vector2 platform2 = otherNodes.get(this.rand.nextInt(otherNodes.size()));
+			nodes.get(platform2).type = "platform1";
+			if (platform1.x < platform2.x) {
+				nodes.get(platform1).rampLoc = "left";
+				nodes.get(platform2).rampLoc = "right";
+			}
+			else if (platform1.x > platform2.x) {
+				nodes.get(platform1).rampLoc = "right";
+				nodes.get(platform2).rampLoc = "left";
+			}
+			else if (platform1.y < platform2.y) {
+				nodes.get(platform1).rampLoc = "down";
+				nodes.get(platform2).rampLoc = "up";
+			}
+			else if (platform1.y > platform2.y) {
+				nodes.get(platform1).rampLoc = "up";
+				nodes.get(platform2).rampLoc = "down";
+			}
+		}
+
 
 //unused getTile code - now these groups are marked 'solid' and 'nonsolid'(empty string)
  //then, biome is applied
