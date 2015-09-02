@@ -77,6 +77,24 @@ public class Player {
 		this.altMovingSprites.put("left", new Sprite(playerText, 96, 0, 16, 16));
 		this.altMovingSprites.put("right", new Sprite(playerText, 112, 0, 16, 16));
 		
+		//running sprites
+		playerText = new Texture(Gdx.files.internal("player1_sheet2.png"));
+		this.standingSprites.put("down_running", new Sprite(playerText, 0, 0, 16, 16));
+		this.standingSprites.put("up_running", new Sprite(playerText, 16, 0, 16, 16));
+		this.standingSprites.put("left_running", new Sprite(playerText, 32, 0, 16, 16));
+		this.standingSprites.put("right_running", new Sprite(playerText, 48, 0, 16, 16));
+		this.movingSprites.put("down_running", new Sprite(playerText, 64, 0, 16, 16));
+		this.movingSprites.put("up_running", new Sprite(playerText, 80, 0, 16, 16));
+		this.movingSprites.put("left_running", new Sprite(playerText, 96, 0, 16, 16));
+		this.movingSprites.put("right_running", new Sprite(playerText, 112, 0, 16, 16));
+		this.altMovingSprites.put("down_running", new Sprite(playerText, 64, 0, 16, 16));
+		this.altMovingSprites.get("down_running").flip(true, false);
+		this.altMovingSprites.put("up_running", new Sprite(playerText, 80, 0, 16, 16));
+		this.altMovingSprites.get("up_running").flip(true, false);
+		this.altMovingSprites.put("left_running", new Sprite(playerText, 96, 0, 16, 16));
+		this.altMovingSprites.put("right_running", new Sprite(playerText, 112, 0, 16, 16));
+		
+		
 		//battle portrait sprite
 		Texture text = new Texture(Gdx.files.internal("battle/player_back1.png"));
 		this.battleSprite = new Sprite(text, 0, 0, 28, 28);
@@ -118,6 +136,8 @@ class playerStanding extends Action {
 	boolean alternate;
 	
 	boolean checkWildEncounter = true; //TODO - remove when playWait is implemented
+	
+	boolean isRunning;
 	
 	@Override
 	public void step(PkmnGen game) {
@@ -226,9 +246,14 @@ class playerStanding extends Action {
 
 		if (shouldMove == true) {
 			Tile temp = game.map.tiles.get(newPos);
-			if (temp == null) {
+			if (temp == null) { //need this check to avoid attr checks after this if null
 				//no tile here, so just move normally
-				PublicFunctions.insertToAS(game, new playerMoving(game, this.alternate));
+				if (Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT)) { //check if player should be running
+					PublicFunctions.insertToAS(game, new playerRunning(game, this.alternate));
+				}
+				else {
+					PublicFunctions.insertToAS(game, new playerMoving(game, this.alternate));
+				}
 				game.actionStack.remove(this);
 			}
 			else if (temp.attrs.get("solid") == true) {
@@ -248,15 +273,27 @@ class playerStanding extends Action {
 				}
 			}
 			else {
-				PublicFunctions.insertToAS(game, new playerMoving(game, this.alternate));
+				if (Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT)) { //check if player should be running
+					PublicFunctions.insertToAS(game, new playerRunning(game, this.alternate));
+				}
+				else {
+					PublicFunctions.insertToAS(game, new playerMoving(game, this.alternate));
+				}
 				game.actionStack.remove(this);
 			}
 		}
 		
 		//draw the sprite corresponding to player direction
-		game.player.currSprite = new Sprite(game.player.standingSprites.get(game.player.dirFacing));
+		
+		if (this.isRunning == true) {  //check running
+			game.player.currSprite = new Sprite(game.player.standingSprites.get(game.player.dirFacing+"_running"));
+		}
+		else {
+			game.player.currSprite = new Sprite(game.player.standingSprites.get(game.player.dirFacing));
+		}
 		
 		this.alternate = false;
+		this.isRunning = false;
 		
 	}
 	
@@ -266,11 +303,20 @@ class playerStanding extends Action {
 		 //problems - timer before moving, alternating sprites
 		this.alternate = true;
 		this.checkWildEncounter = false;
+		this.isRunning = false;
 	}
 	public playerStanding(PkmnGen game, boolean alternate) {
 
 		//only used by playerMoving atm
 		this.alternate = alternate;
+		this.isRunning = false;
+		//todo - might be able to remove above alternate code, should work atm. after 1 iter this.alternate = false, init to true
+	}
+	public playerStanding(PkmnGen game, boolean alternate, boolean isRunning) {
+
+		//only used by playerMoving atm
+		this.alternate = alternate;
+		this.isRunning = isRunning;
 		//todo - might be able to remove above alternate code, should work atm. after 1 iter this.alternate = false, init to true
 	}
 	
@@ -396,6 +442,123 @@ class playerMoving extends Action {
 	}
 	
 	public playerMoving(PkmnGen game, boolean alternate) {
+		
+		this.alternate = alternate;
+		
+		this.initialPos = new Vector2(game.player.position);
+		if (game.player.dirFacing == "up") {
+			this.targetPos = new Vector2(game.player.position.x, game.player.position.y+16);
+		}
+		else if (game.player.dirFacing == "down") {
+			this.targetPos = new Vector2(game.player.position.x, game.player.position.y-16);
+		}
+		else if (game.player.dirFacing == "left") {
+			this.targetPos = new Vector2(game.player.position.x-16, game.player.position.y);
+		}
+		else if (game.player.dirFacing == "right") {
+			this.targetPos = new Vector2(game.player.position.x+16, game.player.position.y);
+		}
+	}
+}
+
+
+//note - this action is nearly identical to playerMoving. Keeping separate though, 
+ //for simplicity
+ //differences are - player sprites, movement speed
+class playerRunning extends Action {
+	
+
+	public int layer = 150;
+	//changed, was 130
+	//alternative is to call cam.update(blah) each draw thingy, but
+	//i think that's less optimal. this action needs to happen before everything else
+	public int getLayer(){return this.layer;}
+	
+	Vector2 initialPos; //track distance of movement
+	Vector2 targetPos; 
+	
+	float xDist, yDist;
+	//float speed = 50.0f;
+	
+	boolean alternate = false;
+	
+	@Override
+	public void step(PkmnGen game) {
+		
+		//can consider doing skipping here if I need to slow down animation
+		//bug - have to add 1 to cam position at beginning of each iteration.
+		 //probably related to occasionaly shakiness, which is probably related to floats
+		
+		//while you haven't moved 16 pixels, 
+		 //move in facing direction
+		
+		float speed = 1.6f; //this needs to add up to 16 for smoothness?
+		
+		if (game.player.dirFacing == "up") {
+			game.player.position.y +=speed;
+			game.cam.position.y +=speed;
+		}
+		else if (game.player.dirFacing == "down") {
+			game.player.position.y -=speed;
+			game.cam.position.y -=speed;
+		}
+		else if (game.player.dirFacing == "left") {
+			game.player.position.x -=speed;
+			game.cam.position.x -=speed;
+		}
+		else if (game.player.dirFacing == "right") {
+			game.player.position.x +=speed;
+			game.cam.position.x +=speed;
+		}
+
+		this.xDist = Math.abs(this.initialPos.x - game.player.position.x);
+		this.yDist = Math.abs(this.initialPos.y - game.player.position.y);
+		
+		//this is needed for batch to draw according to cam
+		game.cam.update();
+		game.batch.setProjectionMatrix(game.cam.combined);
+		
+		//if u remove the below check, youll notice that there's a bit of 
+		 //movement that you don't want
+		String spriteString = String.valueOf(game.player.dirFacing+"_running");
+		//System.out.println("spriteString: " + String.valueOf(spriteString)); //debug
+		if(    (this.yDist < 13 && this.yDist > 2)
+			|| (this.xDist < 13 && this.xDist > 2)) {
+			if (this.alternate == true) {
+				//game.batch.draw(game.player.altMovingSprites.get(game.player.dirFacing), game.player.position.x, game.player.position.y);
+				game.player.currSprite = game.player.altMovingSprites.get(spriteString);
+			}
+			else {
+				//game.batch.draw(game.player.movingSprites.get(game.player.dirFacing), game.player.position.x, game.player.position.y);
+				game.player.currSprite = game.player.movingSprites.get(spriteString);
+			}
+		}
+		else {
+			//game.batch.draw(game.player.standingSprites.get(game.player.dirFacing), game.player.position.x, game.player.position.y);
+			game.player.currSprite = game.player.standingSprites.get(spriteString);
+		}
+		
+		//System.out.println("Debug: " + String.valueOf(game.player.position.y));
+		
+		//when we've moved 16 pixels
+		//if button pressed, change dir and move that direction
+		//else, stand still again
+		if (this.xDist >= 16 || this.yDist >= 16) {
+
+			game.player.position.set(this.targetPos);
+			game.cam.position.set(this.targetPos.x+16, this.targetPos.y,0);
+			game.cam.update(); 									//this line fixes jittering bug
+			game.batch.setProjectionMatrix(game.cam.combined);	//same
+			
+			Action standingAction = new playerStanding(game, !this.alternate, true); //pass true to keep running animation going
+			PublicFunctions.insertToAS(game, standingAction);
+			standingAction.step(game); //decide where to move //doesn't actually seem to do much
+			game.actionStack.remove(this);
+			
+		}
+	}
+	
+	public playerRunning(PkmnGen game, boolean alternate) {
 		
 		this.alternate = alternate;
 		
@@ -755,6 +918,10 @@ class PlayerCanMove extends Action {
 		this.nextAction = nextAction;
 	}
 }
+
+
+
+
 
 
 /*

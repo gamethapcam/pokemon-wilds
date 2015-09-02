@@ -88,27 +88,17 @@ public class GenForest2 extends Action {
 		Tile currTile = this.tilesToAdd.values().iterator().next();
 		game.map.tiles.put(currTile.position.cpy(), currTile);
 		this.tilesToAdd.remove(currTile.position.cpy());
-		
-		//do twice more (to speed up)
-		if (!this.tilesToAdd.isEmpty()) {
-			currTile = this.tilesToAdd.values().iterator().next();
-			game.map.tiles.put(currTile.position.cpy(), currTile);
-			this.tilesToAdd.remove(currTile.position.cpy());
-		}
-		if (!this.tilesToAdd.isEmpty()) {
-			currTile = this.tilesToAdd.values().iterator().next();
-			game.map.tiles.put(currTile.position.cpy(), currTile);
-			this.tilesToAdd.remove(currTile.position.cpy());
-		}
-		if (!this.tilesToAdd.isEmpty()) {
-			currTile = this.tilesToAdd.values().iterator().next();
-			game.map.tiles.put(currTile.position.cpy(), currTile);
-			this.tilesToAdd.remove(currTile.position.cpy());
-		}
-		if (!this.tilesToAdd.isEmpty()) {
-			currTile = this.tilesToAdd.values().iterator().next();
-			game.map.tiles.put(currTile.position.cpy(), currTile);
-			this.tilesToAdd.remove(currTile.position.cpy());
+
+		//do i  more times (to speed up)
+		for (int i=0; i < 10; i++) {
+			if (!this.tilesToAdd.isEmpty()) {
+				currTile = this.tilesToAdd.values().iterator().next();
+				game.map.tiles.put(currTile.position.cpy(), currTile);
+				this.tilesToAdd.remove(currTile.position.cpy());
+			}
+			else {
+				break;
+			}
 		}
 
 		//System.out.println("print: "+String.valueOf(currTile.name));
@@ -150,10 +140,11 @@ public class GenForest2 extends Action {
 		 //using because it can generate patches that are 'fully open', ie no walls
 		 //also is pretty adjustable
 		 //there are other good algo's - 'Recursive backtracker' with horizontal bias looks fun. could adapt algo1 with similar idea.
-		int width = 8; //(int)((endLoc.x - startLoc.x)/squareSize);
-		int height = 10; //(int)((endLoc.y - startLoc.y)/squareSize);
-		float density = .2f; //num times a 'long wall' is created. algo works by creating a long wall at random
-		float complexity = .3f; //length of that 'long wall'
+		int width = (int)((endLoc.x - startLoc.x)/squareSize)*2; //8; //
+		int height = (int)((endLoc.y - startLoc.y)/squareSize)*2; //10; //
+		//below settings allow for a few loops to be present on average, which is what I want
+		float density = .1f; //num times a 'long wall' is created. algo works by creating a long wall at random  //.2f //.1f for 500 width
+		float complexity = .9f; //length of that 'long wall' //.2f
 		HashMap<Vector2, MazeNode> nodes = Maze_Algo1(width, height, density, complexity, squareSize);
 
 		
@@ -185,8 +176,8 @@ public class GenForest2 extends Action {
 		}
 
 		//this.doActions.add(new ApplyForestBiome(game, this.tilesToAdd, startLoc, endLoc, this)); //if you want to apply later
-		//actually just - 
-		Action temp = new ApplyForestBiome(game, this.tilesToAdd, startLoc, endLoc.cpy(), this); //TODO - fix this 
+		//for now:
+		Action temp = new ApplyForestBiome(game, this.tilesToAdd, startLoc, endLoc.cpy(), this);
 		temp.step(game); //this way map is rendered in pretty way, but apply biome is still an action
 		 //contains placement of water and grass
 
@@ -239,6 +230,7 @@ public class GenForest2 extends Action {
 			
 			//for everything between bottomLeft and topRight
 			//add solid sprites
+			 //TODO - 
 			for (float i=this.bottomLeft.x; i < this.topRight.x + 64 + 64; i += 16) {
 				for (float j=this.bottomLeft.y; j < this.topRight.y + 64 + 64 + 64; j += 16) {
 					Tile temp = this.tilesToAdd.get(new Vector2(i,j));
@@ -277,6 +269,7 @@ public class GenForest2 extends Action {
 			plantGrass();
 			plantGrass();
 			
+			//TODO - put berry tree
 			
 			//fill with nothing, ground or flowers
 			fillAllEmptyTiles();
@@ -299,8 +292,8 @@ public class GenForest2 extends Action {
 			
 			String[] randomTile = {"ground3", "ground1", "ground3", "ground1", "ground3", "ground1", "ground3", "ground1", "flower1"};
 
-			for (float i=this.bottomLeft.x; i < this.topRight.x + 64 + 64; i += 16) {
-				for (float j=this.bottomLeft.y; j < this.topRight.y + 64 + 64 + 64; j += 16) {
+			for (float i=this.bottomLeft.x; i < this.topRight.x; i += 16) { // + 64 + 64
+				for (float j=this.bottomLeft.y; j < this.topRight.y; j += 16) { // + 64 + 64 + 64
 					Tile temp = this.tilesToAdd.get(new Vector2(i,j));
 					//check if there is nothing there yet
 					String tileName = randomTile[this.rand.nextInt(randomTile.length)];
@@ -439,8 +432,8 @@ public class GenForest2 extends Action {
 //				randomPos = keySet.get(this.rand.nextInt(keySet.size())).cpy();
 				iter++; //prevents infinite loop
 				
-				int randX = (int)((this.rand.nextInt((int)topRight.x-(int)bottomLeft.x) + (int)bottomLeft.x)/16) * 16;
-				int randY = (int)((this.rand.nextInt((int)topRight.y-(int)bottomLeft.y) + (int)bottomLeft.y)/16) * 16;
+				int randX = (int)((this.rand.nextInt((int)topRight.x-(int)bottomLeft.x - 64) + (int)bottomLeft.x)/16) * 16;
+				int randY = (int)((this.rand.nextInt((int)topRight.y-(int)bottomLeft.y - 64) + (int)bottomLeft.y)/16) * 16;
 				randomPos = new Vector2(randX, randY);
 				
 				if (this.tilesToAdd.get(randomPos.cpy().add(0,0)) != null) {
@@ -1200,27 +1193,29 @@ public class GenForest2 extends Action {
 //					}
 //					System.out.print("\n");
 //				}
-				//insert random ledge
-				int randRowIndex = this.rand.nextInt(format.length-2)+1;
-				String[] randRow = format[randRowIndex];
-				boolean onGround = false;
-				ArrayList<Integer> ledgesGoHere = new ArrayList<Integer>();
-				for (int i=0; i < randRow.length; i++) {
-					if (randRow[i] != "solid") {
-						onGround = true;
-						ledgesGoHere.add(i);
+				//randomly insert random ledge
+				if (this.rand.nextInt(3) == 1) {
+					int randRowIndex = this.rand.nextInt(format.length-2)+1;
+					String[] randRow = format[randRowIndex];
+					boolean onGround = false;
+					ArrayList<Integer> ledgesGoHere = new ArrayList<Integer>();
+					for (int i=0; i < randRow.length; i++) {
+						if (randRow[i] != "solid") {
+							onGround = true;
+							ledgesGoHere.add(i);
+						}
+						else if (onGround == true) {
+							break;
+						}
 					}
-					else if (onGround == true) {
-						break;
-					}
-				}
-				int randIndexForRamp = ledgesGoHere.get(this.rand.nextInt(ledgesGoHere.size()));
-				for (Integer index : ledgesGoHere) {
-					randRow[index] = "ledge_grass_down";
-					if (index == randIndexForRamp) {
-						randRow[index] = "ledge_grass_ramp";
-						format[randRowIndex-1][index] = ""; //prevent solid object from blocking ramp
-						format[randRowIndex+1][index] = ""; //same
+					int randIndexForRamp = ledgesGoHere.get(this.rand.nextInt(ledgesGoHere.size()));
+					for (Integer index : ledgesGoHere) {
+						randRow[index] = "ledge_grass_down";
+						if (index == randIndexForRamp) {
+							randRow[index] = "ledge_grass_ramp";
+							format[randRowIndex-1][index] = ""; //prevent solid object from blocking ramp
+							format[randRowIndex+1][index] = ""; //same
+						}
 					}
 				}
 			}
@@ -1244,23 +1239,25 @@ public class GenForest2 extends Action {
 			if (node.downOpen == true) {
 				FlipFormat(format);
 				//insert random ledge
-				String[] randRow = format[this.rand.nextInt(format.length-2)+1];
-				boolean onGround = false;
-				ArrayList<Integer> ledgesGoHere = new ArrayList<Integer>();
-				for (int i=0; i < randRow.length; i++) {
-					if (randRow[i] != "solid") {
-						onGround = true;
-						ledgesGoHere.add(i);
+				if (this.rand.nextInt(3) == 1) {
+					String[] randRow = format[this.rand.nextInt(format.length-2)+1];
+					boolean onGround = false;
+					ArrayList<Integer> ledgesGoHere = new ArrayList<Integer>();
+					for (int i=0; i < randRow.length; i++) {
+						if (randRow[i] != "solid") {
+							onGround = true;
+							ledgesGoHere.add(i);
+						}
+						else if (onGround == true) {
+							break;
+						}
 					}
-					else if (onGround == true) {
-						break;
-					}
-				}
-				int randIndexForRamp = ledgesGoHere.get(this.rand.nextInt(ledgesGoHere.size()));
-				for (Integer index : ledgesGoHere) {
-					randRow[index] = "ledge_grass_down";
-					if (index == randIndexForRamp) {
-						randRow[index] = "ledge_grass_ramp";
+					int randIndexForRamp = ledgesGoHere.get(this.rand.nextInt(ledgesGoHere.size()));
+					for (Integer index : ledgesGoHere) {
+						randRow[index] = "ledge_grass_down";
+						if (index == randIndexForRamp) {
+							randRow[index] = "ledge_grass_ramp";
+						}
 					}
 				}
 			}

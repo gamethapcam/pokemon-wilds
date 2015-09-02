@@ -177,7 +177,8 @@ public class PkmnGen extends ApplicationAdapter {
 		//extra stuff
 		//PublicFunctions.insertToAS(this, new DrawObjectives(this));
 		//PublicFunctions.insertToAS(this, new GenForest1(this, new Vector2(-64,-64), new Vector2(128,128)));
-		PublicFunctions.insertToAS(this, new GenForest2(this, new Vector2(-64,-48), new Vector2(320,336)));
+		//PublicFunctions.insertToAS(this, new GenForest2(this, new Vector2(-64,-48), new Vector2(320,336)));
+		PublicFunctions.insertToAS(this, new GenForest2(this, new Vector2(-64,-48), new Vector2(800,800)));
 		
 		//debug //these below work
 //		String string1 = "AAAA used         SAFARI BALL!";
