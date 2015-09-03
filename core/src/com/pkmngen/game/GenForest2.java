@@ -451,7 +451,9 @@ public class GenForest2 extends Action {
 				startPosition = randomPos;
 			}
 			
-
+			if (startPosition == null) { //return if we failed to find a startPos
+				return;
+			}
 			
 			this.tilesToAdd.put(startPosition.cpy(), new Tile("grass1", startPosition.cpy()));
 			this.tilesToAdd.put(startPosition.cpy().cpy().add(16,0), new Tile("grass1", startPosition.cpy().add(16,0))); 

@@ -8,9 +8,11 @@ import java.util.Random;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.audio.Music;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.Sprite;
+import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 
 
@@ -57,6 +59,8 @@ public class Player {
 	//this would be if doing android
 	 //action would set these
 	//Map<String, Integer> buttonPressed = new HashMap<String, Integer>();
+	
+	String currState; //need for ghost spawn
 	
 	public Player() {
 		
@@ -110,6 +114,7 @@ public class Player {
 		this.pokemon = new ArrayList<Pokemon>();
 		
 		this.adrenaline = 0;
+		this.currState = "";
 	}
 	
 }
@@ -153,9 +158,10 @@ class playerStanding extends Action {
 		 //TODO - in future, this action will jump to a waiting action after one iteration
 		if (this.checkWildEncounter == true) {
 			if (checkWildEncounter(game) == true) {
-				game.actionStack.remove(this);
+				//game.actionStack.remove(this); //now using playerCanMove flag
 				//plan to insert a series here instead
 				 //
+				game.playerCanMove = false;
 				PublicFunctions.insertToAS(game, new SplitAction(
 													new BattleIntro(
 														new BattleIntro_anim1(
@@ -324,6 +330,11 @@ class playerStanding extends Action {
 	 //i think the real game uses an encounter table or something
 	boolean checkWildEncounter(PkmnGen game) {
 		
+		//no encounters at night (subject to change)
+		if (game.map.timeOfDay == "Night") {
+			return false;
+		}
+		
 		Tile currTile = game.map.tiles.get(game.player.position);
 		
 		if (currTile != null) {
@@ -334,7 +345,8 @@ class playerStanding extends Action {
 				int randomNum = game.map.rand.nextInt(100) + 1; //rate determine by player? //1 - 100
 				if (randomNum < 20) { //encounterRate //was <= 50
 					//disable player movement 
-					game.actionStack.remove(this);
+					//game.actionStack.remove(this); //using flag now, delete this
+					
 					
 					//select new pokemon to encounter, put it in battle struct
 					int index = game.map.rand.nextInt(game.map.currRoute.pokemon.size());
@@ -373,6 +385,13 @@ class playerMoving extends Action {
 	
 	@Override
 	public void step(PkmnGen game) {
+		
+
+		//allows game to pause in middle of run
+		if (game.playerCanMove == false) {
+			return;
+		}
+		
 		
 		//can consider doing skipping here if I need to slow down animation
 		//bug - have to add 1 to cam position at beginning of each iteration.
@@ -485,6 +504,12 @@ class playerRunning extends Action {
 	@Override
 	public void step(PkmnGen game) {
 		
+		//allows game to pause in middle of run
+		if (game.playerCanMove == false) {
+			return;
+		}
+		
+		
 		//can consider doing skipping here if I need to slow down animation
 		//bug - have to add 1 to cam position at beginning of each iteration.
 		 //probably related to occasionaly shakiness, which is probably related to floats
@@ -575,6 +600,7 @@ class playerRunning extends Action {
 		else if (game.player.dirFacing == "right") {
 			this.targetPos = new Vector2(game.player.position.x+16, game.player.position.y);
 		}
+		game.player.currState = "Running";
 	}
 }
 
@@ -821,6 +847,9 @@ class drawPlayer_upper extends Action {
 		this.spritePart.setRegionHeight(8);
 		
 		game.batch.draw(this.spritePart, game.player.position.x, game.player.position.y+12);
+
+		//this needs to be set to detect collision
+		game.player.currSprite.setPosition(game.player.position.x, game.player.position.y);
 		
 	}
 			
@@ -921,6 +950,656 @@ class PlayerCanMove extends Action {
 
 
 
+//for drawing the ghost that chases the player
+class drawGhost extends Action {
+	
+
+	public int layer = 114;
+	public int getLayer(){return this.layer;}
+	
+	Sprite currSprite;
+	Vector2 basePos; //need this to make ghost 'float'
+
+	float velX; 
+	float velY; 
+	float maxVel;
+	
+	float sineTimer;
+	String dirFacing;
+	
+	Map<String, Sprite[]> sprites;
+	
+	int animIndex;
+	int animFrame;
+	
+	Pokemon pokemon;
+	
+	boolean inBattle = false;
+	int noEncounterTimer = 0;
+	
+	@Override
+	public void step(PkmnGen game) {
+			
+		//check if it's day or not. if not Night, despawn the ghost
+		if (game.map.timeOfDay != "Night") {
+			this.currSprite.draw(game.batch);
+			game.actionStack.remove(this);
+			PublicFunctions.insertToAS(game, new despawnGhost(this.basePos.cpy()));
+			return;
+		}
+		
+		//check if ghost pokemon is dead. if yes, remove this from AS
+		
+		//check whether player is in battle or not
+		//if not, don't move the ghost at all (subject to change)
+		if (game.battle.drawAction != null) { 
+			this.currSprite.draw(game.batch);
+			this.inBattle = true;
+			this.noEncounterTimer = 0;
+			return;
+		}
+		
+		//wait for a while if you just exited battle
+		if (inBattle == true) {
+			if (noEncounterTimer % 4 >= 2) {
+				this.currSprite.draw(game.batch);
+			}
+			this.noEncounterTimer++;
+			if (this.noEncounterTimer < 128) {
+				return;
+			}
+			inBattle = false;
+		}
+		
+		//calculate direction to player, face that direction
+		float dx = this.basePos.x - game.player.position.x;
+		float dy = this.basePos.y - game.player.position.y;
+		if (dx < dy) {
+			if (game.player.position.y < this.basePos.y) {
+				this.dirFacing = "down";
+			}
+			else {
+				this.dirFacing = "right";
+			}
+		}
+		else {
+			if (game.player.position.x < this.basePos.x) {
+				this.dirFacing = "left";
+			}
+			else {
+				this.dirFacing = "up";
+			}
+		}
+		
+		//set ghost sprite to dirFacing
+		this.currSprite = this.sprites.get(this.dirFacing)[this.animIndex];
+		
+		//game.player.position.x < this.basePos.x
+		
+		//modify base pos to chase player (accelerate in player direction)
+		if (this.dirFacing == "left") {
+			if (velX > -maxVel) {
+				this.velX -= .1f;
+			}
+			this.velY -= this.velY/16.0f;
+		}
+		else if (this.dirFacing == "right") {
+			if (velX < maxVel) {
+				this.velX += .1f;
+			}
+			this.velY -= this.velY/16.0f;
+		}
+		else if (this.dirFacing == "down") {
+			if (velY > -maxVel) {
+				this.velY -= .1f;
+			}
+			this.velX -= this.velX/16.0f;
+		}
+		else if (this.dirFacing == "up") {
+			if (velY < maxVel) {
+				this.velY += .1f;
+			}
+			this.velX -= this.velX/16.0f;
+		}
+		//apply position
+		this.basePos.add(velX, velY);
+		
+		//x and y are sine function
+		float shiftPosX = (float)Math.sin(sineTimer);
+		float shiftPosY = (float)Math.sin(2*sineTimer);
+		this.currSprite.setPosition(basePos.x+shiftPosX, basePos.y+shiftPosY);
+		
+		this.currSprite.draw(game.batch); 
+		//game.batch.draw(this.currSprite, this.currSprite.getX(), this.currSprite.getY()); //TODO - remove
+		
+		sineTimer+=.125f;
+		if (sineTimer >= 3.14*2f) {
+			sineTimer = 0.0f;
+		}
+		
+		//run ghost animation
+		animFrame++;
+		if (animFrame > 10) {
+			animFrame = 0;
+			animIndex++;
+		}
+		if (animIndex >= this.sprites.get(this.dirFacing).length ) {
+			animIndex = 0;
+		}
+		
+		//need to make ghost rectangle bounds smaller
+		Rectangle rect = this.currSprite.getBoundingRectangle(); 
+		rect.x +=16;
+		rect.y +=16;
+		rect.width -=2*16;
+		rect.height -=2*16;
+		
+		//check collision. if collision, start battle with pokemon
+		if (rect.overlaps(game.player.currSprite.getBoundingRectangle())) {
+			//System.out.println("collision x: " + String.valueOf(this.currSprite.getBoundingRectangle().x)); //debug
+			//System.out.println("collision x: " + String.valueOf(game.player.currSprite.getBoundingRectangle().x)); //debug
+
+			game.battle.oppPokemon = this.pokemon;
+			game.playerCanMove = false; 
+			PublicFunctions.insertToAS(game, new SplitAction(
+												new BattleIntro(
+													new BattleIntro_anim1(
+														new SplitAction(
+															new DrawBattle(game),
+															new BattleAnim_positionPlayers(game, 
+																new PlaySound(game.battle.oppPokemon.name, 
+																	new DisplayText(game, "A Ghost appeared!", null, null, 
+																		new WaitFrames(game, 39,
+																			//demo code - wildly confusing, but i don't want to write another if statement
+																				game.player.adrenaline > 0 ? new DisplayText(game, ""+game.player.name+" has ADRENALINE "+Integer.toString(game.player.adrenaline)+"!", null, null,
+																					new PrintAngryEating(game, //for demo mode, normally left out
+																							new DrawBattleMenu_SafariZone(game, new DoneAction())
+																						)
+																					)
+																				: 
+																				new PrintAngryEating(game, //for demo mode, normally left out
+																						new DrawBattleMenu_SafariZone(game, new DoneAction())	
+																			)
+																			//
+																		)
+																	)
+																)
+															)
+														)
+													)
+												),
+												new DoneAction()
+											)
+										);
+		}
+	}
+			
+
+	public drawGhost(PkmnGen game, Vector2 position) {
+
+		this.basePos = position;
+		this.sineTimer = 0;
+		this.dirFacing = "down";
+		this.sprites = new HashMap<String, Sprite[]>();
+		this.animIndex = 0;
+		this.animFrame = 0;
+		this.maxVel = 1.2f; //can scale to make ghost harder
+		
+		//need to store which pokemon this actually will be (i think)
+		this.pokemon = new Pokemon("Sableye", 21);
+		
+		Texture ghostTexture = new Texture(Gdx.files.internal("ghost_sheet1.png"));
+		this.sprites.put("down", new Sprite[]{
+									new Sprite(ghostTexture, 32*0, 0, 32, 32),
+									new Sprite(ghostTexture, 32*1, 0, 32, 32),
+									new Sprite(ghostTexture, 32*0, 0, 32, 32),
+									new Sprite(ghostTexture, 32*1, 0, 32, 32),
+									new Sprite(ghostTexture, 32*0, 0, 32, 32),
+									new Sprite(ghostTexture, 32*1, 0, 32, 32),
+									new Sprite(ghostTexture, 32*2, 0, 32, 32),
+									new Sprite(ghostTexture, 32*3, 0, 32, 32)} );
+		
+		this.sprites.put("left", new Sprite[]{new Sprite(ghostTexture, 32*4, 0, 32, 32),
+												new Sprite(ghostTexture, 32*5, 0, 32, 32),
+												new Sprite(ghostTexture, 32*4, 0, 32, 32),
+												new Sprite(ghostTexture, 32*5, 0, 32, 32),
+												new Sprite(ghostTexture, 32*4, 0, 32, 32),
+												new Sprite(ghostTexture, 32*5, 0, 32, 32),
+												new Sprite(ghostTexture, 32*6, 0, 32, 32),
+												new Sprite(ghostTexture, 32*7, 0, 32, 32)} );
+		
+		this.sprites.put("up", new Sprite[]{ new Sprite(ghostTexture, 32*8, 0, 32, 32),
+												new Sprite(ghostTexture, 32*9, 0, 32, 32),
+												new Sprite(ghostTexture, 32*8, 0, 32, 32),
+												new Sprite(ghostTexture, 32*9, 0, 32, 32),
+												new Sprite(ghostTexture, 32*8, 0, 32, 32),
+												new Sprite(ghostTexture, 32*9, 0, 32, 32),
+												new Sprite(ghostTexture, 32*10, 0, 32, 32),
+												new Sprite(ghostTexture, 32*11, 0, 30, 32)} );
+		Sprite temp = new Sprite(ghostTexture, 32*4, 0, 32, 32);
+		temp.flip(true, false);
+		Sprite temp2 = new Sprite(ghostTexture, 32*5, 0, 32, 32);
+		temp2.flip(true, false);
+		Sprite temp3 = new Sprite(ghostTexture, 32*6, 0, 32, 32);
+		temp3.flip(true, false);
+		Sprite temp4 = new Sprite(ghostTexture, 32*7, 0, 32, 32);
+		temp4.flip(true, false);
+		this.sprites.put("right", new Sprite[]{temp, temp2, temp, temp2, temp, temp2, temp3, temp4});
+
+		this.currSprite = this.sprites.get(this.dirFacing)[this.animIndex];
+		this.currSprite.setPosition(position.x, position.y);
+
+	}
+}
+
+
+
+
+//for spawning ghost, playing effects etc
+class spawnGhost extends Action {
+	
+
+	public int layer = 114;
+	public int getLayer(){return this.layer;}
+
+	Sprite[] sprites;
+	
+	int part1;
+	int part2;
+	int part3;
+	
+	Vector2 position;
+	
+	@Override
+	public void step(PkmnGen game) {
+		
+		if (part1 == 80) { //do once
+			game.playerCanMove = false;
+			//set player to face ghost
+			float dx = this.position.x - game.player.position.x;
+			float dy = this.position.y - game.player.position.y;
+			if (dx < dy) {
+				if (game.player.position.y < this.position.y) {
+					game.player.currSprite = game.player.standingSprites.get("up");
+				}
+				else {
+					game.player.currSprite = game.player.standingSprites.get("left");
+				}
+			}
+			else {
+				if (game.player.position.x < this.position.x) {
+					game.player.currSprite = game.player.standingSprites.get("right");
+				}
+				else {
+					game.player.currSprite = game.player.standingSprites.get("down");
+				}
+			}
+			
+			//play alert music
+			game.currMusic.pause();
+			Music music = Gdx.audio.newMusic(Gdx.files.internal("night1_alert1.ogg"));
+			music.setLooping(true);
+			music.setVolume(.7f);
+			game.currMusic = music;
+			game.currMusic.play();
+			
+			//TODO - insert ! mark action
+		}
+		
+		//play anim frames one by one
+		if (part1 > 0) {
+			
+			if (part1 % 4 >= 2) {
+				this.sprites[0].draw(game.batch);
+			}
+			part1--;
+			return;
+		}
+		
+		if (part2 == 40) {
+			PublicFunctions.insertToAS(game, new PlaySound("ghost1", new DoneAction()));
+		}
+		if (part2 == 32) {
+			PublicFunctions.insertToAS(game, new PlaySound("ghost1", new DoneAction()));
+		}
+		
+		if (part2 > 0) {
+			if (part2 % 8 >= 4) {
+				this.sprites[1].draw(game.batch);
+			}
+			else {
+				this.sprites[2].draw(game.batch);
+			}
+			part2--;
+			return;
+		}
+		
+		if (part3 > 0) {
+			this.sprites[2].draw(game.batch);
+			part3--;
+			return;
+		}
+		
+		//TODO - start frantic music (? best place? better in ghost draw?)
+		game.currMusic.pause();
+		Music music = Gdx.audio.newMusic(Gdx.files.internal("night1_chase1.ogg"));
+		music.setLooping(true);
+		music.setVolume(.7f);
+		game.currMusic = music;
+		game.map.currRoute.music = music; //TODO - how to switch to normal after defeating
+		game.currMusic.play();
+		
+		
+		game.playerCanMove = true;
+		game.actionStack.remove(this);
+		PublicFunctions.insertToAS(game, new drawGhost(game, this.position));
+		
+	}
+	
+	
+	public spawnGhost(PkmnGen game, Vector2 position) {
+
+		this.part1 = 80;
+		this.part2 = 40;
+		this.part3 = 50;
+		this.position = position;
+		
+		Texture ghostTexture1 = new Texture(Gdx.files.internal("ghost_spawn1.png"));
+		Texture ghostTexture2 = new Texture(Gdx.files.internal("ghost_sheet1.png"));
+		
+		this.sprites = new Sprite[]{
+				new Sprite(ghostTexture1, 0, 0, 40, 40),
+				new Sprite(ghostTexture2, 0, 0, 32, 32),
+				new Sprite(ghostTexture2, 32, 0, 32, 32),
+		};
+
+		this.sprites[0].setPosition(position.x-4, position.y-4);
+		this.sprites[1].setPosition(position.x, position.y);
+		this.sprites[2].setPosition(position.x, position.y);
+		
+		
+	}
+		
+}
+
+
+
+class despawnGhost extends Action {
+	
+
+	public int layer = 114;
+	public int getLayer(){return this.layer;}
+
+	Sprite[] sprites;
+	
+	int part1;
+	int part2;
+	int part3;
+	
+	Vector2 position;
+	Sprite sprite;
+	
+	@Override
+	public void step(PkmnGen game) {
+		
+		if (part1 > 0) {
+			
+			if (part1 % 4 >=2) {
+				this.sprite.draw(game.batch);
+			}
+			
+			part1--;
+			return;			
+		}
+		
+		game.actionStack.remove(this);
+		
+	}
+	
+	public despawnGhost(Vector2 position) {
+
+		this.part1 = 80;
+		
+		this.position = position;
+		
+		Texture ghostTexture1 = new Texture(Gdx.files.internal("ghost_spawn1.png"));
+		this.sprite = new Sprite(ghostTexture1, 0, 0, 40, 40);
+		this.sprite.setPosition(position.x-4, position.y-4);
+	}
+}
+
+
+
+
+//for keeping track of day night
+ //pops up cycle change notif, changes shader, etc
+class cycleDayNight extends Action {
+	
+
+	public int layer = 114;
+	public int getLayer(){return this.layer;}
+	
+	public String getCamera() {return "gui";};
+	
+	int[] currFrames;
+
+	boolean fadeToDay;
+	boolean fadeToNight;
+	
+	int animIndex;
+	
+	AnimationContainer<Color> animContainer;
+	AnimationContainer<Color> fadeToDayAnim;
+	
+	Random rand;
+	int countDownToGhost;
+	int dayTimer;
+	
+	Sprite bgSprite;
+	String text;
+	
+	int signCounter;
+	int day, night; //number of days/nights that has passed
+	
+	@Override
+	public void step(PkmnGen game) {
+		
+		if (game.playerCanMove == true) {
+			dayTimer--;
+		}
+		
+		if (dayTimer <= 0) {
+			//TODO - time of day is part of map
+			 //
+			if (game.map.timeOfDay == "Day") {
+				this.fadeToNight = true;
+				dayTimer = 1000; //debug
+			}
+			else if (game.map.timeOfDay == "Night") {
+				this.fadeToDay = true;
+				dayTimer = 1000; //debug
+			}
+		}
+		
+
+		if (fadeToDay == true) {
+			
+			game.batch.setColor(this.fadeToDayAnim.currentThing());
+			
+			animIndex++;
+
+			if (animIndex >= this.fadeToDayAnim.currentFrame()) {
+				this.fadeToDayAnim.index++;
+				animIndex = 0;
+			}
+			
+			
+			if (this.fadeToDayAnim.index >= this.fadeToDayAnim.animateThese.size()) {
+				fadeToDay = false;
+				game.map.timeOfDay = "Day";
+				this.fadeToDayAnim.index = 0;
+				
+				//TODO - fade day music
+				game.currMusic.pause();
+				//start night music
+				Music music = Gdx.audio.newMusic(Gdx.files.internal("route1_1.ogg"));
+				music.setLooping(true);
+				music.setVolume(.7f);
+				game.currMusic = music;
+				game.map.currRoute.music = music; //TODO - how to switch to normal after defeating
+				game.currMusic.play();
+				
+				//state which day it is
+				day++;
+				signCounter = 300;
+			}
+		}
+		
+		
+		if (fadeToNight == true) {
+			
+			game.batch.setColor(this.animContainer.currentThing());
+			
+			animIndex++;
+
+			if (animIndex >= this.animContainer.currentFrame()) {
+				this.animContainer.index++;
+				animIndex = 0;
+			}
+			
+			
+			if (this.animContainer.index >= this.animContainer.animateThese.size()) {
+				fadeToNight = false;
+				game.map.timeOfDay = "Night";
+				this.countDownToGhost = 150;//this.rand.nextInt(5000);
+				this.animContainer.index = 0;
+				
+				//TODO - fade day music
+				game.currMusic.pause();
+				//start night music
+				Music music = Gdx.audio.newMusic(Gdx.files.internal("night1.ogg"));
+				music.setLooping(true);
+				music.setVolume(.7f);
+				game.currMusic = music;
+				game.map.currRoute.music = music; //TODO - how to switch to normal after defeating
+				game.currMusic.play();
+				
+				//state which night it is
+				night++;
+				signCounter = 150;
+			}
+		}
+		
+		
+		//check player can move so don't spawn in middle of battle or when looking at ghost
+		if (game.map.timeOfDay == "Night" && game.playerCanMove == true) { 
+			//chance to spawn ghost
+			countDownToGhost--;
+			if (game.player.currState != "Running") {
+				countDownToGhost--;
+			}
+			
+			if (countDownToGhost == 0) {
+				Vector2 randPos = game.player.position.cpy().add(this.rand.nextInt(5)*16 - 48, this.rand.nextInt(5)*16 - 48);
+				PublicFunctions.insertToAS(game, new spawnGhost(game, new Vector2(randPos)) );
+				this.countDownToGhost = this.rand.nextInt(5000);
+			}
+			
+		}
+		
+
+		if (signCounter > 0) {
+			signCounter--;
+			
+			if (signCounter > 100) {
+			}
+			else if (signCounter > 78) {
+				this.bgSprite.setPosition(this.bgSprite.getX(), this.bgSprite.getY()-1);
+			}
+			else if (signCounter > 22) {
+			}
+			else {
+				this.bgSprite.setPosition(this.bgSprite.getX(), this.bgSprite.getY()+1);
+			}
+			
+			this.bgSprite.draw(game.floatingBatch);
+			String temp="";
+			if (game.map.timeOfDay == "Day") {
+					temp = String.valueOf(this.day);
+			}
+			else {
+					temp = String.valueOf(this.night);
+			}
+			game.font.draw(game.floatingBatch, game.map.timeOfDay+": "+temp, 60, this.bgSprite.getY()+134); //Gdx.graphics.getHeight()-
+		}
+		
+	}
+	
+	public cycleDayNight(PkmnGen game) {
+		
+		this.day = 1;
+		this.night = 0;
+		
+		this.animContainer = new AnimationContainer<Color>();
+		animContainer.add(new Color(0.8f, 0.8f, 0.8f, 1.0f), 80);
+		animContainer.add(new Color(0.5f, 0.5f, 0.6f, 1.0f), 80);
+		animContainer.add(new Color(0.2f, 0.2f, 0.4f, 1.0f), 80);
+		animContainer.add(new Color(0.08f, 0.08f, 0.3f, 1.0f), 80);
+		animContainer.add(new Color(0.01f, 0.01f, 0.2f, 1.0f), 80);
+
+		this.fadeToDayAnim = new AnimationContainer<Color>();
+		fadeToDayAnim.add(new Color(0.01f, 0.01f, 0.2f, 1.0f), 80);
+		fadeToDayAnim.add(new Color(0.08f, 0.08f, 0.3f, 1.0f), 80);
+		fadeToDayAnim.add(new Color(0.2f, 0.2f, 0.4f, 1.0f), 80);
+		fadeToDayAnim.add(new Color(0.8f, 0.8f, 0.8f, 1.0f), 80);
+		fadeToDayAnim.add(Color.WHITE, 80);
+
+		this.fadeToDay = false;
+		this.fadeToNight = false;
+		this.animIndex = 0;
+		
+		this.rand = new Random();
+		this.dayTimer = 100;
+		
+
+		Texture text = new Texture(Gdx.files.internal("text2.png"));
+		this.bgSprite = new Sprite(text, 0, 0, 160, 144);
+		this.bgSprite.translateY(22);
+
+		this.text = game.map.timeOfDay+": "; //String.valueOf(this.numMain)
+	}
+		
+}
+
+//contains thing to cycle, number of frames for thing
+//add more in future, like sounds
+class AnimationContainer<E> {
+	
+	ArrayList<E> animateThese;
+	ArrayList<Integer> numFrames;
+	
+	int index;
+	
+	public void add(E thing, int numFrames) {
+		animateThese.add(thing);;
+		this.numFrames.add(numFrames);
+	
+	}
+
+	public E currentThing() {
+		return this.animateThese.get(this.index);
+	}
+	
+	public int currentFrame() {
+		return this.numFrames.get(this.index);
+	}
+	
+	public AnimationContainer() {
+		this.animateThese = new ArrayList<E>();
+		this.numFrames = new ArrayList<Integer>();
+		this.index = 0;
+	}
+}
 
 
 

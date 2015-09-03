@@ -122,12 +122,6 @@ public class PkmnGen extends ApplicationAdapter {
 		
 		//add start actions
 		ArrayList<Action> startActions = new ArrayList<Action>();
-		//draw bg
-		//startActions.add(new drawAction_map1());
-		//control_ship1 ship1
-		//startActions.add(new control_ship1(this));
-		//draw_crosshair
-		//startActions.add(new draw_crosshair(this));
 		//draw map
 		startActions.add(new drawMap(this));
 		//set player
@@ -179,6 +173,23 @@ public class PkmnGen extends ApplicationAdapter {
 		//PublicFunctions.insertToAS(this, new GenForest1(this, new Vector2(-64,-64), new Vector2(128,128)));
 		//PublicFunctions.insertToAS(this, new GenForest2(this, new Vector2(-64,-48), new Vector2(320,336)));
 		PublicFunctions.insertToAS(this, new GenForest2(this, new Vector2(-64,-48), new Vector2(800,800)));
+		
+
+		
+		//PublicFunctions.insertToAS(this, new spawnGhost(this, new Vector2(32, 0))); //debug
+		
+
+		//TODO - remove
+		//batch.enableBlending();
+		//batch.setColor(new Color(0.01f, 0.01f, 0.2f, 1.0f));
+		//batch.setBlendFunction(Gdx.gl.GL_MAX_TEXTURE_UNITS, Gdx.gl.GL_FUNC_ADD);
+		
+		PublicFunctions.insertToAS(this, new cycleDayNight(this));
+		
+		
+//		System.out.println("color r:"+String.valueOf(Color.TEAL.r)); //debug
+//		System.out.println("color b:"+String.valueOf(Color.TEAL.b));
+//		System.out.println("color g:"+String.valueOf(Color.TEAL.g));
 		
 		//debug //these below work
 //		String string1 = "AAAA used         SAFARI BALL!";

@@ -1350,6 +1350,10 @@ class PlaySound extends Action {
 			this.music = Gdx.audio.newMusic(Gdx.files.internal("attacks/harden1.ogg"));
 			this.music.setLooping(false);
 		}
+		else if (sound == "ghost1") {
+			this.music = Gdx.audio.newMusic(Gdx.files.internal("ghost1.ogg"));
+			this.music.setLooping(false);
+		}
 	}
 	
 	boolean playedYet; //do music.play on first step

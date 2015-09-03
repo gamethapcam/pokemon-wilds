@@ -350,7 +350,7 @@ class DrawBattleMenu1 extends Action {
 				PublicFunctions.insertToAS(game, new BattleFadeOut(game,
 													new WaitFrames(game, 18, 
 														new DisplayText(game, "Got away safely!", null, null,
-															new playerStanding(game)
+															new DoneAction()//new playerStanding(game)
 														)
 													)
 												)
@@ -359,6 +359,8 @@ class DrawBattleMenu1 extends Action {
 				PublicFunctions.insertToAS(game, new PlaySound("click1", new PlaySound("run1", new DoneAction())));
 				game.actionStack.remove(this);
 				game.actionStack.remove(game.battle.drawAction); //stop drawing the battle
+				game.battle.drawAction = null;
+
 			}
 		}
 
@@ -521,7 +523,7 @@ class DrawBattleMenu_SafariZone extends Action {
 													new DisplayText(game, "Got away safely!", null, null,
 														new SplitAction(
 															new BattleFadeOut(game,
-																new playerStanding(game)),
+																new DoneAction()), //new playerStanding(game)),
 															new BattleFadeOutMusic(game, new DoneAction())
 														)
 													)
@@ -680,11 +682,13 @@ class BattleFadeOut extends Action {
 		
 		//should only happen once. not sure that repeat matters
 		game.actionStack.remove(game.battle.drawAction); //stop drawing the battle
-
+		game.battle.drawAction = null;
+		
 		//if done with anim, do nextAction
 		if (frames.isEmpty()) {
 			PublicFunctions.insertToAS(game, this.nextAction);
 			game.actionStack.remove(this);
+			game.playerCanMove = true;
 			return;
 		}
 		
@@ -1740,7 +1744,7 @@ class catchPokemon_wigglesThenCatch extends Action {
 			Action newAction = new PokemonCaught_Events(
 									game, adrenaline, new SplitAction( //demo code
 										new BattleFadeOut(game, 
-												new playerStanding(game)
+												new DoneAction() //new playerStanding(game)
 										),
 										new BattleFadeOutMusic(game, new DoneAction())
 									)
@@ -2623,7 +2627,7 @@ class ChanceToRun extends Action {
 								new OppPokemonFlee(game, 
 									new SplitAction(
 										new BattleFadeOut(game,
-											new playerStanding(game)),
+											new DoneAction()), //new playerStanding(game)),
 										new BattleFadeOutMusic(game, new DoneAction())
 									)
 								),
@@ -2656,7 +2660,7 @@ class ChanceToRun extends Action {
 								new OppPokemonFlee(game, 
 									new SplitAction(
 										new BattleFadeOut(game,
-											new playerStanding(game)),
+											new DoneAction()), //new playerStanding(game)),
 										new BattleFadeOutMusic(game, new DoneAction())
 									)
 								),
@@ -2852,6 +2856,9 @@ class PokemonCaught_Events extends Action {
 			game.actionStack.remove(this);
 			//stop drawing the battle
 			game.actionStack.remove(game.battle.drawAction); //stop drawing the battle
+			game.battle.drawAction = null; //essentially using this like a flag
+
+			//alternative is to have drawAction check for boolean to not exist, and remove itself if flag not set
 			return;
 		}
 		

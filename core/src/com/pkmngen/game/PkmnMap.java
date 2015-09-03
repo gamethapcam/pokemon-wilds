@@ -48,6 +48,7 @@ class Tile {
 	String name;
 	
 	
+	
 	public void onWalkOver() {
 		
 	}
@@ -655,8 +656,12 @@ public class PkmnMap {
 
 	//needed for wild encounters etc
 	Random rand;
+
+	String timeOfDay; //used by cycleDayNight
 	
 	public PkmnMap(String mapName) {
+		
+		this.timeOfDay = "Day";
 		
 		Vector2 pos;
 
@@ -788,7 +793,8 @@ class drawMap extends Action { ///
 	public int layer = 140;
 	public int getLayer(){return this.layer;}
 	
-
+	Sprite blankSprite;
+	
 	@Override
 	public void step(PkmnGen game) {
 		
@@ -801,8 +807,13 @@ class drawMap extends Action { ///
 				
 				//oversprite is often ledges
 				if (tile.overSprite != null) {
-					tile.overSprite.draw(game.batch);	
+					game.batch.draw(tile.overSprite, tile.overSprite.getX(), tile.overSprite.getY());
+					//tile.overSprite.draw(game.batch);	//doesn't allow coloring via batch //TODO - remove
 				}
+			}
+
+			else if (tile.attrs.get("grass") == true) {
+				game.batch.draw(this.blankSprite, tile.sprite.getX(), tile.sprite.getY());
 			}
 		}
 		
@@ -810,12 +821,16 @@ class drawMap extends Action { ///
 	
 	public drawMap(PkmnGen game) {
 		
+		Texture text = new Texture(Gdx.files.internal("tiles/blank2.png"));
+		this.blankSprite = new Sprite(text,0,0,16,16);
 	}
 	
 }
 
 
 //moves water back and forth
+ //also - I am going to add a sprite below each grass here
+ //needed for sprite coloring
 class MoveWater extends Action {
 	
 	public int layer = 110;
@@ -824,6 +839,7 @@ class MoveWater extends Action {
 	ArrayList<Vector2> positions;
 	Vector2 position;
 	ArrayList<Integer> repeats;
+	
 
 	@Override
 	public void step(PkmnGen game) {
@@ -849,6 +865,7 @@ class MoveWater extends Action {
 				tile.sprite.setRegionX((int)this.position.x);
 				tile.sprite.setRegionWidth((int)tile.sprite.getWidth());
 			}
+			
 		}
 
 		//repeat sprite/pos for current object for 'frames[0]' number of frames.
@@ -868,6 +885,7 @@ class MoveWater extends Action {
 		
 		this.positions = new ArrayList<Vector2>();
 		resetVars();
+		
 	}
 	
 	public void resetVars() {
@@ -909,7 +927,8 @@ class drawMap_grass extends Action {
 		//draw every sprite in the map
 		for (Tile tile : game.map.tiles.values()) {
 			if (tile.attrs.get("grass") == true) {
-				tile.sprite.draw(game.batch);	
+				//tile.sprite.draw(game.batch); doesn't allow coloring
+				game.batch.draw(tile.sprite, tile.sprite.getX(), tile.sprite.getY());
 			}
 		}
 		
