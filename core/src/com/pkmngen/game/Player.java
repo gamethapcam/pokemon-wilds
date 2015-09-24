@@ -50,6 +50,7 @@ public class Player {
 	//players pokemon
 	 //functions as pokemon storage in demo
 	ArrayList<Pokemon> pokemon; 
+	Pokemon currPokemon; //needed for displaying current pokemon
 	
 	int adrenaline;  //was 'streak'
 	//demo mechanic - catching in a row without oppPokemon fleeing builds streak
@@ -162,37 +163,38 @@ class playerStanding extends Action {
 				//plan to insert a series here instead
 				 //
 				game.playerCanMove = false;
-				PublicFunctions.insertToAS(game, new SplitAction(
-													new BattleIntro(
-														new BattleIntro_anim1(
-															new SplitAction(
-																new DrawBattle(game),
-																new BattleAnim_positionPlayers(game, 
-																	new PlaySound(game.battle.oppPokemon.name, 
-																		new DisplayText(game, "Wild "+game.battle.oppPokemon.name.toUpperCase()+" appeared!", null, null, 
-																			new WaitFrames(game, 39,
-																				//demo code - wildly confusing, but i don't want to write another if statement
-																					game.player.adrenaline > 0 ? new DisplayText(game, ""+game.player.name+" has ADRENALINE "+Integer.toString(game.player.adrenaline)+"!", null, null,
-																						new PrintAngryEating(game, //for demo mode, normally left out
-																								new DrawBattleMenu_SafariZone(game, new DoneAction())
-																							)
-																						)
-																					: 
-																					new PrintAngryEating(game, //for demo mode, normally left out
-																							new DrawBattleMenu_SafariZone(game, new DoneAction())	
-																				)
-																				//
-																			)
-																		)
-																	)
-																)
-															)
-														)
-													),
-													new DoneAction()
-												)
-											);
-				
+				//todo - remove
+//				PublicFunctions.insertToAS(game, new SplitAction(
+//													new BattleIntro(
+//														new BattleIntro_anim1(
+//															new SplitAction(
+//																new DrawBattle(game),
+//																new BattleAnim_positionPlayers(game, 
+//																	new PlaySound(game.battle.oppPokemon.name, 
+//																		new DisplayText(game, "Wild "+game.battle.oppPokemon.name.toUpperCase()+" appeared!", null, null, 
+//																			new WaitFrames(game, 39,
+//																				//demo code - wildly confusing, but i don't want to write another if statement
+//																					game.player.adrenaline > 0 ? new DisplayText(game, ""+game.player.name+" has ADRENALINE "+Integer.toString(game.player.adrenaline)+"!", null, null,
+//																						new PrintAngryEating(game, //for demo mode, normally left out
+//																								new DrawBattleMenu_SafariZone(game, new DoneAction())
+//																							)
+//																						)
+//																					: 
+//																					new PrintAngryEating(game, //for demo mode, normally left out
+//																							new DrawBattleMenu_SafariZone(game, new DoneAction())	
+//																				)
+//																				//
+//																			)
+//																		)
+//																	)
+//																)
+//															)
+//														)
+//													),
+//													new DoneAction()
+//												)
+//											);
+				PublicFunctions.insertToAS(game, Battle_Actions.get(game)); 
 				game.currMusic.pause();
 				game.currMusic = game.battle.music;
 				game.currMusic.play();
@@ -990,6 +992,7 @@ class drawGhost extends Action {
 		
 		//check if ghost pokemon is dead. if yes, remove this from AS
 		
+		
 		//check whether player is in battle or not
 		//if not, don't move the ghost at all (subject to change)
 		if (game.battle.drawAction != null) { 
@@ -998,6 +1001,8 @@ class drawGhost extends Action {
 			this.noEncounterTimer = 0;
 			return;
 		}
+		
+
 		
 		//wait for a while if you just exited battle
 		if (inBattle == true) {
@@ -1009,6 +1014,12 @@ class drawGhost extends Action {
 				return;
 			}
 			inBattle = false;
+		}
+
+		//pause if player can't move
+		if (game.playerCanMove == false) { 
+			this.currSprite.draw(game.batch);
+			return;
 		}
 		
 		//calculate direction to player, face that direction
@@ -1111,7 +1122,8 @@ class drawGhost extends Action {
 																	new DisplayText(game, "A Ghost appeared!", null, null, 
 																		new WaitFrames(game, 39,
 																			//demo code - wildly confusing, but i don't want to write another if statement
-																				game.player.adrenaline > 0 ? new DisplayText(game, ""+game.player.name+" has ADRENALINE "+Integer.toString(game.player.adrenaline)+"!", null, null,
+																				game.player.adrenaline > 0 ? 
+																				new DisplayText(game, ""+game.player.name+" has ADRENALINE "+Integer.toString(game.player.adrenaline)+"!", null, null,
 																					new PrintAngryEating(game, //for demo mode, normally left out
 																							new DrawBattleMenu_SafariZone(game, new DoneAction())
 																						)
@@ -1413,11 +1425,11 @@ class cycleDayNight extends Action {
 			 //
 			if (game.map.timeOfDay == "Day") {
 				this.fadeToNight = true;
-				dayTimer = 1000; //debug
+				dayTimer = 10000; //debug
 			}
 			else if (game.map.timeOfDay == "Night") {
 				this.fadeToDay = true;
-				dayTimer = 1000; //debug
+				dayTimer = 10000; //1000 - debug
 			}
 		}
 		
@@ -1452,6 +1464,7 @@ class cycleDayNight extends Action {
 				//state which day it is
 				day++;
 				signCounter = 300;
+				this.bgSprite.setPosition(0,24);
 			}
 		}
 		
@@ -1487,6 +1500,7 @@ class cycleDayNight extends Action {
 				//state which night it is
 				night++;
 				signCounter = 150;
+				this.bgSprite.setPosition(0,24);
 			}
 		}
 		
@@ -1502,7 +1516,7 @@ class cycleDayNight extends Action {
 			if (countDownToGhost == 0) {
 				Vector2 randPos = game.player.position.cpy().add(this.rand.nextInt(5)*16 - 48, this.rand.nextInt(5)*16 - 48);
 				PublicFunctions.insertToAS(game, new spawnGhost(game, new Vector2(randPos)) );
-				this.countDownToGhost = this.rand.nextInt(5000);
+				this.countDownToGhost = 1000;//this.rand.nextInt(5000);
 			}
 			
 		}
@@ -1559,12 +1573,12 @@ class cycleDayNight extends Action {
 		this.animIndex = 0;
 		
 		this.rand = new Random();
-		this.dayTimer = 100;
+		this.dayTimer = 10000; //100; - debug
 		
 
 		Texture text = new Texture(Gdx.files.internal("text2.png"));
 		this.bgSprite = new Sprite(text, 0, 0, 160, 144);
-		this.bgSprite.translateY(22);
+		this.bgSprite.setPosition(0,24);
 
 		this.text = game.map.timeOfDay+": "; //String.valueOf(this.numMain)
 	}

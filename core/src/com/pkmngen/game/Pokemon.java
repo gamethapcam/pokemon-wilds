@@ -24,6 +24,7 @@ public class Pokemon {
 	//int catchRate; //may put into some other map later
 	
 	Sprite sprite;
+	Sprite backSprite;
 	
 	ArrayList<String> types;
 	
@@ -35,6 +36,10 @@ public class Pokemon {
 	 //could also just be oppPokemonDrawAction in battle, I think
 	//Action drawAction; //doesn't work. also, using sprite alpha for now
 	
+	String[] attacks;
+	Map<Integer, String[]> learnSet;
+	
+	
 	public Pokemon (String name, int level) {
 		
 		this.name = name;
@@ -45,6 +50,9 @@ public class Pokemon {
 		//init vars
 		this.angry = 0;
 		this.eating = 0;
+		
+		this.attacks = new String[]{"-","-","-","-"};
+		this.learnSet = new HashMap<Integer, String[]>();
 		
 
 		if (name == "Zubat") { //gen I properties
@@ -62,6 +70,36 @@ public class Pokemon {
 
 			this.types.add("Poison");
 			this.types.add("Flying");
+		}
+		if (name == "Cloyster") { //gen I properties
+			this.baseStats.put("hp",50);
+			this.baseStats.put("attack",95);
+			this.baseStats.put("defense",180);
+			this.baseStats.put("specialAtk",85);
+			this.baseStats.put("specialDef",85);
+			this.baseStats.put("speed",70);
+			this.baseStats.put("catchRate", 60);
+			//sprite
+			Texture pokemonText = new Texture(Gdx.files.internal("pokemon/pokemon_sheet1.png"));
+			this.sprite = new Sprite(pokemonText, 56*27, 56*2, 56, 56);
+			this.sprite.flip(true, false); //my sprites are backwards
+
+			//back sprite
+			pokemonText = new Texture(Gdx.files.internal("pokemon/back_sheet1.png"));
+			this.backSprite = new Sprite(pokemonText, 30*2+1, 29*8+1, 28, 28); //sheet is a little messed up, hard to change
+			this.backSprite.setScale(2);
+//			pokemonText = new Texture(Gdx.files.internal("pokemon/back_sheet1.png")); //debug - change to charmander sprite
+//			this.backSprite = new Sprite(pokemonText, 30*3+1, 29*0+1, 28, 28); //
+//			this.backSprite.setScale(2);
+			
+			//moves that cloyster can learn
+			learnSet.put(1, new String[]{"Aurora Beam", "Clamp", "Supersonic", "Withdraw"});
+//			learnSet.put(1, new String[]{"Fly", "Growl", "Hyper Beam"});
+			//learnSet.put(20, new String[]{"Harden", "Harden", "Harden", "Harden"}); //debug
+			learnSet.put(50, new String[]{"Spike Cannon"});
+			
+			this.types.add("Water");
+			this.types.add("Ice");
 		}
 		else if (name == "Spinarak") { //gen I properties
 			this.baseStats.put("hp",45);
@@ -456,9 +494,13 @@ public class Pokemon {
 			this.types.add("Electric");
 		}
 		
+		getCurrentAttacks(); //fill this.attacks with what it can currently know
+		
 		//stats formulas here
 		calcMaxStats();
 		this.currentStats = new HashMap<String, Integer>(this.maxStats); //copy maxStats 
+		
+		
 	}
 	
 	//TODO - this doesn't take IV's or EV's into account.
@@ -478,5 +520,26 @@ public class Pokemon {
 
 		//hp = (((IV + Base + (sqrt(EV)/8) + 50)*Level)/50 + 10
 		//other stat = (((IV + Base + (sqrt(EV)/8))*Level)/50 + 5
+	}
+
+	//when generating a pokemon, this will select which attacks it knows
+	 //by default
+	void getCurrentAttacks() {
+		
+		int i = 0;
+		
+		for (Integer level : this.learnSet.keySet()) {
+			for (String attack : this.learnSet.get(level)) {
+				if (level < this.level) {
+					this.attacks[i] = attack;
+					i += 1;
+					if (i >= this.attacks.length) {
+						i = 0;
+					}
+//					System.out.println("attack: " + attack);
+				}
+			}
+		}
+		
 	}
 }

@@ -19,6 +19,7 @@ import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator.FreeTypeFontParameter;
+import com.badlogic.gdx.graphics.glutils.ShaderProgram;
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Quaternion;
 import com.badlogic.gdx.math.Vector2;
@@ -183,9 +184,58 @@ public class PkmnGen extends ApplicationAdapter {
 		//batch.enableBlending();
 		//batch.setColor(new Color(0.01f, 0.01f, 0.2f, 1.0f));
 		//batch.setBlendFunction(Gdx.gl.GL_MAX_TEXTURE_UNITS, Gdx.gl.GL_FUNC_ADD);
+		String vertexShader = "attribute vec4 a_position;\n"
+					+ "attribute vec4 a_color;\n"
+					+ "attribute vec2 a_texCoord;\n"
+					+ "attribute vec2 a_texCoord0;\n"
+						
+					+ "uniform mat4 u_projTrans;\n"
+											
+					+ "varying vec4 v_color;\n"
+					+ "varying vec2 v_texCoords;\n"
+											
+					+ "void main()\n"
+					+ "{\n"
+					+ "    v_color = a_color;\n"
+					+ "    v_texCoords = a_texCoord0;\n"
+					+ "    gl_Position =  u_projTrans * a_position;\n"
+					+ "}\n";
+		String fragmentShader = "precision mediump float;\n"
+
+					+ "varying vec4 v_color;\n"
+					+ "varying vec2 v_texCoords;\n"
+					+ "uniform sampler2D u_texture;\n"
+					+ "uniform mat4 u_projTrans;\n"
+					
+					+ "bool equals(float a, float b) {\n"
+					+ "    return abs(a-b) < 0.0001;\n"
+					+ "}\n"
+					
+					+ "bool isWhiteShade(vec4 color) {\n"
+					+ "    return equals(color.r, color.g) && equals(color.r, color.b);\n"
+					+ "}\n"
+					
+					+ "void main() {\n"
+					+ "    vec4 color = texture2D (u_texture, v_texCoords) * v_color;\n"
+					+ "    //if(isWhiteShade(color)) {\n"
+					+ "    if(color.r == 1 && color.g == 1 && color.b == 1) {\n"
+					+ "color *= vec4(0, 0, 1, 1);\n"
+	        		+ "    }\n"
+	        		+ "    else {\n"
+	        		+ "        color *= vec4(0, 0, 0, 1);\n"
+	        		+ "    }\n"
+	        		+ "    gl_FragColor = color;\n"
+	        		+ "}\n";
+		
+		ShaderProgram shader = new ShaderProgram(vertexShader, fragmentShader);
+		//batch.setShader(shader);
+		
 		
 		PublicFunctions.insertToAS(this, new cycleDayNight(this));
 		
+		//debug
+		this.player.currPokemon = new Pokemon("Cloyster", 36);
+		this.player.pokemon.add(this.player.currPokemon); 
 		
 //		System.out.println("color r:"+String.valueOf(Color.TEAL.r)); //debug
 //		System.out.println("color b:"+String.valueOf(Color.TEAL.b));
@@ -342,6 +392,7 @@ public class PkmnGen extends ApplicationAdapter {
 		textDict.put('.', new Sprite(text, 10+16*7, 5+12+12+12, 8, 8)); 
 		textDict.put(',', new Sprite(text, 10+16*8, 5+12+12+12, 8, 8)); 
 		textDict.put('é', new Sprite(text, 10+16*9, 5+12+12+12, 8, 8)); 
+		textDict.put('-', new Sprite(text, 10+16*10, 5+12+12+12, 8, 8)); 
 		textDict.put(null, new Sprite(text, 10+16*0, 5+12+12+12+12, 8, 8)); //use when no char found
 		
 		return textDict;

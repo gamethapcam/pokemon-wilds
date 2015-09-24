@@ -9,6 +9,7 @@ import com.badlogic.gdx.Input;
 import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Sprite;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Vector2;
 
 public class Battle {
@@ -21,7 +22,7 @@ public class Battle {
 	
 	//action that is drawing the battle
 	 //this reference is used to stop drawing battle once it's complete
-	Action drawAction;
+	DrawBattle drawAction;
 	
 	Music music;
 	
@@ -282,6 +283,85 @@ class BattleAnim_positionPlayers extends Action {
 }
 
 
+//scroll both players into view
+class MovePlayerOffScreen extends Action {
+	
+	ArrayList<Vector2> positions;
+	ArrayList<Integer> repeats;
+	Vector2 move;
+	
+	Vector2 position;
+	Sprite sprite;
+	
+	Action nextAction;
+
+	public int layer = 140;
+	public int getLayer(){return this.layer;}
+
+	public String getCamera() {return "gui";};
+	
+	@Override
+	public void step(PkmnGen game) {
+
+		
+		//if done with anim, do nextAction
+		if (positions.isEmpty() || repeats.isEmpty()) {
+			PublicFunctions.insertToAS(game, this.nextAction);
+			game.actionStack.remove(this);
+			return;
+		}
+
+		
+
+		if (this.repeats.get(0) > 1) {
+			this.repeats.set(0, this.repeats.get(0) - 1);
+		}
+		else {
+			//since position is relative, only update once each time period
+			this.position = new Vector2(game.player.battleSprite.getX(), game.player.battleSprite.getY());
+			this.position.add(positions.get(0));
+			this.sprite.setPosition(position.x, position.y);
+			positions.remove(0);
+			repeats.remove(0);
+		}
+		
+	}
+	
+	public MovePlayerOffScreen(PkmnGen game, Action nextAction) {
+		
+		this.nextAction = nextAction;
+		
+		this.position = null;
+		
+		this.positions = new ArrayList<Vector2>();
+		
+		//animation to play
+		positions.add(new Vector2(0,0));
+		for (int i = 0; i < 3; i++) {
+			positions.add(new Vector2(-8,0));
+			positions.add(new Vector2(-16,0));
+			positions.add(new Vector2(-8,0));
+			positions.add(new Vector2(-16,0));
+			positions.add(new Vector2(-8,0));
+			positions.add(new Vector2(-16,0));
+		}
+		
+		this.repeats = new ArrayList<Integer>();
+		this.repeats.add(38);
+		this.repeats.add(2);
+		for (int i = 0; i < 5; i++) {
+			repeats.add(3);
+		}
+		
+		this.sprite = game.player.battleSprite;
+		
+		
+	}
+	
+}
+
+
+//i think this is outdated
 //draw menu buttons (fight, run, etc)
 class DrawBattleMenu1 extends Action {
 
@@ -661,6 +741,337 @@ class DrawBattleMenu_SafariZone extends Action {
 
 
 
+//draw menu buttons (fight, run, etc)
+class DrawBattleMenu_Normal extends Action {
+
+	Sprite arrow;
+	Sprite textBox;
+	
+	public int layer = 129;
+	public int getLayer(){return this.layer;}
+
+	public String getCamera() {return "gui";};
+
+	
+	Map<String, Vector2> getCoords = new HashMap<String, Vector2>();
+	String curr;
+	Vector2 newPos;
+	Sprite helperSprite;
+	
+	Action nextAction;
+	
+	@Override
+	public void step(PkmnGen game) {
+
+		
+		//check user input
+		 //'tl' = top left, etc. 
+		 //modify position by modifying curr to tl, tr, bl or br
+		if(Gdx.input.isKeyPressed(Input.Keys.UP)) {
+			if (curr.equals("bl") || curr.equals("br")) {
+				curr = "t"+String.valueOf(curr.charAt(1));
+				newPos = getCoords.get(curr);
+			}
+			
+		}
+		else if(Gdx.input.isKeyPressed(Input.Keys.DOWN)) {
+			if (curr.equals("tl") || curr.equals("tr")) {
+				curr = "b"+String.valueOf(curr.charAt(1));
+				newPos = getCoords.get(curr);
+			}
+		}
+		else if(Gdx.input.isKeyPressed(Input.Keys.LEFT)) {
+			if (curr.equals("tr") || curr.equals("br")) {
+				curr = String.valueOf(curr.charAt(0))+"l";
+				newPos = getCoords.get(curr);
+			}
+		}
+		else if(Gdx.input.isKeyPressed(Input.Keys.RIGHT)) {
+			if (curr.equals("tl") || curr.equals("bl")) {
+				curr = String.valueOf(curr.charAt(0))+"r";
+				newPos = getCoords.get(curr);
+			}
+		}
+		
+		//if button press, do something
+		if(Gdx.input.isKeyJustPressed(Input.Keys.Z)) { //using isKeyJustPressed rather than isKeyPressed
+			
+			//user selected 'fight'
+			if (curr.equals("tl")) {
+
+				//play select sound
+				PublicFunctions.insertToAS(game, new PlaySound("click1", new DoneAction()));
+				
+				//remove this action, new menu that selects between pokemon attacks
+				PublicFunctions.insertToAS(game, new WaitFrames(game, 4, new DrawAttacksMenu(game, new WaitFrames(game, 4, this))));
+				
+				//attacks stored in String[4] in pkmn
+								
+				game.actionStack.remove(this);
+			}
+			
+			//user selected 'throw rock'
+			else if (curr.equals("bl")) {
+				//throw a rock, then resume battle menu
+				
+				
+				Action throwRockAction = new ThrowRock(game, new PrintAngryEating(game, new ChanceToRun(game, this) ) );
+				String textString = game.player.name+" threw a ROCK.";
+				PublicFunctions.insertToAS(game, new DisplayText(game, textString, null, throwRockAction,
+						throwRockAction
+					)
+				);
+				
+				
+				//PublicFunctions.insertToAS(game, new ThrowRock(game, this));
+				game.actionStack.remove(this);
+			}
+			
+			//user selected 'throw bait'
+			else if (curr.equals("tr")) {
+				
+				Action throwBaitAction = new ThrowBait(game, new PrintAngryEating(game, new ChanceToRun(game, this) ) );
+				String textString = game.player.name+" threw some BAIT.";
+				PublicFunctions.insertToAS(game, new DisplayText(game, textString, null, throwBaitAction,
+						throwBaitAction
+					)
+				);
+				
+				game.actionStack.remove(this);
+			}
+			
+			//user selected 'run'
+			else if (curr.equals("br")) {
+				 //also need a 'stop playing music' thing here
+				 //also need 'stop drawing battle' here
+				PublicFunctions.insertToAS(game, 
+												new WaitFrames(game, 18, 
+													new DisplayText(game, "Got away safely!", null, null,
+														new SplitAction(
+															new BattleFadeOut(game,
+																new DoneAction()), //new playerStanding(game)),
+															new BattleFadeOutMusic(game, new DoneAction())
+														)
+													)
+												)
+											);
+				PublicFunctions.insertToAS(game, new PlaySound("click1", new PlaySound("run1", new DoneAction())));
+				game.actionStack.remove(this);
+			}
+		}
+
+		//System.out.println("curr: " + curr);
+
+		//draw text box
+		this.textBox.draw(game.floatingBatch);
+
+		//debug
+//		helperSprite.draw(game.floatingBatch);
+		
+		//draw arrow
+		this.arrow.setPosition(newPos.x, newPos.y);
+		this.arrow.draw(game.floatingBatch);
+	}
+	
+	public DrawBattleMenu_Normal(PkmnGen game, Action nextAction) {
+
+		this.nextAction = nextAction;
+		
+		Texture text = new Texture(Gdx.files.internal("battle/arrow_right1.png"));
+		this.arrow = new Sprite(text, 0, 0, 5, 7);
+		//this.arrow.setScale(3); //post scaling change
+		
+		//text box bg
+		text = new Texture(Gdx.files.internal("battle/battle_menu1.png"));
+		this.textBox = new Sprite(text, 0,0, 16*10, 16*9);
+		
+		this.getCoords.put("tr", new Vector2(121, 24));
+		this.getCoords.put("tl", new Vector2(73, 24));
+		this.getCoords.put("br", new Vector2(121, 8));
+		this.getCoords.put("bl", new Vector2(73, 8));
+		
+		//this.newPos =  new Vector2(32, 79); //post scaling change
+		this.newPos =  new Vector2(73, 24);
+		this.arrow.setPosition(newPos.x, newPos.y);
+		this.curr = "tl";
+		
+		
+		//helper sprite
+		text = new Texture(Gdx.files.internal("pokemon_throw_out_anim/helper7.png"));
+		this.helperSprite = new Sprite(text, 0,0, 16*10, 16*9);
+	}
+	
+}
+
+
+
+
+//draw menu buttons (fight, run, etc)
+class DrawAttacksMenu extends Action { 
+
+	Sprite arrow;
+	Sprite textBox;
+	
+	public int layer = 108;
+	public int getLayer(){return this.layer;}
+
+	public String getCamera() {return "gui";};
+
+	
+	Map<Integer, Vector2> getCoords;
+	int curr;
+	Vector2 newPos;
+	Sprite helperSprite;
+	ArrayList<ArrayList<Sprite>> spritesToDraw;
+	int cursorDelay; //this is just extra detail. cursor has 2 frame delay before showing in R/B
+	
+	Action nextAction;
+	
+	@Override
+	public void step(PkmnGen game) {
+
+		
+		
+		//check user input
+		 //'tl' = top left, etc. 
+		 //modify position by modifying curr to tl, tr, bl or br
+		if(Gdx.input.isKeyJustPressed(Input.Keys.UP)) {
+			if (curr != 0) {
+				curr -= 1;
+				newPos = getCoords.get(curr);
+			}
+			
+		}
+		else if(Gdx.input.isKeyJustPressed(Input.Keys.DOWN)) {
+			if (curr != 3) {
+				curr += 1;
+				newPos = getCoords.get(curr);
+			}
+		}
+		
+		//if button press, do something
+		if(Gdx.input.isKeyJustPressed(Input.Keys.Z)) { //using isKeyJustPressed rather than isKeyPressed
+			
+			//play select sound
+			PublicFunctions.insertToAS(game, new PlaySound("click1", new DoneAction()));
+			
+			//if that selection isn't null, get that attack via
+			 //Battle_Actions.getAttackAction(String attackName, Action nextAction);
+			Action trigger = new WaitFrames(game, 13, 
+									new WaitFrames(game, 3, this.nextAction)
+								);
+			Action attack = Battle_Actions.getAttackAction(game, game.player.currPokemon.attacks[curr], 
+																	new DepleteEnemyHealth(game, trigger));
+			PublicFunctions.insertToAS(game, new DisplayText(game, game.player.currPokemon.name.toUpperCase()+" used "+game.player.currPokemon.attacks[curr].toUpperCase()+"!",
+					 											null, trigger, attack
+								 							));
+			game.actionStack.remove(this);
+			return;
+		}
+		//player presses b, ie wants to go back
+		else if(Gdx.input.isKeyJustPressed(Input.Keys.X)) { 
+			game.actionStack.remove(this);
+			PublicFunctions.insertToAS(game, this.nextAction);
+		}
+
+		//System.out.println("curr: " + curr);
+
+		//draw text box
+		this.textBox.draw(game.floatingBatch);
+
+		//debug
+//		helperSprite.draw(game.floatingBatch);
+		
+		//draw the attack strings 
+		int j = 0;
+		for (ArrayList<Sprite> word : this.spritesToDraw) {
+			for (Sprite sprite : word) {
+				//convert string to text 
+				game.floatingBatch.draw(sprite, sprite.getX() + 40, sprite.getY() - j*8 + 8);
+			}
+			j+=1;
+		}
+		
+		
+		//draw arrow
+		if (this.cursorDelay >= 2) {
+			this.arrow.setPosition(newPos.x, newPos.y);
+			this.arrow.draw(game.floatingBatch);
+		}
+		else {
+			this.cursorDelay+=1;
+		}
+	}
+	
+	public DrawAttacksMenu(PkmnGen game, Action nextAction) {
+
+		this.nextAction = nextAction;
+		
+		this.cursorDelay = 0;
+		
+		this.getCoords = new HashMap<Integer, Vector2>();
+		this.spritesToDraw = new ArrayList<ArrayList<Sprite>>();
+		
+		Texture text = new Texture(Gdx.files.internal("battle/arrow_right1.png"));
+		this.arrow = new Sprite(text, 0, 0, 5, 7);
+		//this.arrow.setScale(3); //post scaling change
+		
+		//text box bg
+		text = new Texture(Gdx.files.internal("attack_menu/attack_screen1.png"));
+		this.textBox = new Sprite(text, 0,0, 16*10, 16*9);
+		
+		this.getCoords.put(0, new Vector2(41, 32));
+		this.getCoords.put(1, new Vector2(41, 24));
+		this.getCoords.put(2, new Vector2(41, 16));
+		this.getCoords.put(3, new Vector2(41, 8));
+		
+		//this.newPos =  new Vector2(32, 79); //post scaling change
+		this.newPos =  new Vector2(41, 32);
+		this.arrow.setPosition(newPos.x, newPos.y);
+		this.curr = 0;
+		
+		//convert pokemon attacks to sprites
+		for (String attack : game.player.currPokemon.attacks) {
+			char[] textArray = attack.toUpperCase().toCharArray(); //iterate elements
+			Sprite currSprite;
+			int i = 0;
+			int j = 0;
+			ArrayList<Sprite> word = new ArrayList<Sprite>();
+			for (char letter : textArray) {
+				//offsetNext += spriteWidth*3+2 //how to do this?
+				Sprite letterSprite = game.textDict.get((char)letter);
+				if (letterSprite == null) {
+					letterSprite = game.textDict.get(null);
+				}
+				currSprite = new Sprite(letterSprite); //copy sprite from char-to-Sprite dictionary
+				
+				//currSprite.setPosition(10*3+8*i*3 +2, 26*3-16*j*3 +2); //offset x=8, y=25, spacing x=8, y=8(?)
+				currSprite.setPosition(10+8*i +2-4, 26-16*j +2-4); //post scaling change
+				//currSprite.setScale(3); //post scaling change
+				
+				word.add(currSprite);
+				//go down a line if needed
+				 //TODO - do this for words, not chars. split on space, array
+				if (i >= 17) { 
+					i = 0; j++;
+				}
+				else {
+					i++;
+				}
+			}		
+			spritesToDraw.add(word);	
+		}
+		
+		
+		//helper sprite
+		text = new Texture(Gdx.files.internal("attack_menu/helper2.png"));
+		this.helperSprite = new Sprite(text, 0,0, 16*10, 16*9);
+	}
+	
+}
+
+
+
 
 
 //fade out of battle to white
@@ -682,7 +1093,7 @@ class BattleFadeOut extends Action {
 		
 		//should only happen once. not sure that repeat matters
 		game.actionStack.remove(game.battle.drawAction); //stop drawing the battle
-		game.battle.drawAction = null;
+		game.battle.drawAction = null; //this is used as a flag in ThrowOutPokemon
 		
 		//if done with anim, do nextAction
 		if (frames.isEmpty()) {
@@ -813,6 +1224,7 @@ class DrawBattle extends Action {
 
 	Sprite bgSprite;
 	
+	DrawEnemyHealth drawEnemyHealthAction;
 
 	public int layer = 130;
 	public int getLayer(){return this.layer;}
@@ -829,6 +1241,68 @@ class DrawBattle extends Action {
 		
 		game.battle.oppPokemon.sprite.draw(game.floatingBatch);
 		game.player.battleSprite.draw(game.floatingBatch);
+		
+		
+		//todo - remove
+		//this gets assigned at some point. manually stepping here
+		 //rather than inserting in AS b/c simpler
+//		if (this.drawEnemyHealthAction != null) {
+//			this.drawEnemyHealthAction.step(game);
+//		}
+		
+		//todo - remove
+//		//draw pkmn level bars
+//		int tensPlace = game.battle.oppPokemon.level/10;
+//		//System.out.println("level: "+String.valueOf(tensPlace));
+//		Sprite tensPlaceSprite = game.textDict.get(Character.forDigit(tensPlace,10));
+//		game.floatingBatch.draw(tensPlaceSprite, 40, 128);
+//
+//		int onesPlace = game.battle.oppPokemon.level % 10;
+//		Sprite onesPlaceSprite = game.textDict.get(Character.forDigit(onesPlace,10));
+//		game.floatingBatch.draw(onesPlaceSprite, 48, 128);
+//
+//		char[] textArray = game.battle.oppPokemon.name.toUpperCase().toCharArray();
+//		Sprite letterSprite;
+//		for (int i=0; i < textArray.length; i++) {
+//			letterSprite = game.textDict.get(textArray[i]);
+//			game.floatingBatch.draw(letterSprite, 8+8*i, 136);
+//		}
+		
+	}
+	
+	public DrawBattle(PkmnGen game) {
+
+		Texture text = new Texture(Gdx.files.internal("battle/battle_bg2.png"));
+		//Texture text = new Texture(Gdx.files.internal("battle/helper1.png"));
+		this.bgSprite = new Sprite(text, 0, 0, 160, 144);
+		//this.bgSprite.setPosition(16*10,16*9);
+		//this.bgSprite.setScale(3);
+		//TODO - make bg the text box.(?)
+		
+		game.battle.drawAction = this;
+	}
+}
+
+
+
+//instance of this assigned to DrawBattle.drawEnemyHealthAction
+class DrawEnemyHealth extends Action {
+
+	Sprite bgSprite;
+	public ArrayList<Sprite> healthBar;
+	
+	public int layer = 129;
+	public int getLayer(){return this.layer;}
+
+	public String getCamera() {return "gui";};
+
+	
+	@Override
+	public void step(PkmnGen game) {
+
+		//draw helper sprite
+		 //probly remove
+		this.bgSprite.draw(game.floatingBatch);		
 		
 		//draw pkmn level bars
 		int tensPlace = game.battle.oppPokemon.level/10;
@@ -847,18 +1321,112 @@ class DrawBattle extends Action {
 			game.floatingBatch.draw(letterSprite, 8+8*i, 136);
 		}
 		
+		//draw health bar
+		for (Sprite bar : this.healthBar) {
+			bar.draw(game.floatingBatch);
+		}
+		
+		//detect when battle is over, 
+		//object will remove itself from AS
+		if (game.battle.drawAction == null) {
+			game.actionStack.remove(this);
+		}
+		
 	}
 	
-	public DrawBattle(PkmnGen game) {
+	public DrawEnemyHealth(PkmnGen game) {
 
-		Texture text = new Texture(Gdx.files.internal("battle/battle_bg1.png"));
-		//Texture text = new Texture(Gdx.files.internal("battle/helper1.png"));
+		Texture text = new Texture(Gdx.files.internal("battle/enemy_healthbar1.png"));
 		this.bgSprite = new Sprite(text, 0, 0, 160, 144);
-		//this.bgSprite.setPosition(16*10,16*9);
-		//this.bgSprite.setScale(3);
-		//TODO - make bg the text box.(?)
+
+		//this could be dangerous?
+		//if drawAction is null. this may happen at some point.
+		game.battle.drawAction.drawEnemyHealthAction = this; 
 		
-		game.battle.drawAction = this;
+		//fill sprite array according to enemy health
+		 //healthbar is 48 pixels long
+		 //round up when counting
+		this.healthBar = new ArrayList<Sprite>();
+		int numElements = (int)Math.ceil( (game.battle.oppPokemon.currentStats.get("hp")*48f) / game.battle.oppPokemon.maxStats.get("hp") );
+		
+		//System.out.println("numElements: "+String.valueOf(numElements)); //debug
+		
+		text = new Texture(Gdx.files.internal("battle/health1.png"));
+		Sprite temp = new Sprite(text, 0,0,1,2);
+		for (int i = 0; i < numElements; i++) {
+			Sprite temp2 = new Sprite(temp); //to avoid long loading
+			temp2.setPosition(32 + i, 123);
+			this.healthBar.add(temp2);
+		}
+		
+	}
+}
+
+
+
+//instance of this assigned to DrawBattle.drawEnemyHealthAction
+class DepleteEnemyHealth extends Action {
+
+	
+	public int layer = 129;
+	public int getLayer(){return this.layer;}
+
+	public String getCamera() {return "gui";};
+
+	
+	boolean firstStep;
+	int timer;
+	int removeNumber;
+	int targetSize; //reduce enemy health bar to this number
+	Action nextAction;
+	
+	@Override
+	public void step(PkmnGen game) {
+	
+		if (this.firstStep == true) {
+			this.targetSize = (int)Math.ceil( (game.battle.oppPokemon.currentStats.get("hp")*48) / game.battle.oppPokemon.maxStats.get("hp"));
+			this.firstStep = false;
+		}
+		
+		this.timer++;
+		if (this.timer < 4) {
+			return;
+		}
+		this.timer = 0;
+		
+		
+		int size = 0;
+		for (int i = 0; i < this.removeNumber; i++) {
+			size = game.battle.drawAction.drawEnemyHealthAction.healthBar.size();
+			if (size <= targetSize) {
+				break;
+			}
+			game.battle.drawAction.drawEnemyHealthAction.healthBar.remove(size-1);
+		}
+		
+		if (this.removeNumber == 2) {
+			this.removeNumber = 1;
+		}
+		else {
+			this.removeNumber = 2;
+		}
+		
+		if (size <= targetSize) {
+			game.actionStack.remove(this);
+			PublicFunctions.insertToAS(game, this.nextAction);
+		}
+		
+	}
+	
+	public DepleteEnemyHealth(PkmnGen game, Action nextAction) {
+		
+		this.nextAction = nextAction;
+		
+		this.firstStep = true;
+		this.timer = 3;
+		this.removeNumber = 2;
+		
+		
 	}
 }
 
@@ -2894,6 +3462,548 @@ class PokemonCaught_Events extends Action {
 	}
 	
 }
+
+
+
+//poof animation 
+//and algorithm that will show pkmn extending outwards
+class ThrowOutPokemon extends Action {
+
+	Sprite pokeballSprite;
+	
+	ArrayList<Vector2> positions;
+	Vector2 position;
+	ArrayList<Sprite[][]> sprites;
+	Sprite[][] sprite;
+	ArrayList<Integer> repeats;
+	ArrayList<String> sounds;
+	String sound;
+	
+	public int layer = 109;
+	public int getLayer(){return this.layer;}
+
+	public String getCamera() {return "gui";};
+
+	Action nextAction;
+	
+	Sprite helperSprite; //just for helping me position the animation. delete later.
+	
+	boolean doneYet;
+	
+	@Override
+	public void step(PkmnGen game) {
+
+		//get next frame
+		this.sprite = sprites.get(0);
+
+		//debug
+//		this.helperSprite.draw(game.floatingBatch); 
+		
+		//set sprite position
+		//if done with anim, do nextAction
+		if (positions.isEmpty() || sprites.isEmpty()) {
+
+
+			//debug
+//			if (this.repeats.size() == 0) { 
+//				return;
+//			}
+			
+			if (!this.doneYet) {
+				PublicFunctions.insertToAS(game, this.nextAction);
+				for (int i = 0; i < this.sprite.length; i++) {
+					for (int j = 0; j < this.sprite[i].length; j++) {
+						this.sprite[i][j].setPosition(position.x, position.y);
+					}
+				}
+				this.doneYet = true;
+			}
+			
+
+			for (int i = 0; i < this.sprite.length; i++) {
+				for (int j = 0; j < this.sprite[i].length; j++) {
+					this.sprite[i][j].draw(game.floatingBatch);
+				}
+			}
+			
+			
+			if (game.battle.drawAction == null) {
+				game.actionStack.remove(this);
+			}
+			return;
+		}
+				
+		
+		
+		//draw current sprite
+		if (this.sprite != null) {
+			for (int i = 0; i < this.sprite.length; i++) {
+				for (int j = 0; j < this.sprite[i].length; j++) {
+					if (this.sprite[i][j] != null) {
+						this.sprite[i][j].setPosition(position.x+8*i, position.y+8*j);
+						this.sprite[i][j].draw(game.floatingBatch);	
+					}
+				}
+			}
+		}
+		
+		//debug
+//		if (this.repeats.size() == 6) { 
+//			return;
+//		}
+
+		//get next sound, play it
+		this.sound = this.sounds.get(0);
+		if (this.sound != null) {
+			PublicFunctions.insertToAS(game, new PlaySound(this.sound, new DoneAction()));
+			this.sounds.set(0, null); //don't play same sound over again
+		}
+		
+		
+		//repeat sprite/pos for current object for 'frames[0]' number of frames.
+		if (this.repeats.get(0) > 1) {
+			this.repeats.set(0, this.repeats.get(0) - 1);
+		}
+		else {
+			//since position is relative, only update once each time period
+			this.position = this.position.add(positions.get(0));
+			positions.remove(0);
+			sprites.remove(0);
+			repeats.remove(0);
+			sounds.remove(0);
+		}
+	}
+	
+	public ThrowOutPokemon(PkmnGen game, Action nextAction) {
+
+		
+		this.doneYet = false;
+		this.nextAction = nextAction;
+
+		//consider doing relative positions from now on
+		//this.position = new Vector2(104+4*3-2,200-6*3-2); //post scaling change
+		this.position = new Vector2(16,32);
+		
+		this.positions = new ArrayList<Vector2>();
+		this.positions.add(new Vector2(0,0));//first of poof anim
+		this.positions.add(new Vector2(0,0));
+		this.positions.add(new Vector2(0,0));
+		this.positions.add(new Vector2(0,0));
+		this.positions.add(new Vector2(0,0));
+		this.positions.add(new Vector2(0,0)); //1 empty frame
+		this.positions.add(new Vector2(18-24,18)); //first of pokemon expand anim
+		this.positions.add(new Vector2(0,0));
+		this.positions.add(new Vector2(0,0));
+		this.positions.add(new Vector2(24-18+6,18-6)); //last is always dummy pos (?need anymore?)
+		
+		
+		this.sprites =  new ArrayList<Sprite[][]>();
+		this.sprites.add(null); //draw nothing for 40 frames
+		//'poof' animation 
+		Texture text = new Texture(Gdx.files.internal("throw_pokeball_anim/poof_sheet1.png"));
+		this.sprites.add(new Sprite[][]{new Sprite[]{new Sprite(text, 48*0, 0, 48, 48)}}); 
+		this.sprites.add(new Sprite[][]{new Sprite[]{new Sprite(text, 48*1, 0, 48, 48)}}); 
+		this.sprites.add(new Sprite[][]{new Sprite[]{new Sprite(text, 48*2, 0, 48, 48)}}); 
+		this.sprites.add(new Sprite[][]{new Sprite[]{new Sprite(text, 48*3, 0, 48, 48)}}); 
+		this.sprites.add(new Sprite[][]{new Sprite[]{new Sprite(text, 48*4, 0, 48, 48)}}); 
+
+		this.sprites.add(null); //draw nothing for 1 frame
+		
+		//below code will splice up image to create 'expanding' effect
+		
+//		 7 blocks of 4 sprites each, 4th block is 'middle'
+//		 working backwards
+//		 frame 4to3 - x: remove cols 3 and 5 , y: remove rows 3 and 5
+//		 frame 3to2: x: remove cols 3 and 5  , y: remove rows 2 and 4
+//		 frame 2to1: x: remove cols 3 and 5  , y: remove rows 1 and 2 - no
+//		  - cloyster ends up with 5,7 as initial sprite
+		
+		//3 frames release1
+		Sprite temp = new Sprite(game.player.currPokemon.backSprite);
+		TextureRegion[][] tempRegion = temp.split(4, 4); //should be 7x7
+		
+		//
+		Sprite[][] temp2 = new Sprite[7][7];
+		for (int i = 0; i < tempRegion.length; i++) {
+			for (int j = 0; j < tempRegion[i].length; j++) {
+				temp2[i][j] = new Sprite(tempRegion[6-j][i]);
+				temp2[i][j].setScale(2);
+//				System.out.println("sprite size: "+String.valueOf(temp2[i][j].getHeight())+"  "+String.valueOf(temp2[i][j].getHeight()));
+			}
+		}
+		
+		//remove rows 3 and 5
+		for (int i = 0; i < temp2.length; i++) {
+			temp2[i][2] = temp2[i][3];
+			temp2[i][3] = temp2[i][5];
+			temp2[i][4] = temp2[i][6];
+			temp2[i][5] = null;
+			temp2[i][6] = null;
+		}
+		//remove cols 3 and 5
+		temp2[2] = temp2[1];
+		temp2[1] = temp2[0];
+		temp2[0] = new Sprite[]{};
+		temp2[4] = temp2[5];
+		temp2[5] = temp2[6];
+		temp2[6] = new Sprite[]{};
+		//i=0, j=6 -> i=6, j=0
+		//i=0, j=0 -> i=6, j=6
+		
+		//copy temp 2
+		Sprite[][] temp3 = new Sprite[7][7]; //.clone();
+		for (int i = 0; i < temp2.length; i++) {
+			for (int j = 0; j < temp2[i].length; j++) {
+				temp3[i][j] = temp2[i][j];
+			}
+		}
+		
+		//remove rows 2 and 4
+		for (int i = 0; i < temp3.length; i++) {
+			if (temp3[i].length <= 0) {
+				continue;
+			}
+			temp3[i][1] = temp3[i][2];
+			temp3[i][2] = temp3[i][4];
+			temp3[i][3] = null;
+			temp3[i][4] = null;
+		}
+		//remove cols 3 and 5
+		temp3[2] = temp3[1];
+		temp3[1] = new Sprite[]{};
+		temp3[4] = temp3[5];
+		temp3[5] = new Sprite[]{};
+
+		Sprite temp4 = new Sprite(tempRegion[0][4]);
+		temp4.setScale(2);		
+		
+		
+		this.sprites.add(new Sprite[][]{new Sprite[]{}, new Sprite[]{}, new Sprite[]{}, new Sprite[]{temp4}});
+		this.sprites.add(temp3);
+		this.sprites.add(temp2);
+		this.sprites.add(new Sprite[][]{new Sprite[]{game.player.currPokemon.backSprite}});
+		//3 frames release2
+		//6 frames release3
+		
+		// -1?
+		this.repeats = new ArrayList<Integer>();
+		this.repeats.add(40);
+		for (int i = 0; i < 4; i++) {
+			this.repeats.add(5);
+		}
+		this.repeats.add(10); //last is 10 frames
+		this.repeats.add(1); //last is 10 frames
+		this.repeats.add(3);
+		this.repeats.add(3);
+		this.repeats.add(6);
+
+
+		
+
+		this.sounds = new ArrayList<String>();
+		this.sounds.add(null); //
+		this.sounds.add("poof1");
+		for (int i = 0; i < 9; i++) {
+			this.sounds.add(null);
+		}
+		
+		
+		text = new Texture(Gdx.files.internal("pokemon_throw_out_anim/helper5.png"));
+		this.helperSprite = new Sprite(text, 0, 0, 160, 144);
+		//this.helperSprite.setPosition(16*10,16*9); //post scaling change
+		//this.helperSprite.setScale(3); //post scaling change
+
+		//play 'throw pokeball' sound
+		//PublicFunctions.insertToAS(game, new PlaySound("throw_pokeball1", new DoneAction()));
+		
+		
+	}
+}
+
+
+
+//return the type of battle the the player must enter
+ //safari battle (no pokemon),
+ //throw out first pkmn
+
+class Battle_Actions extends Action {
+	
+	
+	public static Action getAttackAction(PkmnGen game, String attackName, Action nextAction) {
+		
+		//construct default attack?
+		
+		
+		int power = 40;
+		int accuracy = 100;
+		
+		if (attackName.equals("Aurora Beam")) {
+			//normally return new attack here
+			power = 65; accuracy = 100;
+		}
+		else if (attackName.equals("Clamp")) {
+			//normally return new attack here
+			power = 35; accuracy = 85;
+		}
+		else if (attackName.equals("Supersonic")) {
+			//normally return new attack here
+			power = 0; accuracy = 55;
+		}
+		else if (attackName.equals("Withdraw")) {
+			//normally return new attack here
+			power = 20; accuracy = 100;
+		}
+		
+		
+		
+		return new DefaultAttack(game, power, accuracy, nextAction);
+		
+	}
+	
+	
+	
+
+	public static Action get(PkmnGen game) {
+		
+		//if player has no pokemon, encounter is safari zone style
+		if (game.player.pokemon.isEmpty()) {
+
+			return new SplitAction(
+					new BattleIntro(
+						new BattleIntro_anim1(
+							new SplitAction(
+								new DrawBattle(game),
+								new BattleAnim_positionPlayers(game, 
+									new PlaySound(game.battle.oppPokemon.name, 
+										new DisplayText(game, "Wild "+game.battle.oppPokemon.name.toUpperCase()+" appeared!", null, null, 
+											new WaitFrames(game, 39,
+												//demo code - wildly confusing, but i don't want to write another if statement
+													game.player.adrenaline > 0 ? new DisplayText(game, ""+game.player.name+" has ADRENALINE "+Integer.toString(game.player.adrenaline)+"!", null, null,
+														new PrintAngryEating(game, //for demo mode, normally left out
+																new DrawBattleMenu_SafariZone(game, new DoneAction())
+															)
+														)
+													: 
+													new PrintAngryEating(game, //for demo mode, normally left out
+															new DrawBattleMenu_SafariZone(game, new DoneAction())	
+												)
+												//
+											)
+										)
+									)
+								)
+							)
+						)
+					),
+					new DoneAction()
+				);
+		}
+		//throw out first pokemon in player.pokemon
+		else {
+			
+			Action triggerAction = new PlaySound(game.player.currPokemon.name, 
+													new WaitFrames(game, 6,
+														new DrawBattleMenu_Normal(game, new DoneAction())
+													)
+												);
+			
+			return new BattleIntro(
+						new BattleIntro_anim1(
+							new SplitAction(
+								new DrawBattle(game),
+								new BattleAnim_positionPlayers(game, 
+									new PlaySound(game.battle.oppPokemon.name, 
+										new DisplayText(game, "Wild "+game.battle.oppPokemon.name.toUpperCase()+" appeared!", null, null, 
+											new SplitAction(
+												new WaitFrames(game, 1,
+														new DrawEnemyHealth(game)
+												),
+												new WaitFrames(game, 39,
+													new MovePlayerOffScreen(game, 
+														new DisplayText(game, "Go! "+game.player.currPokemon.name.toUpperCase()+"!", null, triggerAction, 
+															new ThrowOutPokemon(game, //this draws pkmn sprite permanently until battle ends, ie until game.battle.drawAction == null
+																triggerAction
+															)
+														)
+													)
+												)
+											)
+										)
+									)
+								)
+							)
+						)
+					);
+		}
+		
+		//game.actionStack.remove(this);
+		
+	}
+		
+}
+
+
+//basically 'tackle' attack, with modified power/accuracy
+class DefaultAttack extends Action {
+	
+
+	ArrayList<Vector2> positions;
+	Vector2 position;
+	ArrayList<Sprite> sprites;
+	Sprite sprite;
+	ArrayList<Integer> repeats;
+	ArrayList<Float> alphas;
+	ArrayList<String> sounds;
+	String sound;
+	
+	public int layer = 120;
+	public int getLayer(){return this.layer;}
+
+	public String getCamera() {return "gui";};
+
+	Action nextAction;
+	
+	Sprite helperSprite; 
+	
+	boolean doneYet; //unused
+	int power;
+	int accuracy;
+	
+
+	@Override
+	public void step(PkmnGen game) {
+
+		//set sprite position
+		//if done with anim, do nextAction
+		if (positions.isEmpty() || sprites.isEmpty()) {
+
+			//assign damage to opposing pkmn
+			int currHealth = game.battle.oppPokemon.currentStats.get("hp");
+			//TODO - correct damage calculation
+			int finalHealth = currHealth - this.power;
+			if (finalHealth < 0) {finalHealth = 0;} //make sure finalHealth isn't negative
+			game.battle.oppPokemon.currentStats.put("hp", finalHealth);
+			
+			PublicFunctions.insertToAS(game, this.nextAction);
+			game.actionStack.remove(this);
+			return;
+		}
+				
+
+		//get next frame
+		this.sprite = sprites.get(0);
+
+		//debug
+//		this.helperSprite.draw(game.floatingBatch); 
+		
+		
+		//draw current sprite
+//		if (this.sprite != null) {
+//			this.sprite.setPosition(position.x, position.y);
+//			this.sprite.draw(game.floatingBatch);	
+//		}
+		
+		float currAlpha = this.alphas.get(0);
+		game.battle.oppPokemon.sprite.setAlpha(currAlpha);
+		
+		//debug
+//		if (this.repeats.size() == 14) { 
+//			return;
+//		}
+
+		//get next sound, play it
+		this.sound = this.sounds.get(0);
+		if (this.sound != null) {
+			PublicFunctions.insertToAS(game, new PlaySound(this.sound, new DoneAction()));
+			this.sounds.set(0, null); //don't play same sound over again
+		}
+		
+		
+		//repeat sprite/pos for current object for 'frames[0]' number of frames.
+		if (this.repeats.get(0) > 1) {
+			this.repeats.set(0, this.repeats.get(0) - 1);
+		}
+		else {
+			//since position is relative, only update once each time period
+			this.position = this.position.add(positions.get(0));
+			game.player.currPokemon.backSprite.setPosition(this.position.x, this.position.y);
+			positions.remove(0);
+			sprites.remove(0);
+			repeats.remove(0);
+			sounds.remove(0);
+			alphas.remove(0);
+		}
+	}
+	
+	
+	public DefaultAttack(PkmnGen game, int power, int accuracy, Action nextAction) {		
+
+		this.power = power;
+		this.accuracy = accuracy;
+		
+		this.doneYet = false; //unused
+		this.nextAction = nextAction;
+
+		//consider doing relative positions from now on
+		//this.position = new Vector2(104+4*3-2,200-6*3-2); //post scaling change
+		this.position = new Vector2(game.player.currPokemon.backSprite.getX(), game.player.currPokemon.backSprite.getY());
+		
+		this.positions = new ArrayList<Vector2>();
+		this.positions.add(new Vector2(8,0));//move forward 1
+		this.positions.add(new Vector2(-8,0));//move back 1
+		for (int i = 0; i < 13; i++) {
+			this.positions.add(new Vector2(0,0));
+		}
+		
+		
+		
+		this.sprites = new ArrayList<Sprite>(); //may use this in future
+		for (int i = 0; i < 15; i++) {
+			this.sprites.add(null);
+		}
+		
+		
+		this.repeats = new ArrayList<Integer>();
+		this.repeats.add(7);
+		this.repeats.add(3);
+		this.repeats.add(17);
+		this.repeats.add(6); 
+		this.repeats.add(7); 
+		this.repeats.add(5);
+		this.repeats.add(9);
+		this.repeats.add(4);
+		this.repeats.add(8);
+		this.repeats.add(6); 
+		this.repeats.add(7); 
+		this.repeats.add(5);
+		this.repeats.add(9);
+		this.repeats.add(4);
+		this.repeats.add(11);
+
+
+		this.alphas = new ArrayList<Float>();
+		this.alphas.add(1f);
+		this.alphas.add(1f);
+		this.alphas.add(1f);
+		for (int i = 0; i < 6; i++) {
+			this.alphas.add(0f);
+			this.alphas.add(1f);
+		}
+		
+
+		this.sounds = new ArrayList<String>();
+		this.sounds.add(null); //
+		this.sounds.add("tackle1");
+		for (int i = 0; i < 13; i++) {
+			this.sounds.add(null);
+		}
+		
+		
+		Texture text = new Texture(Gdx.files.internal("attack_menu/helper3.png"));
+		this.helperSprite = new Sprite(text, 0, 0, 160, 144);
+	}
+}
+
 
 
 

@@ -1216,6 +1216,10 @@ class PlaySound extends Action {
 			this.music = Gdx.audio.newMusic(Gdx.files.internal("pokemon/cries/044Cry.ogg"));
 			this.music.setLooping(false);
 		}
+		else if (sound == "Cloyster") {
+			this.music = Gdx.audio.newMusic(Gdx.files.internal("pokemon/cries/091Cry.ogg"));
+			this.music.setLooping(false);
+		}
 		else if (sound == "Electabuzz") {
 			this.music = Gdx.audio.newMusic(Gdx.files.internal("pokemon/electabuzz.mp3")); //use this
 			this.music.setLooping(false);
@@ -1348,6 +1352,10 @@ class PlaySound extends Action {
 		}
 		else if (sound == "harden1") {
 			this.music = Gdx.audio.newMusic(Gdx.files.internal("attacks/harden1.ogg"));
+			this.music.setLooping(false);
+		}
+		else if (sound == "tackle1") {
+			this.music = Gdx.audio.newMusic(Gdx.files.internal("attacks/tackle1.ogg"));
 			this.music.setLooping(false);
 		}
 		else if (sound == "ghost1") {
