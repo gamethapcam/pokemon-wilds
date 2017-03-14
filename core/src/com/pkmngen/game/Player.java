@@ -52,6 +52,12 @@ public class Player {
 	ArrayList<Pokemon> pokemon; 
 	Pokemon currPokemon; //needed for displaying current pokemon
 	
+	//items that player currently possesses
+	ArrayList<String> itemsList;
+	Map<String, Integer> itemsDict; //had idea to make this an array of 'ItemActions' instead; would have .name attribute for printing name in menus
+	 //each action would perform action; would still need to initialize the action when adding tho
+	 //decided this way was less intuitive.
+	
 	int adrenaline;  //was 'streak'
 	//demo mechanic - catching in a row without oppPokemon fleeing builds streak
 	 //displayed as 'adrenaline'
@@ -116,6 +122,19 @@ public class Player {
 		
 		this.adrenaline = 0;
 		this.currState = "";
+		
+		//initialize items list
+		this.itemsList = new ArrayList<String>();
+		this.itemsList.add("Master Ball");
+		this.itemsList.add("Ultra Ball");
+		this.itemsList.add("Great Ball");
+		this.itemsList.add("Safari Ball");
+		this.itemsList.add("Safari Ball2");
+		this.itemsList.add("Safari Ball3");
+		this.itemsList.add("Safari Ball4");
+		this.itemsDict = new HashMap<String, Integer>();
+		this.itemsDict.put("Safari Ball", 99);
+		
 	}
 	
 }
@@ -135,7 +154,6 @@ class playerStanding extends Action {
 
 	public int layer = 130;
 	public int getLayer(){return this.layer;}
-	
 	
 	public float initialWait; //might use this to wait before moving
 	
@@ -160,49 +178,27 @@ class playerStanding extends Action {
 		if (this.checkWildEncounter == true) {
 			if (checkWildEncounter(game) == true) {
 				//game.actionStack.remove(this); //now using playerCanMove flag
-				//plan to insert a series here instead
-				 //
+				
 				game.playerCanMove = false;
-				//todo - remove
-//				PublicFunctions.insertToAS(game, new SplitAction(
-//													new BattleIntro(
-//														new BattleIntro_anim1(
-//															new SplitAction(
-//																new DrawBattle(game),
-//																new BattleAnim_positionPlayers(game, 
-//																	new PlaySound(game.battle.oppPokemon.name, 
-//																		new DisplayText(game, "Wild "+game.battle.oppPokemon.name.toUpperCase()+" appeared!", null, null, 
-//																			new WaitFrames(game, 39,
-//																				//demo code - wildly confusing, but i don't want to write another if statement
-//																					game.player.adrenaline > 0 ? new DisplayText(game, ""+game.player.name+" has ADRENALINE "+Integer.toString(game.player.adrenaline)+"!", null, null,
-//																						new PrintAngryEating(game, //for demo mode, normally left out
-//																								new DrawBattleMenu_SafariZone(game, new DoneAction())
-//																							)
-//																						)
-//																					: 
-//																					new PrintAngryEating(game, //for demo mode, normally left out
-//																							new DrawBattleMenu_SafariZone(game, new DoneAction())	
-//																				)
-//																				//
-//																			)
-//																		)
-//																	)
-//																)
-//															)
-//														)
-//													),
-//													new DoneAction()
-//												)
-//											);
 				PublicFunctions.insertToAS(game, Battle_Actions.get(game)); 
 				game.currMusic.pause();
 				game.currMusic = game.battle.music;
+				game.currMusic.stop();
 				game.currMusic.play();
 				//game.battle.music.play(); //would rather have an action that does this?
 				return;
 			}
 			this.checkWildEncounter = false;
 		}
+		
+		//check if player wants to access the menu
+		if(Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
+			PublicFunctions.insertToAS(game, new DrawPlayerMenu.Intro(game, new DrawPlayerMenu(game, new WaitFrames(game, 1, new PlayerCanMove(game, new DoneAction())))));
+			//game.actionStack.remove(this); 
+			game.playerCanMove = false;
+			return;
+		}
+		
 		
 		//check user input
 		if(Gdx.input.isKeyPressed(Input.Keys.UP)) {
@@ -930,7 +926,6 @@ class DrawPokemonCaught extends Action {
 
 
 
-//demo of drawing sprites for ea pokemon caught
 class PlayerCanMove extends Action {
 
 	Action nextAction;
@@ -1112,37 +1107,39 @@ class drawGhost extends Action {
 
 			game.battle.oppPokemon = this.pokemon;
 			game.playerCanMove = false; 
-			PublicFunctions.insertToAS(game, new SplitAction(
-												new BattleIntro(
-													new BattleIntro_anim1(
-														new SplitAction(
-															new DrawBattle(game),
-															new BattleAnim_positionPlayers(game, 
-																new PlaySound(game.battle.oppPokemon.name, 
-																	new DisplayText(game, "A Ghost appeared!", null, null, 
-																		new WaitFrames(game, 39,
-																			//demo code - wildly confusing, but i don't want to write another if statement
-																				game.player.adrenaline > 0 ? 
-																				new DisplayText(game, ""+game.player.name+" has ADRENALINE "+Integer.toString(game.player.adrenaline)+"!", null, null,
-																					new PrintAngryEating(game, //for demo mode, normally left out
-																							new DrawBattleMenu_SafariZone(game, new DoneAction())
-																						)
-																					)
-																				: 
-																				new PrintAngryEating(game, //for demo mode, normally left out
-																						new DrawBattleMenu_SafariZone(game, new DoneAction())	
-																			)
-																			//
-																		)
-																	)
-																)
-															)
-														)
-													)
-												),
-												new DoneAction()
-											)
-										);
+			//todo - remove
+//			PublicFunctions.insertToAS(game, new SplitAction(
+//												new BattleIntro(
+//													new BattleIntro_anim1(
+//														new SplitAction(
+//															new DrawBattle(game),
+//															new BattleAnim_positionPlayers(game, 
+//																new PlaySound(game.battle.oppPokemon.name, 
+//																	new DisplayText(game, "A Ghost appeared!", null, null, 
+//																		new WaitFrames(game, 39,
+//																			//demo code - wildly confusing, but i don't want to write another if statement
+//																				game.player.adrenaline > 0 ? 
+//																				new DisplayText(game, ""+game.player.name+" has ADRENALINE "+Integer.toString(game.player.adrenaline)+"!", null, null,
+//																					new PrintAngryEating(game, //for demo mode, normally left out
+//																							new DrawBattleMenu_SafariZone(game, new DoneAction())
+//																						)
+//																					)
+//																				: 
+//																				new PrintAngryEating(game, //for demo mode, normally left out
+//																						new DrawBattleMenu_SafariZone(game, new DoneAction())	
+//																			)
+//																			//
+//																		)
+//																	)
+//																)
+//															)
+//														)
+//													)
+//												),
+//												new DoneAction()
+//											)
+//										);
+			PublicFunctions.insertToAS(game, Battle_Actions.get(game)); 
 		}
 	}
 			
@@ -1573,7 +1570,7 @@ class cycleDayNight extends Action {
 		this.animIndex = 0;
 		
 		this.rand = new Random();
-		this.dayTimer = 10000; //100; - debug
+		this.dayTimer = 10000; //100; //- debug // 10000; //
 		
 
 		Texture text = new Texture(Gdx.files.internal("text2.png"));

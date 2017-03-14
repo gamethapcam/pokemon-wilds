@@ -35,6 +35,16 @@ public class Action {
 	public void step(PkmnGen game){}
 }
 
+
+//this has the extra 'disabled' variable
+ //
+class MenuAction extends Action {
+
+	boolean disabled;
+}
+
+
+
 //always called at end of action chain
 class DoneAction extends Action {
 	@Override
@@ -742,9 +752,19 @@ class DisplayText extends Action {
 	boolean foundTrigger;
 	boolean checkTrigger;
 	
+	boolean firstStep;
+	
 	//what to do at each iteration
 	public void step(PkmnGen game) {
 		
+		if (this.firstStep == true) {
+			//if you ever just pass 'new DoneAction()' to triggerAction, and 
+			 //then remove game.displayTextAction from actionStack later,
+			 //text will stop displaying
+			 //needed when enemy pkmn faints (displayText doesn't wait for user input)
+			game.displayTextAction = this;
+			this.firstStep = false;
+		}
 		
 		//debug
 		//this.helperSprite.draw(game.floatingBatch);
@@ -878,6 +898,8 @@ class DisplayText extends Action {
 		
 		this.nextAction = nextAction;
 
+		this.firstStep = true;
+		
 		//TODO - need separate triggerAction and clickComplete modes
 		 //when both are passed, clicks complete but still waits on triggerAction
 		
@@ -1093,6 +1115,23 @@ class DisplayText extends Action {
 }
 
 
+class RemoveDisplayText extends Action {
+	
+	Action nextAction;
+	
+	@Override
+	public void step(PkmnGen game) {
+		game.actionStack.remove(game.displayTextAction);
+		game.displayTextAction = null;
+		game.actionStack.remove(this);
+		PublicFunctions.insertToAS(game, this.nextAction);
+	}
+	
+	public RemoveDisplayText(Action nextAction) {
+		this.nextAction = nextAction;
+	}
+}
+
 
 class WaitFrames extends Action {
 
@@ -1195,7 +1234,13 @@ class PlaySound extends Action {
 			this.music = Gdx.audio.newMusic(Gdx.files.internal("ledge1.wav")); //use this
 			this.music.setLooping(false);
 		}
-
+		else if ("menu_open1".equals(sound)) {
+			this.music = Gdx.audio.newMusic(Gdx.files.internal("attack_menu/menu_open1.ogg")); //use this
+			this.music.setLooping(false);
+		}
+		
+		
+		
 		else if (sound == "wild_battle") {
 			this.music = Gdx.audio.newMusic(Gdx.files.internal("battle/battle-vs-wild-pokemon.wav")); //use this
 			this.music.setLooping(false);

@@ -71,7 +71,22 @@ public class Pokemon {
 			this.types.add("Poison");
 			this.types.add("Flying");
 		}
-		if (name == "Cloyster") { //gen I properties
+		else if (name.equals("Rattata")) { //gen I properties
+			this.baseStats.put("hp",30);
+			this.baseStats.put("attack",56);
+			this.baseStats.put("defense",35);
+			this.baseStats.put("specialAtk",25);
+			this.baseStats.put("specialDef",25);
+			this.baseStats.put("speed",72);
+			this.baseStats.put("catchRate", 255);
+			//sprite
+			Texture pokemonText = new Texture(Gdx.files.internal("pokemon/rattata.png"));
+			this.sprite = new Sprite(pokemonText, 0, 0, 56, 56);
+//			this.sprite.flip(true, false); //my sprites are backwards
+
+			this.types.add("Normal");
+		}
+		else if (name == "Cloyster") { //gen I properties
 			this.baseStats.put("hp",50);
 			this.baseStats.put("attack",95);
 			this.baseStats.put("defense",180);
@@ -81,7 +96,7 @@ public class Pokemon {
 			this.baseStats.put("catchRate", 60);
 			//sprite
 			Texture pokemonText = new Texture(Gdx.files.internal("pokemon/pokemon_sheet1.png"));
-			this.sprite = new Sprite(pokemonText, 56*27, 56*2, 56, 56);
+			this.sprite = new Sprite(pokemonText, 56*28, 56*2, 56, 56);
 			this.sprite.flip(true, false); //my sprites are backwards
 
 			//back sprite

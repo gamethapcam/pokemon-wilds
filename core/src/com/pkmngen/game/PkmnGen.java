@@ -1,5 +1,8 @@
 package com.pkmngen.game;
 
+import gme_debug.VGMPlayer;
+
+import java.awt.Label;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -57,6 +60,7 @@ public class PkmnGen extends ApplicationAdapter {
 	//
 	
 	boolean playerCanMove;
+	Action displayTextAction;
 	
 	//box2d
 	//World world;
@@ -170,10 +174,10 @@ public class PkmnGen extends ApplicationAdapter {
 		this.playerCanMove = true;
 
 		//extra stuff
-		//PublicFunctions.insertToAS(this, new DrawObjectives(this));
-		//PublicFunctions.insertToAS(this, new GenForest1(this, new Vector2(-64,-64), new Vector2(128,128)));
-		//PublicFunctions.insertToAS(this, new GenForest2(this, new Vector2(-64,-48), new Vector2(320,336)));
-		PublicFunctions.insertToAS(this, new GenForest2(this, new Vector2(-64,-48), new Vector2(800,800)));
+//		PublicFunctions.insertToAS(this, new DrawObjectives(this));
+//		PublicFunctions.insertToAS(this, new GenForest1(this, new Vector2(-64,-64), new Vector2(128,128)));
+//		PublicFunctions.insertToAS(this, new GenForest2(this, new Vector2(-64,-48), new Vector2(320,336)));
+		PublicFunctions.insertToAS(this, new GenForest2(this, new Vector2(-64,-48), new Vector2(800,800))); //this is the size I want
 		
 
 		
@@ -234,8 +238,19 @@ public class PkmnGen extends ApplicationAdapter {
 		PublicFunctions.insertToAS(this, new cycleDayNight(this));
 		
 		//debug
-		this.player.currPokemon = new Pokemon("Cloyster", 36);
+		this.player.currPokemon = new Pokemon("Cloyster", 40);
+//		this.player.currPokemon.name = "AA"; //debug
 		this.player.pokemon.add(this.player.currPokemon); 
+//		this.player.currPokemon.currentStats.put("hp", 0); //debug
+
+//		this.currMusic = this.battle.music;
+//		this.currMusic.stop();
+//		this.currMusic.play();
+//		this.playerCanMove = false;
+//		this.battle.oppPokemon = new Pokemon("Cloyster", 40);
+//		PublicFunctions.insertToAS(this, Battle_Actions.get(this)); 
+		
+		
 		
 //		System.out.println("color r:"+String.valueOf(Color.TEAL.r)); //debug
 //		System.out.println("color b:"+String.valueOf(Color.TEAL.b));
@@ -251,6 +266,25 @@ public class PkmnGen extends ApplicationAdapter {
 //		String string1 = "AAAA has ADRENALINE 5!";
 //		PublicFunctions.insertToAS(this, new DisplayText(this, string1, "fanfare1", null, new DoneAction()));
 //		PublicFunctions.insertToAS(this, new DisplayText(this, string1, null, null, new DoneAction()));
+		
+//		// trying out gme stuff
+//		//trying the vgmplayer route
+//		int sampleRate = 44100;
+//		VGMPlayer gbsPlayer = new VGMPlayer(sampleRate);
+//		try {
+//			//if url=path for now it won't try to do http get on url
+//			// and instead load file
+//			// dumb I know
+//			gbsPlayer.loadFile("C:/Users/Evan/Desktop/pokemon_gbs/Pokemon Gold zophar/DMG-AAUJ-JPN.gbs",
+//					           "C:/Users/Evan/Desktop/pokemon_gbs/Pokemon Gold zophar/DMG-AAUJ-JPN.gbs");
+//
+////			gbsPlayer.loadFile("C:/Users/Evan/Desktop/pokemon_gbs/PM_Y_C_Stereo_GBS/Pokemon Crystal (2001)(Game Freak, Nintendo).gbs",
+////							   "C:/Users/Evan/Desktop/pokemon_gbs/PM_Y_C_Stereo_GBS/Pokemon Crystal (2001)(Game Freak, Nintendo).gbs");
+//			//don't trust file number in directory - look inside m3u file for GBS,<track number>
+//			gbsPlayer.startTrack(88, 150);
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//		}
 		
 	}
 
@@ -392,6 +426,7 @@ public class PkmnGen extends ApplicationAdapter {
 		textDict.put('.', new Sprite(text, 10+16*7, 5+12+12+12, 8, 8)); 
 		textDict.put(',', new Sprite(text, 10+16*8, 5+12+12+12, 8, 8)); 
 		textDict.put('È', new Sprite(text, 10+16*9, 5+12+12+12, 8, 8)); 
+		textDict.put('…', new Sprite(text, 10+16*9, 5+12+12+12, 8, 8)); //same as lower case È, used in menus (ie POKÈBALL, etc)
 		textDict.put('-', new Sprite(text, 10+16*10, 5+12+12+12, 8, 8)); 
 		textDict.put(null, new Sprite(text, 10+16*0, 5+12+12+12+12, 8, 8)); //use when no char found
 		
