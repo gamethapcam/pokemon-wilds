@@ -203,6 +203,10 @@ class GenIsland1 extends Action {
 				this.tilesToAdd.remove(tile.position.cpy().add(0, 16));
 			}
 		}
+		
+		//debug - put grass tile next to player
+		this.tilesToAdd.put(new Vector2(16, 00), new Tile("grass1", new Vector2(16, 00)));
+		this.tilesToAdd.put(new Vector2(16, 16), new Tile("grass1", new Vector2(16, 16)));
 	}
 }
 

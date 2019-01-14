@@ -19,10 +19,10 @@ public class Pokemon {
 	Map<String, Integer> maxStats = new HashMap<String, Integer>(); //needed for various calculations
 
 	Map<String, Integer> IVs = new HashMap<String, Integer>();
-	
+
 	//note - this doesn't go in 'maxStats' map
 	//int catchRate; //may put into some other map later
-	
+
 	Sprite sprite;
 	Sprite backSprite;
 	ArrayList<Sprite> avatarSprites; 
@@ -30,13 +30,13 @@ public class Pokemon {
 	// need to be able to manipulate this for 
 	// normal pkmn don't use this - so far only specialmewtwo and mega gengar
 	Sprite breathingSprite = null;
-	
+
 	ArrayList<String> types;
-	
+
 	int angry, eating; //nonzero if angry or eating. safari zone mechanic
-	
+
 	//Music cry; //unused atm, using PlaySound
-	
+
 	//this reference is used when needing to stop drawing pokemon in battle screen
 	 //could also just be oppPokemonDrawAction in battle, I think
 	//Action drawAction; //doesn't work. also, using sprite alpha for now
@@ -44,11 +44,25 @@ public class Pokemon {
 	String[] attacks;
 	Map<Integer, String[]> learnSet;
 	
+	// specific, ie GOLD, RED, CRYSTAL
+	// sprites, stats, attacks etc differ depending
+	public enum Generation {
+		RED,
+		CRYSTAL
+	}
+	Generation generation;
+	ArrayList<Sprite> introAnim;
 	
 	public Pokemon (String name, int level) {
+		// generation defaults to RED
+		this(name, level, Generation.RED);
+	}
+	
+	public Pokemon (String name, int level, Generation generation) {
 		
 		this.name = name;
 		this.level = level;
+		this.generation = generation;
 
 		this.types = new ArrayList<String>();
 
@@ -530,11 +544,55 @@ public class Pokemon {
 			this.baseStats.put("speed",45);
 			this.baseStats.put("catchRate", 235);
 			//sprite
-			Texture pokemonText = new Texture(Gdx.files.internal("pokemon_crystal/machop_front.png"));
+			Texture pokemonText = new Texture(Gdx.files.internal("crystal_pokemon/machop_front2.png"));
 			this.sprite = new Sprite(pokemonText, 0, 0, 56, 56);
-			this.sprite.flip(true, false); 
+//			this.sprite.flip(true, false); 
 
 			this.types.add("Fighting");
+
+			this.introAnim = new ArrayList<Sprite>();
+			// 23 frames do nothing
+			Sprite sprite = new Sprite(pokemonText, 56*0, 0, 56, 56);
+//			sprite.flip(true, false);
+			for (int i=0; i < 24; i++) {
+				this.introAnim.add(sprite);
+			}
+			// 22 frames mouth open
+			sprite = new Sprite(pokemonText, 56*2, 0, 56, 56);
+//			sprite.flip(true, false);
+			for (int i=0; i < 23; i++) {
+				this.introAnim.add(sprite);
+			}
+			// 13 frames normal
+			sprite = new Sprite(pokemonText, 56*0, 0, 56, 56);
+//			sprite.flip(true, false);
+			for (int i=0; i < 14; i++) {
+				this.introAnim.add(sprite);
+			}
+			// 12 frames fists up
+			sprite = new Sprite(pokemonText, 56*1, 0, 56, 56);
+//			sprite.flip(true, false);
+			for (int i=0; i < 13; i++) {
+				this.introAnim.add(sprite);
+			}
+			// 13 frames normal
+			sprite = new Sprite(pokemonText, 56*0, 0, 56, 56);
+//			sprite.flip(true, false);
+			for (int i=0; i < 14; i++) {
+				this.introAnim.add(sprite);
+			}
+			// 13 frames fists up
+			sprite = new Sprite(pokemonText, 56*1, 0, 56, 56);
+//			sprite.flip(true, false);
+			for (int i=0; i < 14; i++) {
+				this.introAnim.add(sprite);
+			}
+			// 11 frames normal
+			sprite = new Sprite(pokemonText, 56*0, 0, 56, 56);
+//			sprite.flip(true, false);
+			for (int i=0; i < 14; i++) {
+				this.introAnim.add(sprite);
+			}
 		}
 		else {
 			return;

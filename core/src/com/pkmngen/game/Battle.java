@@ -7188,6 +7188,39 @@ class SpecialBattleMegaGengar extends Action {
 	}
 }
 
+class PokemonIntroAnim extends Action {
+	public int layer = 140;
+	public int getLayer(){return this.layer;}
+	public String getCamera() {return "gui";};
+	
+	Action nextAction;
+	
+	int currFrame = 0;
+	Sprite originalSprite;
+	boolean firstStep = true;
+
+	@Override
+	public void step(PkmnGen game) {
+		if (this.firstStep) {
+			this.originalSprite = game.battle.oppPokemon.sprite;
+			this.firstStep = false;
+		}
+		if (this.currFrame >= game.battle.oppPokemon.introAnim.size()) {
+			game.battle.oppPokemon.sprite = this.originalSprite;
+			game.actionStack.remove(this);
+			PublicFunctions.insertToAS(game, this.nextAction);
+			return;
+		}
+		// play intro anim frame by frame
+		game.battle.oppPokemon.sprite = game.battle.oppPokemon.introAnim.get(this.currFrame);
+		game.battle.oppPokemon.sprite.setPosition(this.originalSprite.getX(), this.originalSprite.getY());
+		this.currFrame++;
+	}
+	
+	public PokemonIntroAnim(Action nextAction) {
+		this.nextAction = nextAction;
+	}
+}
 
 //return the type of battle the the player must enter
  //safari battle (no pokemon),
@@ -7323,13 +7356,37 @@ class Battle_Actions extends Action {
 				   );
 		}
 		//throw out first pokemon in player.pokemon
-		else {
-			
+		// play intro anim if pokemon crystal
+		else if (game.battle.oppPokemon.generation == Pokemon.Generation.CRYSTAL) {
 			Action triggerAction = new PlaySound(game.player.currPokemon.name, 
 								   new WaitFrames(game, 6,
 								   new DrawBattleMenu_Normal(game, new DoneAction())
 								   ));
-			
+			return new BattleIntro(
+				   new BattleIntro_anim1(
+			       new SplitAction(
+				   new DrawBattle(game),
+				   new BattleAnim_positionPlayers(game, 
+				   new SplitAction(new WaitFrames(game, 4,
+						   		   new PlaySound(game.battle.oppPokemon.name,
+						   		   new DoneAction())), 
+				   new PokemonIntroAnim(
+				   new DisplayText(game, "Wild "+game.battle.oppPokemon.name.toUpperCase()+" appeared!", null, null, 
+				   new SplitAction(new WaitFrames(game, 1,
+								   new DrawEnemyHealth(game)),
+				   new WaitFrames(game, 39,
+				   new MovePlayerOffScreen(game, 
+				   new DisplayText(game, "Go! "+game.player.currPokemon.name.toUpperCase()+"!", null, triggerAction, 
+				   new SplitAction(new DrawFriendlyHealth(game),
+								   new ThrowOutPokemon(game, //this draws pkmn sprite permanently until battle ends, ie until game.battle.drawAction == null
+													   triggerAction
+				   )))))))))))));
+		}
+		else {
+			Action triggerAction = new PlaySound(game.player.currPokemon.name, 
+								   new WaitFrames(game, 6,
+								   new DrawBattleMenu_Normal(game, new DoneAction())
+								   ));
 			return new BattleIntro(
 				   new BattleIntro_anim1(
 			       new SplitAction(

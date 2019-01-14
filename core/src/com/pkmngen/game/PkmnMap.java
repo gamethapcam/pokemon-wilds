@@ -782,6 +782,8 @@ class Route {
 			this.music.setVolume(.3f);
 		}
 
+		this.allowedPokemon.clear();
+		this.allowedPokemon.add("Machop");
 		genPokemon(256);
 
 		/*
@@ -814,8 +816,7 @@ class Route {
 					&& this.allowedPokemon.size() > 4) {
 				continue;
 			}
-			Pokemon tempPokemon = new Pokemon(pokemonName, this.level
-					+ randomLevel);
+			Pokemon tempPokemon = new Pokemon(pokemonName, this.level + randomLevel, Pokemon.Generation.CRYSTAL);
 
 			if (tempPokemon.baseStats.get("catchRate") > maxCatchRate) {
 				continue;

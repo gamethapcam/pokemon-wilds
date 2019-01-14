@@ -1801,6 +1801,11 @@ class PlaySound extends Action {
 			this.music = Gdx.audio.newMusic(Gdx.files.internal("pokemon/cries/344Cry.ogg")); 
 			this.music.setLooping(false);
 		}
+		else if (sound == "Machop") {
+			this.music = Gdx.audio.newMusic(Gdx.files.internal("pokemon/cries/066Cry.ogg")); 
+			this.music.setLooping(false);
+			this.music.setVolume(.5f);
+		}
 		
 		else if (sound == "throw_rock1") {
 			this.music = Gdx.audio.newMusic(Gdx.files.internal("throw_rock_anim/rock_throw1.mp3"));
