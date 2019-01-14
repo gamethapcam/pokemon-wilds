@@ -12,6 +12,200 @@ import com.pkmngen.game.GenForest1.AddPlatform;
 
 
 
+
+
+
+
+
+class GenIsland1 extends Action {
+
+	public int layer = 120;
+	public int getLayer(){return this.layer;}
+
+	ArrayList<Vector2> freePositions;
+	
+	//ArrayList<Tile> tilesToAdd; 
+	HashMap<Vector2, Tile> tilesToAdd;
+//	HashMap<Vector2, Tile> edgeTiles;
+	
+	ArrayList<Action> doActions;
+	
+	Vector2 topLeft, bottomRight;
+	Vector2 origin;
+	int radius;
+
+	Random rand;
+	
+	@Override
+	public void step(PkmnGen game) {
+
+		if (this.tilesToAdd.isEmpty()) {
+			if (this.doActions.isEmpty()) {
+				game.actionStack.remove(this);
+				return;
+			}
+			Action currAction = this.doActions.get(0);
+			this.doActions.remove(0);
+			PublicFunctions.insertToAS(game, currAction);
+			game.actionStack.remove(this);
+			return;
+		}
+
+		Tile currTile = this.tilesToAdd.values().iterator().next();
+		game.map.tiles.put(currTile.position.cpy(), currTile);
+		this.tilesToAdd.remove(currTile.position.cpy());
+
+		//do i  more times (to speed up)
+		for (int i=0; i < 1000; i++) {
+			if (!this.tilesToAdd.isEmpty()) {
+				currTile = this.tilesToAdd.values().iterator().next();
+				game.map.tiles.put(currTile.position.cpy(), currTile);
+				this.tilesToAdd.remove(currTile.position.cpy());
+			}
+			else {
+				break;
+			}
+		}
+	}
+	
+	public void ApplyBlotch(Tile originTile, int maxDist, HashMap<Vector2, Tile> tilesToAdd) {
+		HashMap<Vector2, Tile> edgeTiles = new HashMap<Vector2, Tile>();
+		ArrayList<Tile> prevTiles = new ArrayList<Tile>();
+		Tile prevTile = originTile;
+		edgeTiles.put(originTile.position.cpy(), originTile);
+
+		while (!edgeTiles.isEmpty()) {
+			for (Tile tile : new ArrayList<Tile>(edgeTiles.values())) {
+				int numAdded = 0;
+				for (Vector2 edge : new Vector2[]{tile.position.cpy().add(-16f, 0f), 
+												  tile.position.cpy().add(16f, 0f),
+												  tile.position.cpy().add(0f, 16f),
+												  tile.position.cpy().add(0f, -16f)}) {
+					float distance = edge.dst(originTile.position);
+					if (!tilesToAdd.containsKey(edge)) {
+						int putTile = this.rand.nextInt(maxDist) + (int)distance;
+	//					System.out.println(putTile);
+						if (putTile < maxDist) {
+							int isRock = this.rand.nextInt(maxDist) + (int)distance;
+							Tile newTile = new Tile("sand1", edge);
+							if (isRock > maxDist + maxDist/2) {
+								newTile = new Tile("rock1", edge);
+							}
+							//grass isn't as solid as i want
+							int isGrass = this.rand.nextInt(maxDist/8) + (int)distance;
+							if (isGrass < 1*maxDist/2) {
+								newTile = new Tile("green1", edge);
+							}
+							int isTree = this.rand.nextInt(maxDist/4) + (int)distance;
+							if (isTree < 1*maxDist/3 && newTile.position.y % 32 == 0) {
+								newTile = new Tile("tree1", edge);
+							}
+							tilesToAdd.put(newTile.position.cpy(), newTile);
+							edgeTiles.put(newTile.position.cpy(), newTile);
+							numAdded++;
+						}
+					}
+				}
+				
+				// only select edge tiles for new 'blotches'
+				if (tile.position.dst(originTile.position) > prevTile.position.dst(originTile.position)) {
+					prevTile = tile;
+					// use a random number of these later
+					// add beginning of list
+					prevTiles.add(0, tile);
+				}
+				// numAdded checks if we put a lot of tiles around this tile. if so, 
+				// it's probably not an edge
+//				if (numAdded < 1 && tile.position != originTile.position) {
+//					prevTiles.add(0, tile);
+//				}
+				edgeTiles.remove(tile.position);
+			}
+		}
+		//origin changes to new spot
+//			int newSize = this.rand.nextInt(maxDist + (int)(maxDist/1.5f));  // size varies a lot, but looks good
+		// has a tendency to snake, but looks good
+		int newSize = maxDist - this.rand.nextInt(maxDist/4);
+		System.out.println(prevTile.position);
+		System.out.println(newSize);
+		if (newSize <= 0) {
+			return;
+		}
+		
+		// todo: param
+		int randInt = 1;  // previous behavior
+//		int randInt = this.rand.nextInt(3) + 1;
+		if (prevTiles.size() < randInt) {
+			randInt = prevTiles.size();
+		}
+		int next=0;
+		for (int i=0; i < randInt; i++) {
+			tilesToAdd.put(prevTiles.get(next).position.cpy(), prevTiles.get(next));
+			ApplyBlotch(prevTiles.get(next), newSize, tilesToAdd);
+			next += this.rand.nextInt(prevTiles.size() -next) + next;
+			if (next >= prevTiles.size()) {
+				break;
+			}
+		}
+	}
+	
+	public GenIsland1(PkmnGen game, Vector2 origin, int radius) {
+		this.origin = origin;
+		this.radius = radius;
+		
+		this.rand = new Random();
+		this.tilesToAdd = new HashMap<Vector2, Tile>();
+		this.doActions = new ArrayList<Action>();
+
+		// for each tile in edges
+		//  for each open edge, decide if you will put tile
+		//   check that it doesn't exist already
+		//  chance decreases as you move outward
+		//  add those tiles to list, then remove self
+		int maxDist = this.radius;  // 16*10;
+		Tile originTile = new Tile("sand1", this.origin.cpy());
+		this.tilesToAdd.put(originTile.position.cpy(), originTile);
+		ApplyBlotch(originTile, maxDist, this.tilesToAdd);
+		
+		// find max/min x and y tiles, add padding and add water tiles
+		Vector2 maxPos = this.origin.cpy();
+		Vector2 minPos = this.origin.cpy();
+		for (Tile tile : new ArrayList<Tile>(this.tilesToAdd.values())) {
+			
+			if (maxPos.x < tile.position.x) {
+				maxPos.x = tile.position.x;
+			}
+			if (maxPos.y < tile.position.y) {
+				maxPos.y = tile.position.y;
+			}
+			if (minPos.x > tile.position.x) {
+				minPos.x = tile.position.x;
+			}
+			if (minPos.y > tile.position.y) {
+				minPos.y = tile.position.y;
+			}
+		}
+		maxPos.add(16*3, 16*3);
+		minPos.sub(16*3, 16*3);
+		Vector2 pos;
+		for (float i=minPos.x; i < maxPos.x; i+=16) {
+			for (float j=minPos.y; j < maxPos.y; j+=16) {
+				pos = new Vector2(i, j);
+				if (!this.tilesToAdd.containsKey(pos)) {
+					this.tilesToAdd.put(pos.cpy(), new Tile("water2", pos.cpy()));
+				}
+			}
+		}
+
+		for (Tile tile : new ArrayList<Tile>(this.tilesToAdd.values())) {
+			// show tops of trees
+			if (tile.name.equals("tree1")) {
+				this.tilesToAdd.remove(tile.position.cpy().add(0, 16));
+			}
+		}
+	}
+}
+
 //idea - when creating a maze that 'has to go to one spot', 
  //as more nodes are added to 'visited nodes', increase the odds
  //of choosing node in right direction slightly. that way maze
@@ -76,6 +270,10 @@ public class GenForest2 extends Action {
 		if (this.tilesToAdd.isEmpty()) {
 			if (this.doActions.isEmpty()) {
 				game.actionStack.remove(this);
+
+				// debug
+				// spawn mega-gengar, interact to start battle
+				game.map.tiles.put(new Vector2(0, 16 +48), new MegaGengarTile(new Vector2(0, 16 +48)));
 				return;
 			}
 			Action currAction = this.doActions.get(0);
@@ -1371,6 +1569,9 @@ public class GenForest2 extends Action {
 	}
 
 }
+
+
+
 
 
 

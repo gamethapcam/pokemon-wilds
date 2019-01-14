@@ -1,5 +1,8 @@
 package com.pkmngen.game;
 
+import java.awt.AWTException;
+import java.awt.Robot;
+import java.awt.event.KeyEvent;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -14,6 +17,7 @@ import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.math.Vector3;
 
 
 //includes player global structure (the class)
@@ -193,7 +197,12 @@ class playerStanding extends Action {
 		
 		//check if player wants to access the menu
 		if(Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
-			PublicFunctions.insertToAS(game, new DrawPlayerMenu.Intro(game, new DrawPlayerMenu(game, new WaitFrames(game, 1, new PlayerCanMove(game, new DoneAction())))));
+			PublicFunctions.insertToAS(game,
+					                   new DrawPlayerMenu.Intro(game,
+					                   new DrawPlayerMenu(game,
+					                   new WaitFrames(game, 1,
+					                   new PlayerCanMove(game,
+					                   new DoneAction())))));
 			//game.actionStack.remove(this); 
 			game.playerCanMove = false;
 			return;
@@ -1581,6 +1590,61 @@ class cycleDayNight extends Action {
 	}
 		
 }
+
+
+
+// Robot package not available on android
+// would need to restructure the PlayerStanding/Moving classes
+// maybe they could also check some global booleans?
+ // hmm, that might work
+class DrawAndroidControls extends Action {
+	
+	public int layer = 101;  // hopefully above most things?
+	public int getLayer(){return this.layer;}
+	
+	public String getCamera() {return "gui";};
+	
+	Sprite leftArrowSprite;
+	Sprite rightArrowSprite;
+//	Robot robot;
+
+	@Override
+	public void step(PkmnGen game) {
+
+		this.leftArrowSprite.draw(game.floatingBatch);
+		
+
+		if (Gdx.input.justTouched()) {
+
+			Vector3 touchPos = new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
+			game.cam.unproject(touchPos);
+			
+			if (this.leftArrowSprite.getBoundingRectangle().contains(touchPos.x, touchPos.y)) {
+				int keyCode = KeyEvent.VK_LEFT; // left arrow
+//				this.robot.keyPress(keyCode);
+			}
+		}
+		
+		
+	}
+
+	public DrawAndroidControls() {
+		
+		Texture text = new Texture(Gdx.files.internal("battle/player_back1.png"));
+		this.leftArrowSprite = new Sprite(text, 0, 0, 28, 28);
+		this.leftArrowSprite.setPosition(0,0);
+		this.rightArrowSprite = new Sprite(text, 0, 0, 28, 28);
+		
+//		try {
+//			this.robot = new Robot();
+//		} catch (AWTException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
+	}
+}	
+
+
 
 //contains thing to cycle, number of frames for thing
 //add more in future, like sounds

@@ -25,6 +25,11 @@ public class Pokemon {
 	
 	Sprite sprite;
 	Sprite backSprite;
+	ArrayList<Sprite> avatarSprites; 
+
+	// need to be able to manipulate this for 
+	// normal pkmn don't use this - so far only specialmewtwo and mega gengar
+	Sprite breathingSprite = null;
 	
 	ArrayList<String> types;
 	
@@ -44,16 +49,21 @@ public class Pokemon {
 		
 		this.name = name;
 		this.level = level;
-		
+
 		this.types = new ArrayList<String>();
-		
+
 		//init vars
 		this.angry = 0;
 		this.eating = 0;
-		
+
 		this.attacks = new String[]{"-","-","-","-"};
 		this.learnSet = new HashMap<Integer, String[]>();
 		
+		//TODO: individual avatars
+		Texture avatarText = new Texture(Gdx.files.internal("pokemon_menu/avatars1.png"));
+		this.avatarSprites = new ArrayList<Sprite>();
+		this.avatarSprites.add(new Sprite(avatarText, 16*0, 16*0, 16, 16));
+		this.avatarSprites.add(new Sprite(avatarText, 16*1, 16*0, 16, 16));
 
 		if (name == "Zubat") { //gen I properties
 			this.baseStats.put("hp",40);
@@ -87,7 +97,8 @@ public class Pokemon {
 			this.types.add("Normal");
 		}
 		else if (name == "Cloyster") { //gen I properties
-			this.baseStats.put("hp",50);
+//			this.baseStats.put("hp",50);
+			this.baseStats.put("hp",500);
 			this.baseStats.put("attack",95);
 			this.baseStats.put("defense",180);
 			this.baseStats.put("specialAtk",85);
@@ -108,10 +119,12 @@ public class Pokemon {
 //			this.backSprite.setScale(2);
 			
 			//moves that cloyster can learn
-			learnSet.put(1, new String[]{"Aurora Beam", "Clamp", "Supersonic", "Withdraw"});
+			// TODO: was this, removed for demo
+//			learnSet.put(1, new String[]{"Aurora Beam", "Clamp", "Supersonic", "Withdraw"});
+			learnSet.put(1, new String[]{"Clamp"});
 //			learnSet.put(1, new String[]{"Fly", "Growl", "Hyper Beam"});
 			//learnSet.put(20, new String[]{"Harden", "Harden", "Harden", "Harden"}); //debug
-			learnSet.put(50, new String[]{"Spike Cannon"});
+//			learnSet.put(50, new String[]{"Spike Cannon"});  // TODO: re-enable
 			
 			this.types.add("Water");
 			this.types.add("Ice");
@@ -508,6 +521,24 @@ public class Pokemon {
 
 			this.types.add("Electric");
 		}
+		else if (name == "Machop") { // todo: stats are wrong
+			this.baseStats.put("hp",45);
+			this.baseStats.put("attack",65);
+			this.baseStats.put("defense",34);
+			this.baseStats.put("specialAtk",40);
+			this.baseStats.put("specialDef",34);
+			this.baseStats.put("speed",45);
+			this.baseStats.put("catchRate", 235);
+			//sprite
+			Texture pokemonText = new Texture(Gdx.files.internal("pokemon_crystal/machop_front.png"));
+			this.sprite = new Sprite(pokemonText, 0, 0, 56, 56);
+			this.sprite.flip(true, false); 
+
+			this.types.add("Fighting");
+		}
+		else {
+			return;
+		}
 		
 		getCurrentAttacks(); //fill this.attacks with what it can currently know
 		
@@ -556,5 +587,87 @@ public class Pokemon {
 			}
 		}
 		
+	}
+}
+
+class SpecialMewtwo1 extends Pokemon {
+
+	Sprite breathingSprite;
+
+	public SpecialMewtwo1(int level) {
+		
+		// initialize variables
+		super("Mewtwo", level);
+
+		//gen I properties
+		this.baseStats.put("hp", 106);
+		this.baseStats.put("attack", 110);
+		this.baseStats.put("defense", 90);
+		this.baseStats.put("specialAtk", 154);
+		this.baseStats.put("specialDef", 154);
+		this.baseStats.put("speed", 130);
+		this.baseStats.put("catchRate", 3);
+		
+		//sprite
+		Texture pokemonText = new Texture(Gdx.files.internal("pokemon/mewtwo_special1.png"));
+		this.sprite = new Sprite(pokemonText, 0, 0, 56, 56);
+		
+		pokemonText = new Texture(Gdx.files.internal("pokemon/mewtwo_special2.png"));
+		this.breathingSprite = new Sprite(pokemonText, 0, 0, 56, 56);
+
+//		this.learnSet.put(1, new String[]{"Confusion", "Disable", "Psychic", "Swift"});
+		this.learnSet.put(1, new String[]{"Psychic", "Psychic", "Psychic", "Psychic"});
+		this.types.add("Psychic");
+
+		getCurrentAttacks(); //fill this.attacks with what it can currently know
+		
+		//stats formulas here
+		calcMaxStats();
+		this.currentStats = new HashMap<String, Integer>(this.maxStats); //copy maxStats 
+	}
+}
+
+
+class SpecialMegaGengar1 extends Pokemon {
+
+	// TODO: remove, in base class
+//	Sprite breathingSprite;
+
+	public SpecialMegaGengar1(int level) {
+		
+		// initialize variables
+		super("Mega Gengar", level);
+
+		//gen 7 stats
+//		this.baseStats.put("hp", 60);
+		this.baseStats.put("hp", 300);
+		this.baseStats.put("attack", 65);
+		this.baseStats.put("defense", 80);
+		this.baseStats.put("specialAtk", 170);
+		this.baseStats.put("specialDef", 95);
+		this.baseStats.put("speed", 130);
+		// mega gengar doesn't have a catch rate, so leaving at 3
+		// same as mewtwo
+		this.baseStats.put("catchRate", 3);
+		
+		//sprite
+		Texture pokemonText = new Texture(Gdx.files.internal("pokemon/mgengar_base1.png"));
+		this.breathingSprite = new Sprite(pokemonText, 0, 0, 56, 56);
+		
+		pokemonText = new Texture(Gdx.files.internal("pokemon/mgengar_over1.png"));
+		this.sprite = new Sprite(pokemonText, 0, 0, 56, 56);
+
+//		this.learnSet.put(1, new String[]{"Confusion", "Disable", "Psychic", "Swift"});
+//		this.learnSet.put(1, new String[]{"Psychic", "Psychic", "Psychic", "Psychic"});
+//		this.learnSet.put(1, new String[]{"Night Shade", "Night Shade", "Night Shade", "Night Shade"}); //, "Lick"
+		this.learnSet.put(1, new String[]{"Shadow Claw", "Night Shade", "Lick", "-"}); //, "Lick"
+		this.types.add("Ghost");
+		this.types.add("Poison");
+
+		getCurrentAttacks(); //fill this.attacks with what it can currently know
+		
+		//stats formulas here
+		calcMaxStats();
+		this.currentStats = new HashMap<String, Integer>(this.maxStats); //copy maxStats 
 	}
 }

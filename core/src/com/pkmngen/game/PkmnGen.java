@@ -74,12 +74,20 @@ public class PkmnGen extends ApplicationAdapter {
 	//try this for overworld music, etc
 	 //may have to replace this with a string
 	Music currMusic;
-	
+
+	//when want to play a music file, put in here. call dispose and remove elements when done
+	HashMap<String, Music> loadedMusic =  new HashMap<String, Music>();
+
 	//char-to-Sprite text dictionary
 	Map<Character, Sprite> textDict;
+
+	public static PkmnGen staticGame;
 	
 	@Override
-	public void create() {	
+	public void create() {
+
+		//annoying - used for music completion listener
+		this.staticGame = this;
 
 		//map handles unit positions
 		//map = new GagMap(this, "Frost_Zone_v01");
@@ -177,10 +185,22 @@ public class PkmnGen extends ApplicationAdapter {
 //		PublicFunctions.insertToAS(this, new DrawObjectives(this));
 //		PublicFunctions.insertToAS(this, new GenForest1(this, new Vector2(-64,-64), new Vector2(128,128)));
 //		PublicFunctions.insertToAS(this, new GenForest2(this, new Vector2(-64,-48), new Vector2(320,336)));
-		PublicFunctions.insertToAS(this, new GenForest2(this, new Vector2(-64,-48), new Vector2(800,800))); //this is the size I want
-		
 
 		
+		// was using this as default map
+//		PublicFunctions.insertToAS(this, new GenForest2(this, new Vector2(-64,-48), new Vector2(800,800))); //this is the size I want
+
+		// gen island map
+		PublicFunctions.insertToAS(this, new GenIsland1(this, new Vector2(0,0), 16*20));
+
+		// TODO - mega gengar battle debug in genforest2, remove that
+
+		// this is the special mewtwo debug map
+		// comment out the genforest to use this
+//		this.map = new PkmnMap("SpecialMewtwo");
+//		PublicFunctions.insertToAS(this, new DrawSpecialMewtwoBg());
+		
+		// debug
 		//PublicFunctions.insertToAS(this, new spawnGhost(this, new Vector2(32, 0))); //debug
 		
 
@@ -238,18 +258,30 @@ public class PkmnGen extends ApplicationAdapter {
 		PublicFunctions.insertToAS(this, new cycleDayNight(this));
 		
 		//debug
-		this.player.currPokemon = new Pokemon("Cloyster", 40);
+		this.player.currPokemon = new Pokemon("Cloyster", 70);
 //		this.player.currPokemon.name = "AA"; //debug
 		this.player.pokemon.add(this.player.currPokemon); 
 //		this.player.currPokemon.currentStats.put("hp", 0); //debug
 
+		//TODO: debug, delete
+//		this.player.currPokemon.currentStats.put("hp", 12);
+		this.player.pokemon.add(new Pokemon("Spinarak", 50)); 
+		this.player.pokemon.add(new Pokemon("Zubat", 40)); 
+		this.player.pokemon.add(new Pokemon("Spinarak", 30)); 
+		this.player.pokemon.add(new Pokemon("Zubat", 20)); 
+		this.player.pokemon.add(new Pokemon("Zubat", 10)); 
+		
+		// Example debug battle
 //		this.currMusic = this.battle.music;
 //		this.currMusic.stop();
 //		this.currMusic.play();
 //		this.playerCanMove = false;
 //		this.battle.oppPokemon = new Pokemon("Cloyster", 40);
 //		PublicFunctions.insertToAS(this, Battle_Actions.get(this)); 
-		
+
+		// debug for SpecialMewtwo battle
+//		this.playerCanMove = false;
+//		PublicFunctions.insertToAS(this, new SpecialBattleMewtwo(this));
 		
 		
 //		System.out.println("color r:"+String.valueOf(Color.TEAL.r)); //debug
@@ -285,7 +317,11 @@ public class PkmnGen extends ApplicationAdapter {
 //		} catch (Exception e) {
 //			e.printStackTrace();
 //		}
-		
+
+		// draw android controls if on android device
+		// TODO: didnt finish
+//		PublicFunctions.insertToAS(this, new DrawAndroidControls());
+
 	}
 
 	@Override

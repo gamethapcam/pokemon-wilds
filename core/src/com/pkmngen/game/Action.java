@@ -37,10 +37,12 @@ public class Action {
 
 
 //this has the extra 'disabled' variable
- //
 class MenuAction extends Action {
 
 	boolean disabled;
+	boolean drawArrowWhite; // for DrawPlayerMenu
+	
+	MenuAction prevMenu;
 }
 
 
@@ -59,6 +61,9 @@ class SplitAction extends Action {
 	
 	private Action nextAction1;
 	private Action nextAction2;
+
+	String camera = "map";
+	public String getCamera() {return camera;};
 	
 	public SplitAction(Action nextAction1, Action nextAction2) {
 		//put two new actions in the actionStack
@@ -71,6 +76,22 @@ class SplitAction extends Action {
 		game.actionStack.remove(this);
 		PublicFunctions.insertToAS(game, nextAction1);
 		PublicFunctions.insertToAS(game, nextAction2);
+		
+		// TODO: test this - didn't seem to have an effect
+//		if (this.camera.equals(this.nextAction1.getCamera())) {
+//			this.nextAction1.step(game);
+//		}
+//		if (this.camera.equals(this.nextAction2.getCamera())) {
+//			this.nextAction2.step(game);
+//		}
+//
+//		//flip flop cameras
+//		if (this.camera.equals("map")) {
+//			this.camera = "gui";
+//		}
+//		else if (this.camera.equals("gui")) {
+//			this.camera = "map";
+//		}
 	}
 }
 
@@ -1183,7 +1204,415 @@ class PublicFunctions {
 }
 
 
+// pulled from wizard-duels code
+class DisplayTextIntro extends Action {
 
+	ArrayList<Sprite> spritesNotDrawn;
+	ArrayList<Sprite> spritesBeingDrawn;
+
+	Sprite arrowSprite; //TODO - remove this
+	Sprite arrowSprite2;
+	
+	Action playSoundAction;
+	boolean playSound;
+	Action scrollUpAction; //keeps track of if text is currently scrolling up
+	
+	int charsPerLine = 32; //number of characters allowed in one line
+	int spacing = 6; //how far apart to space characters
+	
+	public int layer = 110;
+	public int getLayer(){return this.layer;}
+	public String getCamera() {return "gui";};
+	
+	Action nextAction;
+	
+	Sprite helperSprite;
+	Sprite bgSprite;
+	int timer;
+	
+	int speedTimer, speed;
+	
+	//when we need to stop after trigger action
+	Action triggerAction;
+	boolean foundTrigger;
+	boolean checkTrigger;
+	
+	Vector3 touchLoc = new Vector3();
+	Vector2 touchLoc2d = new Vector2();
+	
+	boolean firstStep = true;
+	boolean exitWhenDone = true;
+	boolean waitingOnExit = false;
+	
+	//what to do at each iteration
+	public void step(PkmnGen game) {
+
+		
+		
+		if (this.firstStep == true) {
+			//if you ever just pass 'new DoneAction()' to triggerAction, and 
+			 //then remove game.displayTextAction from actionStack later,
+			 //text will stop displaying
+			 //needed when enemy pkmn faints (displayText doesn't wait for user input)
+			game.displayTextAction = this;
+			this.firstStep = false;
+		}
+		
+		//debug
+		//this.helperSprite.draw(game.floatingBatch);
+		this.bgSprite.draw(game.floatingBatch);
+		
+		//debug //flash on and off
+//		this.timer--;
+//		if (this.timer <= 0){
+//			if (this.timer <= -19){
+//				this.timer = 20;
+//			}
+//			return;
+//		}
+		
+		//note - draws 0 letters on first step
+		
+		//draw all drawable
+		for (Sprite sprite : spritesBeingDrawn) {
+			sprite.draw(game.floatingBatch);	
+		}
+
+		
+
+		//don't do if waiting for something else to exit this
+		if (this.waitingOnExit == true) {
+			return;
+		}
+		
+		//don't do anything if scrolling text up
+		if (game.actionStack.contains(this.scrollUpAction)) {
+			return;
+		}
+		
+		//TODO - don't do anything if waiting for user to press A
+		
+		//don't do anything if playing sound (example fanfare, etc)
+		if (game.actionStack.contains(this.playSoundAction)) {
+			return;
+		}
+		
+		//don't do anything if trigger action is in actionStack
+		if (this.checkTrigger == true) {
+			if (game.actionStack.contains(this.triggerAction)) {
+				this.foundTrigger = true;
+				return;
+			}
+			//once the trigger is found once, exit after that trigger is finished
+			if (this.foundTrigger == true) {
+				game.actionStack.remove(this);
+				return;
+			}
+			return;
+		}
+		
+		//debug
+//		if (spritesBeingDrawn.size() == 30) {
+//			return;
+//		}
+		
+		//
+		
+		//if no sprites left in spritesNotDrawn, wait for player to hit A
+		if (spritesBeingDrawn.size() >= 36 || spritesNotDrawn.isEmpty()) { //24 characters per line allowed
+			
+			//if at the end of text and need to play sound, do that
+			if (this.playSound == true && spritesNotDrawn.isEmpty()) {
+				PublicFunctions.insertToAS(game, this.playSoundAction);
+				this.playSoundAction.step(game); //avoid latency
+				this.playSound = false;
+				return;
+			}
+			
+			//if we need to wait on a trigger
+			if (this.triggerAction != null) {
+				PublicFunctions.insertToAS(game, this.nextAction);
+				this.checkTrigger = true;
+				return;
+			}
+			
+			//draw arrow
+			 //flash on and off
+//			if (this.timer <= 0){
+//				if (this.timer <= -35){
+//					this.timer = 33;
+//				}
+//				else {
+//					this.arrowSprite2.draw(game.floatingBatch);
+//				}
+//			}
+//			this.timer--;
+			
+			//Intro - Always go to next line
+			//z button still enabled for skipping text
+//			if(Gdx.input.isKeyJustPressed(Input.Keys.Z)) {
+
+				if (spritesNotDrawn.isEmpty()) {
+					PublicFunctions.insertToAS(game, this.nextAction);
+					
+					if (this.exitWhenDone == true) {
+						game.actionStack.remove(this);
+					}
+					else {
+						this.waitingOnExit = true;
+					}
+				}
+				else {
+					this.scrollUpAction = new DisplayTextIntro.ScrollTextUp(game, this.spritesBeingDrawn, this.spritesNotDrawn);
+					PublicFunctions.insertToAS(game, this.scrollUpAction);
+				}
+			
+			return;
+		}
+		
+		//only extract sprite every 'speed' number of frames
+		if (this.speedTimer > 0) {
+			this.speedTimer--;
+			return;
+		}
+		else {
+			this.speedTimer = this.speed;
+		}
+		
+		//if would take too many, stop
+		for (int i=0; i < 1 && !spritesNotDrawn.isEmpty() && spritesBeingDrawn.size() < 36; i++) {
+			spritesBeingDrawn.add(spritesNotDrawn.get(0));
+			spritesNotDrawn.remove(0);
+		}
+		
+	}
+	
+	public DisplayTextIntro(PkmnGen game, String textString, String playSound, Action triggerAction, boolean exitWhenDone, Action nextAction) {
+		
+		this.nextAction = nextAction;
+
+		this.exitWhenDone = exitWhenDone;
+		
+		//TODO - need separate triggerAction and clickComplete modes
+		 //when both are passed, clicks complete but still waits on triggerAction
+		
+		//set end trigger action
+		this.triggerAction = triggerAction;
+		this.foundTrigger = false;
+		this.checkTrigger = false;
+		
+		this.spritesNotDrawn = new ArrayList<Sprite>();
+		this.spritesBeingDrawn = new ArrayList<Sprite>();
+
+		if (playSound != null) {
+			this.playSoundAction = new DisplayTextIntro.PlaySound_Text(playSound, new DoneAction());
+			this.playSound = true;
+		}
+		else {
+			this.playSound = false;
+		}
+		
+		this.speed = 3; //= 2; 
+		this.speedTimer = this.speed;
+		
+		//26 chars per line
+		
+		//here we make sure each line wraps by word, not by char
+		 //could be better, but works
+		String line = "";
+		String lines = "";
+		String[] words = textString.split(" ");
+		for (String word : words) {
+			
+			if (line.length() + word.length() < 18) {
+				line += word;
+				if (line.length() != 17) { //possible bug //don't add space to end of max length line
+					line += " ";
+				}
+			}
+			else {
+				while (line.length() < 18) {
+					line += " ";
+				}
+				lines += line;
+				line = word + " ";
+			}
+		}
+		lines+=line;
+		
+		
+		char[] textArray = lines.toCharArray(); //iterate elements
+		
+		int i = 0, j = 0; ///, offsetNext = 0; //offsetNext if char sizes are ever different. atm it works.
+		Sprite currSprite;
+		for (char letter : textArray) {
+			//offsetNext += spriteWidth*3+2 //how to do this?
+			Sprite letterSprite = game.textDict.get((char)letter);
+			//System.out.println(String.valueOf(letter));
+			if (letterSprite == null) {
+				letterSprite = game.textDict.get(null);
+			}
+			currSprite = new Sprite(letterSprite); //copy sprite from char-to-Sprite dictionary
+			
+			//currSprite.setPosition(10*3+8*i*3 +2, 26*3-16*j*3 +2); //offset x=8, y=25, spacing x=8, y=8(?)
+			currSprite.setPosition(10+8*i +2-4, 26-16*j +2-4); //post scaling change
+//			currSprite.setPosition(((game.cam.viewportWidth*game.cam.zoom)-144)/2 +10+5*i +2-4, 26-16*j +2-4 -1); //new font offset of 6
+			//currSprite.setScale(3); //post scaling change
+
+			
+			spritesNotDrawn.add(currSprite);
+			//go down a line if needed
+			 //TODO - do this for words, not chars. split on space, array
+			if (i >= 17) { 
+				i = 0; j++;
+			}
+			else {
+				i++;
+			}
+		}
+		
+		//why not just every frame draw a new sprite, pop off the sprites list?
+		 //when list is empty, display the arrow and wait for user input
+		
+		Texture text = new Texture(Gdx.files.internal("arrow_down.png"));
+		this.arrowSprite = new Sprite(text, 0, 0, 7, 5);
+		//this.arrowSprite.setPosition(147*3-2,12*3-1);
+		this.arrowSprite.setPosition(147-2-1,12-1-1); //post scaling change
+		//this.arrowSprite.setScale(3); //post scaling change
+		
+		text = new Texture(Gdx.files.internal("text_helper1.png")); //battle_bg1
+		//text = new Texture(Gdx.files.internal("battle/battle_bg1.png"));
+		//Texture text = new Texture(Gdx.files.internal("throw_rock_anim/helper12.png"));
+		this.helperSprite = new Sprite(text, 0, 0, 160, 144);
+		//this.helperSprite.setPosition(16*10,16*9);
+		//this.helperSprite.setScale(3);
+		this.timer = 0;
+		
+
+		text = new Texture(Gdx.files.internal("textbox_bg1.png")); //textbox bg1
+		this.bgSprite = new Sprite(text, 0, 0, 160, 144);
+		
+	}
+	
+	//move text up in text box
+	 //works b/c DisplayText will begin drawing new chars once SpritesBeingDrawn is small enough
+	//parent might need to call step() for frame-correctness, not sure
+	class ScrollTextUp extends Action {
+
+		ArrayList<Vector2> positions;
+		Vector2 position;
+		
+		ArrayList<Sprite> text;
+		ArrayList<Sprite> otherText;
+
+		public int layer = 110;
+		public int getLayer(){return this.layer;}
+		public String getCamera() {return "gui";};
+		
+		//what to do at each iteration
+		public void step(PkmnGen game) {
+			
+			this.position = this.positions.get(0);
+			this.positions.remove(0);
+			
+			for (Sprite sprite : this.text) {
+				sprite.setPosition(sprite.getX()+this.position.x, sprite.getY()+this.position.y);
+			}
+			for (Sprite sprite : this.otherText) {
+				sprite.setPosition(sprite.getX()+this.position.x, sprite.getY()+this.position.y);
+			}
+			
+			//if done, remove first 24 elements
+			//frees up DisplayText's text array, which will get filled with new sprites
+			if (this.positions.isEmpty()) {
+				for (int i=0; i<18; i++) {
+					this.text.remove(0);
+				}
+				game.actionStack.remove(this);
+
+				return;
+			}
+		}
+		
+		public ScrollTextUp(PkmnGen game, ArrayList<Sprite> text, ArrayList<Sprite> otherText) {
+			
+			//TODO - bug, fails if scrolling up twice
+			//TODO - get comma to work (what text contains comma?)
+			
+			this.text = text;
+			this.otherText = otherText;
+			
+			
+			this.positions = new ArrayList<Vector2>();
+			for (int i=0; i < 5; i++) {
+				this.positions.add(new Vector2(0,0));
+			}
+			this.positions.add(new Vector2(0,8));
+			for (int i=0; i < 5; i++) {
+				this.positions.add(new Vector2(0,0));
+			}
+			this.positions.add(new Vector2(0,8));
+			
+		}
+	}
+
+	//play a sound, ie victory fanfare
+	 //unique b/c need to mute battle music
+	class PlaySound_Text extends Action {
+			
+		Music music;
+		Action nextAction;
+		
+		float initialVolume; //different tracks have diff volume
+
+		public PlaySound_Text(String sound, Action nextAction) {
+			
+			this.nextAction = nextAction;
+			this.playedYet = false;
+			
+			if (sound == "fanfare1") {
+				this.music = Gdx.audio.newMusic(Gdx.files.internal("catch_fanfare.mp3")); //use this
+				this.music.setLooping(false);
+			}
+
+			else if (sound == "Raikou") {
+				this.music = Gdx.audio.newMusic(Gdx.files.internal("pokemon/cries/243Cry.ogg")); //use this
+				this.music.setLooping(false);
+			}
+			else if (sound == "Entei") {
+				this.music = Gdx.audio.newMusic(Gdx.files.internal("pokemon/cries/244Cry.ogg")); //use this
+				this.music.setLooping(false);
+			}
+			else if (sound == "Suicune") {
+				this.music = Gdx.audio.newMusic(Gdx.files.internal("pokemon/cries/245Cry.ogg"));
+				this.music.setLooping(false);
+			}
+		}
+		boolean playedYet; //do music.play on first step
+		
+		@Override
+		public void step(PkmnGen game) {
+			//play the sound
+			if (this.music != null && !this.playedYet) {
+
+				//TODO - use this probably in the future
+//				this.initialVolume = game.currMusic.getVolume();
+//				game.currMusic.setVolume(0f);
+				
+				this.music.play();
+				this.playedYet = true;
+			}
+			
+			if (!this.music.isPlaying()) {
+
+//				game.currMusic.setVolume(this.initialVolume);
+				game.actionStack.remove(this);
+				
+				PublicFunctions.insertToAS(game, this.nextAction);
+			}
+		}
+	}
+}
 
 
 
@@ -1192,11 +1621,13 @@ class PlaySound extends Action {
 		
 	Music music;
 	Action nextAction;
+	String sound;
 
 	public PlaySound(String sound, Action nextAction) {
 		
 		this.nextAction = nextAction;
 		this.playedYet = false;
+		this.sound = sound;
 		
 		this.music = null;
 		
@@ -1264,6 +1695,7 @@ class PlaySound extends Action {
 		else if (sound == "Cloyster") {
 			this.music = Gdx.audio.newMusic(Gdx.files.internal("pokemon/cries/091Cry.ogg"));
 			this.music.setLooping(false);
+			this.music.setVolume(.6f);
 		}
 		else if (sound == "Electabuzz") {
 			this.music = Gdx.audio.newMusic(Gdx.files.internal("pokemon/electabuzz.mp3")); //use this
@@ -1276,6 +1708,15 @@ class PlaySound extends Action {
 		else if (sound == "Tauros") {
 			this.music = Gdx.audio.newMusic(Gdx.files.internal("pokemon/cries/128Cry.mp3")); 
 			this.music.setLooping(false);
+		}
+		else if (sound == "Mewtwo") {
+			this.music = Gdx.audio.newMusic(Gdx.files.internal("pokemon/cries/150Cry.ogg"));
+			this.music.setLooping(false);
+		}
+		else if (sound.equals("Mega Gengar")) {
+			this.music = Gdx.audio.newMusic(Gdx.files.internal("pokemon/cries/m_gengar_cry1.ogg"));
+			this.music.setLooping(false);
+			this.music.setVolume(.5f);
 		}
 		else if (sound == "Spinarak") {
 			this.music = Gdx.audio.newMusic(Gdx.files.internal("pokemon/cries/167Cry.ogg"));
@@ -1403,6 +1844,26 @@ class PlaySound extends Action {
 			this.music = Gdx.audio.newMusic(Gdx.files.internal("attacks/tackle1.ogg"));
 			this.music.setLooping(false);
 		}
+		else if (sound.equals("psychic1")) {
+			this.music = Gdx.audio.newMusic(Gdx.files.internal("attacks/psychic1.ogg"));
+			this.music.setLooping(false);
+		}
+		else if (sound.equals("night_shade1")) {
+			this.music = Gdx.audio.newMusic(Gdx.files.internal("attacks/night_shade1.ogg"));
+			this.music.setLooping(false);
+		}
+		else if (sound.equals("lick1")) {
+			this.music = Gdx.audio.newMusic(Gdx.files.internal("attacks/lick1.ogg"));
+			this.music.setLooping(false);
+		}
+		else if (sound.equals("slash1")) {
+			this.music = Gdx.audio.newMusic(Gdx.files.internal("attacks/slash1.ogg"));
+			this.music.setLooping(false);
+		}
+		else if (sound.equals("hit_normal1")) {
+			this.music = Gdx.audio.newMusic(Gdx.files.internal("attacks/hit_normal1.ogg"));
+			this.music.setLooping(false);
+		}
 		else if (sound == "ghost1") {
 			this.music = Gdx.audio.newMusic(Gdx.files.internal("ghost1.ogg"));
 			this.music.setLooping(false);
@@ -1413,6 +1874,16 @@ class PlaySound extends Action {
 	
 	@Override
 	public void step(PkmnGen game) {
+		
+		if (this.sound.equals("mgengar_battle1")) {
+//			game.currMusic.stop();
+			game.loadedMusic.get("mgengar_battle1").play();
+			game.currMusic = game.loadedMusic.get("mgengar_battle1");
+//			game.currMusic.play();
+//			game.actionStack.remove(this);
+//			PublicFunctions.insertToAS(game, this.nextAction);
+			return;
+		}
 		
 		if (this.music == null) {
 			game.actionStack.remove(this);
@@ -1426,6 +1897,7 @@ class PlaySound extends Action {
 		}
 		
 		if (!this.music.isPlaying()) {
+			this.music.dispose();
 			game.actionStack.remove(this);
 			PublicFunctions.insertToAS(game, this.nextAction);
 		}
