@@ -60,6 +60,10 @@ class GenIsland1 extends Action {
 			if (!this.tilesToAdd.isEmpty()) {
 				currTile = this.tilesToAdd.values().iterator().next();
 				game.map.tiles.put(currTile.position.cpy(), currTile);
+				// TODO: handle this better?
+				if (currTile.attrs.get("tree")) {
+					game.map.trees.put(currTile.position.cpy(), currTile);
+				}
 				this.tilesToAdd.remove(currTile.position.cpy());
 			}
 			else {
@@ -68,11 +72,12 @@ class GenIsland1 extends Action {
 		}
 	}
 	
-	public void ApplyBlotch(Tile originTile, int maxDist, HashMap<Vector2, Tile> tilesToAdd) {
+	public void ApplyBlotch(String type, Tile originTile, int maxDist, HashMap<Vector2, Tile> tilesToAdd) {
 		HashMap<Vector2, Tile> edgeTiles = new HashMap<Vector2, Tile>();
 		ArrayList<Tile> prevTiles = new ArrayList<Tile>();
 		Tile prevTile = originTile;
 		edgeTiles.put(originTile.position.cpy(), originTile);
+		HashMap<Vector2, Tile> grassTiles = new HashMap<Vector2, Tile>();
 
 		while (!edgeTiles.isEmpty()) {
 			for (Tile tile : new ArrayList<Tile>(edgeTiles.values())) {
@@ -86,22 +91,38 @@ class GenIsland1 extends Action {
 						int putTile = this.rand.nextInt(maxDist) + (int)distance;
 	//					System.out.println(putTile);
 						if (putTile < maxDist) {
-							int isRock = this.rand.nextInt(maxDist) + (int)distance;
-							Tile newTile = new Tile("sand1", edge);
-							if (isRock > maxDist + maxDist/2) {
-								newTile = new Tile("rock1", edge);
+							// trees in middle, grass near middle, sand and rock on edges
+							if (type.equals("island")) {
+								Tile newTile = new Tile("sand1", edge);
+								int isRock = this.rand.nextInt(maxDist) + (int)distance;
+								if (isRock > maxDist + maxDist/2) {
+									newTile = new Tile("rock1", edge);
+								}
+								//grass isn't as solid as i want
+								int isGrass = this.rand.nextInt(maxDist/8) + (int)distance;
+								if (isGrass < 1*maxDist/2) {
+									newTile = new Tile("green1", edge);
+								}
+								int isTree = this.rand.nextInt(maxDist/4) + (int)distance;
+								if (isTree < 1*maxDist/3 && newTile.position.y % 32 == 0) {
+									newTile = new Tile("tree2", edge);
+								}
+								int grassBlotchHere = this.rand.nextInt(maxDist/4) + (int)distance;
+								int grassBlotchHere2 = this.rand.nextInt(maxDist);
+								if ((int)distance > 1*maxDist/4
+									&& (int)distance < maxDist - maxDist/5
+									&& grassBlotchHere < 3*maxDist/7
+								    && grassBlotchHere2 < maxDist/4) {
+									ApplyBlotch("grass", newTile, (int)Math.ceil(maxDist/6f), grassTiles);
+								}
+								tilesToAdd.put(newTile.position.cpy(), newTile);
+								edgeTiles.put(newTile.position.cpy(), newTile);
+							// grass blotch
+							} else if (type.equals("grass")) {
+								Tile newTile = new Tile("grass2", edge);
+								tilesToAdd.put(newTile.position.cpy(), newTile);
+								edgeTiles.put(newTile.position.cpy(), newTile);
 							}
-							//grass isn't as solid as i want
-							int isGrass = this.rand.nextInt(maxDist/8) + (int)distance;
-							if (isGrass < 1*maxDist/2) {
-								newTile = new Tile("green1", edge);
-							}
-							int isTree = this.rand.nextInt(maxDist/4) + (int)distance;
-							if (isTree < 1*maxDist/3 && newTile.position.y % 32 == 0) {
-								newTile = new Tile("tree1", edge);
-							}
-							tilesToAdd.put(newTile.position.cpy(), newTile);
-							edgeTiles.put(newTile.position.cpy(), newTile);
 							numAdded++;
 						}
 					}
@@ -122,10 +143,16 @@ class GenIsland1 extends Action {
 				edgeTiles.remove(tile.position);
 			}
 		}
+		for (Tile tile : grassTiles.values()) {
+			if (tilesToAdd.containsKey(tile.position) && !tilesToAdd.get(tile.position).attrs.get("solid")) {
+				tilesToAdd.put(tile.position.cpy(), tile);
+			}
+		}
+		
 		//origin changes to new spot
 //			int newSize = this.rand.nextInt(maxDist + (int)(maxDist/1.5f));  // size varies a lot, but looks good
 		// has a tendency to snake, but looks good
-		int newSize = maxDist - this.rand.nextInt(maxDist/4);
+		int newSize = maxDist - this.rand.nextInt((int)Math.ceil(maxDist/4f));
 		System.out.println(prevTile.position);
 		System.out.println(newSize);
 		if (newSize <= 0) {
@@ -133,15 +160,16 @@ class GenIsland1 extends Action {
 		}
 		
 		// todo: param
-		int randInt = 1;  // previous behavior
+		int randInt = 1;  // previous behavior, keeping for now
 //		int randInt = this.rand.nextInt(3) + 1;
 		if (prevTiles.size() < randInt) {
 			randInt = prevTiles.size();
 		}
+		// remove/fix this logic
 		int next=0;
 		for (int i=0; i < randInt; i++) {
 			tilesToAdd.put(prevTiles.get(next).position.cpy(), prevTiles.get(next));
-			ApplyBlotch(prevTiles.get(next), newSize, tilesToAdd);
+			ApplyBlotch("island", prevTiles.get(next), newSize, tilesToAdd);
 			next += this.rand.nextInt(prevTiles.size() -next) + next;
 			if (next >= prevTiles.size()) {
 				break;
@@ -165,7 +193,7 @@ class GenIsland1 extends Action {
 		int maxDist = this.radius;  // 16*10;
 		Tile originTile = new Tile("sand1", this.origin.cpy());
 		this.tilesToAdd.put(originTile.position.cpy(), originTile);
-		ApplyBlotch(originTile, maxDist, this.tilesToAdd);
+		ApplyBlotch("island", originTile, maxDist, this.tilesToAdd);
 		
 		// find max/min x and y tiles, add padding and add water tiles
 		Vector2 maxPos = this.origin.cpy();
@@ -204,9 +232,10 @@ class GenIsland1 extends Action {
 			}
 		}
 		
+		// TODO: remove
 		//debug - put grass tile next to player
-		this.tilesToAdd.put(new Vector2(16, 00), new Tile("grass1", new Vector2(16, 00)));
-		this.tilesToAdd.put(new Vector2(16, 16), new Tile("grass1", new Vector2(16, 16)));
+//		this.tilesToAdd.put(new Vector2(16, 00), new Tile("grass1", new Vector2(16, 00)));
+//		this.tilesToAdd.put(new Vector2(16, 16), new Tile("grass1", new Vector2(16, 16)));
 	}
 }
 
