@@ -6,12 +6,15 @@ import java.util.Map;
 import java.util.Random;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.math.Vector3;
 
 //grass - 
 //part of player's head is above grass,
@@ -35,7 +38,7 @@ class Tile {
 
     // route that this tile belongs to
     // used to signal movement to new routes
-    String routeBelongsTo; // not Route obj for readability
+    Route routeBelongsTo;
 
     // this is just my idea for tiles that do something when player walks over
     // it,
@@ -55,8 +58,14 @@ class Tile {
     public void onPressA(PkmnGen game) {
 
     }
-
     public Tile(String tileName, Vector2 pos) {
+        this(tileName, pos, false);
+    }
+    public Tile(String tileName, Vector2 pos, boolean color) {
+        this(tileName, pos, color, null);
+    }
+
+    public Tile(String tileName, Vector2 pos, boolean color, Route routeBelongsTo) {
 
         // initialize attributes of tile
         this.attrs = new HashMap<String, Boolean>();
@@ -72,6 +81,7 @@ class Tile {
         // is available to be changed to another tile later
 
         this.position = pos;
+        this.routeBelongsTo = routeBelongsTo;
 
         if (tileName == "ground1") {
             Texture playerText = new Texture(Gdx.files.internal("ground1.png"));
@@ -99,6 +109,14 @@ class Tile {
             this.attrs.put("grass", true);
 
             // this.sprite.setColor(new Color(.1f, .1f, .1f, 1f)); //debug
+        } else if (tileName == "grass3") {
+            Texture playerText = new Texture(Gdx.files.internal("tiles/grass3_under.png"));
+            this.sprite = new Sprite(playerText, 0, 0, 16, 16);
+            playerText = new Texture(Gdx.files.internal("tiles/grass3_over.png"));
+            this.overSprite = new Sprite(playerText, 0, 0, 16, 16);
+            this.attrs.put("grass", true);
+
+            // this.sprite.setColor(new Color(.1f, .1f, .1f, 1f)); //debug
         } else if (tileName == "flower1") {
             Texture playerText = new Texture(
                     Gdx.files.internal("tiles/flower1.png"));
@@ -107,11 +125,48 @@ class Tile {
             Texture playerText = new Texture(
                     Gdx.files.internal("tiles/ground3.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
+        
+        } else if (tileName == "mountain1") {
+            Texture playerText = new Texture(Gdx.files.internal("tiles/mountain1.png"));
+            this.sprite = new Sprite(playerText, 0, 0, 16, 16);
+        } else if (tileName == "mountain2") {
+            Texture playerText = new Texture(Gdx.files.internal("tiles/mountain2.png"));
+            this.sprite = new Sprite(playerText, 0, 0, 16, 16);
+        } else if (tileName == "mountain3") {
+            Texture playerText = new Texture(Gdx.files.internal("tiles/mountain3.png"));
+            this.sprite = new Sprite(playerText, 0, 0, 16, 16);
+        } else if (tileName.contains("mountain")) {
+            Texture playerText = new Texture(Gdx.files.internal("tiles/"+tileName+".png"));
+            this.sprite = new Sprite(playerText, 0, 0, 16, 16);
+            if (tileName.contains("left")) {
+                this.attrs.put("ledge", true);
+                this.ledgeDir = "left";
+            }
+            else if (tileName.contains("right")) {
+                this.attrs.put("ledge", true);
+                this.ledgeDir = "right";
+            }
+            else if (tileName.contains("top")) {
+                this.attrs.put("ledge", true);
+                this.ledgeDir = "up";
+            }
+            else if (tileName.contains("bottom")) {
+                this.attrs.put("ledge", true);
+                this.ledgeDir = "down";
+            }
+            else if (!tileName.contains("inner")) {
+                this.attrs.put("solid", true);
+            }
         }
 
         else if (tileName == "tree_large1") { //
-            Texture playerText = new Texture(
-                    Gdx.files.internal("tiles/tree_large1.png"));
+            Texture playerText;
+            if (color) {
+                playerText = new Texture(Gdx.files.internal("tiles/tree_large1_color.png"));
+            }
+            else {
+                playerText = new Texture(Gdx.files.internal("tiles/tree_large1.png"));
+            }
             this.sprite = new Sprite(playerText, 0, 0, 32, 32);
             this.attrs.put("solid", true);
         } else if (tileName == "tree_large1_noSprite") {
@@ -122,24 +177,39 @@ class Tile {
         }
 
         else if (tileName == "ledge1_down") {
-            Texture playerText = new Texture(
-                    Gdx.files.internal("ledge1_down.png"));
+            Texture playerText;
+            if (color) {
+                playerText = new Texture(Gdx.files.internal("ledge1_down_color.png"));
+            }
+            else {
+                playerText = new Texture(Gdx.files.internal("ledge1_down.png"));
+            }
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
             this.attrs.put("ledge", true);
             this.ledgeDir = "down";
 
             // this.sprite.setColor(new Color(1f, 1f, 1f, 1f)); //debug
         } else if (tileName == "ledge1_left") {
-            Texture playerText = new Texture(
-                    Gdx.files.internal("ledge1_left.png"));
+            Texture playerText;
+            if (color) {
+                playerText = new Texture(Gdx.files.internal("ledge1_left_color.png"));
+            }
+            else {
+                playerText = new Texture(Gdx.files.internal("ledge1_left.png"));
+            }
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
             this.attrs.put("ledge", true);
             this.ledgeDir = "left";
 
             // this.sprite.setColor(new Color(.1f, .1f, .1f, 1f)); //debug
         } else if (tileName == "ledge1_right") {
-            Texture playerText = new Texture(
-                    Gdx.files.internal("ledge1_right.png"));
+            Texture playerText;
+            if (color) {
+                playerText = new Texture( Gdx.files.internal("ledge1_right_color.png"));
+            }
+            else {
+                playerText = new Texture( Gdx.files.internal("ledge1_right.png"));
+            }
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
             this.attrs.put("ledge", true);
             this.ledgeDir = "right";
@@ -149,13 +219,23 @@ class Tile {
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
             this.attrs.put("ledge", true);
         } else if (tileName == "ledge1_corner_bl") {
-            Texture playerText = new Texture(
-                    Gdx.files.internal("ledge1_corner_bl.png"));
+            Texture playerText;
+            if (color) {
+                playerText = new Texture(Gdx.files.internal("ledge1_corner_bl_color.png"));
+            }
+            else {
+                playerText = new Texture(Gdx.files.internal("ledge1_corner_bl.png"));
+            }
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
             this.attrs.put("solid", true);
         } else if (tileName == "ledge1_corner_br") {
-            Texture playerText = new Texture(
-                    Gdx.files.internal("ledge1_corner_br.png"));
+            Texture playerText;
+            if (color) {
+                playerText = new Texture(Gdx.files.internal("ledge1_corner_br_color.png"));
+            }
+            else {
+                playerText = new Texture(Gdx.files.internal("ledge1_corner_br.png"));
+            }
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
             this.attrs.put("solid", true);
         } else if (tileName == "ledge2_corner_tl") {
@@ -171,8 +251,13 @@ class Tile {
         }
 
         else if (tileName == "ledge_grass_ramp") {
-            Texture playerText = new Texture(
-                    Gdx.files.internal("tiles/ledge_grass_ramp.png"));
+            Texture playerText;
+            if (color) {
+                playerText = new Texture(Gdx.files.internal("tiles/ledge_grass_ramp_color.png"));
+            }
+            else {
+                playerText = new Texture(Gdx.files.internal("tiles/ledge_grass_ramp.png"));
+            }
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
         } else if (tileName == "ledge_grass_safari_up") {
             Texture playerText = new Texture(
@@ -181,8 +266,13 @@ class Tile {
             this.attrs.put("ledge", true); // TODO - need ledgeDir variable?
             this.ledgeDir = "up";
         } else if (tileName == "ledge_grass_down") {
-            Texture playerText = new Texture(
-                    Gdx.files.internal("tiles/ledge_grass_down.png"));
+            Texture playerText;
+            if (color) {
+                playerText = new Texture(Gdx.files.internal("tiles/ledge1_down_color.png"));
+            }
+            else {
+                playerText = new Texture(Gdx.files.internal("tiles/ledge_grass_down.png"));
+            }
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
             this.attrs.put("ledge", true);
             this.ledgeDir = "down";
@@ -327,8 +417,23 @@ class Tile {
             this.attrs.put("solid", true); // solid in case I need to put
                                             // foliage near 'solid' objects
         } else if (tileName == "bush1") {
-            Texture playerText = new Texture(
-                    Gdx.files.internal("tiles/bush1.png"));
+            Texture playerText;
+            if (color) {
+                playerText = new Texture(Gdx.files.internal("tiles/bush1_color.png"));
+
+                this.overSprite = new Sprite(playerText, 0, 0, 16, 16);
+            }
+            else {
+                playerText = new Texture(Gdx.files.internal("tiles/bush1.png"));
+            }
+            this.sprite = new Sprite(playerText, 0, 0, 16, 16);
+            this.attrs.put("solid", true);
+            this.attrs.put("cuttable", true);
+        } else if (tileName == "bush2") {
+            Texture playerText;
+            playerText = new Texture(Gdx.files.internal("tiles/bush2_color.png"));
+            this.overSprite = new Sprite(playerText, 0, 0, 16, 16);
+            playerText = new Texture(Gdx.files.internal("tiles/green1.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
             this.attrs.put("solid", true);
         } else if (tileName == "tree_small1") {
@@ -356,9 +461,11 @@ class Tile {
                     Gdx.files.internal("tiles/sand1.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
         // grass-like ground
-        } else if (tileName == "green1") {
-            Texture playerText = new Texture(
-                    Gdx.files.internal("tiles/green1.png"));
+        } else if (tileName.contains("green")) {
+            Texture playerText = new Texture(Gdx.files.internal("tiles/"+tileName+".png"));
+            this.sprite = new Sprite(playerText, 0, 0, 16, 16);
+        } else if (tileName.contains("snow")) {
+            Texture playerText = new Texture(Gdx.files.internal("tiles/"+tileName+".png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
         // tall tree
         } else if (tileName == "tree1") {
@@ -368,12 +475,28 @@ class Tile {
             this.attrs.put("solid", true);
         // tall tree - one sprite over, one under
         } else if (tileName.equals("tree2")) {
-            Texture playerText = new Texture(Gdx.files.internal("tiles/tree2_under.png"));
-            this.sprite = new Sprite(playerText, 0, 0, 16, 32);
-            playerText = new Texture(Gdx.files.internal("tiles/tree2_over.png"));
+//            Texture playerText = new Texture(Gdx.files.internal("tiles/tree2_under.png"));
+//            this.sprite = new Sprite(playerText, 0, 0, 16, 32);
+            Texture playerText = new Texture(Gdx.files.internal("tiles/tree3_under.png"));
+            this.sprite = new Sprite(playerText, 0, 0, 16, 16);
+            playerText = new Texture(Gdx.files.internal("tiles/tree3_over.png"));
             this.overSprite = new Sprite(playerText, 0, 0, 16, 32);
             this.attrs.put("solid", true);
             this.attrs.put("tree", true);
+        } else if (tileName.equals("tree4")) {
+          Texture playerText = new Texture(Gdx.files.internal("tiles/tree4_under.png"));
+          this.sprite = new Sprite(playerText, 0, 0, 16, 16);
+          playerText = new Texture(Gdx.files.internal("tiles/tree4_over.png"));
+          this.overSprite = new Sprite(playerText, 0, 0, 16, 32);
+          this.attrs.put("solid", true);
+          this.attrs.put("tree", true);
+        } else if (tileName.equals("tree5")) {
+          Texture playerText = new Texture(Gdx.files.internal("tiles/tree5_under.png"));
+          this.sprite = new Sprite(playerText, 0, 0, 16, 16);
+          playerText = new Texture(Gdx.files.internal("tiles/tree5_over.png"));
+          this.overSprite = new Sprite(playerText, 0, 0, 16, 32);
+          this.attrs.put("solid", true);
+          this.attrs.put("tree", true);
         // colored water
         } else if (tileName == "water2") {
             Texture playerText = new Texture(
@@ -754,8 +877,7 @@ class Route {
             this.music.setLooping(true);
             this.music.setVolume(.3f);
         }
-
-        if (name == "Demo_DarkRoute") {
+        else if (name == "Demo_DarkRoute") {
 
             // ie sneasel, etc
 
@@ -771,14 +893,14 @@ class Route {
             this.music.setLooping(true);
             this.music.setVolume(.3f);
         }
-        if (name == "Demo_SteelRoute") {
+        else if (name == "Demo_SteelRoute") {
 
             // ie metagross, etc
 
             this.allowedPokemon.add("Makuhita");
             this.allowedPokemon.add("Hariyama");
             this.allowedPokemon.add("Shinx");
-            this.allowedPokemon.add("Starly");
+//            this.allowedPokemon.add("Starly");
             this.allowedPokemon.add("Zubat");
             this.allowedPokemon.add("Lairon");
             this.allowedPokemon.add("Steelix");
@@ -787,7 +909,7 @@ class Route {
             this.music.setLooping(true);
             this.music.setVolume(.3f);
         }
-        if (name == "Demo_PsychicRoute") {
+        else if (name == "Demo_PsychicRoute") {
 
             // ie metagross, etc
 
@@ -803,12 +925,57 @@ class Route {
             this.music.setLooping(true);
             this.music.setVolume(.3f);
         }
-
-        this.allowedPokemon.clear();
-        this.pokemon.add(new Pokemon("mamoswine", 22, Pokemon.Generation.CRYSTAL));
-        this.allowedPokemon.add("mamoswine");
-//        this.allowedPokemon.add("Machop");
-//        genPokemon(256);
+        else if (name.equals("mountain1")) {
+            this.allowedPokemon.add("rhydon");
+            this.allowedPokemon.add("rhyhorn");
+            this.allowedPokemon.add("onix");
+            this.allowedPokemon.add("machop");
+            this.allowedPokemon.add("solrock");
+            this.music = Gdx.audio.newMusic(Gdx.files.internal("route1_1.ogg"));
+            this.music.setLooping(true);
+            this.music.setVolume(.3f);
+        }
+        else if (name.equals("forest1")) {
+            this.allowedPokemon.add("oddish");
+            this.allowedPokemon.add("gloom");
+            this.allowedPokemon.add("pidgey");
+            this.allowedPokemon.add("hoppip");
+            this.allowedPokemon.add("machop");
+            this.music = Gdx.audio.newMusic(Gdx.files.internal("route1_1.ogg"));
+            this.music.setLooping(true);
+            this.music.setVolume(.3f);
+        }
+        else if (name.equals("snow1")) {
+            this.allowedPokemon.add("larvitar");
+            this.allowedPokemon.add("sneasel");
+            this.allowedPokemon.add("weavile");
+            this.allowedPokemon.add("snorunt");
+            this.allowedPokemon.add("glalie");
+            this.allowedPokemon.add("lairon");
+            this.allowedPokemon.add("swinub");
+            this.allowedPokemon.add("piloswine");
+            this.music = Gdx.audio.newMusic(Gdx.files.internal("route1_1.ogg"));
+            this.music.setLooping(true);
+            this.music.setVolume(.3f);
+        }
+        else {
+            this.allowedPokemon.clear();
+//            this.pokemon.add(new Pokemon("kangaskhan", 22, Pokemon.Generation.CRYSTAL));
+//            this.pokemon.add(new Pokemon("togekiss", 22, Pokemon.Generation.CRYSTAL));
+            this.pokemon.add(new Pokemon("rhydon", 22, Pokemon.Generation.CRYSTAL));
+            this.pokemon.add(new Pokemon("rhyhorn", 22, Pokemon.Generation.CRYSTAL));
+            this.pokemon.add(new Pokemon("onix", 22, Pokemon.Generation.CRYSTAL));
+            this.pokemon.add(new Pokemon("machop", 22, Pokemon.Generation.CRYSTAL));
+            this.allowedPokemon.add("mamoswine");
+            this.allowedPokemon.add("weavile");
+            this.allowedPokemon.add("magmortar");
+            this.allowedPokemon.add("electivire");
+            this.allowedPokemon.add("metagross");
+            this.music = Gdx.audio.newMusic(Gdx.files.internal("route1_1.ogg"));
+            this.music.setLooping(true);
+            this.music.setVolume(.3f);
+        }
+        genPokemon(256);
 
         /*
          * //below will add all from allowed pkmn for (String pokemonName :
@@ -836,21 +1003,23 @@ class Route {
             randomLevel = rand.nextInt(3); // 0, 1, 2
             pokemonName = this.allowedPokemon.get(randomNum);
             // this breaks if less than 5 available pokemon in route
-            if (usedPokemon.contains(pokemonName)
-                    && this.allowedPokemon.size() > 4) {
+            if (usedPokemon.contains(pokemonName) && this.allowedPokemon.size() > 4) {
                 continue;
             }
             Pokemon tempPokemon = new Pokemon(pokemonName, this.level + randomLevel, Pokemon.Generation.CRYSTAL);
+            usedPokemon.add(pokemonName);
+            this.pokemon.add(tempPokemon);
 
-            if (tempPokemon.baseStats.get("catchRate") > maxCatchRate) {
-                continue;
-            }
-            // add it based on pokemon catchRate
-            randomNum = rand.nextInt(256);
-            if (randomNum < tempPokemon.baseStats.get("catchRate")) {
-                usedPokemon.add(pokemonName);
-                this.pokemon.add(tempPokemon);
-            }
+            // no idea what this stuff did - comment for now
+//            if (tempPokemon.baseStats.get("catchRate") > maxCatchRate) {
+//                continue;
+//            }
+//            // add it based on pokemon catchRate
+//            randomNum = rand.nextInt(256);
+//            if (randomNum < tempPokemon.baseStats.get("catchRate")) {
+//                usedPokemon.add(pokemonName);
+//                this.pokemon.add(tempPokemon);
+//            }
         }
         for (Pokemon pokemon : this.pokemon) {
             System.out.println("curr route pokemon: "
@@ -1099,15 +1268,98 @@ class drawMap extends Action { // /
     }
 
     Sprite blankSprite;
+    Pixmap pixels;
+    Texture texture;
+    Vector3 startPos;
+    Vector3 endPos;
+    Vector3 worldCoordsTL;
+    Vector3 worldCoordsBR;
+    Tile tile;
 
     @Override
     public void step(PkmnGen game) {
 
-        // draw every sprite in the map
-        for (Tile tile : game.map.tiles.values()) {
+        if (Gdx.input.isKeyPressed(Input.Keys.P)) {
+            System.out.println("Camera unproject");
+            System.out.println(java.time.LocalTime.now());  
+        }
 
+        // draw every sprite in the map
+//        for (Tile tile : new ArrayList<Tile>(game.map.tiles.values())) {
+        // TODO: this screws up when screen resizes
+        // trying to draw tl to br of screen, so that sprites layer on top of each other
+        worldCoordsTL = game.cam.unproject(new Vector3(-128, 0, 0f));
+        worldCoordsBR = game.cam.unproject(new Vector3(game.viewport.getScreenWidth(), game.viewport.getScreenHeight()+128, 0f));
+        worldCoordsTL.x = (int)worldCoordsTL.x - (int)worldCoordsTL.x % 16;
+        worldCoordsTL.y = (int)worldCoordsTL.y - (int)worldCoordsTL.y % 16;
+        worldCoordsBR.x = (int)worldCoordsBR.x - (int)worldCoordsBR.x % 16;
+        worldCoordsBR.y = (int)worldCoordsBR.y - (int)worldCoordsBR.y % 16;
+//        System.out.println(game.viewport.getScreenWidth());
+//        System.out.println(game.viewport.getScreenHeight());
+        this.startPos = worldCoordsTL; //new Vector3(worldCoordsTL.x, worldCoordsTL.y, 0f);
+        this.endPos = worldCoordsBR; // new Vector3(worldCoordsBR.x, worldCoordsBR.y, 0f);
+        
+        // debug, remove
+        int numTiles = 0;
+        if (Gdx.input.isKeyPressed(Input.Keys.P)) {
+            System.out.println("Start draw tiles");
+            System.out.println(java.time.LocalTime.now());  
+        }
+        
+        for (Vector2 currPos = new Vector2(startPos.x, startPos.y); currPos.y > endPos.y;) {
+            tile = game.map.tiles.get(currPos);
+            currPos.x += 16;
+            if (currPos.x > endPos.x) {
+                currPos.x = startPos.x;
+                currPos.y -= 16;
+            }
+            if (tile == null) {
+                continue;
+            }
+            //debug, remove
+            numTiles++;
+//          for (Tile tile : game.map.tiles.values()) {
+//            // Don't draw sprites if not in camera view
+//            // note - when zoomed out, game will lag
+            if (!game.cam.frustum.pointInFrustum(tile.position.x, tile.position.y, game.cam.position.z) &&
+                    !game.cam.frustum.pointInFrustum(tile.position.x+tile.sprite.getWidth(), tile.position.y+tile.sprite.getHeight(), game.cam.position.z) &&
+                    !game.cam.frustum.pointInFrustum(tile.position.x+tile.sprite.getWidth(), tile.position.y, game.cam.position.z) &&
+                    !game.cam.frustum.pointInFrustum(tile.position.x, tile.position.y+tile.sprite.getHeight(), game.cam.position.z)) {
+               continue;
+            }
+            
+            // TODO: this attempted to create one bg sprite out of map tiles, couldn't get pixmap resizing to work (ie it just
+            // remained 16x16 at all times
+            // removing from map tiles removed collision data
+            // if I were to do this in the future, just put this login in the Tile() constructor
+            // draw to game.map.bgsprite on construction. 
+//            Texture text = tile.sprite.getTexture();
+//            if (!text.getTextureData().isPrepared()) {
+//                text.getTextureData().prepare();
+//            }
+//            Pixmap pixmap = text.getTextureData().consumePixmap();
+//            this.pixels.drawPixmap(pixmap, 0, 0, pixmap.getWidth(), pixmap.getHeight(),
+//                                   (int)tile.position.x, (int)tile.position.y,
+//                                   (int)tile.sprite.getWidth(), (int)tile.sprite.getHeight());
+////            this.texture.draw(pixmap, (int)tile.position.x, (int)tile.position.y);
+//
+//            if (tile.overSprite != null) {
+//                text = tile.overSprite.getTexture();
+//                if (!text.getTextureData().isPrepared()) {
+//                    text.getTextureData().prepare();
+//                }
+//                pixmap = text.getTextureData().consumePixmap();
+////                this.texture.draw(pixmap, (int)tile.position.x, (int)tile.position.y);
+//                this.pixels.drawPixmap(pixmap, 0, 0, pixmap.getWidth(), pixmap.getHeight(),
+//                                       (int)tile.position.x, (int)tile.position.y,
+//                                       (int)tile.sprite.getWidth(), (int)tile.sprite.getHeight());
+//            }
+//            game.map.tiles.remove(tile.position);
+//            this.texture = new Texture(this.pixels);
+            
             // TODO: remove
 //            if (tile.attrs.get("grass") == false) {
+
 
             game.batch.draw(tile.sprite, tile.sprite.getX(),
                     tile.sprite.getY());
@@ -1128,12 +1380,19 @@ class drawMap extends Action { // /
 //            }
         }
 
+        if (Gdx.input.isKeyPressed(Input.Keys.P)) {
+            System.out.println("Drew tiles");
+            System.out.println(numTiles);
+            System.out.println(java.time.LocalTime.now());  
+        }
+//        game.batch.draw(this.texture, 5, 5);
     }
 
     public drawMap(PkmnGen game) {
-
-        Texture text = new Texture(Gdx.files.internal("tiles/blank2.png"));
-        this.blankSprite = new Sprite(text, 0, 0, 16, 16);
+        this.pixels = new Pixmap(Gdx.files.internal("tiles/blank2.png"));
+        this.texture = new Texture(this.pixels);
+        this.blankSprite = new Sprite(new Texture(Gdx.files.internal("tiles/blank2.png")), 0, 0, 16, 16);
+//        this.sprite = new Sprite(text, 0, 0, 16, 16);
     }
 
 }
@@ -1153,8 +1412,26 @@ class MoveWater extends Action {
     Vector2 position;
     ArrayList<Integer> repeats;
 
+    Sprite blankSprite;
+    Pixmap pixels;
+    Texture texture;
+    Vector3 startPos;
+    Vector3 endPos;
+    Vector3 worldCoordsTL;
+    Vector3 worldCoordsBR;
+    Tile tile;
+
     @Override
     public void step(PkmnGen game) {
+
+        worldCoordsTL = game.cam.unproject(new Vector3(-128, 0, 0f));
+        worldCoordsBR = game.cam.unproject(new Vector3(game.viewport.getScreenWidth(), game.viewport.getScreenHeight()+128, 0f));
+        worldCoordsTL.x = (int)worldCoordsTL.x - (int)worldCoordsTL.x % 16;
+        worldCoordsTL.y = (int)worldCoordsTL.y - (int)worldCoordsTL.y % 16;
+        worldCoordsBR.x = (int)worldCoordsBR.x - (int)worldCoordsBR.x % 16;
+        worldCoordsBR.y = (int)worldCoordsBR.y - (int)worldCoordsBR.y % 16;
+        this.startPos = worldCoordsTL; //new Vector3(worldCoordsTL.x, worldCoordsTL.y, 0f);
+        this.endPos = worldCoordsBR; // new Vector3(worldCoordsBR.x, worldCoordsBR.y, 0f);
 
         // set sprite position
         // if done with anim, do nextAction
@@ -1168,7 +1445,23 @@ class MoveWater extends Action {
         // positions.set(0,new Vector2(0,0));
 
         // draw every sprite in the map
-        for (Tile tile : game.map.tiles.values()) {
+//        for (Tile tile : game.map.tiles.values()) {
+        for (Vector2 currPos = new Vector2(startPos.x, startPos.y); currPos.y > endPos.y;) {
+            tile = game.map.tiles.get(currPos);
+            currPos.x += 16;
+            if (currPos.x > endPos.x) {
+                currPos.x = startPos.x;
+                currPos.y -= 16;
+            }
+            if (tile == null) {
+                continue;
+            }
+            if (!game.cam.frustum.pointInFrustum(tile.position.x, tile.position.y, game.cam.position.z) &&
+                    !game.cam.frustum.pointInFrustum(tile.position.x+tile.sprite.getWidth(), tile.position.y+tile.sprite.getHeight(), game.cam.position.z) &&
+                    !game.cam.frustum.pointInFrustum(tile.position.x+tile.sprite.getWidth(), tile.position.y, game.cam.position.z) &&
+                    !game.cam.frustum.pointInFrustum(tile.position.x, tile.position.y+tile.sprite.getHeight(), game.cam.position.z)) {
+               continue;
+            }
             // Texture text = new
             // Texture(Gdx.files.internal("tiles/water1_2.png"));
             if (tile.attrs.get("water") == true) {
@@ -1228,17 +1521,53 @@ class drawMap_grass extends Action {
     public int getLayer() {
         return this.layer;
     }
+    
+    Sprite blankSprite;
+    Pixmap pixels;
+    Texture texture;
+    Vector3 startPos;
+    Vector3 endPos;
+    Vector3 worldCoordsTL;
+    Vector3 worldCoordsBR;
+    Tile tile;
 
     @Override
     public void step(PkmnGen game) {
 
+        worldCoordsTL = game.cam.unproject(new Vector3(-128, 0, 0f));
+        worldCoordsBR = game.cam.unproject(new Vector3(game.viewport.getScreenWidth(), game.viewport.getScreenHeight()+128, 0f));
+        worldCoordsTL.x = (int)worldCoordsTL.x - (int)worldCoordsTL.x % 16;
+        worldCoordsTL.y = (int)worldCoordsTL.y - (int)worldCoordsTL.y % 16;
+        worldCoordsBR.x = (int)worldCoordsBR.x - (int)worldCoordsBR.x % 16;
+        worldCoordsBR.y = (int)worldCoordsBR.y - (int)worldCoordsBR.y % 16;
+        this.startPos = worldCoordsTL; //new Vector3(worldCoordsTL.x, worldCoordsTL.y, 0f);
+        this.endPos = worldCoordsBR; // new Vector3(worldCoordsBR.x, worldCoordsBR.y, 0f);
+        
         // TODO - bug i can't fix where grass sprites lag when moving
 
         // game.cam.update(); //doesn't work
         // game.batch.setProjectionMatrix(game.cam.combined);
 
         // draw every sprite in the map
-        for (Tile tile : game.map.tiles.values()) {
+//        for (Tile tile : game.map.tiles.values()) {
+        for (Vector2 currPos = new Vector2(startPos.x, startPos.y); currPos.y > endPos.y;) {
+            tile = game.map.tiles.get(currPos);
+            currPos.x += 16;
+            if (currPos.x > endPos.x) {
+                currPos.x = startPos.x;
+                currPos.y -= 16;
+            }
+            if (tile == null) {
+                continue;
+            }
+            // Don't draw sprites if not in camera view
+            // note - when zoomed out, game will lag
+            if (!game.cam.frustum.pointInFrustum(tile.position.x, tile.position.y, game.cam.position.z) &&
+                    !game.cam.frustum.pointInFrustum(tile.position.x+tile.sprite.getWidth(), tile.position.y+tile.sprite.getHeight(), game.cam.position.z) &&
+                    !game.cam.frustum.pointInFrustum(tile.position.x+tile.sprite.getWidth(), tile.position.y, game.cam.position.z) &&
+                    !game.cam.frustum.pointInFrustum(tile.position.x, tile.position.y+tile.sprite.getHeight(), game.cam.position.z)) {
+               continue;
+            }
             if (tile.attrs.get("grass") == true) {
                 // tile.sprite.draw(game.batch); doesn't allow coloring
                 game.batch.draw(tile.overSprite, tile.sprite.getX(),
@@ -1265,6 +1594,12 @@ class DrawMapTrees extends Action {
     public void step(PkmnGen game) {
         // draw every sprite in the map
         for (Tile tile : game.map.trees.values()) {
+            if (!game.cam.frustum.pointInFrustum(tile.position.x, tile.position.y, game.cam.position.z) &&
+                    !game.cam.frustum.pointInFrustum(tile.position.x+tile.sprite.getWidth(), tile.position.y+tile.sprite.getHeight(), game.cam.position.z) &&
+                    !game.cam.frustum.pointInFrustum(tile.position.x+tile.sprite.getWidth(), tile.position.y, game.cam.position.z) &&
+                    !game.cam.frustum.pointInFrustum(tile.position.x, tile.position.y+tile.sprite.getHeight(), game.cam.position.z)) {
+               continue;
+            }
             game.batch.draw(tile.overSprite, tile.sprite.getX(), tile.sprite.getY());
         }
     }

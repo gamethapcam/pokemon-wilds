@@ -15,6 +15,7 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.Sprite;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
@@ -73,6 +74,7 @@ public class Player {
     
     String currState; //need for ghost spawn
     boolean isBuilding = false; // player has building tile in front of them
+    boolean isCutting = false; // player will try to cut tree on A press
     Tile currBuildTile; // which tile will be built next
     int buildTileIndex = 0;
     ArrayList<Tile> buildTiles = new ArrayList<Tile>();
@@ -80,7 +82,8 @@ public class Player {
     public Player() {
         
         //set player standing/moving sprites
-        Texture playerText = new Texture(Gdx.files.internal("player1_sheet1.png"));
+//        Texture playerText = new Texture(Gdx.files.internal("player1_sheet1.png"));
+        Texture playerText = new Texture(Gdx.files.internal("player1_sheet1_color.png"));
         this.standingSprites.put("down", new Sprite(playerText, 0, 0, 16, 16));
         this.standingSprites.put("up", new Sprite(playerText, 16, 0, 16, 16));
         this.standingSprites.put("left", new Sprite(playerText, 32, 0, 16, 16));
@@ -97,7 +100,8 @@ public class Player {
         this.altMovingSprites.put("right", new Sprite(playerText, 112, 0, 16, 16));
         
         //running sprites
-        playerText = new Texture(Gdx.files.internal("player1_sheet2.png"));
+//        playerText = new Texture(Gdx.files.internal("player1_sheet2.png"));
+      playerText = new Texture(Gdx.files.internal("player1_sheet2_color.png"));
         this.standingSprites.put("down_running", new Sprite(playerText, 0, 0, 16, 16));
         this.standingSprites.put("up_running", new Sprite(playerText, 16, 0, 16, 16));
         this.standingSprites.put("left_running", new Sprite(playerText, 32, 0, 16, 16));
@@ -135,10 +139,30 @@ public class Player {
         this.buildTiles.add(new Tile("house1_middle1", new Vector2(0,0)));
         this.buildTiles.add(new Tile("house1_left1", new Vector2(0,0)));
         this.buildTiles.add(new Tile("house1_right1", new Vector2(0,0)));
-        this.buildTiles.add(new Tile("house1_door1", new Vector2(0,0)));
+        this.buildTiles.add(new Tile("house1_door1_dark", new Vector2(0,0)));
         this.buildTiles.add(new Tile("house1_roof_middle1", new Vector2(0,0)));
         this.buildTiles.add(new Tile("house1_roof_left1", new Vector2(0,0)));
         this.buildTiles.add(new Tile("house1_roof_right1", new Vector2(0,0)));
+        // couldn't get these to look right - roof middle looks funny
+//        this.buildTiles.add(new Tile("house2_middle1", new Vector2(0,0)));
+        this.buildTiles.add(new Tile("house2_door1_dark", new Vector2(0,0)));
+//        this.buildTiles.add(new Tile("house2_roof_middle1", new Vector2(0,0)));
+//        this.buildTiles.add(new Tile("house2_roof_left1", new Vector2(0,0)));
+//        this.buildTiles.add(new Tile("house2_roof_right1", new Vector2(0,0)));
+        this.buildTiles.add(new Tile("house3_left1", new Vector2(0,0)));
+        this.buildTiles.add(new Tile("house3_middle1", new Vector2(0,0)));
+        this.buildTiles.add(new Tile("house3_right1", new Vector2(0,0)));
+        this.buildTiles.add(new Tile("house3_roof_middle1", new Vector2(0,0)));
+        this.buildTiles.add(new Tile("house3_roof_left1", new Vector2(0,0)));
+        this.buildTiles.add(new Tile("house3_roof_right1", new Vector2(0,0)));
+//        this.buildTiles.add(new Tile("house4_middle1", new Vector2(0,0)));
+        this.buildTiles.add(new Tile("house5_door1", new Vector2(0,0)));
+        this.buildTiles.add(new Tile("house5_left1", new Vector2(0,0)));
+        this.buildTiles.add(new Tile("house5_middle1", new Vector2(0,0)));
+        this.buildTiles.add(new Tile("house5_right1", new Vector2(0,0)));
+        this.buildTiles.add(new Tile("house5_roof_middle1", new Vector2(0,0)));
+        this.buildTiles.add(new Tile("house5_roof_left1", new Vector2(0,0)));
+        this.buildTiles.add(new Tile("house5_roof_right1", new Vector2(0,0)));
         this.currBuildTile = this.buildTiles.get(this.buildTileIndex);
         
         // debug - initialize items list
@@ -180,6 +204,72 @@ class playerStanding extends Action {
     boolean checkWildEncounter = true; //TODO - remove when playWait is implemented
     
     boolean isRunning;
+
+    public void detectIsHouseBuilt(PkmnGen game, Tile currTile) {
+        Vector2 pos = currTile.position.cpy();
+        // detect if house is fully built or not
+        if (currTile.name.contains("house")) {
+            Tile startTile = currTile;
+            Tile nextTile = currTile;
+            Tile doorTile = null;
+            // detect if there are house tiles in between
+            boolean found = true;
+            while (true) {
+                if (nextTile.name.contains("middle") && !nextTile.name.contains("roof")) {
+                    currTile = game.map.tiles.get(pos.add(0, 16));
+                    while (!currTile.name.contains("middle")) {
+                        if (!currTile.name.contains("house")) {
+                            found = false;
+                            break;
+                        }
+                        currTile = game.map.tiles.get(pos.add(0, 16));
+                    }
+                }
+                if (nextTile.name.contains("door")) {
+                    doorTile = nextTile;
+                }
+                // TODO: remove
+//                if (nextTile.name.contains("middle") && !nextTile.name.contains("roof") && doorTile == null) {
+//                    doorTile = nextTile;
+//                }
+                if (!found || !nextTile.name.contains("house")) {
+                    found = false;
+                    break;
+                }
+                if (nextTile.name.contains("roof")) {
+                    if (nextTile.name.contains("right")) {
+                        nextTile = game.map.tiles.get(nextTile.position.cpy().add(0, -16));
+                    }
+                    else {
+                        nextTile = game.map.tiles.get(nextTile.position.cpy().add(16, 0));
+                    }
+                }
+                else {
+                    if (nextTile.name.contains("left")) {
+                        nextTile = game.map.tiles.get(nextTile.position.cpy().add(0, 16));
+                    }
+                    else {
+                        nextTile = game.map.tiles.get(nextTile.position.cpy().add(-16, 0));
+                    }
+                }
+                if (nextTile.equals(startTile)) {
+                    break;
+                }
+            }
+            // if solid house, apply interior
+            if (found) {
+                if (doorTile != null) {
+                    if (doorTile.name.contains("house1")) {
+                        game.map.tiles.put(doorTile.position, new Tile("house1_door1", doorTile.position.cpy()));
+                    }
+                }
+            }
+            else if (doorTile != null){
+                //replace door tile with dark door tile (?)
+                game.map.tiles.put(doorTile.position, new Tile("house1_door1_dark", doorTile.position.cpy()));
+            }
+        }
+    }
     
     @Override
     public void step(PkmnGen game) {
@@ -269,24 +359,28 @@ class playerStanding extends Action {
                 // player wants to stop building
                 game.player.isBuilding = false;
             }
+            if (game.player.isCutting) {
+                // player wants to stop building
+                game.player.isCutting = false;
+            }
         }
         
         if(Gdx.input.isKeyJustPressed(Input.Keys.Z)) {
+            // place the built tile
+            Vector2 pos = new Vector2(0,0);
+            if (game.player.dirFacing == "right") {
+                pos = new Vector2(game.player.position.cpy().add(16,0));
+            }
+            else if (game.player.dirFacing == "left") {
+                pos = new Vector2(game.player.position.cpy().add(-16,0));
+            }
+            else if (game.player.dirFacing == "up") {
+                pos = new Vector2(game.player.position.cpy().add(0,16));
+            }
+            else if (game.player.dirFacing == "down") {
+                pos = new Vector2(game.player.position.cpy().add(0,-16));
+            }
             if (game.player.isBuilding) {
-                // place the built tile
-                Vector2 pos = new Vector2(0,0);
-                if (game.player.dirFacing == "right") {
-                    pos = new Vector2(game.player.position.cpy().add(16,0));
-                }
-                else if (game.player.dirFacing == "left") {
-                    pos = new Vector2(game.player.position.cpy().add(-16,0));
-                }
-                else if (game.player.dirFacing == "up") {
-                    pos = new Vector2(game.player.position.cpy().add(0,16));
-                }
-                else if (game.player.dirFacing == "down") {
-                    pos = new Vector2(game.player.position.cpy().add(0,-16));
-                }
 //                Tile newTile = new Tile(game.player.currBuildTile.name, pos.cpy());
 //                game.map.tiles.remove(pos);
 //                game.map.tiles.put(pos.cpy(), newTile);
@@ -295,24 +389,28 @@ class playerStanding extends Action {
                 // TODO: this won't work for doors
                 Tile currTile = game.map.tiles.get(pos);
                 currTile.overSprite = new Sprite(game.player.currBuildTile.sprite);
+                currTile.name = game.player.currBuildTile.name;
                 currTile.overSprite.setPosition(pos.x, pos.y);
+                currTile.attrs.put("cuttable", true); // test this 
                 currTile.attrs.put("solid", true);
+                PublicFunctions.insertToAS(game, new PlaySound("strength1",
+                                                 new DoneAction()));
+                game.playerCanMove = false;
+                PublicFunctions.insertToAS(game, new WaitFrames(game, 30,
+                                                 new PlayerCanMove(game,
+                                                 new DoneAction())));
+                this.detectIsHouseBuilt(game, currTile);
+            }
+            else if (game.player.isCutting) {
+                Tile currTile = game.map.tiles.get(pos);
+                if (currTile.attrs.containsKey("cuttable") && currTile.attrs.get("cuttable")) {
+                    PublicFunctions.insertToAS(game, new CutTreeAnim(game, game.map.tiles.get(pos),
+                                                     new DoneAction()));
+                    game.playerCanMove = false;
+                }
+                this.detectIsHouseBuilt(game, currTile);
             }
             else {
-                //look at diff tile depending on where facing
-                Vector2 pos = new Vector2(0,0);
-                if (game.player.dirFacing == "right") {
-                    pos = new Vector2(game.player.position.cpy().add(16,0));
-                }
-                else if (game.player.dirFacing == "left") {
-                    pos = new Vector2(game.player.position.cpy().add(-16,0));
-                }
-                else if (game.player.dirFacing == "up") {
-                    pos = new Vector2(game.player.position.cpy().add(0,16));
-                }
-                else if (game.player.dirFacing == "down") {
-                    pos = new Vector2(game.player.position.cpy().add(0,-16));
-                }
                 //calling this will trigger the tiles' onPressA function
                  //might be sign (text), character, etc.
                 Tile temp = game.map.tiles.get(pos);
@@ -334,11 +432,11 @@ class playerStanding extends Action {
                 }
                 game.actionStack.remove(this);
             }
-            else if (temp.attrs.get("solid") == true) {
+            else if (temp.attrs.get("solid") == true && !Gdx.input.isKeyPressed(Input.Keys.SPACE)) {
                     PublicFunctions.insertToAS(game, new playerBump(game));
                     game.actionStack.remove(this);
             }
-            else if (temp.attrs.get("ledge") == true) {
+            else if (temp.attrs.get("ledge") == true && !Gdx.input.isKeyPressed(Input.Keys.SPACE)) {
                 if (temp.ledgeDir == game.player.dirFacing) {
                     //jump over ledge
                     PublicFunctions.insertToAS(game, new playerLedgeJump(game));
@@ -521,6 +619,13 @@ class playerMoving extends Action {
         //else, stand still again
         if (this.xDist >= 16 || this.yDist >= 16) {
 
+            // TODO: routes are persistent, ie never regenerate
+            // TBD if that needs to change
+            // TODO: that will be a problem if game has to load all pokemon sprites on the map
+            if (game.map.tiles.get(this.targetPos).routeBelongsTo != null) {
+                game.map.currRoute = game.map.tiles.get(this.targetPos).routeBelongsTo;
+            }
+            
             game.player.position.set(this.targetPos);
             game.cam.position.set(this.targetPos.x+16, this.targetPos.y,0);
             
@@ -528,7 +633,6 @@ class playerMoving extends Action {
             PublicFunctions.insertToAS(game, standingAction);
             standingAction.step(game); //decide where to move //doesn't actually seem to do much
             game.actionStack.remove(this);
-            
         }
     }
     
@@ -927,9 +1031,25 @@ class drawPlayer_upper extends Action {
                 pos = new Vector2(game.player.position.cpy().add(0,-16));
             }
             // get game.player.currBuildTile and draw it at position
-            game.batch.draw(game.player.currBuildTile.sprite, pos.x, pos.y);
+            Sprite sprite = new Sprite(game.player.currBuildTile.sprite);
+            sprite.setAlpha(.8f);
+            sprite.setPosition(pos.x, pos.y);
+            Tile nextTile = game.map.tiles.get(pos);
+            if (nextTile != null && nextTile.attrs.get("solid")) {
+                sprite.setColor(1f, .7f, .7f, .8f);
+            }
+            sprite.draw(game.batch);
+//            game.batch.draw(sprite, pos.x, pos.y);
             if (game.player.currBuildTile.overSprite != null) {
-                game.batch.draw(game.player.currBuildTile.overSprite, pos.x, pos.y);
+//                game.player.currBuildTile.overSprite.draw(game.batch, .7f);
+                sprite = new Sprite(game.player.currBuildTile.overSprite);
+                sprite.setAlpha(.8f);
+                sprite.setPosition(pos.x, pos.y);
+                if (nextTile != null && nextTile.attrs.get("solid")) {
+                    sprite.setColor(1f, .7f, .7f, .8f);
+                }
+                sprite.draw(game.batch);
+//                game.batch.draw(sprite, pos.x, pos.y);
             }
         }
 
@@ -1251,7 +1371,8 @@ class drawGhost extends Action {
         this.maxVel = 1.2f; //can scale to make ghost harder
         
         //need to store which pokemon this actually will be (i think)
-        this.pokemon = new Pokemon("Sableye", 21);
+//        this.pokemon = new Pokemon("Sableye", 21);
+        this.pokemon = new Pokemon("Sableye", 21, Pokemon.Generation.CRYSTAL);
         
         Texture ghostTexture = new Texture(Gdx.files.internal("ghost_sheet1.png"));
         this.sprites.put("down", new Sprite[]{
@@ -1577,7 +1698,7 @@ class cycleDayNight extends Action {
             if (this.animContainer.index >= this.animContainer.animateThese.size()) {
                 fadeToNight = false;
                 game.map.timeOfDay = "Night";
-                this.countDownToGhost = 150;//this.rand.nextInt(5000);
+                this.countDownToGhost = this.rand.nextInt(5000) + 150;  // debug: 150;
                 this.animContainer.index = 0;
                 
                 //TODO - fade day music
@@ -1609,7 +1730,7 @@ class cycleDayNight extends Action {
             if (countDownToGhost == 0) {
                 Vector2 randPos = game.player.position.cpy().add(this.rand.nextInt(5)*16 - 48, this.rand.nextInt(5)*16 - 48);
                 PublicFunctions.insertToAS(game, new spawnGhost(game, new Vector2(randPos)) );
-                this.countDownToGhost = 1000;//this.rand.nextInt(5000);
+                this.countDownToGhost = this.rand.nextInt(4000) + 1000; // debug: 1000;
             }
             
         }
@@ -1652,10 +1773,12 @@ class cycleDayNight extends Action {
         animContainer.add(new Color(0.5f, 0.5f, 0.6f, 1.0f), 80);
         animContainer.add(new Color(0.2f, 0.2f, 0.4f, 1.0f), 80);
         animContainer.add(new Color(0.08f, 0.08f, 0.3f, 1.0f), 80);
-        animContainer.add(new Color(0.01f, 0.01f, 0.2f, 1.0f), 80);
+        // this was too dark for color overworld
+        // maybe use this in forest biomes, require player to have 'flash' pokemon (charmander walking, etc?)
+//        animContainer.add(new Color(0.01f, 0.01f, 0.2f, 1.0f), 80);  
 
         this.fadeToDayAnim = new AnimationContainer<Color>();
-        fadeToDayAnim.add(new Color(0.01f, 0.01f, 0.2f, 1.0f), 80);
+//        fadeToDayAnim.add(new Color(0.01f, 0.01f, 0.2f, 1.0f), 80);
         fadeToDayAnim.add(new Color(0.08f, 0.08f, 0.3f, 1.0f), 80);
         fadeToDayAnim.add(new Color(0.2f, 0.2f, 0.4f, 1.0f), 80);
         fadeToDayAnim.add(new Color(0.8f, 0.8f, 0.8f, 1.0f), 80);
@@ -1666,7 +1789,7 @@ class cycleDayNight extends Action {
         this.animIndex = 0;
         
         this.rand = new Random();
-        this.dayTimer = 10000; //100; //- debug // 10000; //
+        this.dayTimer = 10000; //100; //- debug // 10000;
         
 
         Texture text = new Texture(Gdx.files.internal("text2.png"));
@@ -1760,6 +1883,105 @@ class AnimationContainer<E> {
         this.animateThese = new ArrayList<E>();
         this.numFrames = new ArrayList<Integer>();
         this.index = 0;
+    }
+}
+
+
+class CutTreeAnim extends Action {
+    
+    int index = 0;
+    Tile tile;
+    Action nextAction;
+    Sprite left, right;
+
+    @Override
+    public void step(PkmnGen game) {
+        
+        if (this.index < 13) {
+        }
+        else if (this.index == 13) {
+            PublicFunctions.insertToAS(game, new PlaySound("cut1", new DoneAction()));
+        }
+        else if (this.index < 19) {
+            
+        }
+        else if (this.index == 19) {
+            // TODO: map tiles to anim tiles
+            // TODO: somehow handle at tile-level?
+            game.map.tiles.remove(this.tile.position);
+            if (this.tile.name.equals("bush1")) {
+//                game.map.tiles.put(this.tile.position.cpy(), new Tile("bush2", this.tile.position.cpy()));
+                this.tile = new Tile("bush2", this.tile.position.cpy());
+            }
+            game.map.tiles.put(this.tile.position.cpy(), new Tile("green1", this.tile.position.cpy()));
+            game.batch.draw(this.tile.sprite, this.tile.sprite.getX(), this.tile.sprite.getY());
+            game.batch.draw(this.tile.overSprite, this.tile.overSprite.getX(), this.tile.overSprite.getY());
+        }
+        else if (this.index == 20) {
+            // slice overSprite down middle, sep by 4 px
+            Sprite temp = new Sprite(this.tile.overSprite);
+            TextureRegion[][] tempRegion = temp.split((int)this.tile.overSprite.getWidth()/2, (int)this.tile.overSprite.getHeight());
+            this.left = new Sprite(tempRegion[0][0]);
+            this.left.setPosition(this.tile.position.x-2-4+4, this.tile.position.y);
+            this.right = new Sprite(tempRegion[0][1]);
+            this.right.setPosition(this.tile.position.x+2+4+4, this.tile.position.y);
+            game.batch.draw(this.left, this.left.getX(), this.left.getY());
+            game.batch.draw(this.right, this.right.getX(), this.right.getY());
+        }
+        else if (this.index < 20+17) {
+            game.batch.draw(this.left, this.left.getX(), this.left.getY());
+            game.batch.draw(this.right, this.right.getX(), this.right.getY());
+        }
+        else if (this.index < 20+17+2) {
+            
+        }
+        else if (this.index == 20+17+2) {
+            this.left.translateX(-2);
+            this.right.translateX(2);
+            game.batch.draw(this.left, this.left.getX(), this.left.getY());
+            game.batch.draw(this.right, this.right.getX(), this.right.getY());
+        }
+        else if (this.index < 20+17+2+2) {
+            game.batch.draw(this.left, this.left.getX(), this.left.getY());
+            game.batch.draw(this.right, this.right.getX(), this.right.getY());
+        }
+        else if (this.index < 20+17+2+2+2) {
+            
+        }
+        else if (this.index == 20+17+2+2+2) {
+            this.left.translateX(-2);
+            this.right.translateX(2);
+            game.batch.draw(this.left, this.left.getX(), this.left.getY());
+            game.batch.draw(this.right, this.right.getX(), this.right.getY());
+        }
+        else if (this.index < 20+17+2+2+2+2) {
+            game.batch.draw(this.left, this.left.getX(), this.left.getY());
+            game.batch.draw(this.right, this.right.getX(), this.right.getY());
+        }
+        else if (this.index < 20+17+2+2+2+2+2) {
+            
+        }
+        else if (this.index == 20+17+2+2+2+2+2) {
+            this.left.translateX(-2);
+            this.right.translateX(2);
+            game.batch.draw(this.left, this.left.getX(), this.left.getY());
+            game.batch.draw(this.right, this.right.getX(), this.right.getY());
+        }
+        else if (this.index < 20+17+2+2+2+2+2+2) {
+            
+        }
+        else {
+//            game.map.tiles.put(this.tile.position.cpy(), this.tile);
+            game.playerCanMove = true;
+            game.actionStack.remove(this);
+            PublicFunctions.insertToAS(game, this.nextAction);
+        }
+        this.index++;
+    }
+
+    public CutTreeAnim(PkmnGen game, Tile tile, Action nextAction) {
+        this.tile = tile;
+        this.nextAction = nextAction;
     }
 }
 

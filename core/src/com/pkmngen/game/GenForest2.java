@@ -7,6 +7,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.math.Vector2;
 import com.pkmngen.game.GenForest1.AddPlatform;
 
@@ -70,14 +73,473 @@ class GenIsland1 extends Action {
 				break;
 			}
 		}
+	}  
+	
+	public void AddMtnLayer(HashMap<Vector2, Tile> levelTiles,
+	                        HashMap<Tile, Integer> tileLevels,
+	                        HashMap<Vector2, Tile> mtnTiles,
+	                        int newLevel,
+	                        String name) {
+        for (Tile tile : new ArrayList<Tile>(levelTiles.values())) {
+            Tile nextTile;
+            Vector2 pos = new Vector2(tile.position.x+16, tile.position.y);
+            if (!mtnTiles.containsKey(pos)) {
+                nextTile = new Tile(name, pos);
+                levelTiles.put(nextTile.position.cpy(), nextTile);
+                tileLevels.put(nextTile, newLevel);
+                mtnTiles.put(nextTile.position.cpy(), nextTile);
+            }
+            pos = new Vector2(tile.position.x-16, tile.position.y);
+            if (!mtnTiles.containsKey(pos)) {
+                nextTile = new Tile(name, pos);
+                levelTiles.put(nextTile.position.cpy(), nextTile);
+                tileLevels.put(nextTile, newLevel);
+                mtnTiles.put(nextTile.position.cpy(), nextTile);
+            }
+            pos = new Vector2(tile.position.x, tile.position.y+16);
+            if (!mtnTiles.containsKey(pos)) {
+                nextTile = new Tile(name, pos);
+                levelTiles.put(nextTile.position.cpy(), nextTile);
+                tileLevels.put(nextTile, newLevel);
+                mtnTiles.put(nextTile.position.cpy(), nextTile);
+            }
+            pos = new Vector2(tile.position.x, tile.position.y-16);
+            if (!mtnTiles.containsKey(pos)) {
+                nextTile = new Tile(name, pos);
+                levelTiles.put(nextTile.position.cpy(), nextTile);
+                tileLevels.put(nextTile, newLevel);
+                mtnTiles.put(nextTile.position.cpy(), nextTile);
+            }
+            pos = new Vector2(tile.position.x+16, tile.position.y+16);
+            if (!mtnTiles.containsKey(pos)) {
+                nextTile = new Tile(name, pos);
+                levelTiles.put(nextTile.position.cpy(), nextTile);
+                tileLevels.put(nextTile, newLevel);
+                mtnTiles.put(nextTile.position.cpy(), nextTile);
+            }
+            pos = new Vector2(tile.position.x-16, tile.position.y+16);
+            if (!mtnTiles.containsKey(pos)) {
+                nextTile = new Tile(name, pos);
+                levelTiles.put(nextTile.position.cpy(), nextTile);
+                tileLevels.put(nextTile, newLevel);
+                mtnTiles.put(nextTile.position.cpy(), nextTile);
+            }
+            pos = new Vector2(tile.position.x-16, tile.position.y-16);
+            if (!mtnTiles.containsKey(pos)) {
+                nextTile = new Tile(name, pos);
+                levelTiles.put(nextTile.position.cpy(), nextTile);
+                tileLevels.put(nextTile, newLevel);
+                mtnTiles.put(nextTile.position.cpy(), nextTile);
+            }
+            pos = new Vector2(tile.position.x+16, tile.position.y-16);
+            if (!mtnTiles.containsKey(pos)) {
+                nextTile = new Tile(name, pos);
+                levelTiles.put(nextTile.position.cpy(), nextTile);
+                tileLevels.put(nextTile, newLevel);
+                mtnTiles.put(nextTile.position.cpy(), nextTile);
+            }
+            levelTiles.remove(tile.position);
+        }
 	}
 	
-	public void ApplyBlotch(String type, Tile originTile, int maxDist, HashMap<Vector2, Tile> tilesToAdd) {
+    public ArrayList<Tile> ApplyBlotchMountain(PkmnGen game, Tile originTile, int maxDist, HashMap<Vector2, Tile> tilesToAdd) {
+        
+//        maxDist = 120*140; // TODO: debug, remove
+//        maxDist = 100*120;
+//        maxDist = 60*100;
+//        maxDist = 150*140;
+//        maxDist = 200*150;
+        ArrayList<Tile> edgeTiles = new ArrayList<Tile>();
+        HashMap<Tile, Vector2> edgeDirs = new HashMap<Tile, Vector2>();
+        HashMap<Vector2, Tile> mtnTiles = new HashMap<Vector2, Tile>();
+        Tile copyTile = new Tile(originTile.name, originTile.position.cpy()); // .add(16, 16)
+        edgeTiles.add(originTile);
+        edgeTiles.add(copyTile);
+        Vector2 dir1 = new Vector2(this.rand.nextInt(200)-100, this.rand.nextInt(200)-100);
+        Vector2 dir2 = dir1.cpy().rotate(180);
+        System.out.println(dir1);
+        System.out.println(dir2);
+        edgeDirs.put(originTile, dir1);
+        edgeDirs.put(copyTile, dir2);
+        
+        HashMap<Tile, Vector2> origins = new HashMap<Tile, Vector2>();
+        HashMap<Tile, Integer> originDists = new HashMap<Tile, Integer>();
+        origins.put(originTile, originTile.position.cpy());
+        origins.put(copyTile, originTile.position.cpy());
+        originDists.put(originTile, maxDist);
+        originDists.put(copyTile, maxDist);
+
+        Tile copyTile2 = new Tile(originTile.name, originTile.position.cpy());
+        Tile copyTile3 = new Tile(originTile.name, originTile.position.cpy());
+        edgeTiles.add(copyTile2);
+        edgeTiles.add(copyTile3);
+        edgeDirs.put(copyTile2, dir1.cpy().rotate(90));
+        edgeDirs.put(copyTile3, dir2.cpy().rotate(90));
+        origins.put(copyTile2, originTile.position.cpy());
+        origins.put(copyTile3, originTile.position.cpy());
+        originDists.put(copyTile2, (int)(2f*Math.abs(maxDist)/8f));
+        originDists.put(copyTile3, (int)(2f*Math.abs(maxDist)/8f));
+        
+        ArrayList<Tile> endPoints = new ArrayList<Tile>();
+
+        int currLevel = 0;
+        int newLevel = 0;
+        // todo: this needs to factor in maxDist
+//        int[] levels = new int[]{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1};
+        // TODO: these don't scale with maxDist, needs to 
+        int[] levels2 = new int[]{0, 0, -1, -1, -1};
+//        int[] levels = new int[]{0, 0, 0, 0, 0, 0, 0, 0, -1};
+//        int levelIndex = 0;
+        HashMap<Vector2, Tile> levelTiles = new HashMap<Vector2, Tile>();
+        HashMap<Tile, Integer> tileLevels = new HashMap<Tile, Integer>();
+        levelTiles.put(originTile.position.cpy(), originTile);
+        levelTiles.put(copyTile.position.cpy(), copyTile);
+        tileLevels.put(originTile, currLevel);
+        tileLevels.put(copyTile, currLevel);
+        int maxDist2;
+        Route mtnRoute = new Route("mountain1", 33);
+        Route snowRoute = new Route("snow1", 44);
+
+//        while (!edgeTiles.isEmpty() || currLevel > -Math.ceil(maxDist/2000)) {
+        while (!edgeTiles.isEmpty() || currLevel > -Math.ceil(maxDist/4000)) {
+//            newLevel = currLevel + levels[this.rand.nextInt(levels.length)];
+//            newLevel = currLevel + levels[levelIndex++ % levels.length];
+            System.out.println(newLevel);
+            
+            for (Tile tile : new ArrayList<Tile>(edgeTiles)) {
+                edgeTiles.remove(tile);
+                Vector2 currDir = edgeDirs.get(tile);
+                edgeDirs.remove(tile);
+                float distance = tile.position.dst(origins.get(tile));
+//                float distance = tile.position.dst(originTile.position);
+                maxDist2 = originDists.get(tile);
+                int putTile = this.rand.nextInt(maxDist2+1) + (int)distance - (maxDist2/32);  //maxDist/32 functions as min distance
+                if (putTile < maxDist2) {
+                    Vector2 newDir = new Vector2();
+                    putTile = this.rand.nextInt(Math.abs((int)currDir.x)+1)+ this.rand.nextInt(Math.abs((int)currDir.y)+1);
+                    if (putTile < Math.abs(currDir.y)+2) {
+                        // put y
+                        if (currDir.y < 0) {
+                            // negative y
+                            newDir.x = 0;
+                            newDir.y = -1;
+                        }
+                        else {
+                            // positive y
+                            newDir.x = 0;
+                            newDir.y = 1;
+                        }
+                    }
+                    else {
+                        // put x
+                        if (currDir.x < 0) {
+                            // negative x
+                            newDir.x = -1;
+                            newDir.y = 0;
+                        }
+                        else {
+                            // positive x
+                            newDir.x = 1;
+                            newDir.y = 0;
+                        }
+                    }
+                    // TODO: variance/trees here? yeah, then do ledges later
+                    Tile nextTile = new Tile("mountain1", tile.position.cpy().add(16*newDir.x, 16*newDir.y));
+                    // TODO: variate the dirs
+                    mtnTiles.put(nextTile.position.cpy(), nextTile);
+                    edgeTiles.add(nextTile);
+                    edgeDirs.put(nextTile, currDir);
+                    origins.put(nextTile, origins.get(tile));
+                    originDists.put(nextTile, originDists.get(tile));
+                    
+                    // trace around these
+                    levelTiles.put(nextTile.position.cpy(), nextTile);
+                    tileLevels.put(nextTile, newLevel);
+                    
+                    //TODO: decide if splitting off tree
+//                    if (this.rand.nextInt(maxDist*edgeTiles.size()) < maxDist/2) { //maxDist/18
+//                    System.out.println(Math.ceil(1f/(4f/maxDist)));
+                    if (this.rand.nextInt((int)Math.ceil(1f/(4f/((maxDist+maxDist2)/350f)))) == 1) {
+                        int degrees = this.rand.nextInt(80) + 10;
+                        Vector2 branchDir = currDir.cpy().rotate(degrees);
+                        nextTile = new Tile("mountain1", tile.position.cpy());
+                        edgeTiles.add(nextTile);
+                        edgeDirs.put(nextTile, branchDir);
+                        origins.put(nextTile, tile.position.cpy());
+//                        originDists.put(nextTile, (int)Math.abs(maxDist2-(distance*3))/12); //maxDist2/12
+                        originDists.put(nextTile, (int)(1f*Math.abs(maxDist2-distance)/8f)); //maxDist2/12
+
+                        branchDir = currDir.cpy().rotate(-degrees);
+                        nextTile = new Tile("mountain1", tile.position.cpy());
+                        edgeTiles.add(nextTile);
+                        edgeDirs.put(nextTile, branchDir);
+                        origins.put(nextTile, tile.position.cpy());
+//                        originDists.put(nextTile, (int)Math.abs(maxDist2-(distance*3))/12); //maxDist2/12
+                        originDists.put(nextTile, (int)(1f*Math.abs(maxDist2-distance)/8f)); //maxDist2/12
+                    }
+                }
+                else {
+                    endPoints.add(tile);
+                }
+                origins.remove(tile);
+                originDists.remove(tile);
+            }
+
+//            if (newLevel != currLevel) {
+            if (this.rand.nextInt((int)Math.ceil(1f/(1f/((maxDist)/1000f)))) == 1) {
+                newLevel = currLevel + levels2[this.rand.nextInt(levels2.length)];
+                AddMtnLayer(levelTiles, tileLevels, mtnTiles, newLevel, newLevel <= -1 ? "mountain3" : "snow1");
+                currLevel = newLevel;
+            }
+        }
+        AddMtnLayer(levelTiles, tileLevels, mtnTiles, currLevel-1, "mountain3");
+        AddMtnLayer(levelTiles, tileLevels, mtnTiles, currLevel-2, "mountain3");
+        // for each tile, 
+        // if bott 3 are lower, make edge
+        // if corner 3 are lower, make corner
+        // ... else, do nothing for now (maybe make it a new sprite
+//        Tile nextTile;
+        HashMap<Vector2, Tile> mtnTiles2 = new HashMap<Vector2, Tile>();
+        boolean done = false;
+        while (!done) {
+            done = true;
+            for (Tile tile : mtnTiles.values()) {
+                Tile bl = mtnTiles.get(tile.position.cpy().add(-16, -16));
+                Tile bot = mtnTiles.get(tile.position.cpy().add(0, -16));
+                Tile br = mtnTiles.get(tile.position.cpy().add(16, -16));
+                Tile left = mtnTiles.get(tile.position.cpy().add(-16, 0));
+                Tile tl = mtnTiles.get(tile.position.cpy().add(-16, 16));
+                Tile top = mtnTiles.get(tile.position.cpy().add(0, 16));
+                Tile tr = mtnTiles.get(tile.position.cpy().add(16, 16));
+                Tile right = mtnTiles.get(tile.position.cpy().add(16, 0));
+    //            int numLower = 0;
+    //            ArrayList<Tile> values = new ArrayList<Tile>();
+    //            values.add(bot);
+    //            values.add(left);
+    //            values.add(top);
+    //            values.add(right);
+    //            for (Tile tile2 : values) {
+    //                if (tileLevels.containsKey(tile2) && tileLevels.get(tile2) == tileLevels.get(tile)-1) {
+    //                    numLower++;
+    //                }
+    //            }
+                if (tileLevels.containsKey(left) && tileLevels.get(left) == tileLevels.get(tile)-1 &&
+                    tileLevels.containsKey(right) && tileLevels.get(right) == tileLevels.get(tile)-1) {
+                    tileLevels.put(tile, tileLevels.get(tile)-1);
+                    done = false;
+                    break;
+                }
+                if (tileLevels.containsKey(top) && tileLevels.get(top) == tileLevels.get(tile)-1 &&
+                    tileLevels.containsKey(bot) && tileLevels.get(bot) == tileLevels.get(tile)-1) {
+                    tileLevels.put(tile, tileLevels.get(tile)-1);
+                    done = false;
+                    break;
+                }
+                if (tileLevels.containsKey(top) && tileLevels.get(top) == tileLevels.get(tile)-1 &&
+                    tileLevels.containsKey(left) && tileLevels.get(left) == tileLevels.get(tile)-1 &&
+                    tileLevels.containsKey(br) && tileLevels.get(br) == tileLevels.get(tile)-1) {
+                    tileLevels.put(tile, tileLevels.get(tile)-1);
+                    done = false;
+                    break;
+                }
+                if (tileLevels.containsKey(top) && tileLevels.get(top) == tileLevels.get(tile)-1 &&
+                        tileLevels.containsKey(right) && tileLevels.get(right) == tileLevels.get(tile)-1 &&
+                        tileLevels.containsKey(bl) && tileLevels.get(bl) == tileLevels.get(tile)-1) {
+                   tileLevels.put(tile, tileLevels.get(tile)-1);
+                   done = false;
+                   break;
+                }
+                if (tileLevels.containsKey(bot) && tileLevels.get(bot) == tileLevels.get(tile)-1 &&
+                        tileLevels.containsKey(right) && tileLevels.get(right) == tileLevels.get(tile)-1 &&
+                        tileLevels.containsKey(tl) && tileLevels.get(tl) == tileLevels.get(tile)-1) {
+                   tileLevels.put(tile, tileLevels.get(tile)-1);
+                   done = false;
+                   break;
+                }
+                if (tileLevels.containsKey(bot) && tileLevels.get(bot) == tileLevels.get(tile)-1 &&
+                        tileLevels.containsKey(left) && tileLevels.get(left) == tileLevels.get(tile)-1 &&
+                        tileLevels.containsKey(tr) && tileLevels.get(tr) == tileLevels.get(tile)-1) {
+                   tileLevels.put(tile, tileLevels.get(tile)-1);
+                   done = false;
+                   break;
+                }
+                if (tileLevels.containsKey(bot) && tileLevels.get(bot) == tileLevels.get(tile) &&
+                        tileLevels.containsKey(left) && tileLevels.get(left) == tileLevels.get(tile)-1 &&
+                        tileLevels.containsKey(br) && tileLevels.get(br) == tileLevels.get(tile)-1) {
+                   tileLevels.put(tile, tileLevels.get(tile)-1);
+                   done = false;
+                   break;
+                }
+                if (tileLevels.containsKey(bot) && tileLevels.get(bot) == tileLevels.get(tile) &&
+                        tileLevels.containsKey(right) && tileLevels.get(right) == tileLevels.get(tile)-1 &&
+                        tileLevels.containsKey(bl) && tileLevels.get(bl) == tileLevels.get(tile)-1) {
+                   tileLevels.put(tile, tileLevels.get(tile)-1);
+                   done = false;
+                   break;
+                }
+                if (tileLevels.containsKey(top) && tileLevels.get(top) == tileLevels.get(tile) &&
+                        tileLevels.containsKey(left) && tileLevels.get(left) == tileLevels.get(tile)-1 &&
+                        tileLevels.containsKey(tr) && tileLevels.get(tr) == tileLevels.get(tile)-1) {
+                   tileLevels.put(tile, tileLevels.get(tile)-1);
+                   done = false;
+                   break;
+                }
+                if (tileLevels.containsKey(top) && tileLevels.get(top) == tileLevels.get(tile) &&
+                        tileLevels.containsKey(right) && tileLevels.get(right) == tileLevels.get(tile)-1 &&
+                        tileLevels.containsKey(tl) && tileLevels.get(tl) == tileLevels.get(tile)-1) {
+                   tileLevels.put(tile, tileLevels.get(tile)-1);
+                   done = false;
+                   break;
+                }
+                if (tileLevels.containsKey(right) && tileLevels.get(right) == tileLevels.get(tile) &&
+                        tileLevels.containsKey(top) && tileLevels.get(top) == tileLevels.get(tile)-1 &&
+                        tileLevels.containsKey(br) && tileLevels.get(br) == tileLevels.get(tile)-1) {
+                   tileLevels.put(tile, tileLevels.get(tile)-1);
+                   done = false;
+                   break;
+                }
+                if (tileLevels.containsKey(right) && tileLevels.get(right) == tileLevels.get(tile) &&
+                        tileLevels.containsKey(bot) && tileLevels.get(bot) == tileLevels.get(tile)-1 &&
+                        tileLevels.containsKey(tr) && tileLevels.get(tr) == tileLevels.get(tile)-1) {
+                   tileLevels.put(tile, tileLevels.get(tile)-1);
+                   done = false;
+                   break;
+                }
+                if (tileLevels.containsKey(left) && tileLevels.get(left) == tileLevels.get(tile) &&
+                        tileLevels.containsKey(bot) && tileLevels.get(bot) == tileLevels.get(tile)-1 &&
+                        tileLevels.containsKey(tl) && tileLevels.get(tl) == tileLevels.get(tile)-1) {
+                   tileLevels.put(tile, tileLevels.get(tile)-1);
+                   done = false;
+                   break;
+                }
+                if (tileLevels.containsKey(left) && tileLevels.get(left) == tileLevels.get(tile) &&
+                        tileLevels.containsKey(top) && tileLevels.get(top) == tileLevels.get(tile)-1 &&
+                        tileLevels.containsKey(bl) && tileLevels.get(bl) == tileLevels.get(tile)-1) {
+                   tileLevels.put(tile, tileLevels.get(tile)-1);
+                   done = false;
+                   break;
+                }
+            }
+        }
+
+        for (Tile tile : mtnTiles.values()) {
+            Tile bl = mtnTiles.get(tile.position.cpy().add(-16, -16));
+            Tile bot = mtnTiles.get(tile.position.cpy().add(0, -16));
+            Tile br = mtnTiles.get(tile.position.cpy().add(16, -16));
+            Tile left = mtnTiles.get(tile.position.cpy().add(-16, 0));
+            Tile tl = mtnTiles.get(tile.position.cpy().add(-16, 16));
+            Tile top = mtnTiles.get(tile.position.cpy().add(0, 16));
+            Tile tr = mtnTiles.get(tile.position.cpy().add(16, 16));
+            Tile right = mtnTiles.get(tile.position.cpy().add(16, 0));
+            if (tileLevels.containsKey(left) && tileLevels.get(left) == tileLevels.get(tile) &&
+                tileLevels.containsKey(bot) && tileLevels.get(bot) == tileLevels.get(tile)-1 &&
+                tileLevels.containsKey(right) && tileLevels.get(right) == tileLevels.get(tile)) {
+                mtnTiles2.put(tile.position.cpy(), new Tile("mountain1_bottom1", tile.position.cpy()));
+            }
+            else if (tileLevels.containsKey(top) && tileLevels.get(top) == tileLevels.get(tile) &&
+                     tileLevels.containsKey(right) && tileLevels.get(right) == tileLevels.get(tile) &&
+                     tileLevels.containsKey(bot) && tileLevels.get(bot) == tileLevels.get(tile)-1 &&
+                     tileLevels.containsKey(left) && tileLevels.get(left) == tileLevels.get(tile)-1) {
+                mtnTiles2.put(tile.position.cpy(), new Tile("mountain1_bl1", tile.position.cpy()));
+            }
+            else if (tileLevels.containsKey(top) && tileLevels.get(top) == tileLevels.get(tile) &&
+                     tileLevels.containsKey(left) && tileLevels.get(left) == tileLevels.get(tile)-1 &&
+                     tileLevels.containsKey(bot) && tileLevels.get(bot) == tileLevels.get(tile)) {
+                mtnTiles2.put(tile.position.cpy(), new Tile("mountain1_left1", tile.position.cpy()));
+            }
+            else if (tileLevels.containsKey(top) && tileLevels.get(top) == tileLevels.get(tile)-1 &&
+                     tileLevels.containsKey(left) && tileLevels.get(left) == tileLevels.get(tile)-1 &&
+                     tileLevels.containsKey(right) && tileLevels.get(right) == tileLevels.get(tile) &&
+                     tileLevels.containsKey(bot) && tileLevels.get(bot) == tileLevels.get(tile)) {
+                mtnTiles2.put(tile.position.cpy(), new Tile("mountain1_tl1", tile.position.cpy()));
+            }
+            else if (tileLevels.containsKey(top) && tileLevels.get(top) == tileLevels.get(tile)-1 &&
+                     tileLevels.containsKey(left) && tileLevels.get(left) == tileLevels.get(tile) &&
+                     tileLevels.containsKey(right) && tileLevels.get(right) == tileLevels.get(tile)) {
+                mtnTiles2.put(tile.position.cpy(), new Tile("mountain1_top1", tile.position.cpy()));
+            }
+            else if (tileLevels.containsKey(top) && tileLevels.get(top) == tileLevels.get(tile)-1 &&
+                     tileLevels.containsKey(bot) && tileLevels.get(bot) == tileLevels.get(tile) &&
+                     tileLevels.containsKey(left) && tileLevels.get(left) == tileLevels.get(tile) &&
+                     tileLevels.containsKey(right) && tileLevels.get(right) == tileLevels.get(tile)-1) {
+                mtnTiles2.put(tile.position.cpy(), new Tile("mountain1_tr1", tile.position.cpy()));
+            }
+            else if (tileLevels.containsKey(top) && tileLevels.get(top) == tileLevels.get(tile) &&
+                     tileLevels.containsKey(bot) && tileLevels.get(bot) == tileLevels.get(tile) &&
+                     tileLevels.containsKey(right) && tileLevels.get(right) == tileLevels.get(tile)-1) {
+                mtnTiles2.put(tile.position.cpy(), new Tile("mountain1_right1", tile.position.cpy()));
+            }
+            else if (tileLevels.containsKey(top) && tileLevels.get(top) == tileLevels.get(tile) &&
+                     tileLevels.containsKey(left) && tileLevels.get(left) == tileLevels.get(tile) &&
+                     tileLevels.containsKey(bot) && tileLevels.get(bot) == tileLevels.get(tile)-1 &&
+                     tileLevels.containsKey(right) && tileLevels.get(right) == tileLevels.get(tile)-1) {
+                mtnTiles2.put(tile.position.cpy(), new Tile("mountain1_br1", tile.position.cpy()));
+            }
+            else if (tileLevels.containsKey(br) && tileLevels.get(br) == tileLevels.get(tile)-1 &&
+                     tileLevels.containsKey(bot) && tileLevels.get(bot) == tileLevels.get(tile) &&
+                     tileLevels.containsKey(right) && tileLevels.get(right) == tileLevels.get(tile)) {
+                mtnTiles2.put(tile.position.cpy(), new Tile("mountain1_br_inner1", tile.position.cpy()));
+            }
+            else if (tileLevels.containsKey(bl) && tileLevels.get(bl) == tileLevels.get(tile)-1 &&
+                     tileLevels.containsKey(bot) && tileLevels.get(bot) == tileLevels.get(tile) &&
+                     tileLevels.containsKey(left) && tileLevels.get(left) == tileLevels.get(tile)) {
+                mtnTiles2.put(tile.position.cpy(), new Tile("mountain1_bl_inner1", tile.position.cpy()));
+            }
+//            else {
+//                mtnTiles2.put(tile.position.cpy(), new Tile("mountain3", tile.position.cpy()));
+//            }
+        }
+        for (Tile tile : new ArrayList<Tile>(mtnTiles.values())) {
+            // randomly place grass blotches
+            if (this.rand.nextInt((int)Math.ceil(1f/(1f/((maxDist)/500f)))) == 1) {
+                float distance = tile.position.dst(originTile.position);
+                if (distance < 1*maxDist/40) {
+                    ApplyBlotch(game, "mtn_snow1", tile, maxDist/200, mtnTiles2, 0, false, snowRoute);
+                }
+                else {
+                    ApplyBlotch(game, "mtn_green1", tile, maxDist/200, mtnTiles2, 0, false, mtnRoute);
+                }
+                
+            }
+        }
+        for (Tile tile : new ArrayList<Tile>(mtnTiles.values())) {
+            // randomly place rocks
+            if (this.rand.nextInt((int)Math.ceil(1f/(1f/((maxDist)/500f)))) == 1 && !mtnTiles2.containsKey(tile.position)) {
+                Tile newTile = new Tile(tile.name, tile.position.cpy());
+                Texture text = new Texture(Gdx.files.internal("tiles/rock1_color.png"));
+                newTile.overSprite = new Sprite(text, 0, 0, 16, 16);
+                newTile.overSprite.setPosition(newTile.position.x, newTile.position.y+4);
+                newTile.attrs.put("solid", true);
+                mtnTiles2.put(tile.position.cpy(), newTile);
+            }
+        }
+        
+        // add all mtnTiles in bulk
+        tilesToAdd.putAll(mtnTiles);
+        tilesToAdd.putAll(mtnTiles2);
+        
+        return endPoints;
+    }
+
+
+    public void ApplyBlotch(PkmnGen game, String type, Tile originTile, int maxDist, HashMap<Vector2, Tile> tilesToAdd) {
+        ApplyBlotch(game, type, originTile, maxDist, tilesToAdd, 0, true);
+    }
+
+    public void ApplyBlotch(PkmnGen game, String type, Tile originTile, int maxDist, HashMap<Vector2, Tile> tilesToAdd, int isMaze, boolean doNext) {
+        ApplyBlotch(game, type, originTile, maxDist, tilesToAdd, isMaze, doNext, null);
+    }
+	
+	public void ApplyBlotch(PkmnGen game, String type, Tile originTile, int maxDist, HashMap<Vector2, Tile> tilesToAdd, int isMaze, boolean doNext, Route currRoute) {
 		HashMap<Vector2, Tile> edgeTiles = new HashMap<Vector2, Tile>();
 		ArrayList<Tile> prevTiles = new ArrayList<Tile>();
 		Tile prevTile = originTile;
 		edgeTiles.put(originTile.position.cpy(), originTile);
 		HashMap<Vector2, Tile> grassTiles = new HashMap<Vector2, Tile>();
+		// whether or not this blotch has a maze in the middle
+//		int isMaze = 1; // this.rand.nextInt(2);
+        isMaze = 1; //this.rand.nextInt(2);
+		HashMap<Vector2, Tile> forestMazeTiles = new HashMap<Vector2, Tile>();
 
 		while (!edgeTiles.isEmpty()) {
 			for (Tile tile : new ArrayList<Tile>(edgeTiles.values())) {
@@ -103,33 +565,113 @@ class GenIsland1 extends Action {
 								if (isGrass < 1*maxDist/2) {
 									newTile = new Tile("green1", edge);
 								}
-								int isTree = this.rand.nextInt(maxDist/4) + (int)distance;
-								if (isTree < 1*maxDist/3 && newTile.position.y % 32 == 0) {
-									newTile = new Tile("tree2", edge);
+								else if (isRock <= maxDist + maxDist/2 && isGrass < maxDist - maxDist/4 && this.rand.nextInt(40) == 0) {
+                                    newTile = new Tile("tree5", edge);
 								}
+                                if (isMaze == 0) {
+    								int isTree = this.rand.nextInt(maxDist/4) + (int)distance;
+    								if (isTree < 1*maxDist/3 && newTile.position.y % 32 == 0) {
+    	                                    newTile = new Tile("tree2", edge);
+								    }
+								}
+                                else if ((int)distance < 3*maxDist/8) {
+                                    forestMazeTiles.put(newTile.position.cpy(), newTile);
+                                }
 								int grassBlotchHere = this.rand.nextInt(maxDist/4) + (int)distance;
 								int grassBlotchHere2 = this.rand.nextInt(maxDist);
+                                int grassBlotchHere3 = this.rand.nextInt(maxDist);
 								if ((int)distance > 1*maxDist/4
 									&& (int)distance < maxDist - maxDist/5
 									&& grassBlotchHere < 3*maxDist/7
-								    && grassBlotchHere2 < maxDist/4) {
-									ApplyBlotch("grass", newTile, (int)Math.ceil(maxDist/6f), grassTiles);
+								    && grassBlotchHere2 < maxDist/4
+                                    && (maxDist < 300 || grassBlotchHere3 < maxDist/8)) {
+								    int nextSize = (int)Math.ceil(maxDist/6f);
+								    if (maxDist > 300) {
+								        nextSize = (int)Math.ceil(maxDist/12f);
+								    }
+									ApplyBlotch(game, "grass", newTile, nextSize, grassTiles, 0, false, currRoute);
 								}
 								tilesToAdd.put(newTile.position.cpy(), newTile);
 								edgeTiles.put(newTile.position.cpy(), newTile);
 							// grass blotch
 							} else if (type.equals("grass")) {
-								Tile newTile = new Tile("grass2", edge);
+								Tile newTile = new Tile("grass2", edge, false, currRoute);
 								tilesToAdd.put(newTile.position.cpy(), newTile);
 								edgeTiles.put(newTile.position.cpy(), newTile);
 							}
+                            // foresty blotch
+                            else if (type.equals("mtn_green1") || type.equals("mtn_snow1")) {
+                                Tile newTile;
+                                if (this.rand.nextInt(5) == 0) {
+                                    if (type.equals("mtn_snow1")) {
+                                        newTile = new Tile("tree4", edge);
+                                    }
+                                    else {
+                                        newTile = new Tile("tree2", edge);
+                                    }
+                                }
+                                else if (this.rand.nextInt(5) == 0) {
+                                    if (type.equals("mtn_green1")) {
+                                        newTile = new Tile("grass2", edge, false, currRoute);
+                                    }
+                                    else {
+                                        newTile = new Tile("grass3", edge, false, currRoute);
+                                    }
+                                    
+                                }
+                                else if(this.rand.nextInt(10) == 0) {
+                                    if (type.equals("mtn_snow1")) {
+                                        newTile = new Tile("snow1", edge);
+                                        Texture text = new Texture(Gdx.files.internal("tiles/rock1_color.png"));
+                                        newTile.overSprite = new Sprite(text, 0, 0, 16, 16);
+                                        newTile.overSprite.setPosition(newTile.position.x, newTile.position.y+4);
+                                        newTile.attrs.put("solid", true);
+                                    }
+                                    else {
+                                        newTile = new Tile("green1", edge);
+                                        Texture text = new Texture(Gdx.files.internal("tiles/rock1_color.png"));
+                                        newTile.overSprite = new Sprite(text, 0, 0, 16, 16);
+                                        newTile.overSprite.setPosition(newTile.position.x, newTile.position.y+4);
+                                        newTile.attrs.put("solid", true);
+                                    }
+                                }
+                                else if (this.rand.nextInt(8) == 0) {
+                                    if (type.equals("mtn_green1")) {
+                                        if (this.rand.nextInt(2) == 0) {
+                                            // flowery green
+                                            newTile = new Tile("green2", edge);
+                                        }
+                                        else {
+                                            // flowery green
+                                            newTile = new Tile("green3", edge);
+                                        }
+                                    }
+                                    else {
+                                        newTile = new Tile("snow1", edge);
+                                    }
+                                }
+                                else {
+                                    if (type.equals("mtn_green1")) {
+                                        newTile = new Tile("green1", edge);
+                                    }
+                                    else {
+                                        newTile = new Tile("snow1", edge);
+                                    }
+                                }
+                                tilesToAdd.put(newTile.position.cpy(), newTile);
+                                edgeTiles.put(newTile.position.cpy(), newTile);
+                            }
+                                
 							numAdded++;
 						}
 					}
 				}
 				
 				// only select edge tiles for new 'blotches'
-				if (tile.position.dst(originTile.position) > prevTile.position.dst(originTile.position)) {
+				// note - don't select sand/rock tiles, b/c I want forests to blend together
+				// ie not be too far apart
+				if (tile.position.dst(originTile.position) > prevTile.position.dst(originTile.position) &&
+				        !tile.name.equals("sand1") && !tile.name.equals("rock1") && !tile.name.equals("tree5")) {
 					prevTile = tile;
 					// use a random number of these later
 					// add beginning of list
@@ -148,12 +690,111 @@ class GenIsland1 extends Action {
 				tilesToAdd.put(tile.position.cpy(), tile);
 			}
 		}
+
+        // create forest maze if applicable
+        // get bl/tr
+		if (isMaze != 0 && forestMazeTiles.size() > 0) {
+	        Vector2 bl = null;
+	        Vector2 tr = null;
+	        for (Tile tile : forestMazeTiles.values()) {
+	            if (bl == null) {
+	                bl = tile.position.cpy();
+	            }
+                if (tr == null) {
+                    tr = tile.position.cpy();
+                }
+	            if (tile.position.x < bl.x) {
+	                bl.x = tile.position.x;
+	            }
+                if (tile.position.x > tr.x) {
+                    tr.x = tile.position.x;
+                }
+                if (tile.position.y < bl.y) {
+                    bl.y = tile.position.y;
+                }
+                if (tile.position.y > tr.y) {
+                    tr.y = tile.position.y;
+                }
+	        }
+	        float density = .1f;
+	        float complexity = .9f;
+	        int squareSize = 3*32;
+	        HashMap<Vector2, MazeNode> nodes = GenForest2.Maze_Algo1((int)(tr.x-bl.x)*2/squareSize, (int)(tr.y-bl.y)*2/squareSize, density, complexity, squareSize, this.rand);
+	        //for each node, get a template tile that matches it's number of openings
+	         //nodes contains the nodes of the maze
+//	        HashMap<Vector2, Tile> newTiles = new HashMap<Vector2, Tile>();
+	        ArrayList<Tile> tileSquare;
+	        for (MazeNode node : nodes.values()) {
+	            //get tiles depending on type of mazenode
+	            if (node.type == "platform1") {
+	                tileSquare = GenForest2.getTileSquarePlatform1(node, bl, this.rand);
+	            }
+	            else {
+	                tileSquare = GenForest2.getTileSquare(node, bl, this.rand, true);
+	            }
+	            for (Tile tile : tileSquare) {
+	                if (forestMazeTiles.containsKey(tile.position)) {
+	                    tilesToAdd.put(tile.position.cpy(), tile);
+	                }
+	            }
+	        }
+	        // TODO: this still isn't working
+	        // it keeps creating larger and larger mazes
+	        if (tilesToAdd.size() > 0) {
+	            Action temp = new GenForest2.ApplyForestBiome(tilesToAdd, bl.cpy(), tr.cpy(), true, new DoneAction());
+	            temp.step(game);
+	        }
+	        
+	        // post-process - add continuation to ledges
+	        for (Tile tile : new ArrayList<Tile>(tilesToAdd.values())) {
+	            if ((tile.name.equals("ledge_grass_down") || tile.name.equals("ledge_ramp_down")) && 
+	                    tilesToAdd.containsKey(tile.position.cpy().add(16,0)) && !tilesToAdd.get(tile.position.cpy().add(16,0)).attrs.get("solid") && !tilesToAdd.get(tile.position.cpy().add(16,0)).attrs.get("ledge")) {
+	                HashMap<Vector2, Tile> upTiles = new HashMap<Vector2, Tile>();
+                    HashMap<Vector2, Tile> rightTiles = new HashMap<Vector2, Tile>();
+                    upTiles.put(tile.position.cpy().add(16, 0), new Tile("ledge1_corner_br", tile.position.cpy().add(16, 0), true));
+                    rightTiles.put(tile.position.cpy().add(16, 0), new Tile("ledge_grass_down", tile.position.cpy().add(16, 0), true));
+	                for (int i=16; i < 5*16; i+=16) {
+	                    upTiles.put(tile.position.cpy().add(16, i), new Tile("ledge1_right", tile.position.cpy().add(16, i), true));
+	                    rightTiles.put(tile.position.cpy().add(16+i, 0), new Tile("ledge_grass_down", tile.position.cpy().add(16+i, 0), true));
+	                    if (tilesToAdd.containsKey(tile.position.cpy().add(16, i)) && (tilesToAdd.get(tile.position.cpy().add(16, i)).attrs.get("solid") || tilesToAdd.get(tile.position.cpy().add(16, i)).attrs.get("ledge"))) {
+	                        tilesToAdd.putAll(upTiles);
+	                        break;
+	                    }
+                        if (tilesToAdd.containsKey(tile.position.cpy().add(16+i, 0)) && (tilesToAdd.get(tile.position.cpy().add(16+i, 0)).attrs.get("solid") || tilesToAdd.get(tile.position.cpy().add(16+i, 0)).attrs.get("ledge"))) {
+                            tilesToAdd.putAll(rightTiles);
+                            break;
+                        }
+	                }
+	            }
+                if ((tile.name.equals("ledge_grass_down") || tile.name.equals("ledge_ramp_down")) && 
+                        !tilesToAdd.get(tile.position.cpy().add(-16,0)).attrs.get("solid") && !tilesToAdd.get(tile.position.cpy().add(-16,0)).attrs.get("ledge")) {
+                    HashMap<Vector2, Tile> upTiles = new HashMap<Vector2, Tile>();
+                    HashMap<Vector2, Tile> leftTiles = new HashMap<Vector2, Tile>();
+                    upTiles.put(tile.position.cpy().add(-16, 0), new Tile("ledge1_corner_bl", tile.position.cpy().add(-16, 0), true));
+                    leftTiles.put(tile.position.cpy().add(-16, 0), new Tile("ledge_grass_down", tile.position.cpy().add(-16, 0), true));
+                    for (int i=16; i < 5*16; i+=16) {
+                        upTiles.put(tile.position.cpy().add(-16, i), new Tile("ledge1_left", tile.position.cpy().add(-16, i), true));
+                        leftTiles.put(tile.position.cpy().add(-16-i, 0), new Tile("ledge_grass_down", tile.position.cpy().add(-16-i, 0), true));
+                        if (tilesToAdd.containsKey(tile.position.cpy().add(-16, i)) && (tilesToAdd.get(tile.position.cpy().add(-16, i)).attrs.get("solid") || tilesToAdd.get(tile.position.cpy().add(-16, i)).attrs.get("ledge"))) {
+                            tilesToAdd.putAll(upTiles);
+                            break;
+                        }
+                        if (tilesToAdd.containsKey(tile.position.cpy().add(-16-i, 0)) && (tilesToAdd.get(tile.position.cpy().add(-16-i, 0)).attrs.get("solid") || tilesToAdd.get(tile.position.cpy().add(-16-i, 0)).attrs.get("ledge"))) {
+                            tilesToAdd.putAll(leftTiles);
+                            break;
+                        }
+                    }
+                }
+	        }
+	        
+		}
 		
 		//origin changes to new spot
 //			int newSize = this.rand.nextInt(maxDist + (int)(maxDist/1.5f));  // size varies a lot, but looks good
 		// has a tendency to snake, but looks good
-		int newSize = maxDist - this.rand.nextInt((int)Math.ceil(maxDist/4f));
-		System.out.println(prevTile.position);
+//		int newSize = maxDist - this.rand.nextInt((int)Math.ceil(maxDist/4f)); // was doing
+        int newSize = maxDist - this.rand.nextInt((int)Math.ceil(maxDist/4f)) - maxDist/4;
+//		System.out.println(prevTile.position);
 		System.out.println(newSize);
 		if (newSize <= 0) {
 			return;
@@ -165,15 +806,35 @@ class GenIsland1 extends Action {
 		if (prevTiles.size() < randInt) {
 			randInt = prevTiles.size();
 		}
-		// remove/fix this logic
+
+//		remove/fix this logic
+        HashMap<Vector2, Tile> nextIslandTiles = new HashMap<Vector2, Tile>();
 		int next=0;
-		for (int i=0; i < randInt; i++) {
-			tilesToAdd.put(prevTiles.get(next).position.cpy(), prevTiles.get(next));
-			ApplyBlotch("island", prevTiles.get(next), newSize, tilesToAdd);
-			next += this.rand.nextInt(prevTiles.size() -next) + next;
-			if (next >= prevTiles.size()) {
-				break;
-			}
+		if (type.equals("island") && doNext) {
+	        for (int i=0; i < randInt; i++) {
+	            tilesToAdd.put(prevTiles.get(next).position.cpy(), prevTiles.get(next));
+	            ApplyBlotch(game, "island", prevTiles.get(next), newSize, nextIslandTiles, 1, true, currRoute);
+	            next += this.rand.nextInt(prevTiles.size() -next) + next;
+	            if (next >= prevTiles.size()) {
+	                break;
+	            }
+	        }
+		}
+		
+		// manually 'interlace'?
+		// other option is tilesToAdd is only beach tiles, idk.
+		for (Tile tile : nextIslandTiles.values()) {
+		    if (tilesToAdd.containsKey(tile.position)) {
+		        if ((tilesToAdd.get(tile.position).name.equals("sand1") || 
+		                tilesToAdd.get(tile.position).name.equals("rock1") || 
+                        tilesToAdd.get(tile.position).name.equals("tree5")) &&
+		                !nextIslandTiles.get(tile.position).name.equals("sand1")) {
+		            tilesToAdd.put(tile.position.cpy(), tile);
+		        }
+		    }
+		    else {
+                tilesToAdd.put(tile.position.cpy(), tile);
+		    }
 		}
 	}
 	
@@ -193,7 +854,14 @@ class GenIsland1 extends Action {
 		int maxDist = this.radius;  // 16*10;
 		Tile originTile = new Tile("sand1", this.origin.cpy());
 		this.tilesToAdd.put(originTile.position.cpy(), originTile);
-		ApplyBlotch("island", originTile, maxDist, this.tilesToAdd);
+//      ApplyBlotch(game, "island", originTile, maxDist, this.tilesToAdd, 1);
+		HashMap<Vector2, Tile> mtnTiles = new HashMap<Vector2, Tile>();
+        ArrayList<Tile> endPoints = ApplyBlotchMountain(game, originTile, maxDist, mtnTiles);
+        for (Tile tile : endPoints) {
+//            Route blotchRoute = new Route("forest1", 22); // TODO: mem usage too high
+            ApplyBlotch(game, "island", tile, maxDist/6, this.tilesToAdd, 1, true, null);
+        }
+        this.tilesToAdd.putAll(mtnTiles);
 		
 		// find max/min x and y tiles, add padding and add water tiles
 		Vector2 maxPos = this.origin.cpy();
@@ -376,7 +1044,7 @@ public class GenForest2 extends Action {
 		//below settings allow for a few loops to be present on average, which is what I want
 		float density = .1f; //num times a 'long wall' is created. algo works by creating a long wall at random  //.2f //.1f for 500 width
 		float complexity = .9f; //length of that 'long wall' //.2f
-		HashMap<Vector2, MazeNode> nodes = Maze_Algo1(width, height, density, complexity, squareSize);
+		HashMap<Vector2, MazeNode> nodes = Maze_Algo1(width, height, density, complexity, squareSize, this.rand);
 
 		
 		
@@ -388,10 +1056,10 @@ public class GenForest2 extends Action {
 		for (MazeNode node : nodes.values()) {
 			//get tiles depending on type of mazenode
 			if (node.type == "platform1") {
-				tileSquare = getTileSquarePlatform1(node, startLoc);
+				tileSquare = getTileSquarePlatform1(node, startLoc, this.rand);
 			}
 			else {
-				tileSquare = getTileSquare(node, startLoc);
+				tileSquare = getTileSquare(node, startLoc, this.rand);
 			}
 			
 
@@ -408,7 +1076,7 @@ public class GenForest2 extends Action {
 
 		//this.doActions.add(new ApplyForestBiome(game, this.tilesToAdd, startLoc, endLoc, this)); //if you want to apply later
 		//for now:
-		Action temp = new ApplyForestBiome(game, this.tilesToAdd, startLoc, endLoc.cpy(), this);
+		Action temp = new ApplyForestBiome(this.tilesToAdd, startLoc, endLoc.cpy(), this);
 		temp.step(game); //this way map is rendered in pretty way, but apply biome is still an action
 		 //contains placement of water and grass
 
@@ -432,7 +1100,7 @@ public class GenForest2 extends Action {
 	
 
 	//unused - switched to templated tile method
-	public class ApplyForestBiome extends Action {
+	public static class ApplyForestBiome extends Action {
 
 		public int layer = 120;
 		public int getLayer(){return this.layer;}
@@ -446,7 +1114,8 @@ public class GenForest2 extends Action {
 		
 		Vector2 bottomLeft;
 		Vector2 topRight;
-	
+		boolean color;
+		Route currRoute;
 
 		@Override
 		public void step(PkmnGen game) {
@@ -475,7 +1144,7 @@ public class GenForest2 extends Action {
 								&& temp2 != null && temp3 != null && temp4 != null) {
 								//put tree there
 								if (temp2.name == "solid" && temp3.name == "solid" && temp4.name == "solid") {
-									this.tilesToAdd.put(temp.position.cpy().add(0,0), new Tile("tree_large1", temp.position.cpy().add(0,0)));
+									this.tilesToAdd.put(temp.position.cpy().add(0,0), new Tile("tree_large1", temp.position.cpy().add(0,0), this.color));
 									this.tilesToAdd.put(temp.position.cpy().add(16,0), new Tile("tree_large1_noSprite", temp.position.cpy().add(16,0)));
 									this.tilesToAdd.put(temp.position.cpy().add(0,16), new Tile("tree_large1_noSprite", temp.position.cpy().add(0,16)));
 									this.tilesToAdd.put(temp.position.cpy().add(16,16), new Tile("tree_large1_noSprite", temp.position.cpy().add(16,16)));									
@@ -484,7 +1153,7 @@ public class GenForest2 extends Action {
 							}
 							if (noTileYet){
 								//TODO - add small tree here
-								this.tilesToAdd.put(temp.position.cpy().add(0,0), new Tile("bush1", temp.position.cpy().add(0,0)));
+								this.tilesToAdd.put(temp.position.cpy().add(0,0), new Tile("bush1", temp.position.cpy().add(0,0), this.color));
 							}
 						}
 					}
@@ -507,14 +1176,20 @@ public class GenForest2 extends Action {
 			
 		}
 
-		public ApplyForestBiome(PkmnGen game, HashMap<Vector2, Tile> tilesToAdd, Vector2 bottomLeft, Vector2 topRight,  Action nextAction) {
+        public ApplyForestBiome(HashMap<Vector2, Tile> tilesToAdd, Vector2 bottomLeft, Vector2 topRight,  Action nextAction) {
+            this(tilesToAdd, bottomLeft, topRight, false, nextAction);
+        }
+
+		public ApplyForestBiome(HashMap<Vector2, Tile> tilesToAdd, Vector2 bottomLeft, Vector2 topRight, boolean color, Action nextAction) {
 			
+		    this.color = color;
 			this.nextAction = nextAction;
 			this.rand = new Random();
 			this.tilesToAdd = tilesToAdd;
 			
 			this.bottomLeft = bottomLeft;
 			this.topRight = topRight;
+			this.currRoute = new Route("forest1", 22);
 			
 		}
 		
@@ -659,12 +1334,16 @@ public class GenForest2 extends Action {
 			Vector2 randomPos;
 			int iter = 0;
 			while (startPosition == null && iter < 20) {
+			    if ((int)topRight.x-(int)bottomLeft.x - 64 == 0) {
+			        break;
+			    }
 //				ArrayList<Vector2> keySet = new ArrayList<Vector2>(this.tilesToAdd.keySet());
 //				randomPos = keySet.get(this.rand.nextInt(keySet.size())).cpy();
 				iter++; //prevents infinite loop
-				
-				int randX = (int)((this.rand.nextInt((int)topRight.x-(int)bottomLeft.x - 64) + (int)bottomLeft.x)/16) * 16;
-				int randY = (int)((this.rand.nextInt((int)topRight.y-(int)bottomLeft.y - 64) + (int)bottomLeft.y)/16) * 16;
+				int randX = Math.abs((int)topRight.x-(int)bottomLeft.x - 64) + (int)bottomLeft.x;
+				randX = (int)((this.rand.nextInt(randX <= 0 ? 1 : randX))/16) * 16;
+				int randY = Math.abs((int)topRight.y-(int)bottomLeft.y - 64) + (int)bottomLeft.y;
+				randY = (int)(this.rand.nextInt((randY <= 0 ? 1 : randY))/16) * 16;
 				randomPos = new Vector2(randX, randY);
 				
 				if (this.tilesToAdd.get(randomPos.cpy().add(0,0)) != null) {
@@ -685,11 +1364,14 @@ public class GenForest2 extends Action {
 			if (startPosition == null) { //return if we failed to find a startPos
 				return;
 			}
-			
-			this.tilesToAdd.put(startPosition.cpy(), new Tile("grass1", startPosition.cpy()));
-			this.tilesToAdd.put(startPosition.cpy().cpy().add(16,0), new Tile("grass1", startPosition.cpy().add(16,0))); 
-			this.tilesToAdd.put(startPosition.cpy().cpy().add(0,16), new Tile("grass1", startPosition.cpy().add(0,16)));
-			this.tilesToAdd.put(startPosition.cpy().cpy().add(16,16), new Tile("grass1", startPosition.cpy().add(16,16)));
+			String name = "grass1";
+			if (this.color) {
+			    name = "grass2";
+			}
+			this.tilesToAdd.put(startPosition.cpy(), new Tile(name, startPosition.cpy(), this.color, this.currRoute));
+			this.tilesToAdd.put(startPosition.cpy().cpy().add(16,0), new Tile(name, startPosition.cpy().add(16,0), this.color, this.currRoute)); 
+			this.tilesToAdd.put(startPosition.cpy().cpy().add(0,16), new Tile(name, startPosition.cpy().add(0,16), this.color, this.currRoute));
+			this.tilesToAdd.put(startPosition.cpy().cpy().add(16,16), new Tile(name, startPosition.cpy().add(16,16), this.color, this.currRoute));
 			
 			Vector2 currPos = startPosition.cpy();
 			
@@ -741,10 +1423,10 @@ public class GenForest2 extends Action {
 
 				Vector2 newPos = nextPositions.get(randomIndex);
 				//put it in tilesToAdd
-				this.tilesToAdd.put(newPos.cpy(), new Tile("grass1", newPos.cpy()));
-				this.tilesToAdd.put(newPos.cpy().add(16,0), new Tile("grass1", newPos.cpy().add(16,0))); 
-				this.tilesToAdd.put(newPos.cpy().add(0,16), new Tile("grass1", newPos.cpy().add(0,16)));
-				this.tilesToAdd.put(newPos.cpy().add(16,16), new Tile("grass1", newPos.cpy().add(16,16)));
+				this.tilesToAdd.put(newPos.cpy(), new Tile(name, newPos.cpy()));
+				this.tilesToAdd.put(newPos.cpy().add(16,0), new Tile(name, newPos.cpy().add(16,0), this.color, this.currRoute)); 
+				this.tilesToAdd.put(newPos.cpy().add(0,16), new Tile(name, newPos.cpy().add(0,16), this.color, this.currRoute));
+				this.tilesToAdd.put(newPos.cpy().add(16,16), new Tile(name, newPos.cpy().add(16,16), this.color, this.currRoute));
 				
 				currPos = newPos;
 			}
@@ -755,7 +1437,7 @@ public class GenForest2 extends Action {
 	
 
 	//TODO - this still returns forest biome tiles
-	public ArrayList<Tile> getTileSquarePlatform1(MazeNode node, Vector2 startLoc) {
+	public static ArrayList<Tile> getTileSquarePlatform1(MazeNode node, Vector2 startLoc, Random rand) {
 		
 		//README - when creating these, DONT block the middle two tiles of walls that should be open.
 		 //ex: bottom open
@@ -783,7 +1465,7 @@ public class GenForest2 extends Action {
 		
 		//choose from temp because I want more uniformity
 		String[] temp = {"bush1", "tree_small1"};
-		String[] rs = {temp[this.rand.nextInt(temp.length)], "ground1", "ground1"}; //random solid or non-solid objects
+		String[] rs = {temp[rand.nextInt(temp.length)], "ground1", "ground1"}; //random solid or non-solid objects
 
 
 		 
@@ -805,7 +1487,7 @@ public class GenForest2 extends Action {
 			 			  
 			 			  new String[]{"tree_large1", 			"tree_large1_noSprite",			"tree_large1", 				"tree_large1_noSprite",			"tree_large1", 						"tree_large1_noSprite",},
 						 };
-				square = GenTiles(format, offSetx, offSetY);
+				square = GenTiles(format, offSetx, offSetY, rand);
 				 
 				squares.add(square);
 			}
@@ -824,7 +1506,7 @@ public class GenForest2 extends Action {
 			 			  
 			 			  new String[]{"tree_large1", 			"tree_large1_noSprite",			"tree_large1", 				"tree_large1_noSprite",			"tree_large1", 						"tree_large1_noSprite",},
 						 };
-				square = GenTiles(format, offSetx, offSetY);
+				square = GenTiles(format, offSetx, offSetY, rand);
 				 
 				squares.add(square);
 			}
@@ -837,7 +1519,7 @@ public class GenForest2 extends Action {
 			if (node.rampLoc == "down") {
 				//1
 				format = new String[][]{
-			 			  new String[]{rs[this.rand.nextInt(rs.length)], rs[this.rand.nextInt(rs.length)], rs[this.rand.nextInt(rs.length)], rs[this.rand.nextInt(rs.length)], rs[this.rand.nextInt(rs.length)], rs[this.rand.nextInt(rs.length)]},
+			 			  new String[]{rs[rand.nextInt(rs.length)], rs[rand.nextInt(rs.length)], rs[rand.nextInt(rs.length)], rs[rand.nextInt(rs.length)], rs[rand.nextInt(rs.length)], rs[rand.nextInt(rs.length)]},
 			 			  
 			 			  new String[]{"ledge_grass_left", 						"",								"", 					"", 			"", 					"ledge_grass_right"},
 			 			  
@@ -849,7 +1531,7 @@ public class GenForest2 extends Action {
 			 			  
 			 			  new String[]{"tree_large1", 			"tree_large1_noSprite",			"tree_large1", 			"tree_large1_noSprite",			"tree_large1", 			"tree_large1_noSprite",},
 						 };
-				square = GenTiles(format, offSetx, offSetY);
+				square = GenTiles(format, offSetx, offSetY, rand);
 				squares.add(square);
 			}
 			else if (node.rampLoc == "left") {
@@ -867,7 +1549,7 @@ public class GenForest2 extends Action {
 			 			  
 			 			  new String[]{"tree_large1", 			"tree_large1_noSprite",			"tree_large1", 			"tree_large1_noSprite",			"tree_large1", 			"tree_large1_noSprite",},
 						 };
-				square = GenTiles(format, offSetx, offSetY);
+				square = GenTiles(format, offSetx, offSetY, rand);
 				squares.add(square);
 			}
 			else {
@@ -885,7 +1567,7 @@ public class GenForest2 extends Action {
 			 			  
 			 			  new String[]{"tree_large1", 			"tree_large1_noSprite",			"tree_large1", 			"tree_large1_noSprite",			"tree_large1", 			"tree_large1_noSprite",},
 						 };
-				square = GenTiles(format, offSetx, offSetY);
+				square = GenTiles(format, offSetx, offSetY, rand);
 				squares.add(square);
 				
 			}
@@ -908,7 +1590,7 @@ public class GenForest2 extends Action {
 			 			  
 			 			  new String[]{"tree_large1", 			"tree_large1_noSprite",	"", 					"",								"", 					""},
 						 };
-				square = GenTiles(format, offSetx, offSetY);
+				square = GenTiles(format, offSetx, offSetY, rand);
 				squares.add(square);
 			}
 			else if (node.rampLoc == "left") {
@@ -926,7 +1608,7 @@ public class GenForest2 extends Action {
 			 			  
 			 			  new String[]{"tree_large1", 			"tree_large1_noSprite",			"", 			"",			"", 			""},
 						 };
-				square = GenTiles(format, offSetx, offSetY);
+				square = GenTiles(format, offSetx, offSetY, rand);
 				squares.add(square);
 			}
 			else {
@@ -944,7 +1626,7 @@ public class GenForest2 extends Action {
 			 			  
 			 			  new String[]{"tree_large1", 			"tree_large1_noSprite",				"", 						"ledge_grass_safari_up",		"ledge_grass_safari_up", 			"ledge2_corner_tr",},
 						 };
-				square = GenTiles(format, offSetx, offSetY);
+				square = GenTiles(format, offSetx, offSetY, rand);
 				squares.add(square);
 				
 			}
@@ -963,15 +1645,15 @@ public class GenForest2 extends Action {
 			 			  
 			 			  new String[]{"", 						"",								"ledge1_corner_bl", 		"ledge_grass_ramp", 			"ledge_grass_down", 	"ledge1_corner_br"},
 			 			  
-			 			  new String[]{"", 						"",								"", 						"", 							rs[this.rand.nextInt(rs.length)], 	""},
+			 			  new String[]{"", 						"",								"", 						"", 							rs[rand.nextInt(rs.length)], 	""},
 			 			  
-			 			  new String[]{"", 						rs[this.rand.nextInt(rs.length)],"", 						"", 							"", 								""},
+			 			  new String[]{"", 						rs[rand.nextInt(rs.length)],"", 						"", 							"", 								""},
 			 			  
-			 			  new String[]{"tree_large1_noSprite", 	"tree_large1_noSprite",			rs[this.rand.nextInt(rs.length)],"",						"", 								"",},
+			 			  new String[]{"tree_large1_noSprite", 	"tree_large1_noSprite",			rs[rand.nextInt(rs.length)],"",						"", 								"",},
 			 			  
 			 			  new String[]{"tree_large1", 			"tree_large1_noSprite",			"", 						"",								"", 								"",},
 						 };
-				square = GenTiles(format, offSetx, offSetY);
+				square = GenTiles(format, offSetx, offSetY, rand);
 				squares.add(square);
 			}
 			//top ramp
@@ -990,7 +1672,7 @@ public class GenForest2 extends Action {
 			 			  
 			 			  new String[]{"", 						"",								"ledge2_corner_tl", 		"ledge_grass_safari_up",		"", 								"ledge_grass_right",},
 						 };
-				square = GenTiles(format, offSetx, offSetY);
+				square = GenTiles(format, offSetx, offSetY, rand);
 				squares.add(square);
 			}
 			//left ramp
@@ -1012,7 +1694,7 @@ public class GenForest2 extends Action {
 				if (node.downOpen == true) {
 					FlipFormat(format);
 				}
-				square = GenTiles(format, offSetx, offSetY);
+				square = GenTiles(format, offSetx, offSetY, rand);
 				squares.add(square);
 			}
 			//right ramp
@@ -1034,14 +1716,14 @@ public class GenForest2 extends Action {
 				if (node.downOpen == true) {
 					FlipFormat(format);
 				}
-				square = GenTiles(format, offSetx, offSetY);
+				square = GenTiles(format, offSetx, offSetY, rand);
 				squares.add(square);
 			}
 			
 		}
 
 		//choose randomly from ArrayList of squares
-		int randomNum = this.rand.nextInt(squares.size());
+		int randomNum = rand.nextInt(squares.size());
 		//randomNum = 0; //debug
 		return squares.get(randomNum);
 		
@@ -1223,7 +1905,7 @@ public class GenForest2 extends Action {
 				
 
 		
-	public HashMap<Vector2, MazeNode> Maze_Algo1(int width, int height, float complexity, float density, int squareSize) {
+	public static HashMap<Vector2, MazeNode> Maze_Algo1(int width, int height, float complexity, float density, int squareSize, Random rand) {
 
 	    // Only odd shapes
 		//int[] shape = { (int)(height / 2) * 2 + 1, (int)(width / 2) * 2 + 1 };
@@ -1262,8 +1944,8 @@ public class GenForest2 extends Action {
 	    // Make aisles 
 	    for (int i=0; i < density; i++) {
 	    	//get even number between width and height
-	        int x = this.rand.nextInt( (int)(width / 2)  ) * 2; //+1 b/c java excludes this number
-	        int y = this.rand.nextInt( (int)(height / 2)  ) * 2;
+	        int x = rand.nextInt( (int)(width / 2)  ) * 2; //+1 b/c java excludes this number
+	        int y = rand.nextInt( (int)(height / 2)  ) * 2;
 	        Z[x][y] = Boolean.TRUE;
 
 	        for (int j=0; j < complexity; j++) {
@@ -1276,7 +1958,7 @@ public class GenForest2 extends Action {
 	            if (y < height - 2) { neighbours.add(new int[]{x, y + 2}); }
 	        	
 	            if (!neighbours.isEmpty()) {
-	            	int randomNum = this.rand.nextInt(neighbours.size()); //-1? no, python includes, java excludes this number
+	            	int randomNum = rand.nextInt(neighbours.size()); //-1? no, python includes, java excludes this number
 	                int x_ = neighbours.get(randomNum)[0]; 
 	                int y_ = neighbours.get(randomNum)[1];
 
@@ -1287,7 +1969,6 @@ public class GenForest2 extends Action {
                         y = y_;
                     }
 	            }
-	            
 	        }
 	    }
 	    
@@ -1318,9 +1999,12 @@ public class GenForest2 extends Action {
 	    
 		return nodes;
 	}
-	
-	
-	public ArrayList<Tile> getTileSquare(MazeNode node, Vector2 startLoc) {
+
+    public static ArrayList<Tile> getTileSquare(MazeNode node, Vector2 startLoc, Random rand) {
+        return GenForest2.getTileSquare(node, startLoc, rand, false);
+    }
+
+	public static ArrayList<Tile> getTileSquare(MazeNode node, Vector2 startLoc, Random rand, boolean color) {
 		
 		//note - using 'solid' and 'nonsolid'(empty string) tile method now
 		 //"solid" - solid denotes that the tile can be used later for solid object. for example, water or trees
@@ -1354,7 +2038,7 @@ public class GenForest2 extends Action {
 
 		//TODO - unused
 		String[] ledge = {"ledge_grass_down","ledge_grass_down","ledge_grass_down",	"ledge_grass_down",	"ledge_grass_down",	"ledge_grass_down"};
-		ledge[this.rand.nextInt(ledge.length)] = "ledge_grass_ramp";
+		ledge[rand.nextInt(ledge.length)] = "ledge_grass_ramp";
 		 
 		//bl corner
 		if (Arrays.equals(node.isOpen, new boolean[]{false, false})) {
@@ -1374,7 +2058,7 @@ public class GenForest2 extends Action {
 					 			  
 					 			  new String[]{"solid", 	"solid",		"solid", 		"solid",		"solid", 		"solid",},
 								 };
-			square = GenTiles(format, offSetx, offSetY);
+			square = GenTiles(format, offSetx, offSetY, rand, color);
 			 
 			squares.add(square);
 
@@ -1393,7 +2077,7 @@ public class GenForest2 extends Action {
 		 			  new String[]{"solid", 	"solid",		"solid", 		"solid",		"solid", 		"solid",},
 			 };
 			
-			square = GenTiles(format, offSetx, offSetY);
+			square = GenTiles(format, offSetx, offSetY, rand, color);
 			
 			squares.add(square);
 			 
@@ -1427,8 +2111,8 @@ public class GenForest2 extends Action {
 //					System.out.print("\n");
 //				}
 				//randomly insert random ledge
-				if (this.rand.nextInt(3) == 1) {
-					int randRowIndex = this.rand.nextInt(format.length-2)+1;
+				if (rand.nextInt(3) == 1) {
+					int randRowIndex = rand.nextInt(format.length-2)+1;
 					String[] randRow = format[randRowIndex];
 					boolean onGround = false;
 					ArrayList<Integer> ledgesGoHere = new ArrayList<Integer>();
@@ -1441,7 +2125,7 @@ public class GenForest2 extends Action {
 							break;
 						}
 					}
-					int randIndexForRamp = ledgesGoHere.get(this.rand.nextInt(ledgesGoHere.size()));
+					int randIndexForRamp = ledgesGoHere.get(rand.nextInt(ledgesGoHere.size()));
 					for (Integer index : ledgesGoHere) {
 						randRow[index] = "ledge_grass_down";
 						if (index == randIndexForRamp) {
@@ -1452,7 +2136,7 @@ public class GenForest2 extends Action {
 					}
 				}
 			}
-			square = GenTiles(format, offSetx, offSetY);
+			square = GenTiles(format, offSetx, offSetY, rand, color);
 			squares.add(square);
 
 			//2
@@ -1472,8 +2156,8 @@ public class GenForest2 extends Action {
 			if (node.downOpen == true) {
 				FlipFormat(format);
 				//insert random ledge
-				if (this.rand.nextInt(3) == 1) {
-					String[] randRow = format[this.rand.nextInt(format.length-2)+1];
+				if (rand.nextInt(3) == 1) {
+					String[] randRow = format[rand.nextInt(format.length-2)+1];
 					boolean onGround = false;
 					ArrayList<Integer> ledgesGoHere = new ArrayList<Integer>();
 					for (int i=0; i < randRow.length; i++) {
@@ -1485,7 +2169,7 @@ public class GenForest2 extends Action {
 							break;
 						}
 					}
-					int randIndexForRamp = ledgesGoHere.get(this.rand.nextInt(ledgesGoHere.size()));
+					int randIndexForRamp = ledgesGoHere.get(rand.nextInt(ledgesGoHere.size()));
 					for (Integer index : ledgesGoHere) {
 						randRow[index] = "ledge_grass_down";
 						if (index == randIndexForRamp) {
@@ -1494,7 +2178,7 @@ public class GenForest2 extends Action {
 					}
 				}
 			}
-			square = GenTiles(format, offSetx, offSetY);
+			square = GenTiles(format, offSetx, offSetY, rand, color);
 			squares.add(square);
 			
 		}
@@ -1518,7 +2202,7 @@ public class GenForest2 extends Action {
 		 			  
 		 			  new String[]{"solid", 				"solid",						"", 						"",								"", 				"",},
 					 };
-			square = GenTiles(format, offSetx, offSetY);
+			square = GenTiles(format, offSetx, offSetY, rand, color);
 			squares.add(square);
 			
 			//3 - all qmark.
@@ -1535,18 +2219,18 @@ public class GenForest2 extends Action {
 		 			  
 		 			  new String[]{"solid", 	"solid",			"", 						"",								"", 			"",},
 					 };
-			square = GenTiles(format, offSetx, offSetY);
+			square = GenTiles(format, offSetx, offSetY, rand, color);
 			squares.add(square);
 		}
 
 		//choose randomly from ArrayList of squares
-		int randomNum = this.rand.nextInt(squares.size());
+		int randomNum = rand.nextInt(squares.size());
 		//randomNum = 0; //debug
 		return squares.get(randomNum);
 		
 	}
 	
-	public void FlipFormat(String[][] format){
+	public static void FlipFormat(String[][] format){
 
 		
 		int i=0;
@@ -1566,9 +2250,12 @@ public class GenForest2 extends Action {
 			i++;
 		}
 	}
+    public static ArrayList<Tile> GenTiles(String[][] format, int offSetX, int offSetY, Random rand) {
+        return GenForest2.GenTiles(format, offSetX, offSetY, rand, false);
+    }
 	
 	//given a formatted input, ouput the equivalent list of tiles with appropriate x and y positions set
-	public ArrayList<Tile> GenTiles(String[][] format, int offSetX, int offSetY) {
+	public static ArrayList<Tile> GenTiles(String[][] format, int offSetX, int offSetY, Random rand, boolean color) {
 		
 		ArrayList<Tile> tiles = new ArrayList<Tile>();
 		
@@ -1586,12 +2273,12 @@ public class GenForest2 extends Action {
 				
 				//if tile can be 'either', pick 'solid' or ''
 				if (tileName == "either") {
-					int randomNum = this.rand.nextInt(emptyOrSolid.length);
+					int randomNum = rand.nextInt(emptyOrSolid.length);
 					tileName = emptyOrSolid[randomNum];
 				}
 				if (tileName != "") {
 					//System.out.println("tileName: "+String.valueOf(tileName)); //debug
-					tiles.add(new Tile( tileName, new Vector2(0+j*16+offSetX, 0+i*16+offSetY) ));
+					tiles.add(new Tile(tileName, new Vector2(0+j*16+offSetX, 0+i*16+offSetY), color));
 				}
 				j++;
 			}

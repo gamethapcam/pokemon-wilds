@@ -1887,8 +1887,21 @@ class PlaySound extends Action {
             this.music = Gdx.audio.newMusic(Gdx.files.internal("attacks/hit_normal1.ogg"));
             this.music.setLooping(false);
         }
+        else if (sound == "Mewtwo_Special1") {
+            this.music = Gdx.audio.newMusic(Gdx.files.internal("attacks/Mewtwo_Special1.ogg"));
+            this.music.setLooping(false);
+            this.music.setVolume(1.5f);
+        }
         else if (sound == "ghost1") {
             this.music = Gdx.audio.newMusic(Gdx.files.internal("ghost1.ogg"));
+            this.music.setLooping(false);
+        }
+        else if (sound == "cut1") {
+            this.music = Gdx.audio.newMusic(Gdx.files.internal("cut1.ogg"));
+            this.music.setLooping(false);
+        }
+        else if (sound == "strength1") {
+            this.music = Gdx.audio.newMusic(Gdx.files.internal("strength1.ogg"));
             this.music.setLooping(false);
         }
     }

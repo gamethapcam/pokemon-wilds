@@ -21,6 +21,11 @@ public class Pokemon {
     String name;
     int level;
     String dexNumber;
+    
+    // keep all pkmn textures in an array to be loaded
+    // that way whenever a pkmn is created, it doesn't re-load the texture
+    // takes up a lot of memory
+    Texture[] pokemonTextures = new Texture[650]; // 650 for now since that's how many cries in folder
 
     Map<String, Integer> baseStats = new HashMap<String, Integer>();
     Map<String, Integer> currentStats = new HashMap<String, Integer>();
@@ -137,7 +142,7 @@ public class Pokemon {
         this.sprite = new Sprite(pokemonText, 0, 0, height, height);
         pokemonText = new Texture(Gdx.files.internal("crystal_pokemon/pokemon/" + name + "/back.png"));  
 //        height = pokemonText.getWidth();  
-        this.backSprite = new Sprite(pokemonText, 0, 0, height, height);
+        this.backSprite = new Sprite(pokemonText, 0, 0, 48, 48);
         
         // load animation from file
         this.introAnim = new ArrayList<Sprite>();
@@ -228,7 +233,7 @@ public class Pokemon {
         this.sprite = new Sprite(pokemonText, 0, 0, height, height);
         pokemonText = new Texture(Gdx.files.internal("crystal_pokemon/prism/pics/" + name + "/back.png")); 
 //        height = pokemonText.getWidth();   
-        this.backSprite = new Sprite(pokemonText, 0, 0, height, height);
+        this.backSprite = new Sprite(pokemonText, 0, 0, 48, 48);
         
         // load animation from file
         this.introAnim = new ArrayList<Sprite>();
@@ -314,7 +319,11 @@ public class Pokemon {
             if (name.toLowerCase().equals("machop")) {
                 this.hms.add("BUILD");
             }
-            
+
+            // Custom attributes - better way to handle this?
+            if (name.toLowerCase().equals("sneasel")) {
+                this.hms.add("CUT");
+            }
         }
 
         else if (name == "Zubat") { //gen I properties

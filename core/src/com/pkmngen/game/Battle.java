@@ -1133,7 +1133,6 @@ class DrawBattleMenu_Normal extends MenuAction {
                                                  new DrawItemMenu(game, this)));
                 // remove this action,
                 game.actionStack.remove(this);
-                // !!!
             }
             
             //user selected 'throw bait'
@@ -1317,12 +1316,28 @@ class DrawAttacksMenu extends Action {
                 //set up enemy attack
                 boolean isFriendly = true;
                 
-                
+
+
+                // TODO: put this elsewhere
+                Action nAction = this.nextAction;
+                if (game.battle.oppPokemon.name.equals("Mewtwo")) {
+
+//                    Action trigger = new WaitFrames(game, 13, 
+                    Action trigger = new WaitFrames(game, 30, 
+                                            new WaitFrames(game, 3, this.nextAction)
+                                        );
+                    Action attack = Battle_Actions.getAttackAction(game, "Mewtwo_Special1", !isFriendly,
+                            new DepleteFriendlyHealth(game.player.currPokemon, trigger));
+                    Action displayEnemyText = new DisplayText(game, 
+                            "A wave of psychic power unleashes!", null, trigger, attack
+                    );
+                    nAction = displayEnemyText;
+                }
 
                 //if that selection isn't null, get that attack via
                  //Battle_Actions.getAttackAction(String attackName, Action nextAction);
                 Action trigger = new WaitFrames(game, 13, 
-                                        new WaitFrames(game, 3, this.nextAction)
+                                        new WaitFrames(game, 3, nAction)
                                     );
                 Action attack = Battle_Actions.getAttackAction(game, game.player.currPokemon.attacks[curr], isFriendly,
                                                                         new DepleteEnemyHealth(game, trigger));
@@ -1330,7 +1345,6 @@ class DrawAttacksMenu extends Action {
                 Action displayYourText = new DisplayText(game, game.player.currPokemon.name.toUpperCase()+" used "+game.player.currPokemon.attacks[curr].toUpperCase()+"!",
                             null, trigger, attack
                         );
-                
                 
                 String attackChoice = game.battle.oppPokemon.attacks[game.map.rand.nextInt(game.battle.oppPokemon.attacks.length)];
                 if (attackChoice.equals("-")) {
@@ -2132,7 +2146,6 @@ class DrawUseTossMenu extends MenuAction {
     public void useItem(PkmnGen game, String itemName) {
         // 
         if (itemName.toLowerCase().equals("ultra ball")) {
-            // !!!
             // calculate if pokemon was caught
             this.prevMenu.prevMenu.disabled = false;  // menu won't get drawn until catch anim is over
             Action catchAction = Battle_Actions.calcIfCaught(game, this.prevMenu.prevMenu);
@@ -2497,12 +2510,20 @@ class DrawPokemonMenu extends MenuAction {
                 // 
 //                PublicFunctions.insertToAS(game, this.prevMenu);  // keep drawing but don't enable
 //                DrawPokemonMenu.lastIndex = prevMenu.currIndex;
+                game.player.isBuilding = true;  // tile to build appears in front of player
+                game.player.isCutting = false;
                 return new SelectedMenu.ExitAfterActions(this.prevMenu,
-                       new DisplayText(game, game.player.currPokemon.name.toUpperCase()+" used BUILD! Press C and V to select tiles.", null, null, 
+                       new DisplayText(game, game.player.pokemon.get(DrawPokemonMenu.currIndex).name.toUpperCase()+" used BUILD! Press C and V to select tiles.", null, null, 
                        new DoneAction()
                        ));
             }
-            
+            else if (word.equals("CUT")) {
+                game.player.isCutting = true;
+                game.player.isBuilding = false;
+                return new SelectedMenu.ExitAfterActions(this.prevMenu,
+                       new DisplayText(game, game.player.pokemon.get(DrawPokemonMenu.currIndex).name.toUpperCase()+" is using CUT!", null, null, 
+                       new DoneAction()));
+            }
             return null;
         }
         
@@ -2714,8 +2735,10 @@ class DrawPokemonMenu extends MenuAction {
                     DrawPokemonMenu.lastIndex = prevMenu.currIndex;
                     game.actionStack.remove(this);
                     PublicFunctions.insertToAS(game, new DrawPokemonMenu.Outro(null));
-                    game.playerCanMove = true;
-                    game.player.isBuilding = true;  // tile to build appears in front of player
+//                    game.playerCanMove = true;
+                    PublicFunctions.insertToAS(game, new WaitFrames(game, 30,
+                                                     new PlayerCanMove(game,
+                                                     new DoneAction())));
                     return;
                 }
             }
@@ -3117,7 +3140,7 @@ class DrawBattle extends Action {
 
         //debug
 //        this.helperSprite.draw(game.floatingBatch);
-        
+
         if (shouldDrawOppPokemon) {
             game.battle.oppPokemon.sprite.draw(game.floatingBatch);
 //            game.floatingBatch.draw(game.battle.oppPokemon.sprite, 
@@ -3270,13 +3293,21 @@ class DrawFriendlyHealth extends Action {
     public int getLayer(){return this.layer;}
 
     public String getCamera() {return "gui";};
-
+    boolean firstStep = true;
     
     @Override
     public void step(PkmnGen game) {
 
         //offset is 96, 80
+        if (this.firstStep) {
+            game.battle.drawAction.drawFriendlyHealthAction = this; 
+            this.firstStep = false;
+        }
         
+        if (this.nextAction != null) {
+            PublicFunctions.insertToAS(game, this.nextAction);
+            this.nextAction = null;
+        }
 
         
         //draw helper sprite
@@ -3327,8 +3358,13 @@ class DrawFriendlyHealth extends Action {
         }
         
     }
-    
     public DrawFriendlyHealth(PkmnGen game) {
+        this(game, null);
+    }
+    
+    public DrawFriendlyHealth(PkmnGen game, Action nextAction) {
+        
+        this.nextAction = nextAction;
 
         Texture text = new Texture(Gdx.files.internal("battle/friendly_healthbar1.png"));
         this.bgSprite = new Sprite(text, 0, 0, 160, 144);
@@ -3338,10 +3374,6 @@ class DrawFriendlyHealth extends Action {
 
         text = new Texture(Gdx.files.internal("attack_menu/helper3.png"));
         this.helperSprite = new Sprite(text, 0, 0, 160, 144);
-        
-        //this could be dangerous?
-        //if drawAction is null. this may happen at some point.
-        game.battle.drawAction.drawFriendlyHealthAction = this; 
         
         //fill sprite array according to enemy health
          //healthbar is 48 pixels long
@@ -5362,27 +5394,27 @@ class ChanceToRun extends Action {
         else if (game.battle.oppPokemon.eating > 0) {
             x = x/4;
         }
-        // TODO: debug, uncomment
-//        int r = game.map.rand.nextInt(255+1); //+1 to include upper bound
-//        if (r < x) {
-//            //pokemon runs
-//            String textString = "Wild " + game.battle.oppPokemon.name.toUpperCase() + " ran!";
-//            PublicFunctions.insertToAS(game, new DisplayText(game, textString, null, null,
-//                                             new SplitAction(new OppPokemonFlee(game, 
-//                                                             new SplitAction(new BattleFadeOut(game,
-//                                                                             new DoneAction()), //new playerStanding(game)),
-//                                                             new BattleFadeOutMusic(game, new DoneAction()))),
-//                                             new WaitFrames(game, 8,
-//                                             new PlaySound("run1",
-//                                             new DoneAction()
-//                                             )))));
-//            //demo code - reset adrenaline
-//            game.player.adrenaline = 0;
-//            //
-//            //PublicFunctions.insertToAS(game, new PlaySound("click1", new PlaySound("run1", new DoneAction())));
-//            game.actionStack.remove(this);
-//            return;
-//        }
+
+        int r = game.map.rand.nextInt(255+1); //+1 to include upper bound
+        if (r < x) {
+            //pokemon runs
+            String textString = "Wild " + game.battle.oppPokemon.name.toUpperCase() + " ran!";
+            PublicFunctions.insertToAS(game, new DisplayText(game, textString, null, null,
+                                             new SplitAction(new OppPokemonFlee(game, 
+                                                             new SplitAction(new BattleFadeOut(game,
+                                                                             new DoneAction()), //new playerStanding(game)),
+                                                             new BattleFadeOutMusic(game, new DoneAction()))),
+                                             new WaitFrames(game, 8,
+                                             new PlaySound("run1",
+                                             new DoneAction()
+                                             )))));
+            //demo code - reset adrenaline
+            game.player.adrenaline = 0;
+            //
+            //PublicFunctions.insertToAS(game, new PlaySound("click1", new PlaySound("run1", new DoneAction())));
+            game.actionStack.remove(this);
+            return;
+        }
                 
         //pokemon doesn't run
         //insert nextAction to actionstack
@@ -5621,7 +5653,11 @@ class ThrowOutPokemon extends Action {
     // night shade didn't work when this was layer 110, 
     //  but worked when it was 114
     //  but shaders worked when it was 110 so weird
-    public int layer = 114; 
+    // note - technically needs to be above displaytext, which is 106
+    //  but i think nightshade/mewtwo battle had issues when it was 105
+//    public int layer = 114;  // tested
+    // issue - 105 is above battlemenu and itemsmenu
+    public int layer = 105;  // TODO: test
     public int getLayer(){return this.layer;}
 
     public String getCamera() {return "gui";};
@@ -5669,6 +5705,11 @@ class ThrowOutPokemon extends Action {
                     }
                 }
                 this.doneYet = true;
+                
+                // modify layer of this action
+                this.layer = 114;
+                game.actionStack.remove(this);
+                PublicFunctions.insertToAS(game, this);
             }
             
             // No performance different here either way
@@ -5730,8 +5771,6 @@ class ThrowOutPokemon extends Action {
     }
     
     public ThrowOutPokemon(PkmnGen game, Action nextAction) {
-
-        
         this.firstStep = true;
         
         this.doneYet = false;
@@ -5879,6 +5918,297 @@ class ThrowOutPokemon extends Action {
 }
 
 
+//poof animation 
+//and algorithm that will show pkmn extending outwards
+class ThrowOutPokemonCrystal extends Action {
+
+  Sprite pokeballSprite;
+  
+  ArrayList<Vector2> positions;
+  Vector2 position;
+  ArrayList<Sprite[][][]> sprites;
+  Sprite[][][] sprite;
+  ArrayList<Integer> repeats;
+  ArrayList<String> sounds;
+  String sound;
+  
+  // night shade didn't work when this was layer 110, 
+  //  but worked when it was 114
+  //  but shaders worked when it was 110 so weird
+//  public int layer = 114; 
+  public int layer = 105; 
+  public int getLayer(){return this.layer;}
+
+  public String getCamera() {return "gui";};
+
+  Action nextAction;
+  
+  Sprite helperSprite; //just for helping me position the animation. delete later.
+  
+  boolean doneYet;
+  boolean firstStep;
+  
+  @Override
+  public void step(PkmnGen game) {
+
+      if (this.firstStep == true) {
+          game.battle.drawAction.drawFriendlyPokemonAction = this;
+          this.firstStep = false;            
+      }
+
+      //get next frame
+      this.sprite = sprites.get(0);
+
+      //debug
+//      if (!Gdx.input.isKeyPressed(Input.Keys.N)) {
+//          this.helperSprite.draw(game.floatingBatch); 
+//      }
+
+      //set sprite position
+      //if done with anim, do nextAction
+      if (sprites.size() <= 1) {  // positions.isEmpty() || 
+
+          //debug
+//          if (this.repeats.size() == 0) { 
+//              return;
+//          }
+
+          if (!this.doneYet) {
+              PublicFunctions.insertToAS(game, this.nextAction);
+
+              //set real sprite to correct position
+              game.player.currPokemon.backSprite.setPosition(position.x, position.y);
+
+              for (int k = 0; k < this.sprite.length; k++) {
+                  if (this.sprite[k] == null) {
+                      continue;
+                  }
+                  for (int i = 0; i < this.sprite[k].length; i++) {
+                      for (int j = 0; j < this.sprite[k][i].length; j++) {
+                          this.sprite[k][i][j].setPosition(position.x, position.y);
+                      }
+                  }
+              }
+              this.doneYet = true;
+
+              // modify layer of this action
+              this.layer = 114;
+              game.actionStack.remove(this);
+              PublicFunctions.insertToAS(game, this);
+          }
+
+          // No performance difference here either way
+//          System.out.println("here1");
+//          game.player.currPokemon.backSprite.draw(game.floatingBatch);
+          // TODO: not sure why I was doing this, assuming it was for a reason
+          for (int k = 0; k < this.sprite.length; k++) {
+              for (int i = 0; i < this.sprite[k].length; i++) {
+                  for (int j = 0; j < this.sprite[k][i].length; j++) {
+                      this.sprite[k][i][j].draw(game.floatingBatch);
+                  }
+              }
+          }
+
+          if (game.battle.drawAction == null) {
+              game.actionStack.remove(this);
+          }
+          return;
+      }
+
+      //draw current sprite
+      if (this.sprite != null) {
+          for (int k = 0; k < this.sprite.length; k++) {
+              if (this.sprite[k] == null) {
+                  continue;
+              }
+              for (int i = 0; i < this.sprite[k].length; i++) {
+                  for (int j = 0; j < this.sprite[k][i].length; j++) {
+                      if (this.sprite[k][i][j] != null) {
+                          this.sprite[k][i][j].setPosition(position.x +8*i -4*k, position.y +8*j -8*k);
+                          this.sprite[k][i][j].draw(game.floatingBatch);    
+                      }
+                  }
+              }
+          }
+      }
+
+      //debug
+//      if (this.repeats.size() == 2) {
+//          return;
+//      }
+
+      //get next sound, play it
+      this.sound = this.sounds.get(0);
+      if (this.sound != null) {
+          PublicFunctions.insertToAS(game, new PlaySound(this.sound, new DoneAction()));
+          this.sounds.set(0, null); //don't play same sound over again
+      }
+
+      //repeat sprite/pos for current object for 'frames[0]' number of frames.
+      if (this.repeats.get(0) > 1) {
+          this.repeats.set(0, this.repeats.get(0) - 1);
+      }
+      else {
+          //since position is relative, only update once each time period
+//          this.position = this.position.add(positions.get(0));
+//          positions.remove(0);
+          sprites.remove(0);
+          repeats.remove(0);
+          sounds.remove(0);
+      }
+  }
+  
+  public ThrowOutPokemonCrystal(PkmnGen game, Action nextAction) {
+      this.firstStep = true;
+      
+      this.doneYet = false;
+      this.nextAction = nextAction;
+
+      //consider doing relative positions from now on
+      //this.position = new Vector2(104+4*3-2,200-6*3-2); //post scaling change
+      this.position = new Vector2(16, 48);
+
+//      this.positions = new ArrayList<Vector2>();
+//      this.positions.add(new Vector2(0,0));//first of poof anim
+//      this.positions.add(new Vector2(0,0));
+//      this.positions.add(new Vector2(0,0));
+//      this.positions.add(new Vector2(0,0));
+//      this.positions.add(new Vector2(0,0));
+//      this.positions.add(new Vector2(0,0)); //1 empty frame
+//      this.positions.add(new Vector2(18-24,18)); //first of pokemon expand anim
+//      this.positions.add(new Vector2(0,0));
+//      this.positions.add(new Vector2(0,0));
+//      this.positions.add(new Vector2(24-18+6,18-6)); //last is always dummy pos (?need anymore?)
+
+      
+      //below code will splice up image to create 'expanding' effect
+
+//       7 blocks of 4 sprites each, 4th block is 'middle'
+//       working backwards
+//       frame 4to3 - x: remove cols 3 and 5 , y: remove rows 3 and 5
+//       frame 3to2: x: remove cols 3 and 5  , y: remove rows 2 and 4
+//       frame 2to1: x: remove cols 3 and 5  , y: remove rows 1 and 2 - no
+//        - cloyster ends up with 5,7 as initial sprite
+
+      // TODO: this doesn't work for gen2+ because sprites are twice as big
+      //3 frames release1
+      Sprite temp = new Sprite(game.player.currPokemon.backSprite);
+      // sprite width is 48, need 8x8 blocks
+      TextureRegion[][] tempRegion = temp.split(8, 8); //should be 8x8 blocks
+
+      Sprite[][] temp2 = new Sprite[6][6];
+      for (int i = 0; i < tempRegion.length; i++) {
+          for (int j = 0; j < tempRegion[i].length; j++) {
+              temp2[i][j] = new Sprite(tempRegion[5-j][i]);
+//              temp2[i][j].setScale(2);  // TODO: remove
+//              System.out.println("sprite size: "+String.valueOf(temp2[i][j].getHeight())+"  "+String.valueOf(temp2[i][j].getHeight()));
+          }
+      }
+
+      // remove rows 1 and 4
+      for (int i = 0; i < temp2.length; i++) {
+          temp2[i][1] = temp2[i][2];
+          temp2[i][2] = temp2[i][3];
+          temp2[i][3] = temp2[i][5];
+          temp2[i][4] = null;
+          temp2[i][5] = null;
+      }
+      // remove cols 1 and 4
+      temp2[1] = temp2[0];
+      temp2[0] = new Sprite[]{};
+      temp2[4] = temp2[5];
+      temp2[5] = new Sprite[]{};
+      //i=0, j=6 -> i=6, j=0
+      //i=0, j=0 -> i=6, j=6
+
+      //copy temp 2
+      Sprite[][] temp3 = new Sprite[6][6];
+      for (int i = 0; i < temp2.length; i++) {
+          for (int j = 0; j < temp2[i].length; j++) {
+              temp3[i][j] = temp2[i][j];
+          }
+      }
+
+      //remove rows 1 and 2
+      for (int i = 0; i < temp3.length; i++) {
+          if (temp3[i].length <= 0) {
+              continue;
+          }
+          temp3[i][1] = temp3[i][3];
+          temp3[i][2] = null;
+          temp3[i][3] = null;
+          temp3[i][4] = null;
+          temp3[i][5] = null;
+      }
+      //remove cols 2 and 3
+      temp3[2] = temp3[1];
+      temp3[1] = new Sprite[]{};
+      temp3[3] = temp3[4];
+      temp3[4] = new Sprite[]{};
+      temp3[5] = new Sprite[]{};
+
+//      Sprite temp4 = new Sprite(tempRegion[0][4]);
+//      temp4.setScale(2);
+
+      // TODO: need 'frame' class
+      //  sprites, repeat, positions, etc
+
+      //'poof' animation 
+      Texture text = new Texture(Gdx.files.internal("throw_pokeball_anim/poof_sheet2.png"));
+      this.sprites =  new ArrayList<Sprite[][][]>();
+      // draw nothing for 34 frames
+      this.sprites.add(null); 
+      // poof sprites are mixed with pokemon sprites
+      // 4 frames poof1
+      this.sprites.add(new Sprite[][][]{null, new Sprite[][]{new Sprite[]{new Sprite(text, 48*0, 0, 48, 48)}}});
+      // 2 frames poof2
+      this.sprites.add(new Sprite[][][]{null, new Sprite[][]{new Sprite[]{new Sprite(text, 48*1, 0, 48, 48)}}});
+      // 2 frames poof2, small sprite appears
+      this.sprites.add(new Sprite[][][]{temp3, new Sprite[][]{new Sprite[]{new Sprite(text, 48*1, 0, 48, 48)}}});
+      // 2 frames poof3, small sprite
+      this.sprites.add(new Sprite[][][]{temp3, new Sprite[][]{ new Sprite[]{new Sprite(text, 48*2, 0, 48, 48)}}});
+      // 2 frames poof3, middle sprite appears
+      this.sprites.add(new Sprite[][][]{temp2, new Sprite[][]{ new Sprite[]{new Sprite(text, 48*2, 0, 48, 48)}}});
+      // 2 frames poof4, middle sprite visible
+      this.sprites.add(new Sprite[][][]{temp2, new Sprite[][]{ new Sprite[]{new Sprite(text, 48*3, 0, 48, 48)}}});
+      // 2 frames poof4, sprite enlarge to normal size
+      this.sprites.add(new Sprite[][][]{new Sprite[][]{ new Sprite[]{game.player.currPokemon.backSprite}}, new Sprite[][]{ new Sprite[]{new Sprite(text, 48*3, 0, 48, 48)}}});
+      this.sprites.add(new Sprite[][][]{new Sprite[][]{ new Sprite[]{game.player.currPokemon.backSprite}}}); // wait frames before pokemon cry
+      this.sprites.add(new Sprite[][][]{new Sprite[][]{ new Sprite[]{game.player.currPokemon.backSprite}}}); // dummy frame
+
+//      this.sprites.add(new Sprite[][]{new Sprite[]{}, new Sprite[]{}, new Sprite[]{}, new Sprite[]{temp4}});
+//      this.sprites.add(temp3);
+//      this.sprites.add(temp2);
+//      this.sprites.add(new Sprite[][]{new Sprite[]{game.player.currPokemon.backSprite}});
+      //3 frames release2
+      //6 frames release3
+
+      // -1?
+      this.repeats = new ArrayList<Integer>();
+      this.repeats.add(34);
+      this.repeats.add(4);
+      this.repeats.add(2);
+      this.repeats.add(2);
+      this.repeats.add(2);
+      this.repeats.add(2);
+      this.repeats.add(2);
+      this.repeats.add(2);
+      this.repeats.add(26); // wait 12 frames before pokemon cry. TODO: test this.
+
+      this.sounds = new ArrayList<String>();
+      this.sounds.add(null); //
+      this.sounds.add("poof1");
+      for (int i = 0; i < 9; i++) {
+          this.sounds.add(null);
+      }
+//      text = new Texture(Gdx.files.internal("pokemon_throw_out_anim/throwanim_helper4.png"));
+//      this.helperSprite = new Sprite(text, 0, 0, 160, 144);
+  }
+}
+
+
+
+
 class SpecialBattleMewtwo extends Action {
 
     public int layer = 107;
@@ -5888,8 +6218,8 @@ class SpecialBattleMewtwo extends Action {
     
     Music music;
     boolean firstStep = true;
-    int timer = 0;
-//    int timer = 1670; // TODO: debug, remove
+//    int timer = 0;
+    int timer = 1670; // TODO: debug, remove
 
     @Override
     public void step(PkmnGen game) {
@@ -5902,7 +6232,7 @@ class SpecialBattleMewtwo extends Action {
             game.currMusic = this.music;
             game.currMusic.stop();
             game.currMusic.play();
-//            game.currMusic.setPosition(28); // TODO: debug, remove
+            game.currMusic.setPosition(28); // TODO: debug, remove
             
             this.firstStep = false;
         }
@@ -6011,8 +6341,8 @@ class SpecialBattleMewtwo extends Action {
                                  new DisplayText(game, "Go! "+game.player.currPokemon.name.toUpperCase()+"!", null, triggerAction, 
                                  new SplitAction(
                                          new DrawFriendlyHealth(game),
-                                         new ThrowOutPokemon(game, //this draws pkmn sprite permanently until battle ends, ie until game.battle.drawAction == null
-                                         triggerAction
+                                 new ThrowOutPokemon(game, //this draws pkmn sprite permanently until battle ends, ie until game.battle.drawAction == null
+                                 triggerAction
                                  ))))))))))))))));
             game.actionStack.remove(this);
             PublicFunctions.insertToAS(game, nextAction);
@@ -6480,10 +6810,13 @@ class SpecialBattleMewtwo extends Action {
         //flip-flop between these two velocities
         int[] velocities = new int[]{1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
         int[] velocities2 = new int[]{1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+        public static int velocityX = 0;
         int velocity = 1;
         int whichVelocity = 0;
         Random rand = new Random();
         boolean firstStep = true;
+        public static boolean shouldMoveX = false;
+        public static boolean shouldMoveY = true;
 
         @Override
         public void step(PkmnGen game) {
@@ -6500,14 +6833,20 @@ class SpecialBattleMewtwo extends Action {
                 else {
                     this.velocity = this.velocities2[i];
                 }
+                if (!this.shouldMoveY) {
+                    this.velocity = 0;
+                }
                 
-                this.sprites[i].setPosition(this.sprites[i].getX(),
+                this.sprites[i].setPosition(this.sprites[i].getX() + this.velocityX,
                                             this.sprites[i].getY() + this.velocity);
                 if (this.sprites[i].getY() > 144) {
                     this.sprites[i].setPosition(rand.nextInt(160-32), rand.nextInt(144) - 144);
 //                    this.sprites[i].setRotation(rand.nextInt(4) * 90);
                     this.velocities[i] = rand.nextInt(2) + 1;
                     this.velocities2[i] = this.velocities[i] -1 +rand.nextInt(2);
+                }
+                if (this.sprites[i].getX() < 0) {
+                    this.sprites[i].setPosition(160, rand.nextInt(144) - 32);
                 }
                 this.sprites[i].draw(game.floatingBatch);
 
@@ -6562,9 +6901,12 @@ class SpecialBattleMewtwo extends Action {
         //flip-flop between these two velocities
         int[] velocities = new int[]{1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
         int[] velocities2 = new int[]{1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+        public static int velocityX = 0;
         int velocity = 1;
         int whichVelocity = 0;
         Random rand = new Random();
+        public static boolean shouldMoveX = false;
+        public static boolean shouldMoveY = true;
         
         float[] bg_values = new float[]{0.8f, 0.8f, 0.8f, 0.8f, 0.8f, 0.8f,
                                         0.8f, 0.8f, 0.8f, 0.8f, 0.8f, 0.8f,
@@ -6636,14 +6978,22 @@ class SpecialBattleMewtwo extends Action {
                         this.velocity = 0;
                     }
                     this.velocities2[i]--;
+
+                    if (!this.shouldMoveY) {
+                        this.velocity = 0;
+                    }
                     
-                    this.sprites[i].setPosition(this.sprites[i].getX(),
+                    this.sprites[i].setPosition(this.sprites[i].getX() + this.velocityX,
                                                 this.sprites[i].getY() + this.velocity);
                     if (this.sprites[i].getY() > 144) {
                         this.sprites[i].setPosition(rand.nextInt(160-32), rand.nextInt(46) + (144-46-32-46));
                         this.sprites[i].setRotation(rand.nextInt(4) * 90);
                         this.velocities[i] = rand.nextInt(5) + 4;
                         this.velocities2[i] = this.velocities[i];
+                    }
+                    if (this.sprites[i].getX() < 0) {
+                        this.sprites[i].setPosition(160, rand.nextInt(144-32));
+                        this.sprites[i].setRotation(rand.nextInt(4) * 90);
                     }
                     this.sprites[i].draw(game.floatingBatch);
 
@@ -7463,6 +7813,12 @@ class Battle_Actions extends Action {
                                                   nextAction);
             }
         }
+        else if (attackName.equals("Mewtwo_Special1")) {
+            return new Battle_Actions.Mewtwo_Special1(game,
+                                                      game.battle.oppPokemon,
+                                                      game.player.currPokemon,
+                                                      nextAction);
+        }
         else if (attackName.equals("Night Shade")) {
             if (isFriendly) {
                 return new Battle_Actions.Psychic(game,
@@ -7528,9 +7884,9 @@ class Battle_Actions extends Action {
             return new SplitAction(new BattleIntro(
                                    new BattleIntro_anim1(
                                    new SplitAction(new DrawBattle(game),
-                                                      new BattleAnim_positionPlayers(game, 
-                                                      new PlaySound(game.battle.oppPokemon.name, 
-                                                      new DisplayText(game, "Wild "+game.battle.oppPokemon.name.toUpperCase()+" appeared!", null, null, 
+                                                   new BattleAnim_positionPlayers(game, 
+                                                   new PlaySound(game.battle.oppPokemon.name, 
+                                                   new DisplayText(game, "Wild "+game.battle.oppPokemon.name.toUpperCase()+" appeared!", null, null, 
                                                    new WaitFrames(game, 39,
                                                    //demo code - wildly confusing, but i don't want to write another if statement
                                                     game.player.adrenaline > 0 ? new DisplayText(game, ""+game.player.name+" has ADRENALINE "+Integer.toString(game.player.adrenaline)+"!", null, null,
@@ -7548,14 +7904,26 @@ class Battle_Actions extends Action {
         //throw out first pokemon in player.pokemon
         // play intro anim if pokemon crystal
         else if (game.battle.oppPokemon.generation == Pokemon.Generation.CRYSTAL) {
-            Action triggerAction = new PlaySound(game.player.currPokemon.name, 
-                                   new WaitFrames(game, 6,
-                                   new DrawBattleMenu_Normal(game, new DoneAction())
-                                   ));
+            Action triggerAction;
+            if (game.player.currPokemon.generation == Pokemon.Generation.RED) {
+                triggerAction = new PlaySound(game.player.currPokemon.name, 
+                                new WaitFrames(game, 6,
+                                new DrawBattleMenu_Normal(game, new DoneAction())
+                                ));
+            }
+            else {
+                Action afterTrigger = new WaitFrames(game, 15,
+                                      new DrawBattleMenu_Normal(game,
+                                      new DoneAction()
+                                      ));
+                triggerAction = new PlaySound(game.player.currPokemon, 
+                                new WaitFrames(game, 6,
+                                new DrawFriendlyHealth(game,
+                                afterTrigger)));
+            }
             return new BattleIntro(
                    new BattleIntro_anim1(
-                   new SplitAction(
-                   new DrawBattle(game),
+                   new SplitAction(new DrawBattle(game),
                    new BattleAnim_positionPlayers(game, 
                    new SplitAction(new WaitFrames(game, 4,
                                       new PlaySound(game.battle.oppPokemon,
@@ -7567,12 +7935,20 @@ class Battle_Actions extends Action {
                                    new DrawEnemyHealth(game)),
                    new WaitFrames(game, 39,
                    new MovePlayerOffScreen(game, 
-                   new DisplayText(game, "Go! "+game.player.currPokemon.name.toUpperCase()+"!", null, triggerAction, 
-                   new SplitAction(new DrawFriendlyHealth(game),
-                                   new ThrowOutPokemon(game, //this draws pkmn sprite permanently until battle ends, ie until game.battle.drawAction == null
-                                                       triggerAction
-                   ))))))))))))));
+                   new DisplayText(game, "Go! "+game.player.currPokemon.name.toUpperCase()+"!", null, triggerAction,
+                   game.player.currPokemon.generation == Pokemon.Generation.RED ?  // basically an if block
+                       new SplitAction(new DrawFriendlyHealth(game),
+                       new ThrowOutPokemon(game, //this draws pkmn sprite permanently until battle ends, ie until game.battle.drawAction == null
+                       triggerAction
+                       ))
+                   :
+                       new ThrowOutPokemonCrystal(game, //this draws pkmn sprite permanently until battle ends, ie until game.battle.drawAction == null
+                       triggerAction
+                       )
+                   ))))))))))));
         }
+        // below is red/blue intro anim
+        // TODO: what if opp pokemon is crystal, and yours is red? or vice-versa
         else {
             Action triggerAction = new PlaySound(game.player.currPokemon.name, 
                                    new WaitFrames(game, 6,
@@ -7582,17 +7958,17 @@ class Battle_Actions extends Action {
                    new BattleIntro_anim1(
                    new SplitAction(
                    new DrawBattle(game),
-                   new BattleAnim_positionPlayers(game, 
-                   new PlaySound(game.battle.oppPokemon.name, 
-                   new DisplayText(game, "Wild "+game.battle.oppPokemon.name.toUpperCase()+" appeared!", null, null, 
+                   new BattleAnim_positionPlayers(game,
+                   new PlaySound(game.battle.oppPokemon.name,
+                   new DisplayText(game, "Wild "+game.battle.oppPokemon.name.toUpperCase()+" appeared!", null, null,
                    new SplitAction(new WaitFrames(game, 1,
                                    new DrawEnemyHealth(game)),
                    new WaitFrames(game, 39,
-                   new MovePlayerOffScreen(game, 
+                   new MovePlayerOffScreen(game,
                    new DisplayText(game, "Go! "+game.player.currPokemon.name.toUpperCase()+"!", null, triggerAction, 
                    new SplitAction(new DrawFriendlyHealth(game),
-                                   new ThrowOutPokemon(game, //this draws pkmn sprite permanently until battle ends, ie until game.battle.drawAction == null
-                                                       triggerAction
+                   new ThrowOutPokemon(game, //this draws pkmn sprite permanently until battle ends, ie until game.battle.drawAction == null
+                                       triggerAction
                    ))))))))))));
         }
         
@@ -8615,6 +8991,397 @@ class Battle_Actions extends Action {
             return shader;
         }
     }
+    
+
+    static class Mewtwo_Special1 extends Action {
+
+        public int layer = 109;
+        public int getLayer(){return this.layer;}
+
+        public String getCamera() {return "gui";};
+
+        // TODO: set these
+        int power = 100;
+        int accuracy = 100;
+
+        Pokemon attacker;
+        Pokemon target;
+        Pixmap pixmap = null;
+        Sprite sprite;
+        ArrayList<int[]> offsets = new ArrayList<int[]>();
+        int[] currOffsets;
+        ArrayList<Vector2> positions = new ArrayList<Vector2>();
+        Vector2 currPosition;
+        ArrayList<String> shaderVals = new ArrayList<String>();
+        String currShaderVal;
+        ShaderProgram currShader;
+        String vertexShader;
+        boolean firstStep = true;
+        boolean isNightShade = false;  // if true, use different sound effect
+        Action nextAction;
+        boolean hitSound = true;
+        int timer = 0;
+
+        @Override
+        public void step(PkmnGen game) {
+
+            if (this.timer == 0) {
+
+                this.currShader = new ShaderProgram(this.vertexShader,
+                                                    this.getShader(.8f));
+                game.floatingBatch.setShader(this.currShader);
+                // pause rock anim
+                SpecialBattleMewtwo.RocksEffect1.shouldMoveY = false;
+                SpecialBattleMewtwo.RocksEffect2.shouldMoveY = false;
+            }
+            else if (this.timer < 50) {
+                
+            }
+            else if (this.timer == 60) {
+                PublicFunctions.insertToAS(game, new PlaySound("Mewtwo_Special1", new DoneAction()));
+                SpecialBattleMewtwo.RocksEffect1.velocityX = -8;
+                SpecialBattleMewtwo.RocksEffect2.velocityX = -2;  // TODO: is this doing anything?
+                this.currShader = new ShaderProgram(this.vertexShader, this.getShader(.6f));
+                game.floatingBatch.setShader(this.currShader);
+                // !!!
+            }
+            else if (this.timer == 120) {
+                SpecialBattleMewtwo.RocksEffect1.velocityX = -12;
+                SpecialBattleMewtwo.RocksEffect2.velocityX = -3;
+                this.currShader = new ShaderProgram(this.vertexShader, this.getShader(.4f));
+                game.floatingBatch.setShader(this.currShader);
+            }
+            else if (this.timer == 180) {
+                SpecialBattleMewtwo.RocksEffect1.velocityX = -16;
+                SpecialBattleMewtwo.RocksEffect2.velocityX = -4;
+                this.currShader = new ShaderProgram(this.vertexShader, this.getShader(.2f));
+                game.floatingBatch.setShader(this.currShader);
+            }
+            else if (this.timer == 190) {
+                this.currShader = new ShaderProgram(this.vertexShader, this.getShader(.3f));
+                game.floatingBatch.setShader(this.currShader);
+            }
+            else if (this.timer == 200) {
+                this.currShader = new ShaderProgram(this.vertexShader, this.getShader(0f));
+                game.floatingBatch.setShader(this.currShader);
+            }
+            else if (this.timer == 210) {
+                this.currShader = new ShaderProgram(this.vertexShader, this.getShader(.1f));
+                game.floatingBatch.setShader(this.currShader);
+            }
+            else if (this.timer == 220) {
+                this.currShader = new ShaderProgram(this.vertexShader, this.getShader(-.2f));
+                game.floatingBatch.setShader(this.currShader);
+            }
+            else if (this.timer == 230) {
+                this.currShader = new ShaderProgram(this.vertexShader, this.getShader(-.1f));
+                game.floatingBatch.setShader(this.currShader);
+            }
+            else if (this.timer == 240) {
+                this.currShader = new ShaderProgram(this.vertexShader, this.getShader(-.4f));
+                game.floatingBatch.setShader(this.currShader);
+            }
+            else if (this.timer == 250) {
+                this.currShader = new ShaderProgram(this.vertexShader, this.getShader(-.3f));
+                game.floatingBatch.setShader(this.currShader);
+            }
+            else if (this.timer == 260) {
+                this.currShader = new ShaderProgram(this.vertexShader, this.getShader(-.6f));
+                game.floatingBatch.setShader(this.currShader);
+            }
+            else if (this.timer == 270) {
+                this.currShader = new ShaderProgram(this.vertexShader, this.getShader(-.5f));
+                game.floatingBatch.setShader(this.currShader);
+            }
+            else if (this.timer == 280) {
+                this.currShader = new ShaderProgram(this.vertexShader, this.getShader(-.8f));
+                game.floatingBatch.setShader(this.currShader);
+            }
+            else if (this.timer < 300) {
+                
+            }
+            else if (this.timer < 400 +150) {
+                if (this.timer % 2 == 0) {
+                    game.player.currPokemon.backSprite.setAlpha(1);
+                }
+                else {
+                    game.player.currPokemon.backSprite.setAlpha(0);
+                }
+
+                if (this.timer == 340) {
+                    this.currShader = new ShaderProgram(this.vertexShader, this.getShader(-.6f));
+                    game.floatingBatch.setShader(this.currShader);
+                }
+                if (this.timer == 400) {
+                    this.currShader = new ShaderProgram(this.vertexShader, this.getShader(-.4f));
+                    game.floatingBatch.setShader(this.currShader);
+                }
+                if (this.timer == 460) {
+                    this.currShader = new ShaderProgram(this.vertexShader, this.getShader(-.2f));
+                    game.floatingBatch.setShader(this.currShader);
+                }
+                
+                if (this.timer == 305 +150) {
+                    SpecialBattleMewtwo.RocksEffect1.velocityX = -14;
+                    SpecialBattleMewtwo.RocksEffect2.velocityX = -3;
+                }
+                else if (this.timer == 315 +150) {
+                    SpecialBattleMewtwo.RocksEffect1.velocityX = -12;
+                }
+                else if (this.timer == 325 +150) {
+                    SpecialBattleMewtwo.RocksEffect1.velocityX = -10;
+                }
+                else if (this.timer == 335 +150) {
+                    SpecialBattleMewtwo.RocksEffect1.velocityX = -8;
+                    SpecialBattleMewtwo.RocksEffect2.velocityX = -2;
+                }
+                else if (this.timer == 345 +150) {
+                    SpecialBattleMewtwo.RocksEffect1.velocityX = -6;
+                }
+                else if (this.timer == 355 +150) {
+                    SpecialBattleMewtwo.RocksEffect1.velocityX = -6;
+                }
+                else if (this.timer == 365 +150) {
+                    SpecialBattleMewtwo.RocksEffect1.velocityX = -4;
+                    SpecialBattleMewtwo.RocksEffect2.velocityX = -1;
+                }
+                else if (this.timer == 375 +150) {
+                    SpecialBattleMewtwo.RocksEffect1.velocityX = -2;
+                }
+                else if (this.timer == 385 +150) {
+                    SpecialBattleMewtwo.RocksEffect1.velocityX = 0;
+                    SpecialBattleMewtwo.RocksEffect2.velocityX = 0;
+                }
+            }
+            else if (this.timer == 550) {
+                game.player.currPokemon.backSprite.setAlpha(1);
+                this.currShader = new ShaderProgram(this.vertexShader, this.getShader(0f));
+                game.floatingBatch.setShader(this.currShader);
+                SpecialBattleMewtwo.RocksEffect1.shouldMoveY = true;
+                SpecialBattleMewtwo.RocksEffect2.shouldMoveY = true;
+            }
+            else if (this.timer < 600) {
+                
+            }
+            else {
+                    
+                //assign damage to target pkmn
+                int currHealth = this.target.currentStats.get("hp");
+                //TODO - correct damage calculation
+                int finalHealth = currHealth - this.power;
+                if (finalHealth < 0) {finalHealth = 0;} //make sure finalHealth isn't negative
+                this.target.currentStats.put("hp", finalHealth);
+                  
+                game.actionStack.remove(this);
+                PublicFunctions.insertToAS(game, this.nextAction);
+            }
+            this.timer++;
+
+//            // run through shaders, then offsets, then positions
+//            if (!this.shaderVals.isEmpty()) {
+//                this.currShaderVal = this.shaderVals.get(0);
+//                this.currShader = new ShaderProgram(this.vertexShader,
+//                                                    this.currShaderVal);
+//                game.floatingBatch.setShader(this.currShader);
+//                this.shaderVals.remove(0);
+//            }
+//            else if (!this.offsets.isEmpty()) {
+//                this.currOffsets = this.offsets.get(0);
+//                // setting pixmap only once b/c otherwise get bad lag
+//                // would be nice to do every frame tho since there are moving rocks etc
+//                if (this.pixmap == null) {
+//                    //TODO: *3 b/c screen is scaled, alternative approach would be nice
+//                    this.pixmap = ScreenUtils.getFrameBufferPixmap(0, 0, 160*3, 144*3);
+//                }
+//                for (int j=0; j < 144-3; j++) { //3 pixels from top
+//                    for (int i=0; i < 160; i++) {
+//                        // note: got better performance when creating a new Color here
+//                        // rather than using Color.set() on existing Color
+//                        this.sprite.setColor(new Color(this.pixmap.getPixel(i*3, j*3)));
+//                        this.sprite.setPosition(i + this.currOffsets[j%16], j);
+//                        this.sprite.draw(game.floatingBatch);
+//                    }
+//                }
+//                this.offsets.remove(0);
+//            }
+//            else if (!this.positions.isEmpty()) {
+//                if (this.hitSound) {
+//                    // play hit sound
+//                    PublicFunctions.insertToAS(game, new PlaySound("hit_normal1", new DoneAction()));
+//                    this.hitSound = false;
+//                }
+//                this.currPosition = this.positions.get(0);
+//                //TODO: *3 b/c screen is scaled, alternative approach would be nice
+//                this.pixmap = ScreenUtils.getFrameBufferPixmap(0, 0, 160*3, 144*3);
+//                for (int j=0; j < 144; j++) {
+//                    for (int i=0; i < 160; i++) {
+//                        this.sprite.setColor(new Color(this.pixmap.getPixel(i*3, j*3)));
+//                        // not using this.currPosition.y here, but may in future animations
+//                        this.sprite.setPosition(i + this.currPosition.x, j + this.currPosition.y);
+//                        this.sprite.draw(game.floatingBatch);
+//                    }
+//                }
+//                this.positions.remove(0);
+//            }
+//            else {
+//                //assign damage to target pkmn
+//                int currHealth = this.target.currentStats.get("hp");
+//                //TODO - correct damage calculation
+//                int finalHealth = currHealth - this.power;
+//                if (finalHealth < 0) {finalHealth = 0;} //make sure finalHealth isn't negative
+//                this.target.currentStats.put("hp", finalHealth);
+//                
+//                game.actionStack.remove(this);
+//                PublicFunctions.insertToAS(game, this.nextAction);
+//            }
+            
+        }
+
+        public Mewtwo_Special1(PkmnGen game,
+                               Pokemon attacker,
+                               Pokemon target,
+                               Action nextAction) {
+
+            this.target = target;
+            this.attacker = attacker;
+            this.nextAction = nextAction;
+
+            // single pixel sprite used for drawing the effect
+            Texture text = new Texture(Gdx.files.internal("battle/pixel1.png"));
+            this.sprite = new Sprite(text, 0, 0, 1, 1);
+
+            this.vertexShader = "attribute vec4 a_position;\n"
+                    + "attribute vec4 a_color;\n"
+                    + "attribute vec2 a_texCoord;\n"
+                    + "attribute vec2 a_texCoord0;\n"
+                        
+                    + "uniform mat4 u_projTrans;\n"
+                                            
+                    + "varying vec4 v_color;\n"
+                    + "varying vec2 v_texCoords;\n"
+                                            
+                    + "void main()\n"
+                    + "{\n"
+                    + "    v_color = a_color;\n"
+                    + "    v_texCoords = a_texCoord0;\n"
+                    + "    gl_Position =  u_projTrans * a_position;\n"
+                    // below can be used to translate screen pixels (for attacks, etc
+//                    + "    gl_Position =  u_projTrans * vec4(a_position.x, a_position.y, a_position.z, 1.0);\n"
+                    + "}\n";
+
+            // shader 'flash' anim at beginning
+            // 0, .33, .66, 1 ?
+            String darken1 = this.getShader(-.33f);
+            String darken2 = this.getShader(-.66f);
+            String darken3 = this.getShader(-1f);
+            String lighten1 = this.getShader(.33f);
+            String lighten2 = this.getShader(.66f);
+            String lighten3 = this.getShader(1f);
+            String normal = this.getShader(0f);
+            this.shaderVals.add(darken1);
+            this.shaderVals.add(darken1);
+            this.shaderVals.add(darken2);
+            this.shaderVals.add(darken2);
+            this.shaderVals.add(darken3);
+            this.shaderVals.add(darken3);
+            this.shaderVals.add(darken2);
+            this.shaderVals.add(darken2);
+            this.shaderVals.add(darken1);
+            this.shaderVals.add(darken1);
+            this.shaderVals.add(normal);
+            this.shaderVals.add(normal);
+            this.shaderVals.add(lighten1);
+            this.shaderVals.add(lighten1);
+            this.shaderVals.add(lighten2);
+            this.shaderVals.add(lighten2);
+            this.shaderVals.add(lighten3);
+            this.shaderVals.add(lighten3);
+            this.shaderVals.add(lighten2);
+            this.shaderVals.add(lighten2);
+            this.shaderVals.add(lighten1);
+            this.shaderVals.add(lighten1);
+            this.shaderVals.add(normal);
+            this.shaderVals.add(normal);
+            this.shaderVals.add(darken1);
+            this.shaderVals.add(darken2);
+            this.shaderVals.add(darken3);
+            this.shaderVals.add(darken2);
+            this.shaderVals.add(darken1);
+            this.shaderVals.add(normal);
+            this.shaderVals.add(lighten1);
+            this.shaderVals.add(lighten2);
+            this.shaderVals.add(lighten3);
+            this.shaderVals.add(lighten2);
+            this.shaderVals.add(lighten1);
+            this.shaderVals.add(normal);
+            this.shaderVals.add(darken1);
+            this.shaderVals.add(darken2);
+            this.shaderVals.add(darken3);
+            this.shaderVals.add(darken2);
+            this.shaderVals.add(darken1);
+            this.shaderVals.add(normal);
+            this.shaderVals.add(lighten1);
+            this.shaderVals.add(lighten2);
+            this.shaderVals.add(lighten3);
+            this.shaderVals.add(lighten2);
+            this.shaderVals.add(lighten1);
+            for (int i = 0; i < 8; i++) {
+                this.shaderVals.add(normal);
+            }
+
+            // screen movement after attack
+            // 9 frames nothing
+            for (int i = 0; i < 9; i++) {
+                this.positions.add(new Vector2(0,0));
+            }
+            // 5 frame move 2 right
+            for (int i = 0; i < 5; i++) {
+                this.positions.add(new Vector2(2,0));
+            }
+            // 9 frame move back
+            for (int i = 0; i < 9; i++) {
+                this.positions.add(new Vector2(0,0));
+            }
+            // 4 frame move 1 right
+            for (int i = 0; i < 4; i++) {
+                this.positions.add(new Vector2(1,0));
+            }
+            // 19 frame move back
+            for (int i = 0; i < 19; i++) {
+                this.positions.add(new Vector2(0,0));
+            }
+            // on 20th, start health bar subtract
+
+        }
+
+        String getShader(float level) {
+            String shader = "precision mediump float;\n"
+
+                            + "varying vec4 v_color;\n"
+                            + "varying vec2 v_texCoords;\n"
+                            + "uniform sampler2D u_texture;\n"
+                            + "uniform mat4 u_projTrans;\n"
+                            
+                            + "bool equals(float a, float b) {\n"
+                            + "    return abs(a-b) < 0.0001;\n"
+                            + "}\n"
+                            
+                            + "void main() {\n"
+                            + "    vec4 color = texture2D (u_texture, v_texCoords) * v_color;\n"
+
+                            + "    float level = "+level+";\n" // can't do +- or -+ inline
+                            + "    if(color.r >= .9 && color.g >= .9 && color.b >= .9) {\n"
+                            + "           color = vec4(color.r, color.g, color.b, color.a);\n"
+                            + "    }\n"
+                            + "    else {\n"
+                            + "        color = vec4(color.r-level, color.g-level, color.b-level, color.a);\n"
+                            + "    }\n"
+                            + "    gl_FragColor = color;\n"
+                            + "}\n";
+            return shader;
+        }
+    }
+    
 }
 
 

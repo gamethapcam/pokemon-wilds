@@ -192,9 +192,11 @@ public class PkmnGen extends ApplicationAdapter {
         // was using this as default map
 //        PublicFunctions.insertToAS(this, new GenForest2(this, new Vector2(-64,-48), new Vector2(800,800))); //this is the size I want
 
-        // gen island map
+        // gen island map 
         // old size = 16*20
-        PublicFunctions.insertToAS(this, new GenIsland1(this, new Vector2(0,0), 16*15));
+//        PublicFunctions.insertToAS(this, new GenIsland1(this, new Vector2(0,0), 20*40)); //16*15 //30*40 // 20*40  //16*18 //20*30
+        // generates a mountain now.
+        PublicFunctions.insertToAS(this, new GenIsland1(this, new Vector2(0,0), 100*120)); //60*100 //100*120
 
         // TODO - mega gengar battle debug in genforest2, remove that
 
@@ -269,7 +271,7 @@ public class PkmnGen extends ApplicationAdapter {
         //TODO: debug, delete
 //        this.player.currPokemon.currentStats.put("hp", 12);
         this.player.pokemon.add(new Pokemon("Machop", 50, Pokemon.Generation.CRYSTAL)); 
-        this.player.pokemon.add(new Pokemon("mamoswine", 50, Pokemon.Generation.CRYSTAL)); 
+        this.player.pokemon.add(new Pokemon("sneasel", 50, Pokemon.Generation.CRYSTAL)); 
 //        this.player.pokemon.add(new Pokemon("Zubat", 40)); 
 //        this.player.pokemon.add(new Pokemon("Spinarak", 30)); 
 //        this.player.pokemon.add(new Pokemon("Zubat", 20)); 
@@ -364,7 +366,16 @@ public class PkmnGen extends ApplicationAdapter {
         //iterate through action stack
         for (Action action : new ArrayList<Action>(this.actionStack)) { //iterate copy
             if (action.getCamera() == "map") { //only map actions
+                // TODO: debug, remove timeit data
+                if (Gdx.input.isKeyPressed(Input.Keys.P)) {
+                    System.out.println(action);
+                    System.out.println(java.time.LocalTime.now());  
+                }
                 action.step(this);
+                if (Gdx.input.isKeyPressed(Input.Keys.P)) { 
+                    System.out.println(action);
+                    System.out.println(java.time.LocalTime.now()); 
+                }
             }
         }
         batch.end();
