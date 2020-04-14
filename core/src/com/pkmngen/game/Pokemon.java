@@ -67,10 +67,14 @@ public class Pokemon {
     Generation generation;
     ArrayList<Sprite> introAnim;
     
+    // contains all loaded pkmn textures, so that only one is used for each pkmn. ie don't load duplicate textures.
+    public static HashMap<String, Texture> textures = new HashMap<String, Texture>();
 
-    
     String nameToIndex(String name) {
         name = name.toLowerCase();
+        if (name.equals("ghost")) {
+            return "000";
+        }
         int lineNum = 1;
         try {
             FileHandle file = Gdx.files.internal("crystal_pokemon/pokemon_to_index.txt");
@@ -116,7 +120,7 @@ public class Pokemon {
                     this.baseStats.put("specialAtk", Integer.valueOf((stats[4].replace(" ", ""))));
                     this.baseStats.put("specialDef", Integer.valueOf((stats[5].replace(" ", ""))));
                 } else if (lineNum == 5) {
-                    String types[] = line.split("db ")[1].split(", ");
+                    String types[] = line.split("db ")[1].split(" ; ")[0].split(", ");
                     this.types.add(types[0]);
                     this.types.add(types[1]);
                 } else if (lineNum == 6) {
@@ -136,11 +140,19 @@ public class Pokemon {
 
         // load sprite and animation data
         // load front sprite
-        Texture pokemonText = new Texture(Gdx.files.internal("crystal_pokemon/pokemon/" + name + "/front.png"));
+        if (!Pokemon.textures.containsKey(name+"_front")) {
+            Pokemon.textures.put(name+"_front", new Texture(Gdx.files.internal("crystal_pokemon/pokemon/" + name + "/front.png")));
+        }
+//        Texture pokemonText = new Texture(Gdx.files.internal("crystal_pokemon/pokemon/" + name + "/front.png"));
+        Texture pokemonText = Pokemon.textures.get(name+"_front");
         // height and width are the same for these sprites
         int height = pokemonText.getWidth();
         this.sprite = new Sprite(pokemonText, 0, 0, height, height);
-        pokemonText = new Texture(Gdx.files.internal("crystal_pokemon/pokemon/" + name + "/back.png"));  
+        if (!Pokemon.textures.containsKey(name+"_back")) {
+            Pokemon.textures.put(name+"_back", new Texture(Gdx.files.internal("crystal_pokemon/pokemon/" + name + "/back.png")));
+        }
+//      pokemonText = new Texture(Gdx.files.internal("crystal_pokemon/pokemon/" + name + "/back.png"));  
+        pokemonText = Pokemon.textures.get(name+"_back");
 //        height = pokemonText.getWidth();  
         this.backSprite = new Sprite(pokemonText, 0, 0, 48, 48);
         
@@ -165,7 +177,8 @@ public class Pokemon {
                     int numFrames = Integer.valueOf(vals[1]);
                     int frame = Integer.valueOf(vals[0]);
                     for (int j=0; j < numFrames; j++) {
-                        pokemonText = new Texture(Gdx.files.internal("crystal_pokemon/pokemon/" + name + "/front.png"));
+//                        pokemonText = new Texture(Gdx.files.internal("crystal_pokemon/pokemon/" + name + "/front.png"));
+                        pokemonText = Pokemon.textures.get(name+"_front");
                         Sprite sprite = new Sprite(pokemonText, 0, height*frame, height, height);
                         this.introAnim.add(sprite);
                     }
@@ -207,7 +220,7 @@ public class Pokemon {
                     this.baseStats.put("specialAtk", Integer.valueOf((stats[4].replace(" ", ""))));
                     this.baseStats.put("specialDef", Integer.valueOf((stats[5].replace(" ", ""))));
                 } else if (lineNum == 2) {
-                    String types[] = line.split("db ")[1].split(", ");
+                    String types[] = line.split("db ")[1].split(" ; ")[0].split(", ");
                     this.types.add(types[0]);
                     this.types.add(types[1]);
                 } else if (lineNum == 3) {
@@ -227,11 +240,19 @@ public class Pokemon {
 
         // load sprite and animation data
         // load front sprite
-        Texture pokemonText = new Texture(Gdx.files.internal("crystal_pokemon/prism/pics/" + name + "/front.png"));
+        if (!Pokemon.textures.containsKey(name+"_front")) {
+            Pokemon.textures.put(name+"_front", new Texture(Gdx.files.internal("crystal_pokemon/prism/pics/" + name + "/front.png")));
+        }
+//        Texture pokemonText = new Texture(Gdx.files.internal("crystal_pokemon/prism/pics/" + name + "/front.png"));  // TODO: remove
+        Texture pokemonText = Pokemon.textures.get(name+"_front");
         // height and width are the same for these sprites
         int height = pokemonText.getWidth();
         this.sprite = new Sprite(pokemonText, 0, 0, height, height);
-        pokemonText = new Texture(Gdx.files.internal("crystal_pokemon/prism/pics/" + name + "/back.png")); 
+        if (!Pokemon.textures.containsKey(name+"_back")) {
+            Pokemon.textures.put(name+"_back", new Texture(Gdx.files.internal("crystal_pokemon/prism/pics/" + name + "/back.png")));
+        }
+//        pokemonText = new Texture(Gdx.files.internal("crystal_pokemon/prism/pics/" + name + "/back.png"));  // TODO: remove
+        pokemonText = Pokemon.textures.get(name+"_back");
 //        height = pokemonText.getWidth();   
         this.backSprite = new Sprite(pokemonText, 0, 0, 48, 48);
         
@@ -256,7 +277,8 @@ public class Pokemon {
                     int numFrames = Integer.valueOf(vals[1]);
                     int frame = Integer.valueOf(vals[0]);
                     for (int j=0; j < numFrames; j++) {
-                        pokemonText = new Texture(Gdx.files.internal("crystal_pokemon/prism/pics/" + name + "/front.png"));
+//                        pokemonText = new Texture(Gdx.files.internal("crystal_pokemon/prism/pics/" + name + "/front.png")
+                        pokemonText = Pokemon.textures.get(name+"_front");
                         Sprite sprite = new Sprite(pokemonText, 0, height*frame, height, height);
                         this.introAnim.add(sprite);
                     }
@@ -308,7 +330,7 @@ public class Pokemon {
         if (generation.equals(Generation.CRYSTAL)) {
             this.dexNumber = this.nameToIndex(name);
             // if it is in original 251, load from crystal
-            if (Integer.valueOf(this.dexNumber) <= 251) {
+            if (Integer.valueOf(this.dexNumber) <= 251 && Integer.valueOf(this.dexNumber) > 0) {
                 this.loadCrystalPokemon(name);
             // else try loading from prism
             } else {
@@ -323,6 +345,11 @@ public class Pokemon {
             // Custom attributes - better way to handle this?
             if (name.toLowerCase().equals("sneasel")) {
                 this.hms.add("CUT");
+            }
+
+            // Custom attributes - better way to handle this?
+            if (name.toLowerCase().equals("machop")) {
+                this.hms.add("HEADBUTT");
             }
         }
 
@@ -386,7 +413,17 @@ public class Pokemon {
 //            learnSet.put(1, new String[]{"Fly", "Growl", "Hyper Beam"});
             //learnSet.put(20, new String[]{"Harden", "Harden", "Harden", "Harden"}); //debug
 //            learnSet.put(50, new String[]{"Spike Cannon"});  // TODO: re-enable
-            
+
+//            learnSet.put(1, new String[]{"Razor Leaf"});
+//            learnSet.put(1, new String[]{"Fury Cutter"});
+//            learnSet.put(1, new String[]{"Ember"});
+            learnSet.put(1, new String[]{"Ice Beam"});
+//            learnSet.put(2, new String[]{"Earthquake"});
+//            learnSet.put(3, new String[]{"Rock Throw"});
+//            learnSet.put(4, new String[]{"Peck"});
+            learnSet.put(2, new String[]{"Surf"});
+            learnSet.put(3, new String[]{"Rock Throw"});
+            learnSet.put(4, new String[]{"Hydro Pump"});
             this.types.add("Water");
             this.types.add("Ice");
         }

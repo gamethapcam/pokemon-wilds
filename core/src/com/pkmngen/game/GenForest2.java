@@ -45,7 +45,7 @@ class GenIsland1 extends Action {
 		if (this.tilesToAdd.isEmpty()) {
 			if (this.doActions.isEmpty()) {
 				game.actionStack.remove(this);
-				return;
+	            return;
 			}
 			Action currAction = this.doActions.get(0);
 			this.doActions.remove(0);
@@ -566,7 +566,18 @@ class GenIsland1 extends Action {
 									newTile = new Tile("green1", edge);
 								}
 								else if (isRock <= maxDist + maxDist/2 && isGrass < maxDist - maxDist/4 && this.rand.nextInt(40) == 0) {
-                                    newTile = new Tile("tree5", edge);
+								    // palm tree has it's own route with exeggcute or exeggutor in it.
+								    Route tempRoute = new Route("", 11);
+								    tempRoute.allowedPokemon.clear();
+                                    tempRoute.pokemon.clear();
+                                    int randInt = this.rand.nextInt(5);
+                                    if (randInt == 4) {
+                                        tempRoute.pokemon.add(new Pokemon("Exeggutor", 10+this.rand.nextInt(4), Pokemon.Generation.CRYSTAL));
+                                    }
+                                    else if (randInt > 1) {
+                                        tempRoute.pokemon.add(new Pokemon("Exeggcute", 10+this.rand.nextInt(4), Pokemon.Generation.CRYSTAL));
+                                    }
+                                    newTile = new Tile("tree5", edge, true, tempRoute);
 								}
                                 if (isMaze == 0) {
     								int isTree = this.rand.nextInt(maxDist/4) + (int)distance;
@@ -854,13 +865,14 @@ class GenIsland1 extends Action {
 		int maxDist = this.radius;  // 16*10;
 		Tile originTile = new Tile("sand1", this.origin.cpy());
 		this.tilesToAdd.put(originTile.position.cpy(), originTile);
-//      ApplyBlotch(game, "island", originTile, maxDist, this.tilesToAdd, 1);
+		// TODO: uncomment this for just giant island
+        ApplyBlotch(game, "island", originTile, maxDist, this.tilesToAdd, 1, false);
 		HashMap<Vector2, Tile> mtnTiles = new HashMap<Vector2, Tile>();
-        ArrayList<Tile> endPoints = ApplyBlotchMountain(game, originTile, maxDist, mtnTiles);
-        for (Tile tile : endPoints) {
-//            Route blotchRoute = new Route("forest1", 22); // TODO: mem usage too high
-            ApplyBlotch(game, "island", tile, maxDist/6, this.tilesToAdd, 1, true, null);
-        }
+//        ArrayList<Tile> endPoints = ApplyBlotchMountain(game, originTile, maxDist, mtnTiles);
+//        for (Tile tile : endPoints) {
+////            Route blotchRoute = new Route("forest1", 22); // TODO: mem usage too high
+//            ApplyBlotch(game, "island", tile, maxDist/6, this.tilesToAdd, 1, true, null);
+//        }
         this.tilesToAdd.putAll(mtnTiles);
 		
 		// find max/min x and y tiles, add padding and add water tiles
@@ -890,15 +902,18 @@ class GenIsland1 extends Action {
 				if (!this.tilesToAdd.containsKey(pos)) {
 					this.tilesToAdd.put(pos.cpy(), new Tile("water2", pos.cpy()));
 				}
+                // add black tiles to interior
+                game.map.interiorTiles.get(game.map.interiorTilesIndex).put(pos.cpy(), new Tile("black1", pos.cpy()));
 			}
 		}
 
-		for (Tile tile : new ArrayList<Tile>(this.tilesToAdd.values())) {
-			// show tops of trees
-			if (tile.name.equals("tree1")) {
-				this.tilesToAdd.remove(tile.position.cpy().add(0, 16));
-			}
-		}
+		// TODO: remove if not using
+//		for (Tile tile : new ArrayList<Tile>(this.tilesToAdd.values())) {
+//			// show tops of trees
+//			if (tile.name.equals("tree1")) {
+//				this.tilesToAdd.remove(tile.position.cpy().add(0, 16));
+//			}
+//		}
 		
 		// TODO: remove
 		//debug - put grass tile next to player
@@ -1140,7 +1155,7 @@ public class GenForest2 extends Action {
 							Tile temp2 = this.tilesToAdd.get(new Vector2(i+16,j));
 							Tile temp3 = this.tilesToAdd.get(new Vector2(i,j+16));
 							Tile temp4 = this.tilesToAdd.get(new Vector2(i+16,j+16));
-							if (temp.position.x % 32 == 0 && Math.abs(temp.position.y) % 32 == 16
+							if (Math.abs(temp.position.x - this.bottomLeft.x) % 32 == 0 && Math.abs(temp.position.y - this.bottomLeft.y) % 32 == 0
 								&& temp2 != null && temp3 != null && temp4 != null) {
 								//put tree there
 								if (temp2.name == "solid" && temp3.name == "solid" && temp4.name == "solid") {
@@ -1153,7 +1168,19 @@ public class GenForest2 extends Action {
 							}
 							if (noTileYet){
 								//TODO - add small tree here
-								this.tilesToAdd.put(temp.position.cpy().add(0,0), new Tile("bush1", temp.position.cpy().add(0,0), this.color));
+							    // each bush gets it's own route consisting of one pokemon
+                                Route tempRoute = new Route("", 11);
+                                tempRoute.allowedPokemon.clear();
+                                tempRoute.pokemon.clear();
+                                String[] pokemon = new String[]{"pineco", "aipom", "kakuna", "metapod", "spinarak",
+                                                                "ledyba", "hoothoot", "zubat", "pidgey", "spearow", "forretress"};
+                                // 1 in 3 ish bushes has a pokemon
+                                int randInt = this.rand.nextInt(3);
+                                if (randInt == 2) {
+                                    randInt = this.rand.nextInt(pokemon.length);
+                                    tempRoute.pokemon.add(new Pokemon(pokemon[randInt], 10+this.rand.nextInt(4), Pokemon.Generation.CRYSTAL));
+                                }
+								this.tilesToAdd.put(temp.position.cpy().add(0,0), new Tile("bush1", temp.position.cpy().add(0,0), this.color, tempRoute));
 							}
 						}
 					}

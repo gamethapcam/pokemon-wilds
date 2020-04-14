@@ -1,5 +1,10 @@
 package com.pkmngen.game;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.Reader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -8,14 +13,39 @@ import java.util.Random;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.audio.Music;
+import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.glutils.ShaderProgram;
+import com.badlogic.gdx.math.Matrix4;
+import com.badlogic.gdx.math.Quaternion;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.ScreenUtils;
+import com.pkmngen.game.DrawPlayerMenu.Intro;
+
+
+class Attack {
+    
+    String name;
+    int power;
+    String type;
+    int accuracy;
+    int pp;
+    int effect_chance; // chance to paralyze, lower speed, poison, etc.
+    
+    public Attack(String name, int power, String type, int accuracy, int pp, int effect_chance) {
+        this.name = name;
+        this.power = power;
+        this.type = type;
+        this.accuracy = accuracy;
+        this.pp = pp;
+        this.effect_chance = effect_chance;
+    }
+}
 
 public class Battle {
 
@@ -32,6 +62,18 @@ public class Battle {
     Music music;
     Music victoryFanfare;
     
+    // TODO: remove
+//    public enum Effectiveness {
+//        Super,
+//        Neutral,
+//        Not_Very,
+//        No_Effect;
+//    }
+    
+    // HashMap<Generation, ... ?
+    HashMap<String, HashMap<String, Float>> gen2TypeEffectiveness;
+    HashMap<String, Attack> attacks = new HashMap<String, Attack>();
+
     public Battle() {
 
         this.music = Gdx.audio.newMusic(Gdx.files.internal("battle/battle-vs-wild-pokemon.ogg"));
@@ -41,8 +83,382 @@ public class Battle {
         this.victoryFanfare = Gdx.audio.newMusic(Gdx.files.internal("victory_fanfare2.ogg"));
         this.victoryFanfare.setLooping(true);
         this.victoryFanfare.setVolume(.3f);
+        
+        this.gen2TypeEffectiveness = new HashMap<String, HashMap<String, Float>>();
+        this.gen2TypeEffectiveness.put("normal", new HashMap<String, Float>());
+        this.gen2TypeEffectiveness.get("normal").put("normal", 1f);
+        this.gen2TypeEffectiveness.get("normal").put("fire", 1f);
+        this.gen2TypeEffectiveness.get("normal").put("water", 1f);
+        this.gen2TypeEffectiveness.get("normal").put("electric", 1f);
+        this.gen2TypeEffectiveness.get("normal").put("grass", 1f);
+        this.gen2TypeEffectiveness.get("normal").put("ice", 1f);
+        this.gen2TypeEffectiveness.get("normal").put("fighting", 1f);
+        this.gen2TypeEffectiveness.get("normal").put("poison", 1f);
+        this.gen2TypeEffectiveness.get("normal").put("ground", 1f);
+        this.gen2TypeEffectiveness.get("normal").put("flying", 1f);
+        this.gen2TypeEffectiveness.get("normal").put("psychic", 1f);
+        this.gen2TypeEffectiveness.get("normal").put("bug", 1f);
+        this.gen2TypeEffectiveness.get("normal").put("rock", .5f);
+        this.gen2TypeEffectiveness.get("normal").put("ghost", 0f);
+        this.gen2TypeEffectiveness.get("normal").put("dragon", 1f);
+        this.gen2TypeEffectiveness.get("normal").put("dark", 1f);
+        this.gen2TypeEffectiveness.get("normal").put("steel", .5f);
+        this.gen2TypeEffectiveness.get("normal").put("fairy", 1f);
+        this.gen2TypeEffectiveness.put("fire", new HashMap<String, Float>());
+        this.gen2TypeEffectiveness.get("fire").put("normal", 1f);
+        this.gen2TypeEffectiveness.get("fire").put("fire", .5f);
+        this.gen2TypeEffectiveness.get("fire").put("water", .5f);
+        this.gen2TypeEffectiveness.get("fire").put("electric", 1f);
+        this.gen2TypeEffectiveness.get("fire").put("grass", 2f);
+        this.gen2TypeEffectiveness.get("fire").put("ice", 2f);
+        this.gen2TypeEffectiveness.get("fire").put("fighting", 1f);
+        this.gen2TypeEffectiveness.get("fire").put("poison", 1f);
+        this.gen2TypeEffectiveness.get("fire").put("ground", 1f);
+        this.gen2TypeEffectiveness.get("fire").put("flying", 1f);
+        this.gen2TypeEffectiveness.get("fire").put("psychic", 1f);
+        this.gen2TypeEffectiveness.get("fire").put("bug", 2f);
+        this.gen2TypeEffectiveness.get("fire").put("rock", .5f);
+        this.gen2TypeEffectiveness.get("fire").put("ghost", 1f);
+        this.gen2TypeEffectiveness.get("fire").put("dragon", .5f);
+        this.gen2TypeEffectiveness.get("fire").put("dark", 1f);
+        this.gen2TypeEffectiveness.get("fire").put("steel", .5f);
+        this.gen2TypeEffectiveness.get("fire").put("fairy", 1f);
+        this.gen2TypeEffectiveness.put("water", new HashMap<String, Float>());
+        this.gen2TypeEffectiveness.get("water").put("normal", 1f);
+        this.gen2TypeEffectiveness.get("water").put("fire", 2f);
+        this.gen2TypeEffectiveness.get("water").put("water", .5f);
+        this.gen2TypeEffectiveness.get("water").put("electric", 1f);
+        this.gen2TypeEffectiveness.get("water").put("grass", .5f);
+        this.gen2TypeEffectiveness.get("water").put("ice", 1f);
+        this.gen2TypeEffectiveness.get("water").put("fighting", 1f);
+        this.gen2TypeEffectiveness.get("water").put("poison", 1f);
+        this.gen2TypeEffectiveness.get("water").put("ground", 2f);
+        this.gen2TypeEffectiveness.get("water").put("flying", 1f);
+        this.gen2TypeEffectiveness.get("water").put("psychic", 1f);
+        this.gen2TypeEffectiveness.get("water").put("bug", 1f);
+        this.gen2TypeEffectiveness.get("water").put("rock", 2f);
+        this.gen2TypeEffectiveness.get("water").put("ghost", 1f);
+        this.gen2TypeEffectiveness.get("water").put("dragon", .5f);
+        this.gen2TypeEffectiveness.get("water").put("dark", 1f);
+        this.gen2TypeEffectiveness.get("water").put("steel", 1f);
+        this.gen2TypeEffectiveness.get("water").put("fairy", 1f);
+        this.gen2TypeEffectiveness.put("electric", new HashMap<String, Float>());
+        this.gen2TypeEffectiveness.get("electric").put("normal", 1f);
+        this.gen2TypeEffectiveness.get("electric").put("fire", 1f);
+        this.gen2TypeEffectiveness.get("electric").put("water", 2f);
+        this.gen2TypeEffectiveness.get("electric").put("electric", .5f);
+        this.gen2TypeEffectiveness.get("electric").put("grass", .5f);
+        this.gen2TypeEffectiveness.get("electric").put("ice", 1f);
+        this.gen2TypeEffectiveness.get("electric").put("fighting", 1f);
+        this.gen2TypeEffectiveness.get("electric").put("poison", 1f);
+        this.gen2TypeEffectiveness.get("electric").put("ground", 0f);
+        this.gen2TypeEffectiveness.get("electric").put("flying", 2f);
+        this.gen2TypeEffectiveness.get("electric").put("psychic", 1f);
+        this.gen2TypeEffectiveness.get("electric").put("bug", 1f);
+        this.gen2TypeEffectiveness.get("electric").put("rock", 1f);
+        this.gen2TypeEffectiveness.get("electric").put("ghost", 1f);
+        this.gen2TypeEffectiveness.get("electric").put("dragon", .5f);
+        this.gen2TypeEffectiveness.get("electric").put("dark", 1f);
+        this.gen2TypeEffectiveness.get("electric").put("steel", 1f);
+        this.gen2TypeEffectiveness.get("electric").put("fairy", 1f);
+        this.gen2TypeEffectiveness.put("grass", new HashMap<String, Float>());
+        this.gen2TypeEffectiveness.get("grass").put("normal", 1f);
+        this.gen2TypeEffectiveness.get("grass").put("fire", .5f);
+        this.gen2TypeEffectiveness.get("grass").put("water", 2f);
+        this.gen2TypeEffectiveness.get("grass").put("electric", 1f);
+        this.gen2TypeEffectiveness.get("grass").put("grass", .5f);
+        this.gen2TypeEffectiveness.get("grass").put("ice", 1f);
+        this.gen2TypeEffectiveness.get("grass").put("fighting", 1f);
+        this.gen2TypeEffectiveness.get("grass").put("poison", .5f);
+        this.gen2TypeEffectiveness.get("grass").put("ground", 2f);
+        this.gen2TypeEffectiveness.get("grass").put("flying", .5f);
+        this.gen2TypeEffectiveness.get("grass").put("psychic", 1f);
+        this.gen2TypeEffectiveness.get("grass").put("bug", .5f);
+        this.gen2TypeEffectiveness.get("grass").put("rock", 2f);
+        this.gen2TypeEffectiveness.get("grass").put("ghost", 1f);
+        this.gen2TypeEffectiveness.get("grass").put("dragon", .5f);
+        this.gen2TypeEffectiveness.get("grass").put("dark", 1f);
+        this.gen2TypeEffectiveness.get("grass").put("steel", .5f);
+        this.gen2TypeEffectiveness.get("grass").put("fairy", 1f);
+        this.gen2TypeEffectiveness.put("ice", new HashMap<String, Float>());
+        this.gen2TypeEffectiveness.get("ice").put("normal", 1f);
+        this.gen2TypeEffectiveness.get("ice").put("fire", .5f);
+        this.gen2TypeEffectiveness.get("ice").put("water", .5f);
+        this.gen2TypeEffectiveness.get("ice").put("electric", 1f);
+        this.gen2TypeEffectiveness.get("ice").put("grass", 2f);
+        this.gen2TypeEffectiveness.get("ice").put("ice", .5f);
+        this.gen2TypeEffectiveness.get("ice").put("fighting", 1f);
+        this.gen2TypeEffectiveness.get("ice").put("poison", 1f);
+        this.gen2TypeEffectiveness.get("ice").put("ground", 2f);
+        this.gen2TypeEffectiveness.get("ice").put("flying", 2f);
+        this.gen2TypeEffectiveness.get("ice").put("psychic", 1f);
+        this.gen2TypeEffectiveness.get("ice").put("bug", 1f);
+        this.gen2TypeEffectiveness.get("ice").put("rock", 1f);
+        this.gen2TypeEffectiveness.get("ice").put("ghost", 1f);
+        this.gen2TypeEffectiveness.get("ice").put("dragon", 2f);
+        this.gen2TypeEffectiveness.get("ice").put("dark", 1f);
+        this.gen2TypeEffectiveness.get("ice").put("steel", .5f);
+        this.gen2TypeEffectiveness.get("ice").put("fairy", 1f);
+        this.gen2TypeEffectiveness.put("fighting", new HashMap<String, Float>());
+        this.gen2TypeEffectiveness.get("fighting").put("normal", 2f);
+        this.gen2TypeEffectiveness.get("fighting").put("fire", 1f);
+        this.gen2TypeEffectiveness.get("fighting").put("water", 1f);
+        this.gen2TypeEffectiveness.get("fighting").put("electric", 1f);
+        this.gen2TypeEffectiveness.get("fighting").put("grass", 1f);
+        this.gen2TypeEffectiveness.get("fighting").put("ice", 2f);
+        this.gen2TypeEffectiveness.get("fighting").put("fighting", 1f);
+        this.gen2TypeEffectiveness.get("fighting").put("poison", .5f);
+        this.gen2TypeEffectiveness.get("fighting").put("ground", 1f);
+        this.gen2TypeEffectiveness.get("fighting").put("flying", .5f);
+        this.gen2TypeEffectiveness.get("fighting").put("psychic", .5f);
+        this.gen2TypeEffectiveness.get("fighting").put("bug", .5f);
+        this.gen2TypeEffectiveness.get("fighting").put("rock", 2f);
+        this.gen2TypeEffectiveness.get("fighting").put("ghost", 0f);
+        this.gen2TypeEffectiveness.get("fighting").put("dragon", 1f);
+        this.gen2TypeEffectiveness.get("fighting").put("dark", 2f);
+        this.gen2TypeEffectiveness.get("fighting").put("steel", 2f);
+        this.gen2TypeEffectiveness.get("fighting").put("fairy", .5f);
+        this.gen2TypeEffectiveness.put("poison", new HashMap<String, Float>());
+        this.gen2TypeEffectiveness.get("poison").put("normal", 1f);
+        this.gen2TypeEffectiveness.get("poison").put("fire", 1f);
+        this.gen2TypeEffectiveness.get("poison").put("water", 1f);
+        this.gen2TypeEffectiveness.get("poison").put("electric", 1f);
+        this.gen2TypeEffectiveness.get("poison").put("grass", 2f);
+        this.gen2TypeEffectiveness.get("poison").put("ice", 1f);
+        this.gen2TypeEffectiveness.get("poison").put("fighting", 1f);
+        this.gen2TypeEffectiveness.get("poison").put("poison", .5f);
+        this.gen2TypeEffectiveness.get("poison").put("ground", .5f);
+        this.gen2TypeEffectiveness.get("poison").put("flying", 1f);
+        this.gen2TypeEffectiveness.get("poison").put("psychic", 1f);
+        this.gen2TypeEffectiveness.get("poison").put("bug", 1f);
+        this.gen2TypeEffectiveness.get("poison").put("rock", .5f);
+        this.gen2TypeEffectiveness.get("poison").put("ghost", .5f);
+        this.gen2TypeEffectiveness.get("poison").put("dragon", 1f);
+        this.gen2TypeEffectiveness.get("poison").put("dark", 1f);
+        this.gen2TypeEffectiveness.get("poison").put("steel", 0f);
+        this.gen2TypeEffectiveness.get("poison").put("fairy", 2f);
+        this.gen2TypeEffectiveness.put("ground", new HashMap<String, Float>());
+        this.gen2TypeEffectiveness.get("ground").put("normal", 1f);
+        this.gen2TypeEffectiveness.get("ground").put("fire", 2f);
+        this.gen2TypeEffectiveness.get("ground").put("water", 1f);
+        this.gen2TypeEffectiveness.get("ground").put("electric", 2f);
+        this.gen2TypeEffectiveness.get("ground").put("grass", .5f);
+        this.gen2TypeEffectiveness.get("ground").put("ice", 1f);
+        this.gen2TypeEffectiveness.get("ground").put("fighting", 1f);
+        this.gen2TypeEffectiveness.get("ground").put("poison", 2f);
+        this.gen2TypeEffectiveness.get("ground").put("ground", 1f);
+        this.gen2TypeEffectiveness.get("ground").put("flying", 0f);
+        this.gen2TypeEffectiveness.get("ground").put("psychic", 1f);
+        this.gen2TypeEffectiveness.get("ground").put("bug", .5f);
+        this.gen2TypeEffectiveness.get("ground").put("rock", 2f);
+        this.gen2TypeEffectiveness.get("ground").put("ghost", 1f);
+        this.gen2TypeEffectiveness.get("ground").put("dragon", 1f);
+        this.gen2TypeEffectiveness.get("ground").put("dark", 1f);
+        this.gen2TypeEffectiveness.get("ground").put("steel", 2f);
+        this.gen2TypeEffectiveness.get("ground").put("fairy", 1f);
+        this.gen2TypeEffectiveness.put("flying", new HashMap<String, Float>());
+        this.gen2TypeEffectiveness.get("flying").put("normal", 1f);
+        this.gen2TypeEffectiveness.get("flying").put("fire", 1f);
+        this.gen2TypeEffectiveness.get("flying").put("water", 1f);
+        this.gen2TypeEffectiveness.get("flying").put("electric", .5f);
+        this.gen2TypeEffectiveness.get("flying").put("grass", 2f);
+        this.gen2TypeEffectiveness.get("flying").put("ice", 1f);
+        this.gen2TypeEffectiveness.get("flying").put("fighting", 2f);
+        this.gen2TypeEffectiveness.get("flying").put("poison", 1f);
+        this.gen2TypeEffectiveness.get("flying").put("ground", 1f);
+        this.gen2TypeEffectiveness.get("flying").put("flying", 1f);
+        this.gen2TypeEffectiveness.get("flying").put("psychic", 1f);
+        this.gen2TypeEffectiveness.get("flying").put("bug", 2f);
+        this.gen2TypeEffectiveness.get("flying").put("rock", .5f);
+        this.gen2TypeEffectiveness.get("flying").put("ghost", 1f);
+        this.gen2TypeEffectiveness.get("flying").put("dragon", 1f);
+        this.gen2TypeEffectiveness.get("flying").put("dark", 1f);
+        this.gen2TypeEffectiveness.get("flying").put("steel", .5f);
+        this.gen2TypeEffectiveness.get("flying").put("fairy", 1f);
+        this.gen2TypeEffectiveness.put("psychic", new HashMap<String, Float>());
+        this.gen2TypeEffectiveness.get("psychic").put("normal", 1f);
+        this.gen2TypeEffectiveness.get("psychic").put("fire", 1f);
+        this.gen2TypeEffectiveness.get("psychic").put("water", 1f);
+        this.gen2TypeEffectiveness.get("psychic").put("electric", 1f);
+        this.gen2TypeEffectiveness.get("psychic").put("grass", 1f);
+        this.gen2TypeEffectiveness.get("psychic").put("ice", 1f);
+        this.gen2TypeEffectiveness.get("psychic").put("fighting", 2f);
+        this.gen2TypeEffectiveness.get("psychic").put("poison", 2f);
+        this.gen2TypeEffectiveness.get("psychic").put("ground", 1f);
+        this.gen2TypeEffectiveness.get("psychic").put("flying", 1f);
+        this.gen2TypeEffectiveness.get("psychic").put("psychic", .5f);
+        this.gen2TypeEffectiveness.get("psychic").put("bug", 1f);
+        this.gen2TypeEffectiveness.get("psychic").put("rock", 1f);
+        this.gen2TypeEffectiveness.get("psychic").put("ghost", 1f);
+        this.gen2TypeEffectiveness.get("psychic").put("dragon", 1f);
+        this.gen2TypeEffectiveness.get("psychic").put("dark", 0f);
+        this.gen2TypeEffectiveness.get("psychic").put("steel", .5f);
+        this.gen2TypeEffectiveness.get("psychic").put("fairy", 1f);
+        this.gen2TypeEffectiveness.put("bug", new HashMap<String, Float>());
+        this.gen2TypeEffectiveness.get("bug").put("normal", 1f);
+        this.gen2TypeEffectiveness.get("bug").put("fire", .5f);
+        this.gen2TypeEffectiveness.get("bug").put("water", 1f);
+        this.gen2TypeEffectiveness.get("bug").put("electric", 1f);
+        this.gen2TypeEffectiveness.get("bug").put("grass", 2f);
+        this.gen2TypeEffectiveness.get("bug").put("ice", 1f);
+        this.gen2TypeEffectiveness.get("bug").put("fighting", .5f);
+        this.gen2TypeEffectiveness.get("bug").put("poison", .5f);
+        this.gen2TypeEffectiveness.get("bug").put("ground", 1f);
+        this.gen2TypeEffectiveness.get("bug").put("flying", .5f);
+        this.gen2TypeEffectiveness.get("bug").put("psychic", 2f);
+        this.gen2TypeEffectiveness.get("bug").put("bug", 1f);
+        this.gen2TypeEffectiveness.get("bug").put("rock", 1f);
+        this.gen2TypeEffectiveness.get("bug").put("ghost", .5f);
+        this.gen2TypeEffectiveness.get("bug").put("dragon", 1f);
+        this.gen2TypeEffectiveness.get("bug").put("dark", 2f);
+        this.gen2TypeEffectiveness.get("bug").put("steel", .5f);
+        this.gen2TypeEffectiveness.get("bug").put("fairy", .5f);
+        this.gen2TypeEffectiveness.put("rock", new HashMap<String, Float>());
+        this.gen2TypeEffectiveness.get("rock").put("normal", 1f);
+        this.gen2TypeEffectiveness.get("rock").put("fire", 2f);
+        this.gen2TypeEffectiveness.get("rock").put("water", 1f);
+        this.gen2TypeEffectiveness.get("rock").put("electric", 1f);
+        this.gen2TypeEffectiveness.get("rock").put("grass", 1f);
+        this.gen2TypeEffectiveness.get("rock").put("ice", 2f);
+        this.gen2TypeEffectiveness.get("rock").put("fighting", .5f);
+        this.gen2TypeEffectiveness.get("rock").put("poison", 1f);
+        this.gen2TypeEffectiveness.get("rock").put("ground", .5f);
+        this.gen2TypeEffectiveness.get("rock").put("flying", 2f);
+        this.gen2TypeEffectiveness.get("rock").put("psychic", 1f);
+        this.gen2TypeEffectiveness.get("rock").put("bug", 2f);
+        this.gen2TypeEffectiveness.get("rock").put("rock", 1f);
+        this.gen2TypeEffectiveness.get("rock").put("ghost", 1f);
+        this.gen2TypeEffectiveness.get("rock").put("dragon", 1f);
+        this.gen2TypeEffectiveness.get("rock").put("dark", 1f);
+        this.gen2TypeEffectiveness.get("rock").put("steel", .5f);
+        this.gen2TypeEffectiveness.get("rock").put("fairy", 1f);
+        this.gen2TypeEffectiveness.put("ghost", new HashMap<String, Float>());
+        this.gen2TypeEffectiveness.get("ghost").put("normal", 0f);
+        this.gen2TypeEffectiveness.get("ghost").put("fire", 1f);
+        this.gen2TypeEffectiveness.get("ghost").put("water", 1f);
+        this.gen2TypeEffectiveness.get("ghost").put("electric", 1f);
+        this.gen2TypeEffectiveness.get("ghost").put("grass", 1f);
+        this.gen2TypeEffectiveness.get("ghost").put("ice", 1f);
+        this.gen2TypeEffectiveness.get("ghost").put("fighting", 1f);
+        this.gen2TypeEffectiveness.get("ghost").put("poison", 1f);
+        this.gen2TypeEffectiveness.get("ghost").put("ground", 1f);
+        this.gen2TypeEffectiveness.get("ghost").put("flying", 1f);
+        this.gen2TypeEffectiveness.get("ghost").put("psychic", 2f);
+        this.gen2TypeEffectiveness.get("ghost").put("bug", 1f);
+        this.gen2TypeEffectiveness.get("ghost").put("rock", 1f);
+        this.gen2TypeEffectiveness.get("ghost").put("ghost", 2f);
+        this.gen2TypeEffectiveness.get("ghost").put("dragon", 1f);
+        this.gen2TypeEffectiveness.get("ghost").put("dark", .5f);
+        this.gen2TypeEffectiveness.get("ghost").put("steel", 1f);
+        this.gen2TypeEffectiveness.get("ghost").put("fairy", 1f);
+        this.gen2TypeEffectiveness.put("dragon", new HashMap<String, Float>());
+        this.gen2TypeEffectiveness.get("dragon").put("normal", 1f);
+        this.gen2TypeEffectiveness.get("dragon").put("fire", 1f);
+        this.gen2TypeEffectiveness.get("dragon").put("water", 1f);
+        this.gen2TypeEffectiveness.get("dragon").put("electric", 1f);
+        this.gen2TypeEffectiveness.get("dragon").put("grass", 1f);
+        this.gen2TypeEffectiveness.get("dragon").put("ice", 1f);
+        this.gen2TypeEffectiveness.get("dragon").put("fighting", 1f);
+        this.gen2TypeEffectiveness.get("dragon").put("poison", 1f);
+        this.gen2TypeEffectiveness.get("dragon").put("ground", 1f);
+        this.gen2TypeEffectiveness.get("dragon").put("flying", 1f);
+        this.gen2TypeEffectiveness.get("dragon").put("psychic", 1f);
+        this.gen2TypeEffectiveness.get("dragon").put("bug", 1f);
+        this.gen2TypeEffectiveness.get("dragon").put("rock", 1f);
+        this.gen2TypeEffectiveness.get("dragon").put("ghost", 1f);
+        this.gen2TypeEffectiveness.get("dragon").put("dragon", 2f);
+        this.gen2TypeEffectiveness.get("dragon").put("dark", 1f);
+        this.gen2TypeEffectiveness.get("dragon").put("steel", .5f);
+        this.gen2TypeEffectiveness.get("dragon").put("fairy", 0f);
+        this.gen2TypeEffectiveness.put("dark", new HashMap<String, Float>());
+        this.gen2TypeEffectiveness.get("dark").put("normal", 1f);
+        this.gen2TypeEffectiveness.get("dark").put("fire", 1f);
+        this.gen2TypeEffectiveness.get("dark").put("water", 1f);
+        this.gen2TypeEffectiveness.get("dark").put("electric", 1f);
+        this.gen2TypeEffectiveness.get("dark").put("grass", 1f);
+        this.gen2TypeEffectiveness.get("dark").put("ice", 1f);
+        this.gen2TypeEffectiveness.get("dark").put("fighting", .5f);
+        this.gen2TypeEffectiveness.get("dark").put("poison", 1f);
+        this.gen2TypeEffectiveness.get("dark").put("ground", 1f);
+        this.gen2TypeEffectiveness.get("dark").put("flying", 1f);
+        this.gen2TypeEffectiveness.get("dark").put("psychic", 2f);
+        this.gen2TypeEffectiveness.get("dark").put("bug", 1f);
+        this.gen2TypeEffectiveness.get("dark").put("rock", 1f);
+        this.gen2TypeEffectiveness.get("dark").put("ghost", 2f);
+        this.gen2TypeEffectiveness.get("dark").put("dragon", 1f);
+        this.gen2TypeEffectiveness.get("dark").put("dark", .5f);
+        this.gen2TypeEffectiveness.get("dark").put("steel", 1f);
+        this.gen2TypeEffectiveness.get("dark").put("fairy", .5f);
+        this.gen2TypeEffectiveness.put("steel", new HashMap<String, Float>());
+        this.gen2TypeEffectiveness.get("steel").put("normal", 1f);
+        this.gen2TypeEffectiveness.get("steel").put("fire", .5f);
+        this.gen2TypeEffectiveness.get("steel").put("water", .5f);
+        this.gen2TypeEffectiveness.get("steel").put("electric", .5f);
+        this.gen2TypeEffectiveness.get("steel").put("grass", 1f);
+        this.gen2TypeEffectiveness.get("steel").put("ice", 2f);
+        this.gen2TypeEffectiveness.get("steel").put("fighting", 1f);
+        this.gen2TypeEffectiveness.get("steel").put("poison", 1f);
+        this.gen2TypeEffectiveness.get("steel").put("ground", 1f);
+        this.gen2TypeEffectiveness.get("steel").put("flying", 1f);
+        this.gen2TypeEffectiveness.get("steel").put("psychic", 1f);
+        this.gen2TypeEffectiveness.get("steel").put("bug", 1f);
+        this.gen2TypeEffectiveness.get("steel").put("rock", 2f);
+        this.gen2TypeEffectiveness.get("steel").put("ghost", 1f);
+        this.gen2TypeEffectiveness.get("steel").put("dragon", 1f);
+        this.gen2TypeEffectiveness.get("steel").put("dark", 1f);
+        this.gen2TypeEffectiveness.get("steel").put("steel", .5f);
+        this.gen2TypeEffectiveness.get("steel").put("fairy", 2f);
+        this.gen2TypeEffectiveness.put("fairy", new HashMap<String, Float>());
+        this.gen2TypeEffectiveness.get("fairy").put("normal", 1f);
+        this.gen2TypeEffectiveness.get("fairy").put("fire", .5f);
+        this.gen2TypeEffectiveness.get("fairy").put("water", 1f);
+        this.gen2TypeEffectiveness.get("fairy").put("electric", 1f);
+        this.gen2TypeEffectiveness.get("fairy").put("grass", 1f);
+        this.gen2TypeEffectiveness.get("fairy").put("ice", 1f);
+        this.gen2TypeEffectiveness.get("fairy").put("fighting", 2f);
+        this.gen2TypeEffectiveness.get("fairy").put("poison", .5f);
+        this.gen2TypeEffectiveness.get("fairy").put("ground", 1f);
+        this.gen2TypeEffectiveness.get("fairy").put("flying", 1f);
+        this.gen2TypeEffectiveness.get("fairy").put("psychic", 1f);
+        this.gen2TypeEffectiveness.get("fairy").put("bug", 1f);
+        this.gen2TypeEffectiveness.get("fairy").put("rock", 1f);
+        this.gen2TypeEffectiveness.get("fairy").put("ghost", 1f);
+        this.gen2TypeEffectiveness.get("fairy").put("dragon", 2f);
+        this.gen2TypeEffectiveness.get("fairy").put("dark", 2f);
+        this.gen2TypeEffectiveness.get("fairy").put("steel", .5f);
+        this.gen2TypeEffectiveness.get("fairy").put("fairy", 1f);
+        
+        // load all attacks and attributes
+        
+        try {
+            FileHandle file = Gdx.files.internal("crystal_pokemon/moves.asm");
+            Reader reader = file.reader();
+            BufferedReader br = new BufferedReader(reader);
+            String line;
+            int lineNum = 1;
+            while ((line = br.readLine()) != null)   {
+                // TODO: using table to look up number now
+//                if (lineNum == 0) {
+//                    this.dexNumber = line.split(" ; ")[1];
+//                } else 
+                if (lineNum > 14 && lineNum < 266) {
+                    String attrs[] = line.split("\tmove ")[1].split(",\\s+");
+                    Attack attack = new Attack(attrs[0].toLowerCase().replace('_', ' '), Integer.valueOf(attrs[2]), 
+                                               attrs[3].toLowerCase(), Integer.valueOf(attrs[4]),
+                                               Integer.valueOf(attrs[5]), Integer.valueOf(attrs[6]));
+                    this.attacks.put(attack.name, attack);
+//                    System.out.println(attack.name + " " + attack.type);
+                } 
+                lineNum++;
+            }
+            reader.close();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
     }
-    
 }
 
 
@@ -1262,7 +1678,7 @@ class DrawAttacksMenu extends Action {
             //explanation of speed move priority: http://bulbapedia.bulbagarden.net/wiki/Stats#Speed
              // pkmn with higher speed moves first
             
-            //find which pokemone is first
+            //find which pokemon is first
             
             int yourSpeed = game.player.currPokemon.currentStats.get("speed");
             int oppSpeed = game.battle.oppPokemon.currentStats.get("speed");
@@ -1280,6 +1696,7 @@ class DrawAttacksMenu extends Action {
                     oppFirst = true;
                 }
             }
+            // TODO: probably have Action ClearDisplayText instead of using triggers; too confusing atm
             
             if (!oppFirst) {
                 //set up enemy attack
@@ -1288,82 +1705,111 @@ class DrawAttacksMenu extends Action {
                 if (attackChoice.equals("-")) {
                     attackChoice = "Struggle";
                 }
-                Action enemyTrigger = new WaitFrames(game, 13, 
-                        new WaitFrames(game, 3, this.nextAction)
-                    );
-                Action enemyAttack = Battle_Actions.getAttackAction(game, attackChoice, !isFriendly, new DepleteFriendlyHealth(game.player.currPokemon, enemyTrigger));
-                Action displayEnemyText = new DisplayText(game, 
-                        "Enemy "+game.battle.oppPokemon.name.toUpperCase()+" used "+attackChoice.toUpperCase()+"!",
-                        null, enemyTrigger, enemyAttack
-                );
-                
-                            
+                // TODO: remove
+//                Action enemyTrigger = new WaitFrames(game, 13, 
+//                        new WaitFrames(game, 3, this.nextAction)
+//                    );
+//                Action enemyAttack = Battle_Actions.getAttackAction(game, attackChoice, !isFriendly, new DepleteFriendlyHealth(game.player.currPokemon, enemyTrigger));
+//                Action displayEnemyText = new DisplayText(game, 
+//                        "Enemy "+game.battle.oppPokemon.name.toUpperCase()+" used "+attackChoice.toUpperCase()+"!",
+//                        null, enemyTrigger, enemyAttack
+//                );
+//                
+//                            
+//                
+//                //if that selection isn't null, get that attack via
+//                 //Battle_Actions.getAttackAction(String attackName, Action nextAction);
+//                Action trigger = new WaitFrames(game, 13, 
+//                                        new WaitFrames(game, 3, displayEnemyText)
+//                                    );
+//                Action attack = Battle_Actions.getAttackAction(game, game.player.currPokemon.attacks[curr], isFriendly,
+//                                                                        new DepleteEnemyHealth(game, trigger));
+//                PublicFunctions.insertToAS(game, new DisplayText(game, game.player.currPokemon.name.toUpperCase()+" used "+game.player.currPokemon.attacks[curr].toUpperCase()+"!",
+//                                                                     null, trigger, attack
+//                                                                 ));
+                ///
+
                 //play select sound
-                PublicFunctions.insertToAS(game, new PlaySound("click1", new DoneAction()));
-                
-                //if that selection isn't null, get that attack via
-                 //Battle_Actions.getAttackAction(String attackName, Action nextAction);
-                Action trigger = new WaitFrames(game, 13, 
-                                        new WaitFrames(game, 3, displayEnemyText)
-                                    );
-                Action attack = Battle_Actions.getAttackAction(game, game.player.currPokemon.attacks[curr], isFriendly,
-                                                                        new DepleteEnemyHealth(game, trigger));
-                PublicFunctions.insertToAS(game, new DisplayText(game, game.player.currPokemon.name.toUpperCase()+" used "+game.player.currPokemon.attacks[curr].toUpperCase()+"!",
-                                                                     null, trigger, attack
-                                                                 ));
+                PublicFunctions.insertToAS(game, new PlaySound("click1", null));
+                Action attack = new DisplayText(game,
+                                                game.player.currPokemon.name.toUpperCase()+" used "+game.player.currPokemon.attacks[this.curr].toUpperCase()+"!",
+                                                null,
+                                                true, 
+                                new AttackAnim(game, game.player.currPokemon.attacks[curr], isFriendly,
+                                new DisplayText(game, 
+                                                "Enemy "+game.battle.oppPokemon.name.toUpperCase()+" used "+attackChoice.toUpperCase()+"!",
+                                                null, 
+                                                true,
+                                new AttackAnim(game, attackChoice, !isFriendly,
+                                this.nextAction))));
+                // TODO: check for trapped status here
+                PublicFunctions.insertToAS(game, attack);
             }
             else{
                 //set up enemy attack
                 boolean isFriendly = true;
-                
 
-
-                // TODO: put this elsewhere
-                Action nAction = this.nextAction;
-                if (game.battle.oppPokemon.name.equals("Mewtwo")) {
-
-//                    Action trigger = new WaitFrames(game, 13, 
-                    Action trigger = new WaitFrames(game, 30, 
-                                            new WaitFrames(game, 3, this.nextAction)
-                                        );
-                    Action attack = Battle_Actions.getAttackAction(game, "Mewtwo_Special1", !isFriendly,
-                            new DepleteFriendlyHealth(game.player.currPokemon, trigger));
-                    Action displayEnemyText = new DisplayText(game, 
-                            "A wave of psychic power unleashes!", null, trigger, attack
-                    );
-                    nAction = displayEnemyText;
-                }
-
-                //if that selection isn't null, get that attack via
-                 //Battle_Actions.getAttackAction(String attackName, Action nextAction);
-                Action trigger = new WaitFrames(game, 13, 
-                                        new WaitFrames(game, 3, nAction)
-                                    );
-                Action attack = Battle_Actions.getAttackAction(game, game.player.currPokemon.attacks[curr], isFriendly,
-                                                                        new DepleteEnemyHealth(game, trigger));
-                
-                Action displayYourText = new DisplayText(game, game.player.currPokemon.name.toUpperCase()+" used "+game.player.currPokemon.attacks[curr].toUpperCase()+"!",
-                            null, trigger, attack
-                        );
+//                // TODO: put this elsewhere
+//                Action nAction = this.nextAction;
+//                if (game.battle.oppPokemon.name.equals("Mewtwo")) {
+//
+////                    Action trigger = new WaitFrames(game, 13, 
+//                    Action trigger = new WaitFrames(game, 30, 
+//                                            new WaitFrames(game, 3, this.nextAction)
+//                                        );
+//                    Action attack = Battle_Actions.getAttackAction(game, "Mewtwo_Special1", !isFriendly,
+//                            new DepleteFriendlyHealth(game.player.currPokemon, trigger));
+//                    Action displayEnemyText = new DisplayText(game, 
+//                            "A wave of psychic power unleashes!", null, trigger, attack
+//                    );
+//                    nAction = displayEnemyText;
+//                }
+//
+//                //if that selection isn't null, get that attack via
+//                 //Battle_Actions.getAttackAction(String attackName, Action nextAction);
+//                Action trigger = new WaitFrames(game, 13, 
+//                                        new WaitFrames(game, 3, nAction)
+//                                    );
+//                Action attack = Battle_Actions.getAttackAction(game, game.player.currPokemon.attacks[curr], isFriendly,
+//                                                                        new DepleteEnemyHealth(game, trigger));
+//                
+//                Action displayYourText = new DisplayText(game, game.player.currPokemon.name.toUpperCase()+" used "+game.player.currPokemon.attacks[curr].toUpperCase()+"!",
+//                            null, trigger, attack
+//                        );
                 
                 String attackChoice = game.battle.oppPokemon.attacks[game.map.rand.nextInt(game.battle.oppPokemon.attacks.length)];
                 if (attackChoice.equals("-")) {
                     attackChoice = "Struggle";
                 }
-                Action enemyTrigger = new WaitFrames(game, 13, 
-                        new WaitFrames(game, 3, displayYourText)
-                    );
-                Action enemyAttack = Battle_Actions.getAttackAction(game, attackChoice, !isFriendly, new DepleteFriendlyHealth(game.player.currPokemon, enemyTrigger));
-                Action displayEnemyText = new DisplayText(game, 
-                        "Enemy "+game.battle.oppPokemon.name.toUpperCase()+" used "+attackChoice.toUpperCase()+"!",
-                        null, enemyTrigger, enemyAttack
-                );
+//                Action enemyTrigger = new WaitFrames(game, 13, 
+//                        new WaitFrames(game, 3, displayYourText)
+//                    );
+//                Action enemyAttack = Battle_Actions.getAttackAction(game, attackChoice, !isFriendly, new DepleteFriendlyHealth(game.player.currPokemon, enemyTrigger));
+//                Action displayEnemyText = new DisplayText(game, 
+//                        "Enemy "+game.battle.oppPokemon.name.toUpperCase()+" used "+attackChoice.toUpperCase()+"!",
+//                        null, enemyTrigger, enemyAttack
+//                );
+//
+//                PublicFunctions.insertToAS(game, displayEnemyText);
+//                            
+//                //play select sound
+//                PublicFunctions.insertToAS(game, new PlaySound("click1", new DoneAction()));
 
-                PublicFunctions.insertToAS(game, displayEnemyText);
-                            
                 //play select sound
-                PublicFunctions.insertToAS(game, new PlaySound("click1", new DoneAction()));
-                
+                PublicFunctions.insertToAS(game, new PlaySound("click1", null));
+                Action attack = new DisplayText(game,
+                                                "Enemy "+game.battle.oppPokemon.name.toUpperCase()+" used "+attackChoice.toUpperCase()+"!",
+                                                null,
+                                                true, 
+                                new AttackAnim(game, attackChoice, !isFriendly,
+                                new DisplayText(game, 
+                                        game.player.currPokemon.name.toUpperCase()+" used "+game.player.currPokemon.attacks[curr].toUpperCase()+"!",
+                                                null, 
+                                                true,
+                                new AttackAnim(game, game.player.currPokemon.attacks[curr], isFriendly,
+                                this.nextAction))));
+                // TODO: check for trapped status here(?)
+                PublicFunctions.insertToAS(game, attack);
             }
             
             game.actionStack.remove(this);
@@ -1940,7 +2386,8 @@ class DrawItemMenu extends MenuAction {
         
         int j = 0;
         //add 'cancel' to the items list
-        this.itemsList = new ArrayList<String>(game.player.itemsList);
+//        this.itemsList = new ArrayList<String>(game.player.itemsList); // TODO: delete
+        this.itemsList = new ArrayList<String>(game.player.itemsDict.keySet()); // TODO: delete
         this.itemsList.add("Cancel");
         //convert player item list to sprites
         for (String entry : this.itemsList) {
@@ -1963,7 +2410,21 @@ class DrawItemMenu extends MenuAction {
                  //TODO - do this for words, not chars. split on space, array
                 
                 i++;
-            }        
+            }
+            if (game.player.itemsDict.containsKey(entry)) {
+                char[] numItemsArray = String.format("%02d", game.player.itemsDict.get(entry)).toCharArray();
+                i = 10;
+                for (char letter : numItemsArray) {
+                    i += 1;
+                    if (letter == '0') {
+                        continue;
+                    }
+                    Sprite letterSprite = game.textDict.get((char)letter);
+                    currSprite = new Sprite(letterSprite);
+                    currSprite.setPosition(48+8*i, 104);
+                    word.add(currSprite);
+                }
+            }
             spritesToDraw.add(word);    
             j++;
         }
@@ -2512,6 +2973,7 @@ class DrawPokemonMenu extends MenuAction {
 //                DrawPokemonMenu.lastIndex = prevMenu.currIndex;
                 game.player.isBuilding = true;  // tile to build appears in front of player
                 game.player.isCutting = false;
+                game.player.isHeadbutting = false;
                 return new SelectedMenu.ExitAfterActions(this.prevMenu,
                        new DisplayText(game, game.player.pokemon.get(DrawPokemonMenu.currIndex).name.toUpperCase()+" used BUILD! Press C and V to select tiles.", null, null, 
                        new DoneAction()
@@ -2520,8 +2982,17 @@ class DrawPokemonMenu extends MenuAction {
             else if (word.equals("CUT")) {
                 game.player.isCutting = true;
                 game.player.isBuilding = false;
+                game.player.isHeadbutting = false;
                 return new SelectedMenu.ExitAfterActions(this.prevMenu,
                        new DisplayText(game, game.player.pokemon.get(DrawPokemonMenu.currIndex).name.toUpperCase()+" is using CUT!", null, null, 
+                       new DoneAction()));
+            }
+            else if (word.equals("HEADBUTT")) {
+                game.player.isHeadbutting = true;
+                game.player.isBuilding = false;
+                game.player.isCutting = false;
+                return new SelectedMenu.ExitAfterActions(this.prevMenu,
+                       new DisplayText(game, game.player.pokemon.get(DrawPokemonMenu.currIndex).name.toUpperCase()+" is using HEADBUTT!", null, null, 
                        new DoneAction()));
             }
             return null;
@@ -3127,7 +3598,7 @@ class DrawBattle extends Action {
 
     Sprite helperSprite;
     
-    boolean shouldDrawOppPokemon;
+    public static boolean shouldDrawOppPokemon = true;
     
     @Override
     public void step(PkmnGen game) {
@@ -3141,7 +3612,7 @@ class DrawBattle extends Action {
         //debug
 //        this.helperSprite.draw(game.floatingBatch);
 
-        if (shouldDrawOppPokemon) {
+        if (this.shouldDrawOppPokemon) {
             game.battle.oppPokemon.sprite.draw(game.floatingBatch);
 //            game.floatingBatch.draw(game.battle.oppPokemon.sprite, 
 //                                    game.battle.oppPokemon.sprite.getX(),
@@ -3178,26 +3649,28 @@ class DrawBattle extends Action {
     }
     
     public DrawBattle(PkmnGen game) {
-
-        this.shouldDrawOppPokemon = true;
         
         Texture text = new Texture(Gdx.files.internal("battle/battle_bg3.png"));
         //Texture text = new Texture(Gdx.files.internal("battle/helper1.png"));
-        this.bgSprite = new Sprite(text, 0, 0, 160, 144);
+        this.bgSprite = new Sprite(text, 0, 0, 176, 160);
         //this.bgSprite.setPosition(16*10,16*9);
         //this.bgSprite.setScale(3);
         //TODO - make bg the text box.(?)
         
         game.battle.drawAction = this;
 
-        text = new Texture(Gdx.files.internal("attack_menu/helper4.png"));
-        this.helperSprite = new Sprite(text, 0, 0, 160, 144);
+//        text = new Texture(Gdx.files.internal("attack_menu/helper4.png"));
+//        this.helperSprite = new Sprite(text, 0, 0, 160, 144);
+        
+        // sprite is bigger than bg, needed for screen shake
+        this.bgSprite.setPosition(-8, -8);
         
     }
 }
 
 
-
+// TODO: should either step into this in DrawBattle, or just
+// move this code to DrawBattle. 
 //instance of this assigned to DrawBattle.drawEnemyHealthAction
 class DrawEnemyHealth extends Action {
 
@@ -3206,50 +3679,50 @@ class DrawEnemyHealth extends Action {
     
     public int layer = 129;
     public int getLayer(){return this.layer;}
-
     public String getCamera() {return "gui";};
-
+    public static boolean shouldDraw = true;
     
     @Override
     public void step(PkmnGen game) {
 
-        //draw helper sprite
-         //probly remove
-        this.bgSprite.draw(game.floatingBatch);        
-        
-        //draw pkmn level bars
-        int tensPlace = game.battle.oppPokemon.level/10;
-        //System.out.println("level: "+String.valueOf(tensPlace));
-        Sprite tensPlaceSprite = game.textDict.get(Character.forDigit(tensPlace,10));
-        game.floatingBatch.draw(tensPlaceSprite, 40, 128);
-
-        int offset = 0;
-        if (game.battle.oppPokemon.level < 10) {
-            offset = -8;
+        if (this.shouldDraw) {
+            
+            //draw helper sprite
+             //probly remove
+            this.bgSprite.draw(game.floatingBatch);        
+            
+            //draw pkmn level bars
+            int tensPlace = game.battle.oppPokemon.level/10;
+            //System.out.println("level: "+String.valueOf(tensPlace));
+            Sprite tensPlaceSprite = game.textDict.get(Character.forDigit(tensPlace,10));
+            game.floatingBatch.draw(tensPlaceSprite, 40, 128);
+    
+            int offset = 0;
+            if (game.battle.oppPokemon.level < 10) {
+                offset = -8;
+            }
+            
+            int onesPlace = game.battle.oppPokemon.level % 10;
+            Sprite onesPlaceSprite = game.textDict.get(Character.forDigit(onesPlace,10));
+            game.floatingBatch.draw(onesPlaceSprite, 48+offset, 128);
+    
+            char[] textArray = game.battle.oppPokemon.name.toUpperCase().toCharArray();
+            Sprite letterSprite;
+            for (int i=0; i < textArray.length; i++) {
+                letterSprite = game.textDict.get(textArray[i]);
+                game.floatingBatch.draw(letterSprite, 8+8*i, 136);
+            }
+            
+            //draw health bar
+            for (Sprite bar : this.healthBar) {
+                bar.draw(game.floatingBatch);
+            }
         }
-        
-        int onesPlace = game.battle.oppPokemon.level % 10;
-        Sprite onesPlaceSprite = game.textDict.get(Character.forDigit(onesPlace,10));
-        game.floatingBatch.draw(onesPlaceSprite, 48+offset, 128);
-
-        char[] textArray = game.battle.oppPokemon.name.toUpperCase().toCharArray();
-        Sprite letterSprite;
-        for (int i=0; i < textArray.length; i++) {
-            letterSprite = game.textDict.get(textArray[i]);
-            game.floatingBatch.draw(letterSprite, 8+8*i, 136);
-        }
-        
-        //draw health bar
-        for (Sprite bar : this.healthBar) {
-            bar.draw(game.floatingBatch);
-        }
-        
         //detect when battle is over, 
         //object will remove itself from AS
         if (game.battle.drawAction == null) {
             game.actionStack.remove(this);
         }
-        
     }
     
     public DrawEnemyHealth(PkmnGen game) {
@@ -3282,6 +3755,8 @@ class DrawEnemyHealth extends Action {
 
 
 
+//TODO: should either step into this in DrawBattle, or just
+//move this code to DrawBattle. 
 //instance of this assigned to DrawBattle.drawEnemyHealthAction
 class DrawFriendlyHealth extends Action {
 
@@ -3294,6 +3769,7 @@ class DrawFriendlyHealth extends Action {
 
     public String getCamera() {return "gui";};
     boolean firstStep = true;
+    public static boolean shouldDraw = true;
     
     @Override
     public void step(PkmnGen game) {
@@ -3308,55 +3784,54 @@ class DrawFriendlyHealth extends Action {
             PublicFunctions.insertToAS(game, this.nextAction);
             this.nextAction = null;
         }
-
-        
-        //draw helper sprite
-         //probly remove
-        this.bgSprite.draw(game.floatingBatch);        
-        
-
-//        this.helperSprite.draw(game.floatingBatch);    //debug
-        
-        //draw pkmn level bars
-        int tensPlace = game.player.currPokemon.level/10;
-        //System.out.println("level: "+String.valueOf(tensPlace));
-        Sprite tensPlaceSprite = game.textDict.get(Character.forDigit(tensPlace,10));
-        game.floatingBatch.draw(tensPlaceSprite, 120, 72);
-
-        int offset = 0;
-        if (game.player.currPokemon.level < 10) {
-            offset = -8;
+        if (this.shouldDraw) {
+            
+            //draw helper sprite
+             //probly remove
+            this.bgSprite.draw(game.floatingBatch);        
+            
+    
+    //        this.helperSprite.draw(game.floatingBatch);    //debug
+            
+            //draw pkmn level bars
+            int tensPlace = game.player.currPokemon.level/10;
+            //System.out.println("level: "+String.valueOf(tensPlace));
+            Sprite tensPlaceSprite = game.textDict.get(Character.forDigit(tensPlace,10));
+            game.floatingBatch.draw(tensPlaceSprite, 120, 72);
+    
+            int offset = 0;
+            if (game.player.currPokemon.level < 10) {
+                offset = -8;
+            }
+            
+            int onesPlace = game.player.currPokemon.level % 10;
+            Sprite onesPlaceSprite = game.textDict.get(Character.forDigit(onesPlace,10));
+            game.floatingBatch.draw(onesPlaceSprite, 128+offset, 72);
+    
+            char[] textArray = game.player.currPokemon.name.toUpperCase().toCharArray();
+            Sprite letterSprite;
+            offset = 0;
+            if (textArray.length > 5) {
+                offset = -16;
+            }
+            else if(textArray.length > 2) {
+                offset = -8;
+            }
+            for (int i=0; i < textArray.length; i++) {
+                letterSprite = game.textDict.get(textArray[i]);
+                game.floatingBatch.draw(letterSprite, offset+96+8*i, 80);
+            }
+            
+            //draw health bar
+            for (Sprite bar : this.healthBar) {
+                bar.draw(game.floatingBatch);
+            }
         }
-        
-        int onesPlace = game.player.currPokemon.level % 10;
-        Sprite onesPlaceSprite = game.textDict.get(Character.forDigit(onesPlace,10));
-        game.floatingBatch.draw(onesPlaceSprite, 128+offset, 72);
-
-        char[] textArray = game.player.currPokemon.name.toUpperCase().toCharArray();
-        Sprite letterSprite;
-        offset = 0;
-        if (textArray.length > 5) {
-            offset = -16;
-        }
-        else if(textArray.length > 2) {
-            offset = -8;
-        }
-        for (int i=0; i < textArray.length; i++) {
-            letterSprite = game.textDict.get(textArray[i]);
-            game.floatingBatch.draw(letterSprite, offset+96+8*i, 80);
-        }
-        
-        //draw health bar
-        for (Sprite bar : this.healthBar) {
-            bar.draw(game.floatingBatch);
-        }
-        
         //detect when battle is over, 
         //object will remove itself from AS
         if (game.battle.drawAction == null) {
             game.actionStack.remove(this);
         }
-        
     }
     public DrawFriendlyHealth(PkmnGen game) {
         this(game, null);
@@ -7676,6 +8151,32 @@ class PokemonIntroAnim extends Action {
     }
 }
 
+
+
+class AttackAnim extends Action {
+
+    public int layer = 500;  // ensure that this triggers before other actions
+    public int getLayer(){return this.layer;};
+
+    String attackName;
+    boolean isFriendly;
+    Action nextAction;
+
+    @Override
+    public void step(PkmnGen game) {
+        // TODO: move the Battle_Actions.getAttackAction code here
+        game.actionStack.remove(this);
+        PublicFunctions.insertToAS(game, Battle_Actions.getAttackAction(game, attackName, isFriendly, nextAction));
+    }
+    
+    public AttackAnim(PkmnGen game, String attackName, boolean isFriendly, Action nextAction) {
+        this.nextAction = nextAction;
+        this.attackName = attackName;
+        this.isFriendly = isFriendly;
+    }
+}
+
+
 //return the type of battle the the player must enter
  //safari battle (no pokemon),
  //throw out first pkmn
@@ -7772,6 +8273,7 @@ class Battle_Actions extends Action {
     public static Action getAttackAction(PkmnGen game, String attackName, boolean isFriendly, Action nextAction) {
         
         //construct default attack?
+        // TODO: the non-loaded ones are broken now, need to do DisplayText.Clear()
         
         
         int power = 40;
@@ -7862,7 +8364,91 @@ class Battle_Actions extends Action {
                 return new Battle_Actions.Lick(game, game.battle.oppPokemon, game.player.currPokemon, nextAction);
             }
         }
-        
+        else {
+            // TODO: this won't work yet
+            if (game.battle.oppPokemon.name.equals("Mewtwo")) {
+                nextAction = new DisplayText(game, "A wave of psychic power unleashes!", null, true, 
+                             Battle_Actions.getAttackAction(game, "Mewtwo_Special1", !isFriendly,
+                             new DepleteFriendlyHealth(game.player.currPokemon, 
+                             new WaitFrames(game, 30, 
+                             new DisplayText.Clear(game,
+                             new WaitFrames(game, 3, nextAction))))));
+            }
+            String effectiveness;
+            String text_string = "";
+            if (isFriendly) {
+                // TODO: string based on effectiveness
+                // TODO: 'no effect' attacks
+                // attack data loaded from Crystal
+                String attackType = game.battle.attacks.get(attackName.toLowerCase()).type;
+                float multiplier = game.battle.gen2TypeEffectiveness.get(attackType).get(game.battle.oppPokemon.types.get(0).toLowerCase());
+                if (game.battle.oppPokemon.types.size() > 1) {
+                    multiplier *= game.battle.gen2TypeEffectiveness.get(attackType).get(game.battle.oppPokemon.types.get(1).toLowerCase());
+                }
+                if (multiplier > 1f) {
+                    effectiveness = "super_effective";
+                    text_string = "It's super- effective!";
+                }
+                else if (multiplier == 1f) {
+                    effectiveness = "neutral_effective";
+                }
+                else {
+                    effectiveness = "not_very_effective";
+                    text_string = "It's not very effective...";
+                }
+                return new LoadAndPlayAttackAnimation(game, attackName, game.battle.oppPokemon, 
+                       new LoadAndPlayAttackAnimation(game, effectiveness, game.battle.oppPokemon,
+                       new DepleteEnemyHealth(game,
+                       new WaitFrames(game, 13,
+                       new DisplayText.Clear(game,
+                       new WaitFrames(game, 3,
+                       !effectiveness.equals("neutral_effective") ?
+                           new DisplayText(game,
+                                           text_string,
+                                           null,
+                                           null,
+                           new WaitFrames(game, 3,
+                           nextAction))
+                       :
+                           nextAction
+                       ))))));
+            }
+            else {
+                String attackType = game.battle.attacks.get(attackName.toLowerCase()).type;
+                float multiplier = game.battle.gen2TypeEffectiveness.get(attackType).get(game.player.currPokemon.types.get(0).toLowerCase());
+                if (game.player.currPokemon.types.size() > 1) {
+                    multiplier *= game.battle.gen2TypeEffectiveness.get(attackType).get(game.player.currPokemon.types.get(1).toLowerCase());
+                }
+                if (multiplier > 1f) {
+                    effectiveness = "super_effective";
+                    text_string = "It's super- effective!";
+                }
+                else if (multiplier == 1f) {
+                    effectiveness = "neutral_effective";
+                }
+                else {
+                    effectiveness = "not_very_effective";
+                    text_string = "It's not very effective...";
+                }
+                return new LoadAndPlayAttackAnimation(game, attackName, game.player.currPokemon,
+                       new LoadAndPlayAttackAnimation(game, effectiveness, game.player.currPokemon,
+                       new DepleteFriendlyHealth(game.player.currPokemon,
+                       new WaitFrames(game, 13,
+                       new DisplayText.Clear(game,
+                       new WaitFrames(game, 3,
+                       !effectiveness.equals("neutral_effective") ?
+                           new DisplayText(game,
+                                           text_string,
+                                           null,
+                                           null,
+                           new WaitFrames(game, 3,
+                           nextAction))
+                       :
+                           nextAction
+                       ))))));
+            }
+        }
+
         
         if (isFriendly) {
             return new DefaultAttack(game, power, accuracy, nextAction);
@@ -7872,9 +8458,6 @@ class Battle_Actions extends Action {
         }
         
     }
-    
-    
-    
 
     public static Action get(PkmnGen game) {
         
@@ -9043,7 +9626,6 @@ class Battle_Actions extends Action {
                 SpecialBattleMewtwo.RocksEffect2.velocityX = -2;  // TODO: is this doing anything?
                 this.currShader = new ShaderProgram(this.vertexShader, this.getShader(.6f));
                 game.floatingBatch.setShader(this.currShader);
-                // !!!
             }
             else if (this.timer == 120) {
                 SpecialBattleMewtwo.RocksEffect1.velocityX = -12;
@@ -9380,6 +9962,221 @@ class Battle_Actions extends Action {
                             + "}\n";
             return shader;
         }
+    }
+    
+
+    // Lick attack animation
+    static class LoadAndPlayAttackAnimation extends Action {
+
+        public int layer = 110;
+        public int getLayer(){return this.layer;}
+        public String getCamera() {return "gui";};
+
+        Action nextAction;
+        int power = 10;
+        int accuracy = 10;
+        String name;
+        HashMap<Integer, String> metadata = new HashMap<Integer, String>();
+        Music sound;
+        int frameNum = 1;
+        Texture currText;
+        Sprite currFrame;
+        Pokemon target;
+        boolean firstStep = true;
+        Matrix4 translation;
+        Vector2 playerSpriteOrigin;
+        Vector2 enemySpriteOrigin;
+        Pixmap pixmap;
+        int pixmapX, pixmapY;
+
+        @Override
+        public void step(PkmnGen game) {
+            // TODO: load attack power/accuracy
+            if (this.firstStep) {
+                // load metadata for each frame
+                // ex: player_healthbar_gone -> means to make player's healthbar transparent during this frame
+                try {
+                    FileHandle file = Gdx.files.internal("attacks/" + this.name + "/metadata.out");
+                    Reader reader = file.reader();
+                    BufferedReader br = new BufferedReader(reader);
+                    String line;
+//                    int lineNum = 0;
+                    while ((line = br.readLine()) != null)   {
+                        int frameNum = Integer.valueOf(line.split(", ")[0]);
+                        String properties = line.split(", ")[1];
+                        this.metadata.put(frameNum, properties);
+//                        lineNum++;
+                    }
+                    reader.close();
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
+                // load sound to play and play it
+                this.sound = Gdx.audio.newMusic(Gdx.files.internal("attacks/" + this.name + "/sound.ogg"));
+                this.sound.play();
+                this.firstStep = false;
+                
+                this.playerSpriteOrigin = new Vector2(game.player.currPokemon.backSprite.getX(), 
+                                                      game.player.currPokemon.backSprite.getY());
+                this.enemySpriteOrigin = new Vector2(game.battle.oppPokemon.sprite.getX(), 
+                                                     game.battle.oppPokemon.sprite.getY());
+            }
+
+            // reset vars at beginning
+            DrawEnemyHealth.shouldDraw = true;
+            DrawFriendlyHealth.shouldDraw = true;
+            DrawBattle.shouldDrawOppPokemon = true;
+            game.player.currPokemon.backSprite.setPosition(this.playerSpriteOrigin.x, this.playerSpriteOrigin.y);
+            game.battle.oppPokemon.sprite.setPosition(this.enemySpriteOrigin.x, this.enemySpriteOrigin.y);
+            game.floatingBatch.setTransformMatrix(new Matrix4(new Vector3(0,0,0), new Quaternion(), new Vector3(1,1,1)));
+            
+            // if next frame doesn't exist in animation, return
+            FileHandle filehandle = Gdx.files.internal("attacks/" + this.name + "/output/frame-" + String.format("%03d", this.frameNum) + ".png"); 
+            if (!filehandle.exists()) {
+                //assign damage to target pkmn
+                int currHealth = this.target.currentStats.get("hp");
+                //TODO - correct damage calculation
+                int finalHealth = currHealth - this.power;
+                if (finalHealth < 0) {finalHealth = 0;} //make sure finalHealth isn't negative
+                this.target.currentStats.put("hp", finalHealth);
+                game.actionStack.remove(this);
+                PublicFunctions.insertToAS(game, this.nextAction);
+                
+                // TODO: need new actions not v effective, super eff, etc
+//                if (this.target == game.player.currPokemon) {
+//                    PublicFunctions.insertToAS(game, new DefaultEnemyAttack(game.battle.oppPokemon, game.player.currPokemon, this.power, this.accuracy, this.nextAction));
+//                }
+//                else {
+//                    PublicFunctions.insertToAS(game, new DefaultAttack(game, this.power, this.accuracy, this.nextAction));
+//                }
+                return;
+            }
+            
+            // draw water effect if present
+            if (this.metadata.containsKey(this.frameNum)) {
+                String properties = this.metadata.get(this.frameNum);
+                if (properties.contains("screenshot")) {
+                    String[] values = properties.split("screenshot:")[1].split(" ")[0].split(",");
+                    this.pixmapX = Integer.valueOf(values[0]);
+                    this.pixmapY = Integer.valueOf(values[1]);
+                    int width = Integer.valueOf(values[2]);
+                    int height = Integer.valueOf(values[3]);
+                    this.pixmap = ScreenUtils.getFrameBufferPixmap(this.pixmapX*3, this.pixmapY*3, width*3, height*3);
+                }
+                if (properties.contains("row_copy")) {
+                    // copy the screenshotted pixmap
+                    Pixmap newPixmap = new Pixmap((int)(this.pixmap.getWidth()/3f), (int)(this.pixmap.getHeight()/3f), Pixmap.Format.RGBA8888);
+//                    Pixmap newPixmap = new Pixmap(this.pixmap.getWidth(), this.pixmap.getHeight(), Pixmap.Format.RGBA8888);
+                    newPixmap.setColor(new Color(0, 0, 0, 0));
+                    newPixmap.fill();
+                    // drawPixmap didn't work for some reason, copying manually
+                    for (int i = 0; i < newPixmap.getWidth(); i++) {
+                        for (int j = 0; j < newPixmap.getHeight(); j++) {
+                            Color color = new Color(this.pixmap.getPixel(i*3, j*3));
+                            newPixmap.drawPixel(i, j, Color.rgba8888(color));
+                        }
+                    }
+//                    newPixmap.drawPixmap(this.pixmap, 0, 0, this.pixmap.getWidth(), this.pixmap.getHeight(), 0, 0, (int)(this.pixmap.getWidth()/3f), (int)(this.pixmap.getHeight()/3f));
+//                    newPixmap.drawPixmap(this.pixmap, 0, 0);
+                    // don't apply water ripple effect to player sprite
+                    boolean playerSpriteIgnore = this.name.contains("player") && !this.name.contains("surf") && !this.name.contains("whirlpool");
+                    boolean enemySpriteIgnore = this.name.contains("enemy") && !this.name.contains("surf") && !this.name.contains("whirlpool");
+                    // syntax - row_copy:to_y,from_y
+                    String[] copies = properties.split(" row_copy:");
+                    int i=0;
+                    for (String copy : copies) {
+                        // skip first element
+                        i++;
+                        if (i==1) {
+                            continue;
+                        }
+                        int targetY = Integer.valueOf(copy.split(",")[0]);
+                        int sourceY = Integer.valueOf(copy.split(",")[1]);
+//                        System.out.println(String.valueOf(this.frameNum));
+                        // copy row to new location (from the original pixmap)
+                        for (int x = 0; x < newPixmap.getWidth(); x++) {
+                            if (playerSpriteIgnore && x < 86 && (144-targetY) < 112) {
+                                continue;
+                            }
+                            if (enemySpriteIgnore && x >= 96 && (144-targetY) >= 88) {
+                                continue;
+                            }
+                            Color color = new Color(this.pixmap.getPixel(x*3, (144-sourceY)*3));
+                            newPixmap.drawPixel(x, 144-targetY, Color.rgba8888(color));
+                        }
+                    }
+                    
+                    Sprite drawSprite = new Sprite(new Texture(newPixmap));
+                    drawSprite.flip(false, true); // pixmaps are flipped for some reason
+//                    Sprite drawSprite = new Sprite(new Texture(this.pixmap));
+//                    drawSprite.scale(.3f);
+//                    drawSprite.setPosition(this.pixmapX, this.pixmapY);
+                    game.floatingBatch.draw(drawSprite, this.pixmapX, this.pixmapY);
+//                    drawSprite.draw(game.floatingBatch);
+                }
+            }
+
+            // draw current frame
+            this.currText = new Texture(filehandle);
+            this.currFrame = new Sprite(this.currText, 0, 0, 160, 144);
+            this.currFrame.draw(game.floatingBatch);
+            
+            // handle metadata
+            if (this.metadata.containsKey(this.frameNum)) {
+                String properties = this.metadata.get(this.frameNum);
+                if (properties.contains("enemy_healthbar_gone")) {
+                    DrawEnemyHealth.shouldDraw = false;
+                }
+                if (properties.contains("player_healthbar_gone")) {
+                    DrawFriendlyHealth.shouldDraw = false;
+                }
+                if (properties.contains("enemy_sprite_gone")) {
+                    DrawBattle.shouldDrawOppPokemon = false;
+                }
+                if (properties.contains("screen_translate_y")) {
+                    int translateAmt = Integer.valueOf(properties.split("screen_translate_y:")[1].split(" ")[0]);
+                    game.floatingBatch.setTransformMatrix(new Matrix4(new Vector3(0,translateAmt,0), new Quaternion(), new Vector3(1,1,1)));
+                }
+                if (properties.contains("screen_translate_x")) {
+                    int translateAmt = Integer.valueOf(properties.split("screen_translate_x:")[1].split(" ")[0]);
+                    game.floatingBatch.setTransformMatrix(new Matrix4(new Vector3(translateAmt,0,0), new Quaternion(), new Vector3(1,1,1)));
+                }
+                if (properties.contains("player_translate_x")) {
+                    int translateAmt = Integer.valueOf(properties.split("player_translate_x:")[1].split(" ")[0]);
+                    game.player.currPokemon.backSprite.setPosition(game.player.currPokemon.backSprite.getX()+translateAmt, game.player.currPokemon.backSprite.getY());
+                }
+                if (properties.contains("player_translate_y")) {
+                    int translateAmt = Integer.valueOf(properties.split("player_translate_y:")[1].split(" ")[0]);
+                    game.player.currPokemon.backSprite.setPosition(game.player.currPokemon.backSprite.getX(), game.player.currPokemon.backSprite.getY()+translateAmt);
+                }
+                if (properties.contains("enemy_translate_x")) {
+                    int translateAmt = Integer.valueOf(properties.split("enemy_translate_x:")[1].split(" ")[0]);
+                    game.battle.oppPokemon.sprite.setPosition(game.battle.oppPokemon.sprite.getX()+translateAmt, game.battle.oppPokemon.sprite.getY());
+                }
+                if (properties.contains("enemy_translate_y")) {
+                    int translateAmt = Integer.valueOf(properties.split("enemy_translate_y:")[1].split(" ")[0]);
+                    game.battle.oppPokemon.sprite.setPosition(game.battle.oppPokemon.sprite.getX(), game.battle.oppPokemon.sprite.getY()+translateAmt);
+                }
+            }
+            
+            this.frameNum++;
+        }
+        
+        public LoadAndPlayAttackAnimation(PkmnGen game, String name, Pokemon target, Action nextAction) {
+            this.name = name.toLowerCase().replace(' ', '_');
+            if (target == game.player.currPokemon) {
+                this.name = this.name+"_enemy_gsc";
+            }
+            else {
+                this.name = this.name+"_player_gsc";
+            }
+            this.target = target;
+            this.nextAction = nextAction;
+        }
+        
     }
     
 }

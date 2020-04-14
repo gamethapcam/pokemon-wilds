@@ -7,6 +7,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
+import box2dLight.RayHandler;
+
 import com.badlogic.gdx.Application.ApplicationType;
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
@@ -27,6 +29,7 @@ import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Quaternion;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
+import com.badlogic.gdx.physics.box2d.World;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 
@@ -52,6 +55,7 @@ public class PkmnGen extends ApplicationAdapter {
     public BitmapFont font;
     
     public OrthographicCamera cam;
+    public OrthographicCamera cam2;
     
     public Viewport viewport;
     
@@ -82,7 +86,15 @@ public class PkmnGen extends ApplicationAdapter {
     Map<Character, Sprite> textDict;
 
     public static PkmnGen staticGame;
-    
+
+    // test box2d lights
+    public World b2World;
+    RayHandler rayHandler;
+    float timeIncrement = 1.f / 60.f;
+    float accumulator = 0;
+    int velocityIterations = 6;
+    int positionIterations = 2;
+
     @Override
     public void create() {
 
@@ -92,6 +104,10 @@ public class PkmnGen extends ApplicationAdapter {
         //map handles unit positions
         //map = new GagMap(this, "Frost_Zone_v01");
 
+        // test box2d lights
+        this.b2World = new World(new Vector2(0, 0), true);
+        this.rayHandler = new RayHandler(this.b2World);
+        
         batch = new SpriteBatch();
         floatingBatch = new SpriteBatch();
             
@@ -109,12 +125,13 @@ public class PkmnGen extends ApplicationAdapter {
 //                        0,1,0,0,
 //                        0,0,1,-1,
 //                        0,0,0,1};
-//        OrthographicCamera cam2 = new OrthographicCamera(160, 144);
-//        cam2.position.set(Gdx.graphics.getWidth()/2, Gdx.graphics.getHeight()/2, 0);
-//        cam2.zoom = 1;
-//        floatingBatch.setProjectionMatrix(cam2.projection);
-//        System.out.println("mtrx: " + String.valueOf(cam2.projection));
-        
+//        this.cam2 = new OrthographicCamera(); //160, 144
+//        this.cam2.position.set(0, 2, 0);
+//        this.cam2.translate(0f, 2f);
+////        cam2.position.set(Gdx.graphics.getWidth()/2, Gdx.graphics.getHeight()/2, 0);
+////        cam2.zoom = 1;
+////        floatingBatch.setProjectionMatrix(cam2.projection);
+//        System.out.println("mtrx: \n" + String.valueOf(new Matrix4(new Vector3(0,2,0), new Quaternion(), new Vector3())));
         //fit viewport?
         this.viewport = new FitViewport(160, 144, this.cam);
         
@@ -176,10 +193,37 @@ public class PkmnGen extends ApplicationAdapter {
         
         this.textDict = initTextDict();
         
+        // TODO: remove if unused
         //start playing music?
-        this.currMusic = this.map.currRoute.music;
+//        this.currMusic = this.map.currRoute.music;
         //this.currMusic.setVolume(.0f);
         //this.currMusic.play(); //debug TODO - enable this
+
+        this.currMusic = Gdx.audio.newMusic(Gdx.files.internal("music/nature1_render.ogg"));
+//        this.currMusic = Gdx.audio.newMusic(Gdx.files.internal("music/route_42.ogg"));
+        this.map.currRoute.music = this.currMusic;
+        this.currMusic.setLooping(false);
+        this.currMusic.setVolume(1f);
+        this.currMusic.play();
+//        this.currMusic.setPosition(141); // TODO: debug, delete
+//        this.currMusic.setPosition(93); // TODO: debug, delete
+        // this music should 'radio' through a selection of musics for the route
+        this.currMusic.setOnCompletionListener(new Music.OnCompletionListener() {
+                @Override
+                public void onCompletion(Music aMusic) {
+                    String nextMusicName = PkmnGen.staticGame.map.currRoute.getNextMusic(true);
+                    // TODO: would it be good to also accept music instance here?
+                    // TODO: these fade-ins don't even work. will need for route musics
+                    Action nextMusic = new FadeMusic("currMusic", "out", "", .025f,
+                                       // TODO: there's def a bug here if you run into a wild
+                                       // pokemon while waiting frames, the next music will start anyway
+                                       new WaitFrames(PkmnGen.staticGame, 360,
+                                       new FadeMusic(nextMusicName, "in", "", .2f, true, 1f, this, new DoneAction())));
+                    PublicFunctions.insertToAS(PkmnGen.staticGame, nextMusic);
+                    nextMusic.step(PkmnGen.staticGame);
+                }
+            }
+        );
         
         this.playerCanMove = true;
 
@@ -188,7 +232,7 @@ public class PkmnGen extends ApplicationAdapter {
 //        PublicFunctions.insertToAS(this, new GenForest1(this, new Vector2(-64,-64), new Vector2(128,128)));
 //        PublicFunctions.insertToAS(this, new GenForest2(this, new Vector2(-64,-48), new Vector2(320,336)));
 
-        
+
         // was using this as default map
 //        PublicFunctions.insertToAS(this, new GenForest2(this, new Vector2(-64,-48), new Vector2(800,800))); //this is the size I want
 
@@ -196,14 +240,14 @@ public class PkmnGen extends ApplicationAdapter {
         // old size = 16*20
 //        PublicFunctions.insertToAS(this, new GenIsland1(this, new Vector2(0,0), 20*40)); //16*15 //30*40 // 20*40  //16*18 //20*30
         // generates a mountain now.
-        PublicFunctions.insertToAS(this, new GenIsland1(this, new Vector2(0,0), 100*120)); //60*100 //100*120
+//        PublicFunctions.insertToAS(this, new GenIsland1(this, new Vector2(0,0), 20*30)); //20*30 //60*100 //100*120
 
         // TODO - mega gengar battle debug in genforest2, remove that
 
         // this is the special mewtwo debug map
         // comment out the genforest to use this
-//        this.map = new PkmnMap("SpecialMewtwo");
-//        PublicFunctions.insertToAS(this, new DrawSpecialMewtwoBg());
+        this.map = new PkmnMap("SpecialMewtwo");
+        PublicFunctions.insertToAS(this, new DrawSpecialMewtwoBg());
         
         // debug
         //PublicFunctions.insertToAS(this, new spawnGhost(this, new Vector2(32, 0))); //debug
@@ -272,6 +316,7 @@ public class PkmnGen extends ApplicationAdapter {
 //        this.player.currPokemon.currentStats.put("hp", 12);
         this.player.pokemon.add(new Pokemon("Machop", 50, Pokemon.Generation.CRYSTAL)); 
         this.player.pokemon.add(new Pokemon("sneasel", 50, Pokemon.Generation.CRYSTAL)); 
+        this.player.pokemon.get(2).attacks[0] = "Bubblebeam";  // TODO: debug, remove
 //        this.player.pokemon.add(new Pokemon("Zubat", 40)); 
 //        this.player.pokemon.add(new Pokemon("Spinarak", 30)); 
 //        this.player.pokemon.add(new Pokemon("Zubat", 20)); 
@@ -380,6 +425,18 @@ public class PkmnGen extends ApplicationAdapter {
         }
         batch.end();
         
+
+        // TODO: debug box2d lights
+//        this.accumulator += Gdx.graphics.getDeltaTime();
+//        while (this.accumulator >= this.timeIncrement) {
+//            this.b2World.step(this.timeIncrement, this.velocityIterations, this.positionIterations);
+//            this.accumulator -= this.timeIncrement;
+//        }
+//        this.rayHandler.setCombinedMatrix(this.cam.combined.cpy().scale(32.f, 32.f, 32.f));
+////        this.rayHandler.useCustomViewport(Gdx.graphics.getWidth() / 2, 0, Gdx.graphics.getWidth() / 2, Gdx.graphics.getHeight());
+//        this.rayHandler.setAmbientLight(new Color(0f, 0f, 0f, 1f));
+//        this.rayHandler.updateAndRender();
+
         floatingBatch.begin();
         //iterate through action stack
         for (Action action : new ArrayList<Action>(this.actionStack)) { //iterate copy
@@ -408,6 +465,7 @@ public class PkmnGen extends ApplicationAdapter {
         //box2d
         //this.world.step(1/60f, 6, 2);
         //this.debugRenderer.render(world, this.cam.combined);
+        
         
     }
     
@@ -446,7 +504,6 @@ public class PkmnGen extends ApplicationAdapter {
                 System.out.println(String.valueOf(action.getLayer()) + "  " + action.getClass().getName());
             }
         }
-        
     }
     
     //used when drawing in-game text boxes

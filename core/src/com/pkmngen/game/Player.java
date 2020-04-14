@@ -12,7 +12,9 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.TextureData;
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
@@ -75,9 +77,12 @@ public class Player {
     String currState; //need for ghost spawn
     boolean isBuilding = false; // player has building tile in front of them
     boolean isCutting = false; // player will try to cut tree on A press
+    boolean isHeadbutting = false; // player will try to headbutt tree on A press
+    boolean isSleeping = false;
     Tile currBuildTile; // which tile will be built next
     int buildTileIndex = 0;
     ArrayList<Tile> buildTiles = new ArrayList<Tile>();
+    HashMap<String, HashMap<String, Integer>> buildTileRequirements = new HashMap<String, HashMap<String, Integer>>();
     
     public Player() {
         
@@ -135,26 +140,29 @@ public class Player {
         this.adrenaline = 0;
         this.currState = "";
         
+        // TODO: remove unused
         // currBuildTile
-        this.buildTiles.add(new Tile("house1_middle1", new Vector2(0,0)));
-        this.buildTiles.add(new Tile("house1_left1", new Vector2(0,0)));
-        this.buildTiles.add(new Tile("house1_right1", new Vector2(0,0)));
+//        this.buildTiles.add(new Tile("house1_middle1", new Vector2(0,0)));
+//        this.buildTiles.add(new Tile("house1_left1", new Vector2(0,0)));
+//        this.buildTiles.add(new Tile("house1_right1", new Vector2(0,0)));
         this.buildTiles.add(new Tile("house1_door1_dark", new Vector2(0,0)));
-        this.buildTiles.add(new Tile("house1_roof_middle1", new Vector2(0,0)));
-        this.buildTiles.add(new Tile("house1_roof_left1", new Vector2(0,0)));
-        this.buildTiles.add(new Tile("house1_roof_right1", new Vector2(0,0)));
-        // couldn't get these to look right - roof middle looks funny
-//        this.buildTiles.add(new Tile("house2_middle1", new Vector2(0,0)));
-        this.buildTiles.add(new Tile("house2_door1_dark", new Vector2(0,0)));
-//        this.buildTiles.add(new Tile("house2_roof_middle1", new Vector2(0,0)));
-//        this.buildTiles.add(new Tile("house2_roof_left1", new Vector2(0,0)));
-//        this.buildTiles.add(new Tile("house2_roof_right1", new Vector2(0,0)));
-        this.buildTiles.add(new Tile("house3_left1", new Vector2(0,0)));
-        this.buildTiles.add(new Tile("house3_middle1", new Vector2(0,0)));
-        this.buildTiles.add(new Tile("house3_right1", new Vector2(0,0)));
-        this.buildTiles.add(new Tile("house3_roof_middle1", new Vector2(0,0)));
-        this.buildTiles.add(new Tile("house3_roof_left1", new Vector2(0,0)));
-        this.buildTiles.add(new Tile("house3_roof_right1", new Vector2(0,0)));
+//        this.buildTiles.add(new Tile("house1_roof_middle1", new Vector2(0,0)));
+//        this.buildTiles.add(new Tile("house1_roof_left1", new Vector2(0,0)));
+//        this.buildTiles.add(new Tile("house1_roof_right1", new Vector2(0,0)));
+//        // couldn't get these to look right - roof middle looks funny
+////        this.buildTiles.add(new Tile("house2_middle1", new Vector2(0,0)));
+//        this.buildTiles.add(new Tile("house2_door1_dark", new Vector2(0,0)));
+////        this.buildTiles.add(new Tile("house2_roof_middle1", new Vector2(0,0)));
+////        this.buildTiles.add(new Tile("house2_roof_left1", new Vector2(0,0)));
+////        this.buildTiles.add(new Tile("house2_roof_right1", new Vector2(0,0)));
+//        this.buildTiles.add(new Tile("house3_left1", new Vector2(0,0)));
+//        this.buildTiles.add(new Tile("house3_middle1", new Vector2(0,0)));
+//        this.buildTiles.add(new Tile("house3_right1", new Vector2(0,0)));
+//        this.buildTiles.add(new Tile("house3_roof_middle1", new Vector2(0,0)));
+//        this.buildTiles.add(new Tile("house3_roof_left1", new Vector2(0,0)));
+//        this.buildTiles.add(new Tile("house3_roof_right1", new Vector2(0,0)));
+
+
 //        this.buildTiles.add(new Tile("house4_middle1", new Vector2(0,0)));
         this.buildTiles.add(new Tile("house5_door1", new Vector2(0,0)));
         this.buildTiles.add(new Tile("house5_left1", new Vector2(0,0)));
@@ -163,9 +171,25 @@ public class Player {
         this.buildTiles.add(new Tile("house5_roof_middle1", new Vector2(0,0)));
         this.buildTiles.add(new Tile("house5_roof_left1", new Vector2(0,0)));
         this.buildTiles.add(new Tile("house5_roof_right1", new Vector2(0,0)));
+        this.buildTiles.add(new Tile("campfire1", new Vector2(0,0)));
+        this.buildTiles.add(new Tile("sleeping_bag1", new Vector2(0,0)));
         this.currBuildTile = this.buildTiles.get(this.buildTileIndex);
         
+        // for now, everything requires same amt
+        for (Tile tile : this.buildTiles) {
+            if (tile.name.equals("sleeping_bag1")) {
+                continue;
+            }
+            this.buildTileRequirements.put(tile.name, new HashMap<String, Integer>());
+//            this.buildTileRequirements.get(tile.name).put("grass", 1);
+//            this.buildTileRequirements.get(tile.name).put("logs", 1);
+        }
+        // can pick up sleeping bag and put back in inventory
+        this.buildTileRequirements.put("sleeping_bag1", new HashMap<String, Integer>());
+        this.buildTileRequirements.get("sleeping_bag1").put("Sleeping Bag", 1);
+        
         // debug - initialize items list
+        // TODO: not using itemsList anymore, using itemsDict
         this.itemsList = new ArrayList<String>();
         this.itemsList.add("Master Ball");
         this.itemsList.add("Ultra Ball");
@@ -175,7 +199,9 @@ public class Player {
         this.itemsList.add("Safari Ball3");
         this.itemsList.add("Safari Ball4");
         this.itemsDict = new HashMap<String, Integer>();
-        this.itemsDict.put("Safari Ball", 99);
+//        this.itemsDict.put("Safari Ball", 99);
+        this.itemsDict.put("Ultra Ball", 99);
+        this.itemsDict.put("Sleeping Bag", 1);
         
     }
     
@@ -273,12 +299,19 @@ class playerStanding extends Action {
     
     @Override
     public void step(PkmnGen game) {
-        
-        if (game.playerCanMove == false) {
+
+        if (game.playerCanMove == false || game.player.isSleeping) {
+            if(Gdx.input.isKeyJustPressed(Input.Keys.X) && game.player.isSleeping) {
+                game.player.isSleeping = false;
+                Tile currTile = game.map.tiles.get(game.player.position);
+                Texture text = new Texture(Gdx.files.internal("tiles/sleeping_bag1.png"));
+                Sprite temp = new Sprite(text, 0, 0, 24, 16);
+                temp.setPosition(currTile.overSprite.getX(), currTile.overSprite.getY());
+                currTile.overSprite = temp;
+            }
             return;
         }
-        
-        
+
         boolean shouldMove = false;
         Vector2 newPos = new Vector2();
         
@@ -295,8 +328,15 @@ class playerStanding extends Action {
                 game.currMusic.stop();
                 game.currMusic.play();
                 //game.battle.music.play(); //would rather have an action that does this?
+                this.checkWildEncounter = false;
                 return;
             }
+            
+            // TODO: idk where the right place for this is.
+            if (game.map.tiles.get(game.player.position) != null && game.map.tiles.get(game.player.position).name.contains("door")) {
+                PublicFunctions.insertToAS(game, new EnterBuilding(game, new DoneAction()));
+            }
+            
             this.checkWildEncounter = false;
         }
         
@@ -341,10 +381,11 @@ class playerStanding extends Action {
         //check if input pressed
         if(Gdx.input.isKeyJustPressed(Input.Keys.C) && game.player.isBuilding) {
             game.player.buildTileIndex -= 1;
-            if (game.player.buildTileIndex <= 0) {
+            if (game.player.buildTileIndex < 0) {
                 game.player.buildTileIndex = game.player.buildTiles.size() - 1;
             }
             game.player.currBuildTile = game.player.buildTiles.get(game.player.buildTileIndex);
+            PublicFunctions.insertToAS(game, new requirementNotify(game, game.player.currBuildTile.name));
         }
         if(Gdx.input.isKeyJustPressed(Input.Keys.V) && game.player.isBuilding) {
             game.player.buildTileIndex += 1;
@@ -352,6 +393,7 @@ class playerStanding extends Action {
                 game.player.buildTileIndex = 0;
             }
             game.player.currBuildTile = game.player.buildTiles.get(game.player.buildTileIndex);
+            PublicFunctions.insertToAS(game, new requirementNotify(game, game.player.currBuildTile.name));
         }
         
         if(Gdx.input.isKeyJustPressed(Input.Keys.X)) {
@@ -362,6 +404,10 @@ class playerStanding extends Action {
             if (game.player.isCutting) {
                 // player wants to stop building
                 game.player.isCutting = false;
+            }
+            if (game.player.isHeadbutting) {
+                // player wants to stop building
+                game.player.isHeadbutting = false;
             }
         }
         
@@ -380,33 +426,115 @@ class playerStanding extends Action {
             else if (game.player.dirFacing == "down") {
                 pos = new Vector2(game.player.position.cpy().add(0,-16));
             }
-            if (game.player.isBuilding) {
+            Tile currTile = game.map.tiles.get(pos);
+            if (currTile.name.equals("sleeping_bag1")) {
+                // TODO: yes/no confirm dialogue
+                game.player.isSleeping = true;
+                Texture playerText = new Texture(Gdx.files.internal("tiles/sleeping_bag1_using.png"));
+                Sprite temp = new Sprite(playerText, 0, 0, 24, 16);
+                temp.setPosition(currTile.overSprite.getX(), currTile.overSprite.getY());
+                currTile.overSprite = temp;
+                game.player.position.set(currTile.overSprite.getX(), currTile.overSprite.getY());
+            }
+            else if (game.player.isBuilding) {
 //                Tile newTile = new Tile(game.player.currBuildTile.name, pos.cpy());
 //                game.map.tiles.remove(pos);
 //                game.map.tiles.put(pos.cpy(), newTile);
                 // TODO: two tiles at some loc, so that you can remove building tiles and under tile remains?
                 //  or keep track of 'underTile' somewhere
                 // TODO: this won't work for doors
-                Tile currTile = game.map.tiles.get(pos);
-                currTile.overSprite = new Sprite(game.player.currBuildTile.sprite);
-                currTile.name = game.player.currBuildTile.name;
-                currTile.overSprite.setPosition(pos.x, pos.y);
-                currTile.attrs.put("cuttable", true); // test this 
-                currTile.attrs.put("solid", true);
-                PublicFunctions.insertToAS(game, new PlaySound("strength1",
-                                                 new DoneAction()));
-                game.playerCanMove = false;
-                PublicFunctions.insertToAS(game, new WaitFrames(game, 30,
-                                                 new PlayerCanMove(game,
-                                                 new DoneAction())));
-                this.detectIsHouseBuilt(game, currTile);
+                boolean requirementsMet = true;
+                for (String reqName : game.player.buildTileRequirements.get(game.player.currBuildTile.name).keySet()) {
+                    if (!game.player.itemsDict.containsKey(reqName)) {
+                        requirementsMet = false;
+                        break;
+                    }
+                    int playerOwns = game.player.itemsDict.get(reqName);
+                    if (playerOwns < game.player.buildTileRequirements.get(game.player.currBuildTile.name).get(reqName)) {
+                        requirementsMet = false;
+                        break;
+                    }
+                }
+                if (currTile.attrs.containsKey("solid") && !currTile.attrs.get("solid") && requirementsMet) {
+                    currTile.overSprite = new Sprite(game.player.currBuildTile.sprite);
+                    currTile.name = game.player.currBuildTile.name;
+                    currTile.overSprite.setPosition(pos.x, pos.y);
+                    currTile.attrs.put("cuttable", true); // test this 
+                    currTile.attrs.put("solid", true);
+                    PublicFunctions.insertToAS(game, new PlaySound("strength1",
+                                                     new DoneAction()));
+                    game.playerCanMove = false;
+                    PublicFunctions.insertToAS(game, new WaitFrames(game, 30,
+                                                     new PlayerCanMove(game,
+                                                     new DoneAction())));
+                    this.detectIsHouseBuilt(game, currTile);
+                    //add tile to interiors
+                    if (!game.player.currBuildTile.name.contains("campfire") && !game.player.currBuildTile.name.contains("sleeping_bag")) {
+                        Tile interiorTile;
+                        if (currTile.name.contains("door")) {
+                            interiorTile = new Tile("house5_floor_rug1", currTile.position.cpy());
+                        }
+                        else {
+                            interiorTile = new Tile("house5_floor1", currTile.position.cpy());
+                        }
+                        game.map.interiorTiles.get(game.map.interiorTilesIndex).put(currTile.position.cpy(), interiorTile);
+                    }
+                    
+                    //deduct required materials
+                    for (String name : game.player.buildTileRequirements.get(game.player.currBuildTile.name).keySet()) {
+                        int value = game.player.buildTileRequirements.get(game.player.currBuildTile.name).get(name);
+                        value = game.player.itemsDict.get(name)-value;
+                        game.player.itemsDict.put(name, value);
+                        if (value <= 0) {
+                            game.player.itemsDict.remove(name);
+                        }
+                    }
+                }
+            }
+            else if (game.player.isHeadbutting) {
+                if (currTile.attrs.containsKey("headbuttable") && currTile.attrs.get("headbuttable")) {
+                    // choose if found anything
+                    Action nextAction = new PlayerCanMove(game, new DoneAction());
+//                    int randInt = game.map.rand.nextInt(4);
+                    if (currTile.routeBelongsTo != null && !currTile.routeBelongsTo.pokemon.isEmpty()) {
+                        // TODO: need to be static per-tree somehow.
+                        game.playerCanMove = false;
+                        game.battle.oppPokemon = currTile.routeBelongsTo.pokemon.get(0);
+//                        PublicFunctions.insertToAS(game, Battle_Actions.get(game)); 
+                        // new DisplayText(game, "A wild pokémon attacked!", null, null,
+                        nextAction = new WaitFrames(game, 16, new BattleIntroMusic(Battle_Actions.get(game)));
+                        this.checkWildEncounter = false;
+                        shouldMove = false;  // for safety
+                        
+                    }
+                    PublicFunctions.insertToAS(game, new HeadbuttTreeAnim(game, game.map.tiles.get(pos),
+                                                     nextAction));
+                    game.playerCanMove = false;
+                }
             }
             else if (game.player.isCutting) {
-                Tile currTile = game.map.tiles.get(pos);
                 if (currTile.attrs.containsKey("cuttable") && currTile.attrs.get("cuttable")) {
                     PublicFunctions.insertToAS(game, new CutTreeAnim(game, game.map.tiles.get(pos),
                                                      new DoneAction()));
+                    // place black tile at location
+                    // TODO: if there are ever interior objects, how do you preserve those?
+                    Tile interiorTile = new Tile("black1", currTile.position.cpy());
+                    game.map.interiorTiles.get(game.map.interiorTilesIndex).put(currTile.position.cpy(), interiorTile);
                     game.playerCanMove = false;
+                    
+                    // get items from tile
+                    if (!currTile.items.isEmpty()) {
+                        for (String item : currTile.items.keySet()) {
+                            PublicFunctions.insertToAS(game, new itemPickupNotify(game, item, currTile.items.get(item)));
+                            if (game.player.itemsDict.containsKey(item)) {
+                                int currQuantity = game.player.itemsDict.get(item);
+                                game.player.itemsDict.put(item, currQuantity+currTile.items.get(item));
+                            }
+                            else {
+                                game.player.itemsDict.put(item, currTile.items.get(item));
+                            }
+                        }
+                    }
                 }
                 this.detectIsHouseBuilt(game, currTile);
             }
@@ -422,7 +550,14 @@ class playerStanding extends Action {
 
         if (shouldMove == true) {
             Tile temp = game.map.tiles.get(newPos);
-            if (temp == null) { //need this check to avoid attr checks after this if null
+            // first check if traveling through interior door
+            if (game.player.dirFacing == "down" && game.map.tiles.get(game.player.position).name.contains("rug")) {
+                // do leave building anim, then player travels down one space
+                PublicFunctions.insertToAS(game, new EnterBuilding(game, "exit",
+                                                 new playerMoving(game, this.alternate)));
+                game.actionStack.remove(this);
+            }
+            else if (temp == null) { //need this check to avoid attr checks after this if null
                 //no tile here, so just move normally
                 if (Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT)) { //check if player should be running
                     PublicFunctions.insertToAS(game, new playerRunning(game, this.alternate));
@@ -445,7 +580,7 @@ class playerStanding extends Action {
                 else {
                     //bump into ledge
                     PublicFunctions.insertToAS(game, new playerBump(game));
-                    game.actionStack.remove(this);
+                    game.actionStack.remove(this); 
                 }
             }
             else {
@@ -500,7 +635,9 @@ class playerStanding extends Action {
      //i think the real game uses an encounter table or something
     boolean checkWildEncounter(PkmnGen game) {
         
-        //no encounters at night (subject to change)
+        // no encounters at night (subject to change)
+        // TODO: need to enable this. shaders shouldn't be active on floatingbatch so should be fine. not sure abt ghost
+        // timer though.
         if (game.map.timeOfDay == "Night") {
             return false;
         }
@@ -508,8 +645,7 @@ class playerStanding extends Action {
         Tile currTile = game.map.tiles.get(game.player.position);
         
         if (currTile != null) {
-            
-            //if currently on grass
+            // if currently on grass
             if (currTile.attrs.get("grass") == true) {
                 //chance wild encounter
                 int randomNum = game.map.rand.nextInt(100) + 1; //rate determine by player? //1 - 100
@@ -622,7 +758,7 @@ class playerMoving extends Action {
             // TODO: routes are persistent, ie never regenerate
             // TBD if that needs to change
             // TODO: that will be a problem if game has to load all pokemon sprites on the map
-            if (game.map.tiles.get(this.targetPos).routeBelongsTo != null) {
+            if (game.map.tiles.get(this.targetPos) != null && game.map.tiles.get(this.targetPos).routeBelongsTo != null) {
                 game.map.currRoute = game.map.tiles.get(this.targetPos).routeBelongsTo;
             }
             
@@ -1010,10 +1146,28 @@ class drawPlayer_upper extends Action {
     public int getLayer(){return this.layer;}
     
     Sprite spritePart;
+    
+    Sprite zSprite;
+    int zsTimer = 0;
 
     @Override
     public void step(PkmnGen game) {
 
+        if (game.player.isSleeping) {
+            if (this.zsTimer < 64) {
+                this.zSprite.setPosition(game.player.position.x+8, game.player.position.y+18);
+            }
+            else {
+                this.zSprite.setPosition(game.player.position.x+16, game.player.position.y+18);
+            }
+            this.zsTimer++;
+            if (this.zsTimer >= 128) {
+                this.zsTimer = 0;
+            }
+            this.zSprite.draw(game.batch);
+            return;
+        }
+        
         // draw building tile if building
         if (game.player.isBuilding) {
             // get direction facing 
@@ -1036,6 +1190,21 @@ class drawPlayer_upper extends Action {
             sprite.setPosition(pos.x, pos.y);
             Tile nextTile = game.map.tiles.get(pos);
             if (nextTile != null && nextTile.attrs.get("solid")) {
+                sprite.setColor(1f, .7f, .7f, .8f);
+            }
+            boolean requirementsMet = true;
+            for (String reqName : game.player.buildTileRequirements.get(game.player.currBuildTile.name).keySet()) {
+                if (!game.player.itemsDict.containsKey(reqName)) {
+                    requirementsMet = false;
+                    break;
+                }
+                int playerOwns = game.player.itemsDict.get(reqName);
+                if (playerOwns < game.player.buildTileRequirements.get(game.player.currBuildTile.name).get(reqName)) {
+                    requirementsMet = false;
+                    break;
+                }
+            }
+            if (!requirementsMet) {
                 sprite.setColor(1f, .7f, .7f, .8f);
             }
             sprite.draw(game.batch);
@@ -1069,8 +1238,9 @@ class drawPlayer_upper extends Action {
             
 
     public drawPlayer_upper(PkmnGen game) {
-
-
+        Texture text = new Texture(Gdx.files.internal("tiles/zs1.png"));
+        this.zSprite = new Sprite(text, 0, 0, 16, 16);
+        
     }
 }
 
@@ -1085,6 +1255,10 @@ class drawPlayer_lower extends Action {
     @Override
     public void step(PkmnGen game) {
         
+        if (game.player.isSleeping) {
+            return;
+        }
+        
         this.spritePart = new Sprite(game.player.currSprite);
 
         //this.spritePart.setRegion(0,8,16,8);
@@ -1093,8 +1267,6 @@ class drawPlayer_lower extends Action {
         //this.spritePart.setSize(this.spritePart.getWidth(), 8);
         
         game.batch.draw(this.spritePart, game.player.position.x, game.player.position.y+4);
-        
-        
     }
             
 
@@ -1190,6 +1362,9 @@ class drawGhost extends Action {
     boolean inBattle = false;
     int noEncounterTimer = 0;
     
+    Vector2 startPos;
+    Vector2 endPos;
+    
     @Override
     public void step(PkmnGen game) {
             
@@ -1199,6 +1374,35 @@ class drawGhost extends Action {
             game.actionStack.remove(this);
             PublicFunctions.insertToAS(game, new despawnGhost(this.basePos.cpy()));
             return;
+        }
+
+        // if too near to a fire, despawn
+        this.startPos = this.basePos.cpy().add(-64, -64);
+        this.startPos.x = (int)this.startPos.x - (int)this.startPos.x % 16;
+        this.startPos.y = (int)this.startPos.y - (int)this.startPos.y % 16;
+        this.endPos = this.basePos.cpy().add(64, 64);
+        this.endPos.x = (int)this.endPos.x - (int)this.endPos.x % 16;
+        this.endPos.y = (int)this.endPos.y - (int)this.endPos.y % 16;
+        for (Vector2 currPos = new Vector2(startPos.x, startPos.y); currPos.y < endPos.y;) {
+            Tile tile = game.map.tiles.get(currPos);
+            currPos.x += 16;
+            if (currPos.x > endPos.x) {
+                currPos.x = this.startPos.x;
+                currPos.y += 16;
+            }
+            if (tile == null) {
+                System.out.println("hey");
+                continue;
+            }
+            if (tile.name.contains("campfire")) {
+                this.currSprite.draw(game.batch);
+                game.actionStack.remove(this);
+                PublicFunctions.insertToAS(game, new despawnGhost(this.basePos.cpy()));
+                game.currMusic.pause();
+                game.currMusic = game.map.currRoute.music;
+                game.currMusic.play();
+                return;
+            }
         }
         
         //check if ghost pokemon is dead. if yes, remove this from AS
@@ -1372,7 +1576,8 @@ class drawGhost extends Action {
         
         //need to store which pokemon this actually will be (i think)
 //        this.pokemon = new Pokemon("Sableye", 21);
-        this.pokemon = new Pokemon("Sableye", 21, Pokemon.Generation.CRYSTAL);
+//        this.pokemon = new Pokemon("Sableye", 21, Pokemon.Generation.CRYSTAL);
+        this.pokemon = new Pokemon("Ghost", 21, Pokemon.Generation.CRYSTAL);
         
         Texture ghostTexture = new Texture(Gdx.files.internal("ghost_sheet1.png"));
         this.sprites.put("down", new Sprite[]{
@@ -1512,7 +1717,7 @@ class spawnGhost extends Action {
         music.setLooping(true);
         music.setVolume(.7f);
         game.currMusic = music;
-        game.map.currRoute.music = music; //TODO - how to switch to normal after defeating
+//        game.map.currRoute.music = music; //TODO - how to switch to normal after defeating
         game.currMusic.play();
         
         
@@ -1698,7 +1903,7 @@ class cycleDayNight extends Action {
             if (this.animContainer.index >= this.animContainer.animateThese.size()) {
                 fadeToNight = false;
                 game.map.timeOfDay = "Night";
-                this.countDownToGhost = this.rand.nextInt(5000) + 150;  // debug: 150;
+                this.countDownToGhost = 150; //this.rand.nextInt(5000) + 150;  // debug: 150;
                 this.animContainer.index = 0;
                 
                 //TODO - fade day music
@@ -1798,7 +2003,90 @@ class cycleDayNight extends Action {
 
         this.text = game.map.timeOfDay+": "; //String.valueOf(this.numMain)
     }
-        
+}
+
+
+
+
+
+class itemPickupNotify extends Action {
+  public int layer = 114;
+  public int getLayer(){return this.layer;}
+  public String getCamera() {return "gui";};
+  
+  Sprite bgSprite;
+  int signCounter = 150;
+  String itemName;
+  int quantity;
+  
+  @Override
+  public void step(PkmnGen game) {
+      if (signCounter > 0) {
+          signCounter--;
+          if (signCounter > 100) {
+          }
+          else if (signCounter > 78) {
+              this.bgSprite.setPosition(this.bgSprite.getX(), this.bgSprite.getY()+1);
+          }
+          else if (signCounter > 22) {
+          }
+          else {
+              this.bgSprite.setPosition(this.bgSprite.getX(), this.bgSprite.getY()-1);
+          }
+          this.bgSprite.draw(game.floatingBatch);
+          game.font.draw(game.floatingBatch, "Picked up "+this.itemName+" x"+this.quantity+".", 42, this.bgSprite.getY()+134);
+      }
+  }
+  
+  public itemPickupNotify(PkmnGen game, String itemName, int quantity) {
+      this.itemName = itemName;
+      this.quantity = quantity;
+      Texture text = new Texture(Gdx.files.internal("text2.png"));
+      this.bgSprite = new Sprite(text, 0, 0, 160, 144);
+      this.bgSprite.setPosition(0, -144);
+  }
+}
+
+
+class requirementNotify extends Action {
+  public int layer = 114;
+  public int getLayer(){return this.layer;}
+  public String getCamera() {return "gui";};
+  
+  Sprite bgSprite;
+  int signCounter = 100;
+  String tileName;
+  String text = "";
+  
+  @Override
+  public void step(PkmnGen game) {
+      if (signCounter > 0) {
+          signCounter--;
+          if (signCounter > 100) {
+          }
+          else if (signCounter > 78) {
+              this.bgSprite.setPosition(this.bgSprite.getX(), this.bgSprite.getY()+1);
+          }
+          else if (signCounter > 22) {
+          }
+          else {
+              this.bgSprite.setPosition(this.bgSprite.getX(), this.bgSprite.getY()-1);
+          }
+          this.bgSprite.draw(game.floatingBatch);
+          
+          game.font.draw(game.floatingBatch, "Requires: " + this.text, 10, this.bgSprite.getY()+134);
+      }
+  }
+  
+  public requirementNotify(PkmnGen game, String tileName) {
+      this.tileName = tileName;
+      Texture text = new Texture(Gdx.files.internal("text2.png"));
+      this.bgSprite = new Sprite(text, 0, 0, 160, 144);
+      this.bgSprite.setPosition(0, -144);
+      for (String name : game.player.buildTileRequirements.get(tileName).keySet()) {
+          this.text += name + ": " + String.valueOf(game.player.buildTileRequirements.get(tileName).get(name)) + " ";
+      }
+  }
 }
 
 
@@ -1980,6 +2268,116 @@ class CutTreeAnim extends Action {
     }
 
     public CutTreeAnim(PkmnGen game, Tile tile, Action nextAction) {
+        this.tile = tile;
+        this.nextAction = nextAction;
+    }
+}
+
+
+class HeadbuttTreeAnim extends Action {
+    
+    Sprite originalSprite;
+    Sprite rightSprite;
+    Sprite leftSprite;
+    int index = 0;
+    Tile tile;
+    Action nextAction;
+    Sprite left, right;
+
+    @Override
+    public void step(PkmnGen game) {
+
+        if (this.index == 0) {
+            this.originalSprite = this.tile.overSprite;
+            TextureData temp = this.tile.overSprite.getTexture().getTextureData();
+//            TextureRegion[][] tempRegion = temp.split((int)originalSprite.getWidth(), (int)originalSprite.getHeight()); //should be 7x7
+//            this.rightSprite = new Sprite[(int)originalSprite.getWidth()][(int)originalSprite.getHeight()];
+            int width = (int)originalSprite.getWidth();
+            int height = (int)originalSprite.getHeight();
+            if (!temp.isPrepared()) {
+                temp.prepare();
+            }
+            Pixmap pixmap = temp.consumePixmap();
+            // transparent pixmap to draw to
+            Color clearColor = new Color(0, 0, 0, 0);
+            // pixmap of right-leaning sprite
+            Pixmap rightPixmap = new Pixmap(width+4, height, Pixmap.Format.RGBA8888);
+            rightPixmap.setColor(clearColor);
+            rightPixmap.fill();
+            // pixmap of left-leaning sprite
+            Pixmap leftPixmap = new Pixmap(width+4, height, Pixmap.Format.RGBA8888);
+            leftPixmap.setColor(clearColor);
+            leftPixmap.fill();
+            for (int i = 0; i < width; i++) {
+                for (int j = 0; j < height; j++) {
+                    int additionalX = 0;
+                    if (height-j < height/4) {
+                    }
+                    else if (height-j < (5*height)/8) {
+                        additionalX = 1;
+                    }
+                    else if (height-j < (7*height)/8) {
+                        additionalX = 2;
+                    }
+                    else if (height-j < (15*height)/16) {
+                        additionalX = 3;
+                    }
+                    else {
+                        additionalX = 4;
+                    }
+                    Color color = new Color(pixmap.getPixel(i, j));
+                    rightPixmap.drawPixel(i+additionalX, j, Color.rgba8888(color));
+                    leftPixmap.drawPixel(i-additionalX+4, j, Color.rgba8888(color));
+                }
+            }
+            this.rightSprite = new Sprite(new Texture(rightPixmap));
+            this.rightSprite.setPosition(this.originalSprite.getX(), this.originalSprite.getY());
+            this.leftSprite = new Sprite(new Texture(leftPixmap));
+            this.leftSprite.setPosition((int)this.originalSprite.getX()-4, this.originalSprite.getY());
+        }
+        else if (this.index == 14) {
+            PublicFunctions.insertToAS(game, new PlaySound("headbutt1", new DoneAction()));
+        }
+        else if (this.index == 18+3) {
+            this.tile.overSprite = this.rightSprite;
+        }
+        else if (this.index == 18+3+3) {
+            this.tile.overSprite = this.originalSprite;
+        }
+        else if (this.index == 18+3+3+3) {
+            this.tile.overSprite = this.leftSprite;
+        }
+        else if (this.index == 18+3+3+3+3) {
+            this.tile.overSprite = this.originalSprite;
+        }
+        else if (this.index == 18+3+3+3+3+3) {
+            this.tile.overSprite = this.rightSprite;
+        }
+        else if (this.index == 18+3+3+3+3+3+3) {
+            this.tile.overSprite = this.originalSprite;
+        }
+        else if (this.index == 18+3+3+3+3+3+3+3) {
+            this.tile.overSprite = this.leftSprite;
+        }
+        else if (this.index == 18+3+3+3+3+3+3+3+3) {
+            this.tile.overSprite = this.originalSprite;
+        }
+        else if (this.index == 18+3+3+3+3+3+3+3+3+3) {
+            this.tile.overSprite = this.rightSprite;
+        }
+        else if (this.index == 18+3+3+3+3+3+3+3+3+3+3) {
+            this.tile.overSprite = this.originalSprite;
+        }
+        else if (this.index == 18+3+3+3+3+3+3+3+3+3+3+11) {
+//            game.map.tiles.put(this.tile.position.cpy(), this.tile);
+//            game.playerCanMove = true; // TODO: remove
+            game.actionStack.remove(this);
+            PublicFunctions.insertToAS(game, this.nextAction);
+        }
+        this.index++;
+    }
+
+    public HeadbuttTreeAnim(PkmnGen game, Tile tile, Action nextAction) {
         this.tile = tile;
         this.nextAction = nextAction;
     }

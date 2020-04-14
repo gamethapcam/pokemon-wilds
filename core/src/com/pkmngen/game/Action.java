@@ -770,12 +770,13 @@ class DisplayText extends Action {
     int timer;
     
     int speedTimer, speed;
-    
-    //when we need to stop after trigger action
+
     Action triggerAction;
     boolean foundTrigger;
     boolean checkTrigger;
-    
+    public static boolean textPersist = false;
+    boolean persist = false;
+
     boolean firstStep;
     
     //what to do at each iteration
@@ -788,6 +789,9 @@ class DisplayText extends Action {
              //needed when enemy pkmn faints (displayText doesn't wait for user input)
             game.displayTextAction = this;
             this.firstStep = false;
+            if (this.persist) {
+                DisplayText.textPersist = true;
+            }
         }
         
         //debug
@@ -823,8 +827,14 @@ class DisplayText extends Action {
             return;
         }
         
+        // TODO: deprecate this
         //don't do anything if trigger action is in actionStack
         if (this.checkTrigger == true) {
+            if (this.triggerAction == null && !DisplayText.textPersist) {
+                game.actionStack.remove(this);
+                return;
+            }
+            // TODO: remove the below two blocks once migrated to using textPersist
             if (game.actionStack.contains(this.triggerAction)) {
                 this.foundTrigger = true;
                 return;
@@ -856,7 +866,7 @@ class DisplayText extends Action {
             }
             
             //if we need to wait on a trigger
-            if (this.triggerAction != null) {
+            if (this.triggerAction != null || DisplayText.textPersist) {
                 PublicFunctions.insertToAS(game, this.nextAction);
                 this.checkTrigger = true;
                 return;
@@ -916,6 +926,12 @@ class DisplayText extends Action {
             spritesNotDrawn.remove(0);
         }
         
+    }
+    
+    // TODO: migrate to using this only
+    public DisplayText(PkmnGen game, String textString, String playSound, boolean textPersist, Action nextAction) {
+        this(game, textString, playSound, null, nextAction);
+        this.persist = textPersist;
     }
     
     public DisplayText(PkmnGen game, String textString, String playSound, Action triggerAction, Action nextAction) {
@@ -1083,6 +1099,23 @@ class DisplayText extends Action {
         }
     }
 
+    static class Clear extends Action {
+        // clear any text persisting on screen
+
+        Action nextAction;
+        
+        @Override
+        public void step(PkmnGen game) {
+            DisplayText.textPersist = false;
+            game.actionStack.remove(this);
+            PublicFunctions.insertToAS(game, this.nextAction);
+        }
+        
+        public Clear(PkmnGen game, Action nextAction) {
+            this.nextAction = nextAction;
+        }
+    }
+
     //play a sound, ie victory fanfare
      //unique b/c need to mute battle music
     class PlaySound_Text extends Action {
@@ -1193,6 +1226,10 @@ class WaitFrames extends Action {
 class PublicFunctions {
     //this is for inserting into the AS at proper layer
     public static void insertToAS(PkmnGen game, Action actionToInsert) {
+        // handle null entry by skipping
+        if (actionToInsert == null) {
+            return;
+        }
         //for item in as
         for (int i = 0; i < game.actionStack.size(); i++) {
             //if actionToInsert layer is <=  action layer, insert before element
@@ -1635,9 +1672,15 @@ class PlaySound extends Action {
 
         // if it's crystal pokemon, load from crystal dir
         if (pokemon.generation == Pokemon.Generation.CRYSTAL) {
-            this.music = Gdx.audio.newMusic(Gdx.files.internal("crystal_pokemon/cries/" + pokemon.dexNumber + ".wav"));
+            if (pokemon.dexNumber.equals("000")) {
+                this.music = Gdx.audio.newMusic(Gdx.files.internal("crystal_pokemon/cries/" + pokemon.dexNumber + ".ogg"));
+                this.music.setVolume(.9f);
+            }
+            else {
+                this.music = Gdx.audio.newMusic(Gdx.files.internal("crystal_pokemon/cries/" + pokemon.dexNumber + ".wav"));
+                this.music.setVolume(.5f);
+            }
             this.music.setLooping(false);
-            this.music.setVolume(.5f);
         }
     }
 
@@ -1904,6 +1947,10 @@ class PlaySound extends Action {
             this.music = Gdx.audio.newMusic(Gdx.files.internal("strength1.ogg"));
             this.music.setLooping(false);
         }
+        else {
+            this.music = Gdx.audio.newMusic(Gdx.files.internal(sound+".ogg"));
+            this.music.setLooping(false);
+        }
     }
     
     boolean playedYet; //do music.play on first step
@@ -1941,3 +1988,199 @@ class PlaySound extends Action {
 }
 
 
+class FadeMusic extends Action {
+    
+    String musicName;
+    Music music;
+    
+    Action nextAction;
+    
+    String direction;
+    String shouldPause;
+    
+    float amt =  -.05f;
+    
+    float maxVol = 1f;
+    
+    boolean firstStep = true;
+    
+    boolean switchCurrMusic = false;
+    
+    Music.OnCompletionListener onCompleteListener;
+    
+    public void step(PkmnGen game) {
+        
+        if (this.firstStep == true) {
+            
+            if (this.direction.equals("in")) {
+                
+                if (this.musicName.equals("currMusic")) {
+                    game.currMusic.play();
+                }
+                else {
+                    //load music if it isnt loaded already
+                    if (!game.loadedMusic.containsKey(this.musicName)) {
+                        
+                        String extension = ".ogg";
+                        //test - wav file for android, to enable looping
+//                      if (this.musicName.equals("bg_rumble1")) {
+//                          extension = ".mp3";
+//                          System.out.println("using mp3 extension");
+//                      }
+                        
+                        Music temp = Gdx.audio.newMusic(Gdx.files.internal("music/"+this.musicName+extension)); //danger1.ogg
+//                        temp.setLooping(true);  // TODO: don't think I need this
+                        temp.setVolume(.1f); //will always fade in (for now, have option to fade in fast) //.1f because of 'failed to allocate' bug
+                        if (this.onCompleteListener != null) {
+                            temp.setOnCompletionListener(this.onCompleteListener);
+                        }
+                        game.loadedMusic.put(this.musicName, temp);
+                        
+                    }
+
+//                  System.out.println("loaded music: "+this.musicName);
+//                  System.out.println(game.loadedMusic);
+                    
+                    //this.music.play(); //TODO - remove
+                    game.loadedMusic.get(this.musicName).play();
+                }
+                
+                //TODO - remove
+//              //set max volumes
+//              if (this.musicName.equals("s_and_c3-2")) {
+//                  this.maxVol = .9f;
+//              }
+            }
+            
+            if (this.switchCurrMusic == true) {
+//              game.currMusic = this.music; //TODO - remove
+                
+                //if currmusic still playing, fade it out
+                if (game.currMusic != null) {
+                    if (game.currMusic.isPlaying()) {
+//                      game.insertAction(new FadeMusic("currMusic", "out", "pause", .05f, new DoneAction())); 
+                        game.currMusic.pause();
+                    }
+                }
+                
+                game.currMusic = game.loadedMusic.get(this.musicName);
+                game.map.currRoute.music = game.currMusic; // TODO: shouldn't be doing this probably
+            }
+            
+            //set this.music for reference
+            if (this.musicName.equals("currMusic")) {
+                this.music = game.currMusic;
+            }
+            else {
+                this.music = game.loadedMusic.get(this.musicName);
+            }
+            
+            //shouldn't ever be the case, occasionally is in testing tho.
+            if (this.music == null) {
+                game.actionStack.remove(this);
+                PublicFunctions.insertToAS(game, this.nextAction);
+                return;
+            }
+            
+            this.firstStep = false;
+        }
+        
+        this.music.setVolume(this.music.getVolume()+this.amt);
+        
+
+        if (this.direction.equals("out")) {
+            if (music.getVolume() <= .1f) { //bug - for some reason this can't be .0f - no idea why. 'failed to allocate' issue if play() (on any Music) ever called in future
+
+                
+                if (this.shouldPause.equals("pause")) {
+                    this.music.setVolume(.1f);
+                    this.music.pause();
+                }
+                else if (this.shouldPause.equals("stop")) {
+//                  this.music.setPosition(0); //TODO - remove
+//                  this.music.pause();
+                    
+                    //dispose and remove from loadedMusic
+                    this.music.setVolume(.1f);
+                    this.music.stop();
+                    this.music.dispose();
+                    game.loadedMusic.remove(this.musicName);
+                    
+                }
+                game.actionStack.remove(this);
+                PublicFunctions.insertToAS(game, this.nextAction);
+            }
+        }
+        else { 
+            if (music.getVolume() >= this.maxVol) {
+
+                this.music.setVolume(this.maxVol);
+                game.actionStack.remove(this);
+                PublicFunctions.insertToAS(game, this.nextAction);
+            }
+        }
+        
+    }
+    
+    
+    public FadeMusic(String musicName, String direction, String shouldPause, float rate, Action nextAction) {
+        this.musicName = musicName;
+        
+        this.shouldPause = shouldPause;
+        
+        
+        this.direction = direction;
+        if (direction.equals("out")) {
+            this.amt = -rate;
+        }
+        else {
+            this.amt = rate;
+        }
+        
+        this.nextAction = nextAction;
+    }
+
+    public FadeMusic(String musicName, String direction, String shouldPause, float rate, boolean switchCurrMusic, Action nextAction) {
+        this.musicName = musicName;
+        
+        this.shouldPause = shouldPause;
+        
+        this.switchCurrMusic = switchCurrMusic;
+        
+        this.direction = direction;
+        if (direction.equals("out")) {
+            this.amt = -rate;
+        }
+        else {
+            this.amt = rate;
+        }
+        
+        this.nextAction = nextAction;
+    }
+
+    public FadeMusic(String musicName, String direction, String shouldPause, float rate, boolean switchCurrMusic, float maxVol, Action nextAction) {
+        
+        this.maxVol = maxVol;
+        
+        this.musicName = musicName;
+        
+        this.shouldPause = shouldPause;
+        
+        this.switchCurrMusic = switchCurrMusic;
+        
+        this.direction = direction;
+        if (direction.equals("out")) {
+            this.amt = -rate;
+        }
+        else {
+            this.amt = rate;
+        }
+        
+        this.nextAction = nextAction;
+    }
+
+    public FadeMusic(String musicName, String direction, String shouldPause, float rate, boolean switchCurrMusic, float maxVol, Music.OnCompletionListener onCompleteListener, Action nextAction) {
+        this(musicName, direction, shouldPause, rate, switchCurrMusic, maxVol, nextAction);
+        this.onCompleteListener = onCompleteListener;
+    }
+}
