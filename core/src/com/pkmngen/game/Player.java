@@ -231,7 +231,7 @@ class playerStanding extends Action {
     
     boolean isRunning;
 
-    public void detectIsHouseBuilt(PkmnGen game, Tile currTile) {
+    public void detectIsHouseBuilt(Game game, Tile currTile) {
         Vector2 pos = currTile.position.cpy();
         // detect if house is fully built or not
         if (currTile.name.contains("house")) {
@@ -298,7 +298,7 @@ class playerStanding extends Action {
     }
     
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
 
         if (game.playerCanMove == false || game.player.isSleeping) {
             if(Gdx.input.isKeyJustPressed(Input.Keys.X) && game.player.isSleeping) {
@@ -608,7 +608,7 @@ class playerStanding extends Action {
         
     }
     
-    public playerStanding(PkmnGen game) {
+    public playerStanding(Game game) {
         
         //could snap cam, and have playerMoving come here after 15 pixels. saves a little code
          //problems - timer before moving, alternating sprites
@@ -616,14 +616,14 @@ class playerStanding extends Action {
         this.checkWildEncounter = false;
         this.isRunning = false;
     }
-    public playerStanding(PkmnGen game, boolean alternate) {
+    public playerStanding(Game game, boolean alternate) {
 
         //only used by playerMoving atm
         this.alternate = alternate;
         this.isRunning = false;
         //todo - might be able to remove above alternate code, should work atm. after 1 iter this.alternate = false, init to true
     }
-    public playerStanding(PkmnGen game, boolean alternate, boolean isRunning) {
+    public playerStanding(Game game, boolean alternate, boolean isRunning) {
 
         //only used by playerMoving atm
         this.alternate = alternate;
@@ -633,7 +633,7 @@ class playerStanding extends Action {
     
     //when moving to tile, no chance of encounter unless continuing to move
      //i think the real game uses an encounter table or something
-    boolean checkWildEncounter(PkmnGen game) {
+    boolean checkWildEncounter(Game game) {
         
         // no encounters at night (subject to change)
         // TODO: need to enable this. shaders shouldn't be active on floatingbatch so should be fine. not sure abt ghost
@@ -690,7 +690,7 @@ class playerMoving extends Action {
     boolean alternate = false;
     
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
         
 
         //allows game to pause in middle of run
@@ -772,7 +772,7 @@ class playerMoving extends Action {
         }
     }
     
-    public playerMoving(PkmnGen game, boolean alternate) {
+    public playerMoving(Game game, boolean alternate) {
         
         this.alternate = alternate;
         
@@ -814,7 +814,7 @@ class playerRunning extends Action {
     boolean alternate = false;
     
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
         
         //allows game to pause in middle of run
         if (game.playerCanMove == false) {
@@ -895,7 +895,7 @@ class playerRunning extends Action {
         }
     }
     
-    public playerRunning(PkmnGen game, boolean alternate) {
+    public playerRunning(Game game, boolean alternate) {
         
         this.alternate = alternate;
         
@@ -930,7 +930,7 @@ class playerBump extends Action {
     boolean alternate = false;
     
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
         
         timer++;
         
@@ -978,7 +978,7 @@ class playerBump extends Action {
     
     
     
-    public playerBump(PkmnGen game) {
+    public playerBump(Game game) {
         
         PublicFunctions.insertToAS(game, new PlaySound("bump2", new DoneAction()));
         
@@ -1008,7 +1008,7 @@ class playerLedgeJump extends Action {
     //Map<String, ArrayList<Sprite>> spritesAnimList = new HashMap<String, ArrayList<Sprite>>();
     
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
         
         //gb does a weird anim here
          //looked at frame-by-frame (ledge_anim_notes.txt text file)
@@ -1075,7 +1075,7 @@ class playerLedgeJump extends Action {
         this.timer1++;
     }
     
-    public playerLedgeJump(PkmnGen game) {
+    public playerLedgeJump(Game game) {
         
         this.initialPos = new Vector2(game.player.position);
         if (game.player.dirFacing == "up") {
@@ -1151,7 +1151,7 @@ class drawPlayer_upper extends Action {
     int zsTimer = 0;
 
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
 
         if (game.player.isSleeping) {
             if (this.zsTimer < 64) {
@@ -1237,7 +1237,7 @@ class drawPlayer_upper extends Action {
     }
             
 
-    public drawPlayer_upper(PkmnGen game) {
+    public drawPlayer_upper(Game game) {
         Texture text = new Texture(Gdx.files.internal("tiles/zs1.png"));
         this.zSprite = new Sprite(text, 0, 0, 16, 16);
         
@@ -1253,7 +1253,7 @@ class drawPlayer_lower extends Action {
     Sprite spritePart;
 
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
         
         if (game.player.isSleeping) {
             return;
@@ -1270,7 +1270,7 @@ class drawPlayer_lower extends Action {
     }
             
 
-    public drawPlayer_lower(PkmnGen game) {
+    public drawPlayer_lower(Game game) {
 
 
     }
@@ -1290,7 +1290,7 @@ class DrawPokemonCaught extends Action {
     Sprite pokeball;
 
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
 
         int i = 0;
         for (Pokemon pokemon : game.player.pokemon) {
@@ -1304,7 +1304,7 @@ class DrawPokemonCaught extends Action {
     }
             
 
-    public DrawPokemonCaught(PkmnGen game) {
+    public DrawPokemonCaught(Game game) {
 
         Texture text = new Texture(Gdx.files.internal("throw_pokeball_anim/pokeball1.png"));
         this.pokeball = new Sprite(text, 0, 0, 12, 12);
@@ -1319,7 +1319,7 @@ class PlayerCanMove extends Action {
     Action nextAction;
 
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
 
         game.playerCanMove = true;
         
@@ -1328,7 +1328,7 @@ class PlayerCanMove extends Action {
     }
     
     
-    public PlayerCanMove(PkmnGen game, Action nextAction) {
+    public PlayerCanMove(Game game, Action nextAction) {
         this.nextAction = nextAction;
     }
 }
@@ -1366,7 +1366,7 @@ class drawGhost extends Action {
     Vector2 endPos;
     
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
             
         //check if it's day or not. if not Night, despawn the ghost
         if (game.map.timeOfDay != "Night") {
@@ -1564,7 +1564,7 @@ class drawGhost extends Action {
     }
             
 
-    public drawGhost(PkmnGen game, Vector2 position) {
+    public drawGhost(Game game, Vector2 position) {
 
         this.basePos = position;
         this.sineTimer = 0;
@@ -1642,7 +1642,7 @@ class spawnGhost extends Action {
     Vector2 position;
     
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
         
         if (part1 == 80) { //do once
             game.playerCanMove = false;
@@ -1728,7 +1728,7 @@ class spawnGhost extends Action {
     }
     
     
-    public spawnGhost(PkmnGen game, Vector2 position) {
+    public spawnGhost(Game game, Vector2 position) {
 
         this.part1 = 80;
         this.part2 = 40;
@@ -1771,7 +1771,7 @@ class despawnGhost extends Action {
     Sprite sprite;
     
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
         
         if (part1 > 0) {
             
@@ -1833,7 +1833,7 @@ class cycleDayNight extends Action {
     int day, night; //number of days/nights that has passed
     
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
         
         if (game.playerCanMove == true) {
             dayTimer--;
@@ -1968,7 +1968,7 @@ class cycleDayNight extends Action {
         
     }
     
-    public cycleDayNight(PkmnGen game) {
+    public cycleDayNight(Game game) {
         
         this.day = 1;
         this.night = 0;
@@ -2020,7 +2020,7 @@ class itemPickupNotify extends Action {
   int quantity;
   
   @Override
-  public void step(PkmnGen game) {
+  public void step(Game game) {
       if (signCounter > 0) {
           signCounter--;
           if (signCounter > 100) {
@@ -2038,7 +2038,7 @@ class itemPickupNotify extends Action {
       }
   }
   
-  public itemPickupNotify(PkmnGen game, String itemName, int quantity) {
+  public itemPickupNotify(Game game, String itemName, int quantity) {
       this.itemName = itemName;
       this.quantity = quantity;
       Texture text = new Texture(Gdx.files.internal("text2.png"));
@@ -2059,7 +2059,7 @@ class requirementNotify extends Action {
   String text = "";
   
   @Override
-  public void step(PkmnGen game) {
+  public void step(Game game) {
       if (signCounter > 0) {
           signCounter--;
           if (signCounter > 100) {
@@ -2078,7 +2078,7 @@ class requirementNotify extends Action {
       }
   }
   
-  public requirementNotify(PkmnGen game, String tileName) {
+  public requirementNotify(Game game, String tileName) {
       this.tileName = tileName;
       Texture text = new Texture(Gdx.files.internal("text2.png"));
       this.bgSprite = new Sprite(text, 0, 0, 160, 144);
@@ -2107,7 +2107,7 @@ class DrawAndroidControls extends Action {
 //    Robot robot;
 
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
 
         this.leftArrowSprite.draw(game.floatingBatch);
         
@@ -2183,7 +2183,7 @@ class CutTreeAnim extends Action {
     Sprite left, right;
 
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
         
         if (this.index < 13) {
         }
@@ -2267,7 +2267,7 @@ class CutTreeAnim extends Action {
         this.index++;
     }
 
-    public CutTreeAnim(PkmnGen game, Tile tile, Action nextAction) {
+    public CutTreeAnim(Game game, Tile tile, Action nextAction) {
         this.tile = tile;
         this.nextAction = nextAction;
     }
@@ -2285,7 +2285,7 @@ class HeadbuttTreeAnim extends Action {
     Sprite left, right;
 
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
 
         if (this.index == 0) {
             this.originalSprite = this.tile.overSprite;
@@ -2377,7 +2377,7 @@ class HeadbuttTreeAnim extends Action {
         this.index++;
     }
 
-    public HeadbuttTreeAnim(PkmnGen game, Tile tile, Action nextAction) {
+    public HeadbuttTreeAnim(Game game, Tile tile, Action nextAction) {
         this.tile = tile;
         this.nextAction = nextAction;
     }

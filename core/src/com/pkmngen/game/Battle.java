@@ -460,50 +460,59 @@ public class Battle {
         }
     }
     
-    static class CheckTrapped extends Action {
+    class CheckTrapped extends Action {
         public int layer = 500;
         public int getLayer(){return this.layer;}
         
         @Override
-        public void step(PkmnGen game) {
+        public void step(Game game) {
+            this.step();
+        }
+        
+        public void step() {
+            // TODO: trying out method where can only reference parent battle object, using Battle.this
+            // probably revert at some point
+            // TODO: if keeping, refactor to remove references to Game.staticGame
+            //  likely need global actionStack or something
+            
             // always goes you, then opponent
-            game.actionStack.remove(this);
-            if (game.battle.oppPokemon.trappedBy != null) {
-                this.nextAction = new Battle_Actions.LoadAndPlayAttackAnimation(game, game.battle.oppPokemon.trappedBy, game.battle.oppPokemon,
-                                  new DisplayText.Clear(game,
-                                  new WaitFrames(game, 3,
-                                  new DisplayText(game, 
-                                                  game.battle.oppPokemon.name.toUpperCase()+"' hurt by "+game.battle.oppPokemon.trappedBy.toUpperCase()+"!",
+            Game.staticGame.actionStack.remove(this);
+            if (Battle.this.oppPokemon.trappedBy != null) {
+                this.nextAction = new Battle_Actions.LoadAndPlayAttackAnimation(Game.staticGame, Battle.this.oppPokemon.trappedBy, Battle.this.oppPokemon,
+                                  new DisplayText.Clear(Game.staticGame,
+                                  new WaitFrames(Game.staticGame, 3,
+                                  new DisplayText(Game.staticGame, 
+                                                  Battle.this.oppPokemon.name.toUpperCase()+"' hurt by "+Battle.this.oppPokemon.trappedBy.toUpperCase()+"!",
                                                   null,
                                                   true,
-                                  new DepleteEnemyHealth(game,
-                                  new WaitFrames(game, 13,
+                                  new DepleteEnemyHealth(Game.staticGame,
+                                  new WaitFrames(Game.staticGame, 13,
                                   this.nextAction))))));
-                game.battle.oppPokemon.trapCounter -= 1;
-                if (game.battle.oppPokemon.trapCounter <= 0) {
-                    game.battle.oppPokemon.trappedBy = null;
+                Battle.this.oppPokemon.trapCounter -= 1;
+                if (Battle.this.oppPokemon.trapCounter <= 0) {
+                    Battle.this.oppPokemon.trappedBy = null;
                 }
             }
-            if (game.player.currPokemon.trappedBy != null) {
-                this.nextAction = new Battle_Actions.LoadAndPlayAttackAnimation(game, game.player.currPokemon.trappedBy, game.player.currPokemon,
-                                  new DisplayText.Clear(game,
-                                  new WaitFrames(game, 3,
-                                  new DisplayText(game, 
-                                                  game.player.currPokemon.name.toUpperCase()+"' hurt by "+game.player.currPokemon.trappedBy.toUpperCase()+"!",
+            if (Game.staticGame.player.currPokemon.trappedBy != null) {
+                this.nextAction = new Battle_Actions.LoadAndPlayAttackAnimation(Game.staticGame, Game.staticGame.player.currPokemon.trappedBy, Game.staticGame.player.currPokemon,
+                                  new DisplayText.Clear(Game.staticGame,
+                                  new WaitFrames(Game.staticGame, 3,
+                                  new DisplayText(Game.staticGame, 
+                                                  Game.staticGame.player.currPokemon.name.toUpperCase()+"' hurt by "+Game.staticGame.player.currPokemon.trappedBy.toUpperCase()+"!",
                                                   null, 
                                                   true,
-                                  new DepleteFriendlyHealth(game.player.currPokemon,
-                                  new WaitFrames(game, 13,
+                                  new DepleteFriendlyHealth(Game.staticGame.player.currPokemon,
+                                  new WaitFrames(Game.staticGame, 13,
                                   this.nextAction))))));
-                game.player.currPokemon.trapCounter -= 1;
-                if (game.battle.oppPokemon.trapCounter <= 0) {
-                    game.battle.oppPokemon.trappedBy = null;
+                Game.staticGame.player.currPokemon.trapCounter -= 1;
+                if (Battle.this.oppPokemon.trapCounter <= 0) {
+                    Battle.this.oppPokemon.trappedBy = null;
                 }
             }
-            PublicFunctions.insertToAS(game, this.nextAction);
+            PublicFunctions.insertToAS(Game.staticGame, this.nextAction);
         }
 
-        public CheckTrapped(PkmnGen game, Action nextAction) {
+        public CheckTrapped(Game game, Action nextAction) {
             this.nextAction = nextAction;
         }
     }
@@ -527,7 +536,7 @@ class BattleIntro extends Action {
     public String getCamera() {return "gui";};
     
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
 
         //get next frame
         this.frame = frames.get(0);
@@ -619,7 +628,7 @@ class BattleIntroMusic extends Action {
     public String getCamera() {return "gui";};
     
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
         
 
         game.currMusic.pause();
@@ -652,7 +661,7 @@ class BattleIntro_anim1 extends Action {
     public String getCamera() {return "gui";};
     
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
         
         //if done with anim, do nextAction
         if (frames.isEmpty()) {
@@ -714,7 +723,7 @@ class BattleAnim_positionPlayers extends Action {
     public String getCamera() {return "gui";};
     
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
         
         
         //if done with anim, do nextAction
@@ -736,7 +745,7 @@ class BattleAnim_positionPlayers extends Action {
         moves_relative.remove(0);
     }
     
-    public BattleAnim_positionPlayers(PkmnGen game, Action nextAction) {
+    public BattleAnim_positionPlayers(Game game, Action nextAction) {
         
         this.nextAction = nextAction;
         
@@ -780,7 +789,7 @@ class MovePlayerOffScreen extends Action {
     public String getCamera() {return "gui";};
     
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
 
         
         //if done with anim, do nextAction
@@ -806,7 +815,7 @@ class MovePlayerOffScreen extends Action {
         
     }
     
-    public MovePlayerOffScreen(PkmnGen game, Action nextAction) {
+    public MovePlayerOffScreen(Game game, Action nextAction) {
         
         this.nextAction = nextAction;
         
@@ -863,7 +872,7 @@ class EnemyFaint extends Action {
     Sprite helperSprite;
     
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
 
         if (this.firstStep == true) {
             //TODO - because drawing enemy sprite will likely be an
@@ -929,7 +938,7 @@ class EnemyFaint extends Action {
         
     }
     
-    public EnemyFaint(PkmnGen game, Action nextAction) {
+    public EnemyFaint(Game game, Action nextAction) {
         
         this.nextAction = nextAction;
         this.firstStep = true;
@@ -1013,7 +1022,7 @@ class FriendlyFaint extends Action {
     Sprite helperSprite;
     
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
 
         if (this.firstStep == true) {
 
@@ -1076,7 +1085,7 @@ class FriendlyFaint extends Action {
         
     }
     
-    public FriendlyFaint(PkmnGen game, Action nextAction) {
+    public FriendlyFaint(Game game, Action nextAction) {
         
         this.nextAction = nextAction;
         this.firstStep = true;
@@ -1159,7 +1168,7 @@ class DrawBattleMenu1 extends Action {
     
     
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
 
         
         //check user input
@@ -1227,7 +1236,7 @@ class DrawBattleMenu1 extends Action {
         this.arrow.draw(game.floatingBatch);
     }
     
-    public DrawBattleMenu1(PkmnGen game, Action nextAction) {
+    public DrawBattleMenu1(Game game, Action nextAction) {
 
         this.nextAction = nextAction;
         
@@ -1269,7 +1278,7 @@ class DrawBattleMenu_SafariZone extends Action {
     
     
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
 
         //check user input
          //'tl' = top left, etc. 
@@ -1398,7 +1407,7 @@ class DrawBattleMenu_SafariZone extends Action {
         this.arrow.draw(game.floatingBatch);
     }
     
-    public DrawBattleMenu_SafariZone(PkmnGen game, Action nextAction) {
+    public DrawBattleMenu_SafariZone(Game game, Action nextAction) {
 
         this.nextAction = nextAction;
         
@@ -1423,7 +1432,7 @@ class DrawBattleMenu_SafariZone extends Action {
         this.curr = "tl";
     }
 
-    Action calcIfCaught(PkmnGen game) {
+    Action calcIfCaught(Game game) {
         
         //using http://bulbapedia.bulbagarden.net/wiki/Catch_rate#Capture_method_.28Generation_I.29
          //also use http://www.dragonflycave.com/safarizone.aspx
@@ -1535,7 +1544,7 @@ class DrawBattleMenu_Normal extends MenuAction {
     
     
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
         
         // doesn't draw any arrow if disabled
         if (this.disabled) {
@@ -1581,7 +1590,7 @@ class DrawBattleMenu_Normal extends MenuAction {
                 PublicFunctions.insertToAS(game, new PlaySound("click1", new DoneAction()));
                 
                 //remove this action, new menu that selects between pokemon attacks
-                PublicFunctions.insertToAS(game, new WaitFrames(game, 4, new DrawAttacksMenu(game, new WaitFrames(game, 4, this))));
+                PublicFunctions.insertToAS(game, new WaitFrames(game, 4, new DrawAttacksMenu(new WaitFrames(game, 4, this))));
                 
                 //attacks stored in String[4] in pkmn    
                 game.actionStack.remove(this);
@@ -1643,7 +1652,7 @@ class DrawBattleMenu_Normal extends MenuAction {
         this.arrow.draw(game.floatingBatch);
     }
     
-    public DrawBattleMenu_Normal(PkmnGen game, Action nextAction) {
+    public DrawBattleMenu_Normal(Game game, Action nextAction) {
 
         this.nextAction = nextAction;
         
@@ -1699,10 +1708,7 @@ class DrawAttacksMenu extends Action {
     
     
     @Override
-    public void step(PkmnGen game) {
-
-        
-        
+    public void step(Game game) {
         //check user input
          //'tl' = top left, etc. 
          //modify position by modifying curr to tl, tr, bl or br
@@ -1791,7 +1797,7 @@ class DrawAttacksMenu extends Action {
             }
             // TODO: Battle.CheckTrapped is annoying, b/c we can't check if pkmn is trapped now
             // because it's determined in AttackAnim
-            attack.appendAction(new Battle.CheckTrapped(game,
+            attack.appendAction(game.battle.new CheckTrapped(game,
                                 new DisplayText.Clear(game,
                                 new WaitFrames(game, 3,
                                 this.nextAction))));
@@ -1834,10 +1840,9 @@ class DrawAttacksMenu extends Action {
         }
     }
     
-    public DrawAttacksMenu(PkmnGen game, Action nextAction) {
+    public DrawAttacksMenu(Action nextAction) {
 
         this.nextAction = nextAction;
-        
         this.cursorDelay = 0;
         
         this.getCoords = new HashMap<Integer, Vector2>();
@@ -1862,7 +1867,7 @@ class DrawAttacksMenu extends Action {
         this.curr = 0;
         
         //convert pokemon attacks to sprites
-        for (String attack : game.player.currPokemon.attacks) {
+        for (String attack : Game.staticGame.player.currPokemon.attacks) {
             char[] textArray = attack.toUpperCase().toCharArray(); //iterate elements
             Sprite currSprite;
             int i = 0;
@@ -1870,9 +1875,9 @@ class DrawAttacksMenu extends Action {
             ArrayList<Sprite> word = new ArrayList<Sprite>();
             for (char letter : textArray) {
                 //offsetNext += spriteWidth*3+2 //how to do this?
-                Sprite letterSprite = game.textDict.get((char)letter);
+                Sprite letterSprite = Game.staticGame.textDict.get((char)letter);
                 if (letterSprite == null) {
-                    letterSprite = game.textDict.get(null);
+                    letterSprite = Game.staticGame.textDict.get(null);
                 }
                 currSprite = new Sprite(letterSprite); //copy sprite from char-to-Sprite dictionary
                 
@@ -1927,7 +1932,7 @@ class DrawPlayerMenu extends MenuAction {
 
     
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
 
         //System.out.println("curr: " + curr);
 
@@ -2012,7 +2017,7 @@ class DrawPlayerMenu extends MenuAction {
         }
     }
     
-    public DrawPlayerMenu(PkmnGen game, Action nextAction) {
+    public DrawPlayerMenu(Game game, Action nextAction) {
 
         this.disabled = false;
         this.drawArrowWhite = false;
@@ -2101,7 +2106,7 @@ class DrawPlayerMenu extends MenuAction {
         
 
         @Override
-        public void step(PkmnGen game) {
+        public void step(Game game) {
 
 
             //get next frame
@@ -2147,7 +2152,7 @@ class DrawPlayerMenu extends MenuAction {
         }
         
         
-        public Intro(PkmnGen game, Action nextAction) {        
+        public Intro(Game game, Action nextAction) {        
 
             this.nextAction = nextAction;
 
@@ -2208,7 +2213,7 @@ class DrawItemMenu extends MenuAction {
 //    MenuAction prevMenu;  
     
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
 
         if (this.prevMenu != null) {
             this.prevMenu.step(game);
@@ -2328,7 +2333,7 @@ class DrawItemMenu extends MenuAction {
         
     }
     
-    public DrawItemMenu(PkmnGen game, MenuAction prevMenu) {
+    public DrawItemMenu(Game game, MenuAction prevMenu) {
 
         this.prevMenu = prevMenu;
         
@@ -2436,7 +2441,7 @@ class DrawItemMenu extends MenuAction {
         MenuAction prevMenu;
 
         @Override
-        public void step(PkmnGen game) {
+        public void step(Game game) {
             if (this.prevMenu != null) {
                 this.prevMenu.step(game);
             }
@@ -2484,7 +2489,7 @@ class DrawUseTossMenu extends MenuAction {
     MenuAction prevMenu;
     
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
 
         //if there is a previous menu, step through it to display text
         if (prevMenu != null) {
@@ -2555,7 +2560,7 @@ class DrawUseTossMenu extends MenuAction {
     
     //constructor for when this was called by the item menu
      //probably will create separate constructor for other cases
-    public DrawUseTossMenu(PkmnGen game, MenuAction prevMenu, String itemName) {
+    public DrawUseTossMenu(Game game, MenuAction prevMenu, String itemName) {
 
         this.prevMenu = prevMenu; //previously visiting menu
         this.itemName = itemName; //which item was selected from previous menu
@@ -2588,7 +2593,7 @@ class DrawUseTossMenu extends MenuAction {
         this.helperSprite = new Sprite(text, 0,0, 16*10, 16*9);
     }
     
-    public void useItem(PkmnGen game, String itemName) {
+    public void useItem(Game game, String itemName) {
         // 
         if (itemName.toLowerCase().equals("ultra ball")) {
             // calculate if pokemon was caught
@@ -2626,7 +2631,7 @@ class DrawPokemonMenu extends MenuAction {
     public static int lastIndex = 0;
 
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
 
         if (this.prevMenu != null) {
             this.prevMenu.step(game);
@@ -2788,7 +2793,7 @@ class DrawPokemonMenu extends MenuAction {
         }
     }
 
-    public DrawPokemonMenu(PkmnGen game, MenuAction prevMenu) {
+    public DrawPokemonMenu(Game game, MenuAction prevMenu) {
 
         this.prevMenu = prevMenu;
         
@@ -2840,7 +2845,7 @@ class DrawPokemonMenu extends MenuAction {
         Sprite bgSprite;
 
         @Override
-        public void step(PkmnGen game) {
+        public void step(Game game) {
 
             this.bgSprite.draw(game.floatingBatch);
             
@@ -2879,7 +2884,7 @@ class DrawPokemonMenu extends MenuAction {
         Sprite bgSprite;
 
         @Override
-        public void step(PkmnGen game) {
+        public void step(Game game) {
 
             if (this.prevMenu != null) {
                 this.prevMenu.step(game);
@@ -2933,7 +2938,7 @@ class DrawPokemonMenu extends MenuAction {
         int textboxDelay = 0; //this is just extra detail. text box has 1 frame delay before appearing
         
         // maps menu selection to an action
-        public Action getAction(PkmnGen game, String word, MenuAction prevMenu) {
+        public Action getAction(Game game, String word, MenuAction prevMenu) {
             if (word.equals("STATS")) {
                 return new SelectedMenu.Switch(prevMenu); //TODO - Stats menu
             }
@@ -2983,7 +2988,7 @@ class DrawPokemonMenu extends MenuAction {
         }
         
         @Override
-        public void step(PkmnGen game) {
+        public void step(Game game) {
 
             //if there is a previous menu, step through it to display text
             if (prevMenu != null) {
@@ -3131,7 +3136,7 @@ class DrawPokemonMenu extends MenuAction {
             int duration = 9;
 
             @Override
-            public void step(PkmnGen game) {
+            public void step(Game game) {
 
                 this.prevMenu.drawArrowWhite = false;
                 
@@ -3167,7 +3172,7 @@ class DrawPokemonMenu extends MenuAction {
             boolean firstStep = true;
             
             @Override
-            public void step(PkmnGen game) {
+            public void step(Game game) {
                 if (this.firstStep) {
                     PublicFunctions.insertToAS(game, this.nextAction);
                     this.firstStep = false;
@@ -3228,7 +3233,7 @@ class DrawPokemonMenu extends MenuAction {
             int timer = 0; //used for various intro anim timings
 
             @Override
-            public void step(PkmnGen game) {
+            public void step(Game game) {
 
                 //if there is a previous menu, step through it to display text
                 if (prevMenu != null) {
@@ -3364,7 +3369,7 @@ class DrawPokemonMenu extends MenuAction {
                 int timer = 0; //timer counting up
 
                 @Override
-                public void step(PkmnGen game) {
+                public void step(Game game) {
 
                     if (prevMenu != null) {
                         prevMenu.step(game);
@@ -3411,7 +3416,7 @@ class BattleFadeOut extends Action {
     public String getCamera() {return "gui";};
     
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
         
         //should only happen once. not sure that repeat matters
         game.actionStack.remove(game.battle.drawAction); //stop drawing the battle
@@ -3441,7 +3446,7 @@ class BattleFadeOut extends Action {
 
     }
     
-    public BattleFadeOut(PkmnGen game, Action nextAction) {
+    public BattleFadeOut(Game game, Action nextAction) {
         
         this.nextAction = nextAction;
 
@@ -3486,7 +3491,7 @@ class BattleFadeOutMusic extends Action {
     public String getCamera() {return "gui";};
     
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
 
         if (this.isNight == true) {
             game.actionStack.remove(this);
@@ -3524,7 +3529,7 @@ class BattleFadeOutMusic extends Action {
 
     }
     
-    public BattleFadeOutMusic(PkmnGen game, Action nextAction) {
+    public BattleFadeOutMusic(Game game, Action nextAction) {
         
         this.nextAction = nextAction;
         
@@ -3585,7 +3590,7 @@ class DrawBattle extends Action {
     public static boolean shouldDrawOppPokemon = true;
     
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
 
         
         this.bgSprite.draw(game.floatingBatch);
@@ -3632,7 +3637,7 @@ class DrawBattle extends Action {
         
     }
     
-    public DrawBattle(PkmnGen game) {
+    public DrawBattle(Game game) {
         
         Texture text = new Texture(Gdx.files.internal("battle/battle_bg3.png"));
         //Texture text = new Texture(Gdx.files.internal("battle/helper1.png"));
@@ -3667,7 +3672,7 @@ class DrawEnemyHealth extends Action {
     public static boolean shouldDraw = true;
     
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
 
         if (this.shouldDraw) {
             
@@ -3709,7 +3714,7 @@ class DrawEnemyHealth extends Action {
         }
     }
     
-    public DrawEnemyHealth(PkmnGen game) {
+    public DrawEnemyHealth(Game game) {
 
         Texture text = new Texture(Gdx.files.internal("battle/enemy_healthbar1.png"));
         this.bgSprite = new Sprite(text, 0, 0, 160, 144);
@@ -3756,7 +3761,7 @@ class DrawFriendlyHealth extends Action {
     public static boolean shouldDraw = true;
     
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
 
         //offset is 96, 80
         if (this.firstStep) {
@@ -3817,11 +3822,11 @@ class DrawFriendlyHealth extends Action {
             game.actionStack.remove(this);
         }
     }
-    public DrawFriendlyHealth(PkmnGen game) {
+    public DrawFriendlyHealth(Game game) {
         this(game, null);
     }
     
-    public DrawFriendlyHealth(PkmnGen game, Action nextAction) {
+    public DrawFriendlyHealth(Game game, Action nextAction) {
         
         this.nextAction = nextAction;
 
@@ -3873,7 +3878,7 @@ class DepleteEnemyHealth extends Action {
     
     
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
     
         if (this.firstStep == true) {
             this.targetSize = (int)Math.ceil( (game.battle.oppPokemon.currentStats.get("hp")*48) / game.battle.oppPokemon.maxStats.get("hp"));
@@ -3930,7 +3935,7 @@ class DepleteEnemyHealth extends Action {
         
     }
     
-    public DepleteEnemyHealth(PkmnGen game, Action nextAction) {
+    public DepleteEnemyHealth(Game game, Action nextAction) {
         
         this.nextAction = nextAction;
         
@@ -3966,7 +3971,7 @@ class DepleteFriendlyHealth extends Action {
     
     
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
     
         if (this.firstStep == true) {
             this.targetSize = (int)Math.ceil( (this.pokemon.currentStats.get("hp")*48) / this.pokemon.maxStats.get("hp"));
@@ -4050,7 +4055,7 @@ class AfterFriendlyFaint extends Action {
     
 
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
     
         //for now, insert two text actions
         
@@ -4100,7 +4105,7 @@ class ThrowRock extends Action {
     Sprite helperSprite; //just for helping me position the animation. delete later.
     
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
 
 
         //set sprite position
@@ -4175,7 +4180,7 @@ class ThrowRock extends Action {
         
     }
     
-    public ThrowRock(PkmnGen game, Action nextAction) {
+    public ThrowRock(Game game, Action nextAction) {
 
         this.nextAction = nextAction;
         
@@ -4261,7 +4266,7 @@ class ThrowBait extends Action {
     Sprite helperSprite; //just for helping me position the animation. delete later.
     
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
 
 
         //set sprite position
@@ -4333,7 +4338,7 @@ class ThrowBait extends Action {
         
     }
     
-    public ThrowBait(PkmnGen game, Action nextAction) {
+    public ThrowBait(Game game, Action nextAction) {
 
         this.nextAction = nextAction;
                 
@@ -4417,7 +4422,7 @@ class ThrowPokeball extends Action {
     Sprite helperSprite; //just for helping me position the animation. delete later.
     
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
 
         //set sprite position
         //if done with anim, do nextAction
@@ -4471,7 +4476,7 @@ class ThrowPokeball extends Action {
         }
     }
     
-    public ThrowPokeball(PkmnGen game, Action nextAction) {
+    public ThrowPokeball(Game game, Action nextAction) {
 
         this.nextAction = nextAction;
 
@@ -4580,7 +4585,7 @@ class ThrowFastPokeball extends Action {
     Sprite helperSprite; //just for helping me position the animation. delete later.
     
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
 
         //set sprite position
         //if done with anim, do nextAction
@@ -4634,7 +4639,7 @@ class ThrowFastPokeball extends Action {
         }
     }
     
-    public ThrowFastPokeball(PkmnGen game, Action nextAction) {
+    public ThrowFastPokeball(Game game, Action nextAction) {
 
         this.nextAction = nextAction;
 
@@ -4767,7 +4772,7 @@ class ThrowHyperPokeball extends Action {
     Sprite helperSprite; //just for helping me position the animation. delete later.
     
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
 
         //set sprite position
         //if done with anim, do nextAction
@@ -4821,7 +4826,7 @@ class ThrowHyperPokeball extends Action {
         }
     }
     
-    public ThrowHyperPokeball(PkmnGen game, Action nextAction) {
+    public ThrowHyperPokeball(Game game, Action nextAction) {
 
         this.nextAction = nextAction;
 
@@ -4932,7 +4937,7 @@ class catchPokemon_wigglesThenCatch extends Action {
     Sprite helperSprite; //just for helping me position the animation. delete later.
     
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
 
         //set opp pokemon sprite alpha
         game.battle.oppPokemon.sprite.setAlpha(0);
@@ -5038,7 +5043,7 @@ class catchPokemon_wigglesThenCatch extends Action {
         }
     }
     
-    public catchPokemon_wigglesThenCatch(PkmnGen game, Action nextAction) {
+    public catchPokemon_wigglesThenCatch(Game game, Action nextAction) {
 
         this.nextAction = nextAction;
         
@@ -5137,7 +5142,7 @@ class catchPokemon_miss extends Action {
     Sprite helperSprite; 
     
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
 
         // - 1 frame then text dissappears
         // - 3 frames nothing, then text appears
@@ -5153,7 +5158,7 @@ class catchPokemon_miss extends Action {
         
     }
     
-    public catchPokemon_miss(PkmnGen game, Action nextAction) {
+    public catchPokemon_miss(Game game, Action nextAction) {
 
         this.nextAction = nextAction;
         /*
@@ -5192,7 +5197,7 @@ class catchPokemon_wiggles1Time extends Action {
     Sprite helperSprite; //just for helping me position the animation. delete later.
     
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
 
         //set sprite position
         //if done with anim, do nextAction
@@ -5252,7 +5257,7 @@ class catchPokemon_wiggles1Time extends Action {
         }
     }
     
-    public catchPokemon_wiggles1Time(PkmnGen game, Action nextAction) {
+    public catchPokemon_wiggles1Time(Game game, Action nextAction) {
 
         this.nextAction = nextAction;
         
@@ -5361,7 +5366,7 @@ class catchPokemon_wiggles2Times extends Action {
     Sprite helperSprite; //just for helping me position the animation. delete later.
     
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
 
         //set opp pokemon sprite alpha
         //game.battle.oppPokemon.sprite.setAlpha(0); //delete at some point
@@ -5424,7 +5429,7 @@ class catchPokemon_wiggles2Times extends Action {
         }
     }
     
-    public catchPokemon_wiggles2Times(PkmnGen game, Action nextAction) {
+    public catchPokemon_wiggles2Times(Game game, Action nextAction) {
 
         this.nextAction = nextAction;
         
@@ -5553,7 +5558,7 @@ class catchPokemon_wiggles3Times extends Action {
     Sprite helperSprite; //just for helping me position the animation. delete later.
     
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
 
         //set opp pokemon sprite alpha
         //game.battle.oppPokemon.sprite.setAlpha(0); //delete at some point
@@ -5632,7 +5637,7 @@ class catchPokemon_wiggles3Times extends Action {
         }
     }
     
-    public catchPokemon_wiggles3Times(PkmnGen game, Action nextAction) {
+    public catchPokemon_wiggles3Times(Game game, Action nextAction) {
 
         //TODO - would be nice to confirm this version with a recording
         
@@ -5763,7 +5768,7 @@ class PrintAngryEating extends Action {
     
     
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
         
         if (game.battle.oppPokemon.angry > 0) {
             String textString = "Wild " + game.battle.oppPokemon.name.toUpperCase() + " is angry!";
@@ -5795,7 +5800,7 @@ class PrintAngryEating extends Action {
         return;
     }
 
-    public PrintAngryEating(PkmnGen game, Action nextAction) {
+    public PrintAngryEating(Game game, Action nextAction) {
         
         this.nextAction = nextAction;
         
@@ -5815,7 +5820,7 @@ class ChanceToRun extends Action {
     
 
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
     
         //TODO - uses up one frame here when it shouldn't.
          //call nextAction step? but layer will be wrong
@@ -5883,7 +5888,7 @@ class ChanceToRun extends Action {
     }
     
 
-    public ChanceToRun(PkmnGen game, Action nextAction) {
+    public ChanceToRun(Game game, Action nextAction) {
 
         this.nextAction = nextAction;
         
@@ -5922,7 +5927,7 @@ class OppPokemonFlee extends Action {
     Sprite helperSprite; //just for helping me position the animation. delete later.
     
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
 
         //set opp pokemon sprite alpha
         //game.battle.oppPokemon.sprite.setAlpha(0); //delete at some point
@@ -5974,7 +5979,7 @@ class OppPokemonFlee extends Action {
         }
     }
     
-    public OppPokemonFlee(PkmnGen game, Action nextAction) {
+    public OppPokemonFlee(Game game, Action nextAction) {
 
         this.nextAction = nextAction;
         
@@ -6035,7 +6040,7 @@ class PokemonCaught_Events extends Action {
     boolean startLooking;
     
     //what to do at each iteration
-    public void step(PkmnGen game) {
+    public void step(Game game) {
 
 
         this.pokeballSprite.draw(game.floatingBatch);
@@ -6063,7 +6068,7 @@ class PokemonCaught_Events extends Action {
         
     }
 
-    public PokemonCaught_Events(PkmnGen game, int adrenaline, Action nextAction) {
+    public PokemonCaught_Events(Game game, int adrenaline, Action nextAction) {
         
         this.nextAction = nextAction;
         
@@ -6129,7 +6134,7 @@ class ThrowOutPokemon extends Action {
     boolean firstStep;
     
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
 
         if (this.firstStep == true) {
             game.battle.drawAction.drawFriendlyPokemonAction = this;
@@ -6229,7 +6234,7 @@ class ThrowOutPokemon extends Action {
         }
     }
     
-    public ThrowOutPokemon(PkmnGen game, Action nextAction) {
+    public ThrowOutPokemon(Game game, Action nextAction) {
         this.firstStep = true;
         
         this.doneYet = false;
@@ -6408,7 +6413,7 @@ class ThrowOutPokemonCrystal extends Action {
   boolean firstStep;
   
   @Override
-  public void step(PkmnGen game) {
+  public void step(Game game) {
 
       if (this.firstStep == true) {
           game.battle.drawAction.drawFriendlyPokemonAction = this;
@@ -6517,7 +6522,7 @@ class ThrowOutPokemonCrystal extends Action {
       }
   }
   
-  public ThrowOutPokemonCrystal(PkmnGen game, Action nextAction) {
+  public ThrowOutPokemonCrystal(Game game, Action nextAction) {
       this.firstStep = true;
       
       this.doneYet = false;
@@ -6681,7 +6686,7 @@ class SpecialBattleMewtwo extends Action {
     int timer = 1670; // TODO: debug, remove
 
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
 
         if (this.firstStep) {
             this.music = Gdx.audio.newMusic(Gdx.files.internal("battle/pokemon_mansion_remix_eq.ogg"));
@@ -6809,7 +6814,7 @@ class SpecialBattleMewtwo extends Action {
         this.timer++;
     }
 
-    public SpecialBattleMewtwo(PkmnGen game) {
+    public SpecialBattleMewtwo(Game game) {
 
         
     }
@@ -6830,7 +6835,7 @@ class SpecialBattleMewtwo extends Action {
         int offsetY = 0;
 
         @Override
-        public void step(PkmnGen game) {
+        public void step(Game game) {
             
             // TODO: debug, delete
 //            this.shouldBreathe = true;
@@ -6885,7 +6890,7 @@ class SpecialBattleMewtwo extends Action {
         String vertexShader;
 
         @Override
-        public void step(PkmnGen game) {
+        public void step(Game game) {
 
 
 //            if (this.timer < 60 || this.timer > 700) {
@@ -6997,7 +7002,7 @@ class SpecialBattleMewtwo extends Action {
             this.timer++;
         }
         
-        public IntroAnim(PkmnGen game, Action nextAction) {
+        public IntroAnim(Game game, Action nextAction) {
             
             this.nextAction = nextAction;
             this.moves_relative = new ArrayList<Vector2>();
@@ -7101,7 +7106,7 @@ class SpecialBattleMewtwo extends Action {
         public String getCamera() {return "gui";};
         
         @Override
-        public void step(PkmnGen game) {
+        public void step(Game game) {
             
             //if done with anim, do nextAction
             if (frames.isEmpty()) {
@@ -7161,7 +7166,7 @@ class SpecialBattleMewtwo extends Action {
         int[] offsets = new int[] {0, 0, 0, 1, 2, 2, 2, 3, 4, 4, 4, 3, 2, 2, 2, 1};
         
         @Override
-        public void step(PkmnGen game) {
+        public void step(Game game) {
             
             //TODO: why isn't breathing sprite drawn?
             
@@ -7278,7 +7283,7 @@ class SpecialBattleMewtwo extends Action {
         public static boolean shouldMoveY = true;
 
         @Override
-        public void step(PkmnGen game) {
+        public void step(Game game) {
 
             if (this.firstStep) {
                 SpecialBattleMewtwo.RocksEffect2.drawRocks = true;
@@ -7411,7 +7416,7 @@ class SpecialBattleMewtwo extends Action {
         static boolean drawRocks = false;
 
         @Override
-        public void step(PkmnGen game) {
+        public void step(Game game) {
 
             // didn't end up liking this
 //            //need bg under the animation
@@ -7516,7 +7521,7 @@ class SpecialBattleMewtwo extends Action {
         public String getCamera() {return "gui";};
         
         @Override
-        public void step(PkmnGen game) {
+        public void step(Game game) {
 //            this.bgSprite.draw(game.floatingBatch);
             //debug
 //            this.helperSprite.draw(game.floatingBatch);
@@ -7527,7 +7532,7 @@ class SpecialBattleMewtwo extends Action {
             game.player.battleSprite.draw(game.floatingBatch);
         }
         
-        public DrawBattle1(PkmnGen game) {
+        public DrawBattle1(Game game) {
             super(game);
         }
     }
@@ -7549,7 +7554,7 @@ class SpecialBattleMegaGengar extends Action {
 //    int timer = 1670; // TODO: debug, remove
 
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
 
         if (this.firstStep) {
             this.music = Gdx.audio.newMusic(Gdx.files.internal("battle/mgengar_battle_intro1.wav"));
@@ -7684,7 +7689,7 @@ class SpecialBattleMegaGengar extends Action {
         this.timer++;
     }
 
-    public SpecialBattleMegaGengar(PkmnGen game) {
+    public SpecialBattleMegaGengar(Game game) {
 
         
     }
@@ -7707,7 +7712,7 @@ class SpecialBattleMegaGengar extends Action {
         Sprite bgSprite;
 
         @Override
-        public void step(PkmnGen game) {
+        public void step(Game game) {
             
             // TODO: debug, delete
 //            this.shouldBreathe = true;
@@ -7776,7 +7781,7 @@ class SpecialBattleMegaGengar extends Action {
         
 
         @Override
-        public void step(PkmnGen game) {
+        public void step(Game game) {
 
             if (this.firstStep) {
                 // TODO: will fail if WebGL (maybe LibGDX has fixed this?)
@@ -7923,7 +7928,7 @@ class SpecialBattleMegaGengar extends Action {
             this.timer++;
         }
         
-        public IntroAnim(PkmnGen game, Action nextAction) {
+        public IntroAnim(Game game, Action nextAction) {
             
             this.nextAction = nextAction;
             this.moves_relative = new ArrayList<Vector2>();
@@ -8027,7 +8032,7 @@ class SpecialBattleMegaGengar extends Action {
         public String getCamera() {return "gui";};
         
         @Override
-        public void step(PkmnGen game) {
+        public void step(Game game) {
             
             //get next frame
             this.frame = frames.get(0);
@@ -8079,7 +8084,7 @@ class SpecialBattleMegaGengar extends Action {
         Sprite bgSprite;
         
         @Override
-        public void step(PkmnGen game) {
+        public void step(Game game) {
             //debug
 //            this.helperSprite.draw(game.floatingBatch);
 
@@ -8093,7 +8098,7 @@ class SpecialBattleMegaGengar extends Action {
             game.player.battleSprite.draw(game.floatingBatch);
         }
         
-        public DrawBattle1(PkmnGen game) {
+        public DrawBattle1(Game game) {
             super(game);
 //            Texture text = new Texture(Gdx.files.internal("battle/battle_bg3.png"));
 //            this.bgSprite = new Sprite(text, 0, 0, 160, 144);
@@ -8113,7 +8118,7 @@ class PokemonIntroAnim extends Action {
     boolean firstStep = true;
 
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
         if (this.firstStep) {
             this.originalSprite = game.battle.oppPokemon.sprite;
             this.firstStep = false;
@@ -8146,13 +8151,13 @@ class AttackAnim extends Action {
     boolean isFriendly;
 
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
         // TODO: move the Battle_Actions.getAttackAction code here
         game.actionStack.remove(this);
         PublicFunctions.insertToAS(game, Battle_Actions.getAttackAction(game, attackName, isFriendly, nextAction));
     }
     
-    public AttackAnim(PkmnGen game, String attackName, boolean isFriendly, Action nextAction) {
+    public AttackAnim(Game game, String attackName, boolean isFriendly, Action nextAction) {
         this.nextAction = nextAction;
         this.attackName = attackName;
         this.isFriendly = isFriendly;
@@ -8168,7 +8173,7 @@ class Battle_Actions extends Action {
 
     // TODO: this catch calculator is for gen1 only, also want gen2
     // dupe of a fn in draw safari menu action, put here bc the one in safari menu has demo code
-    public static Action calcIfCaught(PkmnGen game, Action nextAction) {
+    public static Action calcIfCaught(Game game, Action nextAction) {
 
         //using http://bulbapedia.bulbagarden.net/wiki/Catch_rate#Capture_method_.28Generation_I.29
          //also use http://www.dragonflycave.com/safarizone.aspx
@@ -8253,7 +8258,7 @@ class Battle_Actions extends Action {
         return new catchPokemon_wiggles3Times(game, new PrintAngryEating(game, new ChanceToRun(game, nextAction) ) );
     }
     
-    public static Action getAttackAction(PkmnGen game, String attackName, boolean isFriendly, Action nextAction) {
+    public static Action getAttackAction(Game game, String attackName, boolean isFriendly, Action nextAction) {
         
         //construct default attack?
         // TODO: the non-loaded ones are broken now, need to do DisplayText.Clear()
@@ -8480,7 +8485,7 @@ class Battle_Actions extends Action {
         
     }
 
-    public static Action get(PkmnGen game) {
+    public static Action get(Game game) {
         
         //if player has no pokemon, encounter is safari zone style
         if (game.player.pokemon.isEmpty()) {
@@ -8618,7 +8623,7 @@ class Battle_Actions extends Action {
         int accuracy = 100;
         
         @Override
-        public void step(PkmnGen game) {
+        public void step(Game game) {
 
             //set sprite position
             //if done with anim, do nextAction
@@ -8690,7 +8695,7 @@ class Battle_Actions extends Action {
             }
         }
 
-        public Lick(PkmnGen game,
+        public Lick(Game game,
                      Pokemon attacker,
                      Pokemon target,
                      Action nextAction) {
@@ -8801,7 +8806,7 @@ class Battle_Actions extends Action {
         int accuracy = 100;
         
         @Override
-        public void step(PkmnGen game) {
+        public void step(Game game) {
 
             //set sprite position
             //if done with anim, do nextAction
@@ -8876,7 +8881,7 @@ class Battle_Actions extends Action {
             }
         }
 
-        public Slash(PkmnGen game,
+        public Slash(Game game,
                      Pokemon attacker,
                      Pokemon target,
                      Action nextAction) {
@@ -8994,7 +8999,7 @@ class Battle_Actions extends Action {
         int accuracy = 100;
         
         @Override
-        public void step(PkmnGen game) {
+        public void step(Game game) {
 
             //set sprite position
             //if done with anim, do nextAction
@@ -9072,7 +9077,7 @@ class Battle_Actions extends Action {
             }
         }
 
-        public ShadowClaw(PkmnGen game,
+        public ShadowClaw(Game game,
                           Pokemon attacker,
                           Pokemon target,
                           Action nextAction) {
@@ -9243,7 +9248,7 @@ class Battle_Actions extends Action {
         boolean hitSound = true;
 
         @Override
-        public void step(PkmnGen game) {
+        public void step(Game game) {
 
             if (this.firstStep) {
                 if (this.isNightShade) {
@@ -9315,7 +9320,7 @@ class Battle_Actions extends Action {
             
         }
 
-        public Psychic(PkmnGen game,
+        public Psychic(Game game,
                        Pokemon attacker,
                        Pokemon target,
                        boolean isNightShade,
@@ -9627,7 +9632,7 @@ class Battle_Actions extends Action {
         int timer = 0;
 
         @Override
-        public void step(PkmnGen game) {
+        public void step(Game game) {
 
             if (this.timer == 0) {
 
@@ -9840,7 +9845,7 @@ class Battle_Actions extends Action {
             
         }
 
-        public Mewtwo_Special1(PkmnGen game,
+        public Mewtwo_Special1(Game game,
                                Pokemon attacker,
                                Pokemon target,
                                Action nextAction) {
@@ -10010,7 +10015,7 @@ class Battle_Actions extends Action {
         int pixmapX, pixmapY;
 
         @Override
-        public void step(PkmnGen game) {
+        public void step(Game game) {
             // TODO: load attack power/accuracy
             if (this.firstStep) {
                 // load metadata for each frame
@@ -10185,7 +10190,7 @@ class Battle_Actions extends Action {
             this.frameNum++;
         }
         
-        public LoadAndPlayAttackAnimation(PkmnGen game, String name, Pokemon target, Action nextAction) {
+        public LoadAndPlayAttackAnimation(Game game, String name, Pokemon target, Action nextAction) {
             this.name = name.toLowerCase().replace(' ', '_');
             if (target == game.player.currPokemon) {
                 this.name = this.name+"_enemy_gsc";
@@ -10230,7 +10235,7 @@ class DefaultAttack extends Action {
     
 
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
 
         //set sprite position
         //if done with anim, do nextAction
@@ -10302,7 +10307,7 @@ class DefaultAttack extends Action {
     }
     
     
-    public DefaultAttack(PkmnGen game, int power, int accuracy, Action nextAction) {        
+    public DefaultAttack(Game game, int power, int accuracy, Action nextAction) {        
 
         this.power = power;
         this.accuracy = accuracy;
@@ -10391,8 +10396,6 @@ class DefaultEnemyAttack extends Action {
 
     public String getCamera() {return "gui";};
 
-    
-    
     Sprite helperSprite; 
     
     boolean doneYet; //unused
@@ -10401,7 +10404,7 @@ class DefaultEnemyAttack extends Action {
     
 
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
 
         //set sprite position
         //if done with anim, do nextAction

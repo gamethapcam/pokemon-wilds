@@ -4,7 +4,7 @@ import android.os.Bundle;
 
 import com.badlogic.gdx.backends.android.AndroidApplication;
 import com.badlogic.gdx.backends.android.AndroidApplicationConfiguration;
-import com.pkmngen.game.PkmnGen;
+import com.pkmngen.game.Game;
 
 public class AndroidLauncher extends AndroidApplication {
 	@Override
@@ -15,6 +15,6 @@ public class AndroidLauncher extends AndroidApplication {
 
 		//Gdx.app.getType() - for desktop vs android
 		
-		initialize(new PkmnGen(), config);
+		initialize(new Game(), config);
 	}
 }

@@ -40,7 +40,7 @@ class GenIsland1 extends Action {
 	Random rand;
 	
 	@Override
-	public void step(PkmnGen game) {
+	public void step(Game game) {
 
 		if (this.tilesToAdd.isEmpty()) {
 			if (this.doActions.isEmpty()) {
@@ -142,7 +142,7 @@ class GenIsland1 extends Action {
         }
 	}
 	
-    public ArrayList<Tile> ApplyBlotchMountain(PkmnGen game, Tile originTile, int maxDist, HashMap<Vector2, Tile> tilesToAdd) {
+    public ArrayList<Tile> ApplyBlotchMountain(Game game, Tile originTile, int maxDist, HashMap<Vector2, Tile> tilesToAdd) {
         
 //        maxDist = 120*140; // TODO: debug, remove
 //        maxDist = 100*120;
@@ -522,15 +522,15 @@ class GenIsland1 extends Action {
     }
 
 
-    public void ApplyBlotch(PkmnGen game, String type, Tile originTile, int maxDist, HashMap<Vector2, Tile> tilesToAdd) {
+    public void ApplyBlotch(Game game, String type, Tile originTile, int maxDist, HashMap<Vector2, Tile> tilesToAdd) {
         ApplyBlotch(game, type, originTile, maxDist, tilesToAdd, 0, true);
     }
 
-    public void ApplyBlotch(PkmnGen game, String type, Tile originTile, int maxDist, HashMap<Vector2, Tile> tilesToAdd, int isMaze, boolean doNext) {
+    public void ApplyBlotch(Game game, String type, Tile originTile, int maxDist, HashMap<Vector2, Tile> tilesToAdd, int isMaze, boolean doNext) {
         ApplyBlotch(game, type, originTile, maxDist, tilesToAdd, isMaze, doNext, null);
     }
 	
-	public void ApplyBlotch(PkmnGen game, String type, Tile originTile, int maxDist, HashMap<Vector2, Tile> tilesToAdd, int isMaze, boolean doNext, Route currRoute) {
+	public void ApplyBlotch(Game game, String type, Tile originTile, int maxDist, HashMap<Vector2, Tile> tilesToAdd, int isMaze, boolean doNext, Route currRoute) {
 		HashMap<Vector2, Tile> edgeTiles = new HashMap<Vector2, Tile>();
 		ArrayList<Tile> prevTiles = new ArrayList<Tile>();
 		Tile prevTile = originTile;
@@ -849,7 +849,7 @@ class GenIsland1 extends Action {
 		}
 	}
 	
-	public GenIsland1(PkmnGen game, Vector2 origin, int radius) {
+	public GenIsland1(Game game, Vector2 origin, int radius) {
 		this.origin = origin;
 		this.radius = radius;
 		
@@ -980,7 +980,7 @@ public class GenForest2 extends Action {
 
 	
 	@Override
-	public void step(PkmnGen game) {
+	public void step(Game game) {
 		
 
 		if (this.tilesToAdd.isEmpty()) {
@@ -1019,7 +1019,7 @@ public class GenForest2 extends Action {
 	}
 
 
-	public GenForest2(PkmnGen game, Vector2 startLoc, Vector2 endLoc) {
+	public GenForest2(Game game, Vector2 startLoc, Vector2 endLoc) {
 		
 		//TODO - 
 		 //get some ideas from GenForest1 for templates to make
@@ -1133,7 +1133,7 @@ public class GenForest2 extends Action {
 		Route currRoute;
 
 		@Override
-		public void step(PkmnGen game) {
+		public void step(Game game) {
 			
 			
 			//add ponds
@@ -1780,7 +1780,7 @@ public class GenForest2 extends Action {
 		Vector2 topRight;
 		
 		@Override
-		public void step(PkmnGen game) {
+		public void step(Game game) {
 			
 			//this step gets executed only once
 			
@@ -1904,7 +1904,7 @@ public class GenForest2 extends Action {
 			
 		}
 
-		public AddPlatform(PkmnGen game, ArrayList<Tile> tilesToAdd, ArrayList<Vector2> freePositions, Vector2 startLoc, Vector2 endLoc,  Action nextAction) {
+		public AddPlatform(Game game, ArrayList<Tile> tilesToAdd, ArrayList<Vector2> freePositions, Vector2 startLoc, Vector2 endLoc,  Action nextAction) {
 			
 			this.nextAction = nextAction;
 			this.rand = new Random();

@@ -2,7 +2,7 @@ package com.pkmngen.game.desktop;
 
 import com.badlogic.gdx.backends.lwjgl.LwjglApplication;
 import com.badlogic.gdx.backends.lwjgl.LwjglApplicationConfiguration;
-import com.pkmngen.game.PkmnGen;
+import com.pkmngen.game.Game;
 
 public class DesktopLauncher {
     public static void main(String[] arg) {
@@ -13,6 +13,6 @@ public class DesktopLauncher {
         config.width = multi_temp * 160; // + 160*2;
         config.height = multi_temp * 144;
 
-        new LwjglApplication(new PkmnGen(), config);
+        new LwjglApplication(new Game(), config);
     }
 }

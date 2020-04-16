@@ -1,8 +1,7 @@
 package com.pkmngen.game;
 
-import gme_debug.VGMPlayer;
+// import gme_debug.VGMPlayer;
 
-import java.awt.Label;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -33,7 +32,7 @@ import com.badlogic.gdx.physics.box2d.World;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 
-public class PkmnGen extends ApplicationAdapter {
+public class Game extends ApplicationAdapter {
     
 
     Vector3 touchLoc;
@@ -85,7 +84,7 @@ public class PkmnGen extends ApplicationAdapter {
     //char-to-Sprite text dictionary
     Map<Character, Sprite> textDict;
 
-    public static PkmnGen staticGame;
+    public static Game staticGame;
 
     // test box2d lights
     public World b2World;
@@ -100,6 +99,7 @@ public class PkmnGen extends ApplicationAdapter {
 
         //annoying - used for music completion listener
         this.staticGame = this;
+        // Gdx.app.getApplicationListener() <-- ??
 
         //map handles unit positions
         //map = new GagMap(this, "Frost_Zone_v01");
@@ -211,16 +211,16 @@ public class PkmnGen extends ApplicationAdapter {
         this.currMusic.setOnCompletionListener(new Music.OnCompletionListener() {
                 @Override
                 public void onCompletion(Music aMusic) {
-                    String nextMusicName = PkmnGen.staticGame.map.currRoute.getNextMusic(true);
+                    String nextMusicName = Game.staticGame.map.currRoute.getNextMusic(true);
                     // TODO: would it be good to also accept music instance here?
                     // TODO: these fade-ins don't even work. will need for route musics
                     Action nextMusic = new FadeMusic("currMusic", "out", "", .025f,
                                        // TODO: there's def a bug here if you run into a wild
                                        // pokemon while waiting frames, the next music will start anyway
-                                       new WaitFrames(PkmnGen.staticGame, 360,
+                                       new WaitFrames(Game.staticGame, 360,
                                        new FadeMusic(nextMusicName, "in", "", .2f, true, 1f, this, new DoneAction())));
-                    PublicFunctions.insertToAS(PkmnGen.staticGame, nextMusic);
-                    nextMusic.step(PkmnGen.staticGame);
+                    PublicFunctions.insertToAS(Game.staticGame, nextMusic);
+                    nextMusic.step(Game.staticGame);
                 }
             }
         );

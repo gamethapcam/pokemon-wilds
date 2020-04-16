@@ -28,7 +28,7 @@ class GenForest1 extends Action {
 	Random rand;
 	
 	@Override
-	public void step(PkmnGen game) {
+	public void step(Game game) {
 
 
 		if (this.tilesToAdd.isEmpty()) {
@@ -56,7 +56,7 @@ class GenForest1 extends Action {
 		
 	}
 	
-	public GenForest1(PkmnGen game, Vector2 startLoc, Vector2 endLoc) {
+	public GenForest1(Game game, Vector2 startLoc, Vector2 endLoc) {
 
 		//clear the current map
 		game.map.tiles.clear();
@@ -237,7 +237,7 @@ class GenForest1 extends Action {
 		boolean preferCorners;
 		
 		@Override
-		public void step(PkmnGen game) {
+		public void step(Game game) {
 
 			//try to put grass in corners
 			if (this.preferCorners == true) {
@@ -345,7 +345,7 @@ class GenForest1 extends Action {
 			return;
 			
 		}
-		public PlantGrassLarge(PkmnGen game, ArrayList<Vector2> allowedPositions, ArrayList<Tile> tilesToAdd, Vector2 startPosition, Action nextAction) {
+		public PlantGrassLarge(Game game, ArrayList<Vector2> allowedPositions, ArrayList<Tile> tilesToAdd, Vector2 startPosition, Action nextAction) {
 			
 			//allowed tiles isn't up to date at this point, so don't use it.
 			this.allowedPositions = allowedPositions;
@@ -384,7 +384,7 @@ class GenForest1 extends Action {
 		Action nextAction;
 		
 		@Override
-		public void step(PkmnGen game) {
+		public void step(Game game) {
 			
 			//if no start position specified, 
 			 //get random position to plant tree
@@ -508,7 +508,7 @@ class GenForest1 extends Action {
 		}
 		
 
-		public PlantTreesLarge(PkmnGen game, ArrayList<Vector2> allowedPositions, ArrayList<Tile> tilesToAdd, Vector2 startPosition, Action nextAction) {
+		public PlantTreesLarge(Game game, ArrayList<Vector2> allowedPositions, ArrayList<Tile> tilesToAdd, Vector2 startPosition, Action nextAction) {
 			
 			//allowed tiles isn't up to date at this point, so don't use it.
 			this.allowedPositions = allowedPositions;
@@ -549,7 +549,7 @@ class GenForest1 extends Action {
 		int minWidth, maxWidth;
 		
 		@Override
-		public void step(PkmnGen game) {
+		public void step(Game game) {
 						
 			//
 			int randomWidth = (game.map.rand.nextInt(this.maxWidth-this.minWidth+1) + this.minWidth)*16; //3 - 7
@@ -768,7 +768,7 @@ class GenForest1 extends Action {
 			
 		}
 
-		public AddPlatform(PkmnGen game, ArrayList<Vector2> allowedPositions, ArrayList<Tile> tilesToAdd, Vector2 startPosition, Action nextAction) {
+		public AddPlatform(Game game, ArrayList<Vector2> allowedPositions, ArrayList<Tile> tilesToAdd, Vector2 startPosition, Action nextAction) {
 					
 			//TODO - make sure all sides are at least 1 away from trees or in trees (not next to). 
 			 //solves getting stuck problem, ledge jump problem, door problem
@@ -809,7 +809,7 @@ class GenForest1 extends Action {
 		int minWidth, maxWidth;
 		
 		@Override
-		public void step(PkmnGen game) {
+		public void step(Game game) {
 						
 			//
 			int randomWidth = (game.map.rand.nextInt(this.maxWidth-this.minWidth+1) + this.minWidth)*16; //3 - 7
@@ -1042,7 +1042,7 @@ class GenForest1 extends Action {
 			
 		}
 
-		public AddPond(PkmnGen game, ArrayList<Vector2> allowedPositions, ArrayList<Tile> tilesToAdd, Vector2 startPosition, Action nextAction) {
+		public AddPond(Game game, ArrayList<Vector2> allowedPositions, ArrayList<Tile> tilesToAdd, Vector2 startPosition, Action nextAction) {
 					
 			//TODO - take away 'one side away from tree' logic
 			
@@ -1077,7 +1077,7 @@ class GenForest1 extends Action {
 		
 		
 		@Override
-		public void step(PkmnGen game) {
+		public void step(Game game) {
 
 			int randomNum;
 			for (Vector2 position : new ArrayList<Vector2> (this.allowedPositions)) {
@@ -1098,7 +1098,7 @@ class GenForest1 extends Action {
 			
 		}
 
-		public FillEmpty(PkmnGen game, ArrayList<Vector2> allowedPositions, ArrayList<Tile> tilesToAdd, String tileName, Action nextAction) {
+		public FillEmpty(Game game, ArrayList<Vector2> allowedPositions, ArrayList<Tile> tilesToAdd, String tileName, Action nextAction) {
 
 			this.allowedPositions = allowedPositions;
 			this.tilesToAdd = tilesToAdd;

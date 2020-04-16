@@ -61,7 +61,7 @@ class Tile {
 
     }
 
-    public void onPressA(PkmnGen game) {
+    public void onPressA(Game game) {
 
     }
     public Tile(String tileName, Vector2 pos) {
@@ -562,7 +562,7 @@ class SpecialMewtwoTile extends Tile {
     }
 
     @Override
-    public void onPressA(PkmnGen game) {
+    public void onPressA(Game game) {
         game.playerCanMove = false;
         PublicFunctions.insertToAS(game, new SpecialBattleMewtwo(game));
     }
@@ -577,7 +577,7 @@ class MegaGengarTile extends Tile {
     }
 
     @Override
-    public void onPressA(PkmnGen game) {
+    public void onPressA(Game game) {
         game.playerCanMove = false;
 
         PublicFunctions.insertToAS(game, new SpecialBattleMegaGengar(game));
@@ -596,7 +596,7 @@ class Suicune_Tile extends Tile {
     }
 
     @Override
-    public void onPressA(PkmnGen game) {
+    public void onPressA(Game game) {
         game.playerCanMove = false;
 
         // TODO - player can't move when returning from this
@@ -686,7 +686,7 @@ class Raikou_Tile extends Tile {
     }
 
     @Override
-    public void onPressA(PkmnGen game) {
+    public void onPressA(Game game) {
         game.playerCanMove = false;
 
         // TODO - player can't move when returning from this
@@ -776,7 +776,7 @@ class Entei_Tile extends Tile {
     }
 
     @Override
-    public void onPressA(PkmnGen game) {
+    public void onPressA(Game game) {
         game.playerCanMove = false;
 
         // TODO - player can't move when returning from this
@@ -1061,7 +1061,7 @@ class Route {
         if (random) {
             nextIndex = this.musicsIndex;
             while (nextIndex == this.musicsIndex || nextIndex == 0) {
-                nextIndex = PkmnGen.staticGame.map.rand.nextInt(this.musics.size());
+                nextIndex = Game.staticGame.map.rand.nextInt(this.musics.size());
             }
         }
         else {
@@ -1340,7 +1340,7 @@ class DrawSpecialMewtwoBg extends Action {
     Sprite bgSprite;
 
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
         
         this.bgSprite.draw(game.batch);
         
@@ -1376,7 +1376,7 @@ class drawMap extends Action { // /
     Tile tile;
 
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
 
         if (Gdx.input.isKeyPressed(Input.Keys.P)) {
             System.out.println("Camera unproject");
@@ -1487,7 +1487,7 @@ class drawMap extends Action { // /
 //        game.batch.draw(this.texture, 5, 5);
     }
 
-    public drawMap(PkmnGen game) {
+    public drawMap(Game game) {
         this.pixels = new Pixmap(Gdx.files.internal("tiles/blank2.png"));
         this.texture = new Texture(this.pixels);
         this.blankSprite = new Sprite(new Texture(Gdx.files.internal("tiles/blank2.png")), 0, 0, 16, 16);
@@ -1525,7 +1525,7 @@ class MoveWater extends Action {
     PointLight pointLight;
 
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
         worldCoordsTL = game.cam.unproject(new Vector3(-256, -256, 0f));
         worldCoordsBR = game.cam.unproject(new Vector3(game.viewport.getScreenWidth()+256, game.viewport.getScreenHeight()+256, 0f));
         worldCoordsTL.x = (int)worldCoordsTL.x - (int)worldCoordsTL.x % 16;
@@ -1640,7 +1640,7 @@ class MoveWater extends Action {
         }
     }
 
-    public MoveWater(PkmnGen game) {
+    public MoveWater(Game game) {
         this.positions = new ArrayList<Vector2>();
         resetVars();
         Texture text = new Texture(Gdx.files.internal("tiles/campfire1.png"));
@@ -1698,7 +1698,7 @@ class drawMap_grass extends Action {
     Tile tile;
 
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
 
         worldCoordsTL = game.cam.unproject(new Vector3(-128, 0, 0f));
         worldCoordsBR = game.cam.unproject(new Vector3(game.viewport.getScreenWidth(), game.viewport.getScreenHeight()+128, 0f));
@@ -1748,7 +1748,7 @@ class drawMap_grass extends Action {
 
     }
 
-    public drawMap_grass(PkmnGen game) {
+    public drawMap_grass(Game game) {
 
     }
 
@@ -1762,7 +1762,7 @@ class DrawMapTrees extends Action {
         return this.layer;
     }
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
         if (game.map.tiles != game.map.overworldTiles) {
             return;
         }
@@ -1778,7 +1778,7 @@ class DrawMapTrees extends Action {
             game.batch.draw(tile.overSprite, tile.overSprite.getX(), tile.overSprite.getY());
         }
     }
-    public DrawMapTrees(PkmnGen game) {
+    public DrawMapTrees(Game game) {
 
     }
 }
@@ -1796,7 +1796,7 @@ class detectWildEncounter extends Action {
     Random rand;
 
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
 
         // when the player moves to a new tile, chance of wild encounter
         Tile newTile = game.map.tiles.get(new Vector2(game.cam.position.x,
@@ -1836,7 +1836,7 @@ class detectWildEncounter extends Action {
 
     }
 
-    public detectWildEncounter(PkmnGen game) {
+    public detectWildEncounter(Game game) {
 
         // get player's current tile
         // this.currTile = game.map.tiles.get(game.player.position);
@@ -1866,7 +1866,7 @@ class genMountain_1 extends Action {
     int height = 5;
 
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
 
         if (tilesToAdd.isEmpty()) {
 
@@ -1964,7 +1964,7 @@ class genMountain_1 extends Action {
 
     }
 
-    public genMountain_1(PkmnGen game, Vector2 seed, int variance, int steepness) {
+    public genMountain_1(Game game, Vector2 seed, int variance, int steepness) {
 
         this.seed = seed;
         this.topLeft = new Vector2(seed.x, seed.y);
@@ -1999,7 +1999,7 @@ class EnterBuilding extends Action {
   int timer = 0;
   
   @Override
-  public void step(PkmnGen game) {
+  public void step(Game game) {
       
       if (this.timer < 2) {
           if (this.timer == 0) {
@@ -2041,11 +2041,11 @@ class EnterBuilding extends Action {
 
   }
   
-  public EnterBuilding(PkmnGen game, Action nextAction) {
+  public EnterBuilding(Game game, Action nextAction) {
       this(game, "enter", nextAction);
   }
   
-  public EnterBuilding(PkmnGen game, String action, Action nextAction) {
+  public EnterBuilding(Game game, String action, Action nextAction) {
       this.nextAction = nextAction;
       this.action = action;
       //fade out from white anim

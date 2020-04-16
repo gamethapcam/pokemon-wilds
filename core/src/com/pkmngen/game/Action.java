@@ -25,14 +25,18 @@ import com.badlogic.gdx.physics.box2d.FixtureDef;
  //completely empty
 public class Action {
 
-    //order to draw this action
-    // 0 is top
+    // order to draw this action
+    // 0 is top (last element in actionStack), and it's step() function is executed last
     public int getLayer(){return 0;};
     //draw using which camera?
     public String getCamera() {return "map";};
     
+    // Keep reference to Game.staticGame to prevent having to pass `Game game` to
+    // init functions and step function.
+//    Game game = Game.staticGame;
+    
     //what to do at each iteration
-    public void step(PkmnGen game){}
+    public void step(Game game){}
     
     Action nextAction = null;
     
@@ -49,6 +53,7 @@ public class Action {
 }
 
 
+// TODO: migrate away from this
 //this has the extra 'disabled' variable
 class MenuAction extends Action {
 
@@ -64,7 +69,7 @@ class MenuAction extends Action {
 //always called at end of action chain
 class DoneAction extends Action {
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
         game.actionStack.remove(this);
     }
 }
@@ -86,7 +91,7 @@ class SplitAction extends Action {
     }
     
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
         game.actionStack.remove(this);
         PublicFunctions.insertToAS(game, nextAction1);
         PublicFunctions.insertToAS(game, nextAction2);
@@ -141,7 +146,7 @@ class draw_laser1 extends Action {
     public int getLayer(){return this.layer;}
     
     //what to do at each iteration
-    public void step(PkmnGen game) {
+    public void step(Game game) {
         
 
         this.sprite.translate(this.velocityXY.x, this.velocityXY.y);
@@ -154,7 +159,7 @@ class draw_laser1 extends Action {
         }
     }
     
-    public draw_laser1(PkmnGen game, Vector2 origin, float angle) {
+    public draw_laser1(Game game, Vector2 origin, float angle) {
         
 
         Texture laser_text = new Texture(Gdx.files.internal("data/laser1.png"));
@@ -185,7 +190,7 @@ class draw_crosshair extends Action {
     public String getCamera(){return "map";}
 
     //what to do at each iteration
-    public void step(PkmnGen game) {
+    public void step(Game game) {
         
         
 
@@ -205,7 +210,7 @@ class draw_crosshair extends Action {
     }
     
 
-    public draw_crosshair(PkmnGen game) {
+    public draw_crosshair(Game game) {
 
         Texture crosshair_text = new Texture(Gdx.files.internal("data/crosshair1.png"));
         this.crosshair = new Sprite(crosshair_text, 0, 0, 429, 569);
@@ -264,7 +269,7 @@ class control_ship1 extends Action {
     public boolean newTouch = true;
     
     //what to do at each iteration
-    public void step(PkmnGen game) {
+    public void step(Game game) {
         
         if (this.bgSound == null) {
             this.bgSound = Gdx.audio.newMusic(Gdx.files.internal("data/drone1.wav")); //use this
@@ -441,7 +446,7 @@ class control_ship1 extends Action {
         }
     }
     
-    public control_ship1(PkmnGen game) {
+    public control_ship1(Game game) {
         
         Texture tileset = new Texture(Gdx.files.internal("data/sheet1.png"));
         Sprite tempSprite;
@@ -522,7 +527,7 @@ class drawAction_map1 extends Action {
     public int getLayer(){return this.layer;}
     
     //what to do at each iteration
-    public void step(PkmnGen game) {
+    public void step(Game game) {
 
         
         //get screen lower left (0,0)
@@ -592,7 +597,7 @@ class DrawObjectives extends Action {
 
     
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
 
         //when the player moves to a new tile, chance of wild encounter
         this.newTile = game.map.tiles.get(new Vector2(game.player.position));
@@ -679,7 +684,7 @@ class DrawObjectives extends Action {
         
     }
     
-    public DrawObjectives(PkmnGen game, Tile tile) {
+    public DrawObjectives(Game game, Tile tile) {
 
         this.tile = tile;
         
@@ -733,7 +738,7 @@ class DoneWithDemo extends Action {
     
     
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
         
         this.bgSprite.draw(game.floatingBatch);
         game.font.draw(game.floatingBatch, "Thanks for playing!",44,80);
@@ -741,7 +746,7 @@ class DoneWithDemo extends Action {
     }
 
 
-    public DoneWithDemo(PkmnGen game) {
+    public DoneWithDemo(Game game) {
 
         Texture text = new Texture(Gdx.files.internal("battle/intro_frame6.png"));
         this.bgSprite = new Sprite(text);
@@ -790,7 +795,7 @@ class DisplayText extends Action {
     boolean firstStep;
     
     //what to do at each iteration
-    public void step(PkmnGen game) {
+    public void step(Game game) {
         
         if (this.firstStep == true) {
             //if you ever just pass 'new DoneAction()' to triggerAction, and 
@@ -943,7 +948,7 @@ class DisplayText extends Action {
         
     }
     
-    public DisplayText(PkmnGen game,
+    public DisplayText(Game game,
                        String textString,
                        String playSound,
                        boolean textPersist,
@@ -952,7 +957,7 @@ class DisplayText extends Action {
     }
     
     // TODO: migrate to using this only
-    public DisplayText(PkmnGen game,
+    public DisplayText(Game game,
                        String textString,
                        String playSound,
                        boolean textPersist,
@@ -963,7 +968,7 @@ class DisplayText extends Action {
         this.waitInput = waitInput;
     }
     
-    public DisplayText(PkmnGen game, String textString, String playSound, Action triggerAction, Action nextAction) {
+    public DisplayText(Game game, String textString, String playSound, Action triggerAction, Action nextAction) {
         
         this.nextAction = nextAction;
 
@@ -1082,7 +1087,7 @@ class DisplayText extends Action {
         
         
         //what to do at each iteration
-        public void step(PkmnGen game) {
+        public void step(Game game) {
             
             this.position = this.positions.get(0);
             this.positions.remove(0);
@@ -1106,7 +1111,7 @@ class DisplayText extends Action {
             }
         }
         
-        public ScrollTextUp(PkmnGen game, ArrayList<Sprite> text, ArrayList<Sprite> otherText) {
+        public ScrollTextUp(Game game, ArrayList<Sprite> text, ArrayList<Sprite> otherText) {
             
             //TODO - bug, fails if scrolling up twice
             //TODO - get comma to work (what text contains comma?)
@@ -1134,13 +1139,13 @@ class DisplayText extends Action {
         
         
         @Override
-        public void step(PkmnGen game) {
+        public void step(Game game) {
             DisplayText.textPersist = false;
             game.actionStack.remove(this);
             PublicFunctions.insertToAS(game, this.nextAction);
         }
         
-        public Clear(PkmnGen game, Action nextAction) {
+        public Clear(Game game, Action nextAction) {
             this.nextAction = nextAction;
         }
     }
@@ -1180,7 +1185,7 @@ class DisplayText extends Action {
         boolean playedYet; //do music.play on first step
         
         @Override
-        public void step(PkmnGen game) {
+        public void step(Game game) {
             //play the sound
             if (this.music != null && !this.playedYet) {
                 //game.battle.music.setVolume(0f); //TODO - use this?
@@ -1206,7 +1211,7 @@ class RemoveDisplayText extends Action {
     
     
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
         game.actionStack.remove(game.displayTextAction);
         game.displayTextAction = null;
         game.actionStack.remove(this);
@@ -1227,7 +1232,7 @@ class WaitFrames extends Action {
     
     
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
         this.length--;
         if (this.length <= 0) {
             PublicFunctions.insertToAS(game, this.nextAction);
@@ -1235,7 +1240,7 @@ class WaitFrames extends Action {
         }
     }
     
-    public WaitFrames(PkmnGen game, int length, Action nextAction) {
+    public WaitFrames(Game game, int length, Action nextAction) {
         this.nextAction = nextAction;
         this.length = length;
     }
@@ -1243,7 +1248,7 @@ class WaitFrames extends Action {
 
 class PublicFunctions {
     //this is for inserting into the AS at proper layer
-    public static void insertToAS(PkmnGen game, Action actionToInsert) {
+    public static void insertToAS(Game game, Action actionToInsert) {
         // handle null entry by skipping
         if (actionToInsert == null) {
             return;
@@ -1303,7 +1308,7 @@ class DisplayTextIntro extends Action {
     boolean waitingOnExit = false;
     
     //what to do at each iteration
-    public void step(PkmnGen game) {
+    public void step(Game game) {
 
         
         
@@ -1445,7 +1450,7 @@ class DisplayTextIntro extends Action {
         
     }
     
-    public DisplayTextIntro(PkmnGen game, String textString, String playSound, Action triggerAction, boolean exitWhenDone, Action nextAction) {
+    public DisplayTextIntro(Game game, String textString, String playSound, Action triggerAction, boolean exitWhenDone, Action nextAction) {
         
         this.nextAction = nextAction;
 
@@ -1568,7 +1573,7 @@ class DisplayTextIntro extends Action {
         public String getCamera() {return "gui";};
         
         //what to do at each iteration
-        public void step(PkmnGen game) {
+        public void step(Game game) {
             
             this.position = this.positions.get(0);
             this.positions.remove(0);
@@ -1592,7 +1597,7 @@ class DisplayTextIntro extends Action {
             }
         }
         
-        public ScrollTextUp(PkmnGen game, ArrayList<Sprite> text, ArrayList<Sprite> otherText) {
+        public ScrollTextUp(Game game, ArrayList<Sprite> text, ArrayList<Sprite> otherText) {
             
             //TODO - bug, fails if scrolling up twice
             //TODO - get comma to work (what text contains comma?)
@@ -1649,7 +1654,7 @@ class DisplayTextIntro extends Action {
         boolean playedYet; //do music.play on first step
         
         @Override
-        public void step(PkmnGen game) {
+        public void step(Game game) {
             //play the sound
             if (this.music != null && !this.playedYet) {
 
@@ -1974,7 +1979,7 @@ class PlaySound extends Action {
     boolean playedYet; //do music.play on first step
     
     @Override
-    public void step(PkmnGen game) {
+    public void step(Game game) {
         
         if (this.sound.equals("mgengar_battle1")) {
 //            game.currMusic.stop();
@@ -2026,7 +2031,7 @@ class FadeMusic extends Action {
     
     Music.OnCompletionListener onCompleteListener;
     
-    public void step(PkmnGen game) {
+    public void step(Game game) {
         
         if (this.firstStep == true) {
             
