@@ -35,6 +35,17 @@ public class Action {
     public void step(PkmnGen game){}
     
     Action nextAction = null;
+    
+    // search for nextAction == null, then set to action
+    // NOTE: if you declare a duplicate nextAction in a child class, it messes this up.
+    //  so don't I guess.
+    public void appendAction(Action action) {
+        Action currAction = this;
+        while (currAction.nextAction != null) {
+            currAction = currAction.nextAction;
+        }
+        currAction.nextAction = action;
+    }
 }
 
 
@@ -763,8 +774,6 @@ class DisplayText extends Action {
 
     public String getCamera() {return "gui";};
     
-    Action nextAction;
-    
     Sprite helperSprite;
     Sprite bgSprite;
     int timer;
@@ -775,7 +784,8 @@ class DisplayText extends Action {
     boolean foundTrigger;
     boolean checkTrigger;
     public static boolean textPersist = false;
-    boolean persist = false;
+    boolean persist = false;  // if true, don't clear text after text is finished
+    boolean waitInput = true;  // if true, wait for user to press A after text is complete
 
     boolean firstStep;
     
@@ -856,7 +866,7 @@ class DisplayText extends Action {
         
         //if no sprites left in spritesNotDrawn, wait for player to hit A
         if (spritesBeingDrawn.size() >= 36 || spritesNotDrawn.isEmpty()) { //18 characters per line allowed
-            
+
             //if at the end of text and need to play sound, do that
             if (this.playSound == true && spritesNotDrawn.isEmpty()) {
                 PublicFunctions.insertToAS(game, this.playSoundAction);
@@ -866,7 +876,7 @@ class DisplayText extends Action {
             }
             
             //if we need to wait on a trigger
-            if (this.triggerAction != null || DisplayText.textPersist) {
+            if (this.triggerAction != null || (DisplayText.textPersist && !this.waitInput)) {
                 PublicFunctions.insertToAS(game, this.nextAction);
                 this.checkTrigger = true;
                 return;
@@ -891,6 +901,11 @@ class DisplayText extends Action {
                 playSound.step(game); //prevent latency
                 
                 if (spritesNotDrawn.isEmpty()) {
+                    if (DisplayText.textPersist) {
+                        PublicFunctions.insertToAS(game, this.nextAction);
+                        this.checkTrigger = true;
+                        return;
+                    }
                     PublicFunctions.insertToAS(game, this.nextAction);
                     game.actionStack.remove(this);
                 }
@@ -928,10 +943,24 @@ class DisplayText extends Action {
         
     }
     
+    public DisplayText(PkmnGen game,
+                       String textString,
+                       String playSound,
+                       boolean textPersist,
+                       Action nextAction) {
+        this(game, textString, playSound, textPersist, true, nextAction);
+    }
+    
     // TODO: migrate to using this only
-    public DisplayText(PkmnGen game, String textString, String playSound, boolean textPersist, Action nextAction) {
+    public DisplayText(PkmnGen game,
+                       String textString,
+                       String playSound,
+                       boolean textPersist,
+                       boolean waitInput,
+                       Action nextAction) {
         this(game, textString, playSound, null, nextAction);
         this.persist = textPersist;
+        this.waitInput = waitInput;
     }
     
     public DisplayText(PkmnGen game, String textString, String playSound, Action triggerAction, Action nextAction) {
@@ -1102,7 +1131,7 @@ class DisplayText extends Action {
     static class Clear extends Action {
         // clear any text persisting on screen
 
-        Action nextAction;
+        
         
         @Override
         public void step(PkmnGen game) {
@@ -1121,7 +1150,7 @@ class DisplayText extends Action {
     class PlaySound_Text extends Action {
             
         Music music;
-        Action nextAction;
+        
         
         float initialVolume; //different tracks have diff volume
 
@@ -1174,7 +1203,7 @@ class DisplayText extends Action {
 
 class RemoveDisplayText extends Action {
     
-    Action nextAction;
+    
     
     @Override
     public void step(PkmnGen game) {
@@ -1191,36 +1220,25 @@ class RemoveDisplayText extends Action {
 
 
 class WaitFrames extends Action {
-
     int length;
-    
     public int layer = 110;
     public int getLayer(){return this.layer;}
-
     public String getCamera() {return "gui";};
-    
-    Action nextAction;
     
     
     @Override
     public void step(PkmnGen game) {
-
         this.length--;
         if (this.length <= 0) {
             PublicFunctions.insertToAS(game, this.nextAction);
             game.actionStack.remove(this);
         }
-                
     }
     
-
     public WaitFrames(PkmnGen game, int length, Action nextAction) {
-        
         this.nextAction = nextAction;
         this.length = length;
-        
     }
-    
 }
 
 class PublicFunctions {
@@ -1264,7 +1282,7 @@ class DisplayTextIntro extends Action {
     public int getLayer(){return this.layer;}
     public String getCamera() {return "gui";};
     
-    Action nextAction;
+    
     
     Sprite helperSprite;
     Sprite bgSprite;
@@ -1601,7 +1619,7 @@ class DisplayTextIntro extends Action {
     class PlaySound_Text extends Action {
             
         Music music;
-        Action nextAction;
+        
         
         float initialVolume; //different tracks have diff volume
 
@@ -1660,7 +1678,7 @@ class DisplayTextIntro extends Action {
 class PlaySound extends Action {
         
     Music music;
-    Action nextAction;
+    
     String sound;
 
     // for playing pokemon cry
@@ -1993,7 +2011,7 @@ class FadeMusic extends Action {
     String musicName;
     Music music;
     
-    Action nextAction;
+    
     
     String direction;
     String shouldPause;

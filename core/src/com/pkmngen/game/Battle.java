@@ -459,6 +459,54 @@ public class Battle {
             e.printStackTrace();
         }
     }
+    
+    static class CheckTrapped extends Action {
+        public int layer = 500;
+        public int getLayer(){return this.layer;}
+        
+        @Override
+        public void step(PkmnGen game) {
+            // always goes you, then opponent
+            game.actionStack.remove(this);
+            if (game.battle.oppPokemon.trappedBy != null) {
+                this.nextAction = new Battle_Actions.LoadAndPlayAttackAnimation(game, game.battle.oppPokemon.trappedBy, game.battle.oppPokemon,
+                                  new DisplayText.Clear(game,
+                                  new WaitFrames(game, 3,
+                                  new DisplayText(game, 
+                                                  game.battle.oppPokemon.name.toUpperCase()+"' hurt by "+game.battle.oppPokemon.trappedBy.toUpperCase()+"!",
+                                                  null,
+                                                  true,
+                                  new DepleteEnemyHealth(game,
+                                  new WaitFrames(game, 13,
+                                  this.nextAction))))));
+                game.battle.oppPokemon.trapCounter -= 1;
+                if (game.battle.oppPokemon.trapCounter <= 0) {
+                    game.battle.oppPokemon.trappedBy = null;
+                }
+            }
+            if (game.player.currPokemon.trappedBy != null) {
+                this.nextAction = new Battle_Actions.LoadAndPlayAttackAnimation(game, game.player.currPokemon.trappedBy, game.player.currPokemon,
+                                  new DisplayText.Clear(game,
+                                  new WaitFrames(game, 3,
+                                  new DisplayText(game, 
+                                                  game.player.currPokemon.name.toUpperCase()+"' hurt by "+game.player.currPokemon.trappedBy.toUpperCase()+"!",
+                                                  null, 
+                                                  true,
+                                  new DepleteFriendlyHealth(game.player.currPokemon,
+                                  new WaitFrames(game, 13,
+                                  this.nextAction))))));
+                game.player.currPokemon.trapCounter -= 1;
+                if (game.battle.oppPokemon.trapCounter <= 0) {
+                    game.battle.oppPokemon.trappedBy = null;
+                }
+            }
+            PublicFunctions.insertToAS(game, this.nextAction);
+        }
+
+        public CheckTrapped(PkmnGen game, Action nextAction) {
+            this.nextAction = nextAction;
+        }
+    }
 }
 
 
@@ -471,7 +519,7 @@ class BattleIntro extends Action {
     ArrayList<Sprite> frames;
     Sprite frame;
     
-    Action nextAction;
+    
 
     public int layer = 139;
     public int getLayer(){return this.layer;}
@@ -563,7 +611,7 @@ class BattleIntro extends Action {
 class BattleIntroMusic extends Action {
     
     
-    Action nextAction;
+    
 
     public int layer = 139;
     public int getLayer(){return this.layer;}
@@ -596,7 +644,7 @@ class BattleIntro_anim1 extends Action {
     ArrayList<Sprite> frames;
     Sprite frame;
     
-    Action nextAction;
+    
 
     public int layer = 139;
     public int getLayer(){return this.layer;}
@@ -658,7 +706,7 @@ class BattleAnim_positionPlayers extends Action {
     ArrayList<Vector2> moves_relative;
     Vector2 move;
     
-    Action nextAction;
+    
 
     public int layer = 140;
     public int getLayer(){return this.layer;}
@@ -724,7 +772,7 @@ class MovePlayerOffScreen extends Action {
     Vector2 position;
     Sprite sprite;
     
-    Action nextAction;
+    
 
     public int layer = 140;
     public int getLayer(){return this.layer;}
@@ -803,7 +851,7 @@ class EnemyFaint extends Action {
     Vector2 position;
     Sprite sprite;
     
-    Action nextAction;
+    
 
     public int layer = 120;
     public int getLayer(){return this.layer;}
@@ -953,7 +1001,7 @@ class FriendlyFaint extends Action {
     Vector2 position;
     Sprite sprite;
     
-    Action nextAction;
+    
 
     public int layer = 120;
     public int getLayer(){return this.layer;}
@@ -1108,7 +1156,7 @@ class DrawBattleMenu1 extends Action {
     String curr;
     Vector2 newPos;
     
-    Action nextAction;
+    
     
     @Override
     public void step(PkmnGen game) {
@@ -1218,7 +1266,7 @@ class DrawBattleMenu_SafariZone extends Action {
     String curr;
     Vector2 newPos;
     
-    Action nextAction;
+    
     
     @Override
     public void step(PkmnGen game) {
@@ -1484,7 +1532,7 @@ class DrawBattleMenu_Normal extends MenuAction {
     Vector2 newPos;
     Sprite helperSprite;
     
-    Action nextAction;
+    
     
     @Override
     public void step(PkmnGen game) {
@@ -1648,7 +1696,7 @@ class DrawAttacksMenu extends Action {
     ArrayList<ArrayList<Sprite>> spritesToDraw;
     int cursorDelay; //this is just extra detail. cursor has 2 frame delay before showing in R/B
     
-    Action nextAction;
+    
     
     @Override
     public void step(PkmnGen game) {
@@ -1697,122 +1745,58 @@ class DrawAttacksMenu extends Action {
                 }
             }
             // TODO: probably have Action ClearDisplayText instead of using triggers; too confusing atm
-            
-            if (!oppFirst) {
-                //set up enemy attack
-                boolean isFriendly = true;
-                String attackChoice = game.battle.oppPokemon.attacks[game.map.rand.nextInt(game.battle.oppPokemon.attacks.length)];
-                if (attackChoice.equals("-")) {
-                    attackChoice = "Struggle";
-                }
-                // TODO: remove
-//                Action enemyTrigger = new WaitFrames(game, 13, 
-//                        new WaitFrames(game, 3, this.nextAction)
-//                    );
-//                Action enemyAttack = Battle_Actions.getAttackAction(game, attackChoice, !isFriendly, new DepleteFriendlyHealth(game.player.currPokemon, enemyTrigger));
-//                Action displayEnemyText = new DisplayText(game, 
-//                        "Enemy "+game.battle.oppPokemon.name.toUpperCase()+" used "+attackChoice.toUpperCase()+"!",
-//                        null, enemyTrigger, enemyAttack
-//                );
-//                
-//                            
-//                
-//                //if that selection isn't null, get that attack via
-//                 //Battle_Actions.getAttackAction(String attackName, Action nextAction);
-//                Action trigger = new WaitFrames(game, 13, 
-//                                        new WaitFrames(game, 3, displayEnemyText)
-//                                    );
-//                Action attack = Battle_Actions.getAttackAction(game, game.player.currPokemon.attacks[curr], isFriendly,
-//                                                                        new DepleteEnemyHealth(game, trigger));
-//                PublicFunctions.insertToAS(game, new DisplayText(game, game.player.currPokemon.name.toUpperCase()+" used "+game.player.currPokemon.attacks[curr].toUpperCase()+"!",
-//                                                                     null, trigger, attack
-//                                                                 ));
-                ///
 
-                //play select sound
-                PublicFunctions.insertToAS(game, new PlaySound("click1", null));
-                Action attack = new DisplayText(game,
-                                                game.player.currPokemon.name.toUpperCase()+" used "+game.player.currPokemon.attacks[this.curr].toUpperCase()+"!",
-                                                null,
-                                                true, 
-                                new AttackAnim(game, game.player.currPokemon.attacks[curr], isFriendly,
-                                new DisplayText(game, 
-                                                "Enemy "+game.battle.oppPokemon.name.toUpperCase()+" used "+attackChoice.toUpperCase()+"!",
-                                                null, 
-                                                true,
-                                new AttackAnim(game, attackChoice, !isFriendly,
-                                this.nextAction))));
-                // TODO: check for trapped status here
-                PublicFunctions.insertToAS(game, attack);
+            boolean isFriendly = true;
+            //set up enemy attack
+            String attackChoice = game.battle.oppPokemon.attacks[game.map.rand.nextInt(game.battle.oppPokemon.attacks.length)];
+            if (attackChoice.equals("-")) {
+                attackChoice = "Struggle";
+            }
+            //play select sound
+            PublicFunctions.insertToAS(game, new PlaySound("click1", null));
+            Action attack;
+            if (!oppFirst) {
+                attack = new DisplayText(game,
+                                         game.player.currPokemon.name.toUpperCase()+" used "+game.player.currPokemon.attacks[this.curr].toUpperCase()+"!",
+                                         null,
+                                         true,
+                                         false,
+                         new AttackAnim(game, game.player.currPokemon.attacks[curr], isFriendly,
+                         new DisplayText.Clear(game,
+                         new WaitFrames(game, 3,
+                         new DisplayText(game, 
+                                         "Enemy "+game.battle.oppPokemon.name.toUpperCase()+" used "+attackChoice.toUpperCase()+"!",
+                                         null, 
+                                         true,
+                                         false,
+                         new AttackAnim(game, attackChoice, !isFriendly,
+                         null))))));
             }
             else{
-                //set up enemy attack
-                boolean isFriendly = true;
-
-//                // TODO: put this elsewhere
-//                Action nAction = this.nextAction;
-//                if (game.battle.oppPokemon.name.equals("Mewtwo")) {
-//
-////                    Action trigger = new WaitFrames(game, 13, 
-//                    Action trigger = new WaitFrames(game, 30, 
-//                                            new WaitFrames(game, 3, this.nextAction)
-//                                        );
-//                    Action attack = Battle_Actions.getAttackAction(game, "Mewtwo_Special1", !isFriendly,
-//                            new DepleteFriendlyHealth(game.player.currPokemon, trigger));
-//                    Action displayEnemyText = new DisplayText(game, 
-//                            "A wave of psychic power unleashes!", null, trigger, attack
-//                    );
-//                    nAction = displayEnemyText;
-//                }
-//
-//                //if that selection isn't null, get that attack via
-//                 //Battle_Actions.getAttackAction(String attackName, Action nextAction);
-//                Action trigger = new WaitFrames(game, 13, 
-//                                        new WaitFrames(game, 3, nAction)
-//                                    );
-//                Action attack = Battle_Actions.getAttackAction(game, game.player.currPokemon.attacks[curr], isFriendly,
-//                                                                        new DepleteEnemyHealth(game, trigger));
-//                
-//                Action displayYourText = new DisplayText(game, game.player.currPokemon.name.toUpperCase()+" used "+game.player.currPokemon.attacks[curr].toUpperCase()+"!",
-//                            null, trigger, attack
-//                        );
-                
-                String attackChoice = game.battle.oppPokemon.attacks[game.map.rand.nextInt(game.battle.oppPokemon.attacks.length)];
-                if (attackChoice.equals("-")) {
-                    attackChoice = "Struggle";
-                }
-//                Action enemyTrigger = new WaitFrames(game, 13, 
-//                        new WaitFrames(game, 3, displayYourText)
-//                    );
-//                Action enemyAttack = Battle_Actions.getAttackAction(game, attackChoice, !isFriendly, new DepleteFriendlyHealth(game.player.currPokemon, enemyTrigger));
-//                Action displayEnemyText = new DisplayText(game, 
-//                        "Enemy "+game.battle.oppPokemon.name.toUpperCase()+" used "+attackChoice.toUpperCase()+"!",
-//                        null, enemyTrigger, enemyAttack
-//                );
-//
-//                PublicFunctions.insertToAS(game, displayEnemyText);
-//                            
-//                //play select sound
-//                PublicFunctions.insertToAS(game, new PlaySound("click1", new DoneAction()));
-
-                //play select sound
-                PublicFunctions.insertToAS(game, new PlaySound("click1", null));
-                Action attack = new DisplayText(game,
-                                                "Enemy "+game.battle.oppPokemon.name.toUpperCase()+" used "+attackChoice.toUpperCase()+"!",
-                                                null,
-                                                true, 
-                                new AttackAnim(game, attackChoice, !isFriendly,
-                                new DisplayText(game, 
-                                        game.player.currPokemon.name.toUpperCase()+" used "+game.player.currPokemon.attacks[curr].toUpperCase()+"!",
-                                                null, 
-                                                true,
-                                new AttackAnim(game, game.player.currPokemon.attacks[curr], isFriendly,
-                                this.nextAction))));
-                // TODO: check for trapped status here(?)
-                PublicFunctions.insertToAS(game, attack);
+                attack = new DisplayText(game,
+                                         "Enemy "+game.battle.oppPokemon.name.toUpperCase()+" used "+attackChoice.toUpperCase()+"!",
+                                         null,
+                                         true,
+                                         false,
+                         new AttackAnim(game, attackChoice, !isFriendly,
+                         new DisplayText.Clear(game,
+                         new WaitFrames(game, 3,
+                         new DisplayText(game, 
+                                         game.player.currPokemon.name.toUpperCase()+" used "+game.player.currPokemon.attacks[curr].toUpperCase()+"!",
+                                         null, 
+                                         true,
+                                         false,
+                         new AttackAnim(game, game.player.currPokemon.attacks[curr], isFriendly,
+                         null))))));
             }
-            
+            // TODO: Battle.CheckTrapped is annoying, b/c we can't check if pkmn is trapped now
+            // because it's determined in AttackAnim
+            attack.appendAction(new Battle.CheckTrapped(game,
+                                new DisplayText.Clear(game,
+                                new WaitFrames(game, 3,
+                                this.nextAction))));
             game.actionStack.remove(this);
+            PublicFunctions.insertToAS(game, attack);
             return;
         }
         //player presses b, ie wants to go back
@@ -1939,7 +1923,7 @@ class DrawPlayerMenu extends MenuAction {
     String[] entries; //pokemon, items etc
     public static int lastIndex = 0;
     
-    Action nextAction;
+    
 
     
     @Override
@@ -2111,7 +2095,7 @@ class DrawPlayerMenu extends MenuAction {
 
         public String getCamera() {return "gui";};
 
-        Action nextAction;
+        
         
         Sprite helperSprite; 
         
@@ -2447,7 +2431,7 @@ class DrawItemMenu extends MenuAction {
 
         public String getCamera() {return "gui";};
         
-        Action nextAction;
+        
         
         MenuAction prevMenu;
 
@@ -3179,7 +3163,7 @@ class DrawPokemonMenu extends MenuAction {
             public int layer = 107;
             public int getLayer(){return this.layer;}
             public String getCamera() {return "gui";};
-            Action nextAction;
+            
             boolean firstStep = true;
             
             @Override
@@ -3419,7 +3403,7 @@ class BattleFadeOut extends Action {
     ArrayList<Sprite> frames;
     Sprite frame;
     
-    Action nextAction;
+    
 
     public int layer = 129;
     public int getLayer(){return this.layer;}
@@ -3491,7 +3475,7 @@ class BattleFadeOutMusic extends Action {
     Float frame;
     float originalVolume;
     
-    Action nextAction;
+    
     Music music;
     boolean firstStep;
     boolean isNight;
@@ -3886,7 +3870,7 @@ class DepleteEnemyHealth extends Action {
     int timer;
     int removeNumber;
     int targetSize; //reduce enemy health bar to this number
-    Action nextAction;
+    
     
     @Override
     public void step(PkmnGen game) {
@@ -3901,8 +3885,7 @@ class DepleteEnemyHealth extends Action {
             return;
         }
         this.timer = 0;
-        
-        
+
         int size = 0;
         for (int i = 0; i < this.removeNumber; i++) {
             size = game.battle.drawAction.drawEnemyHealthAction.healthBar.size();
@@ -3928,15 +3911,16 @@ class DepleteEnemyHealth extends Action {
                 
                 //TODO - play victory music here(?)
                 PublicFunctions.insertToAS(game, new EnemyFaint(game, 
-                                                 new RemoveDisplayText(
-                                                 new WaitFrames(game, 3, 
+                                                 new RemoveDisplayText(  // TODO: refactor to stop using this
+                                                 new DisplayText.Clear(game,
+                                                 new WaitFrames(game, 3,
                                                  new DisplayText(game, "Enemy "+game.battle.oppPokemon.name.toUpperCase()+" fainted!",
                                                                  null, null, 
                                                  new SplitAction(
                                                      new BattleFadeOut(game,
                                                      new DoneAction()), 
                                                  new BattleFadeOutMusic(game, new DoneAction())
-                                                 ))))));
+                                                 )))))));
             }
             //else, insert nextAction
             else {
@@ -3979,7 +3963,7 @@ class DepleteFriendlyHealth extends Action {
     int timer;
     int removeNumber;
     int targetSize; //reduce enemy health bar to this number
-    Action nextAction;
+    
     
     @Override
     public void step(PkmnGen game) {
@@ -4062,7 +4046,7 @@ class AfterFriendlyFaint extends Action {
     public int getLayer(){return this.layer;}
 
     
-    Action nextAction;
+    
     
 
     @Override
@@ -4111,7 +4095,7 @@ class ThrowRock extends Action {
 
     public String getCamera() {return "gui";};
 
-    Action nextAction;
+    
     
     Sprite helperSprite; //just for helping me position the animation. delete later.
     
@@ -4272,7 +4256,7 @@ class ThrowBait extends Action {
 
     public String getCamera() {return "gui";};
 
-    Action nextAction;
+    
     
     Sprite helperSprite; //just for helping me position the animation. delete later.
     
@@ -4428,7 +4412,7 @@ class ThrowPokeball extends Action {
 
     public String getCamera() {return "gui";};
 
-    Action nextAction;
+    
     
     Sprite helperSprite; //just for helping me position the animation. delete later.
     
@@ -4591,7 +4575,7 @@ class ThrowFastPokeball extends Action {
 
     public String getCamera() {return "gui";};
 
-    Action nextAction;
+    
     
     Sprite helperSprite; //just for helping me position the animation. delete later.
     
@@ -4778,7 +4762,7 @@ class ThrowHyperPokeball extends Action {
 
     public String getCamera() {return "gui";};
 
-    Action nextAction;
+    
     
     Sprite helperSprite; //just for helping me position the animation. delete later.
     
@@ -4943,7 +4927,7 @@ class catchPokemon_wigglesThenCatch extends Action {
 
     public String getCamera() {return "gui";};
 
-    Action nextAction;
+    
     
     Sprite helperSprite; //just for helping me position the animation. delete later.
     
@@ -5148,7 +5132,7 @@ class catchPokemon_miss extends Action {
 
     public String getCamera() {return "gui";};
 
-    Action nextAction;
+    
     
     Sprite helperSprite; 
     
@@ -5203,7 +5187,7 @@ class catchPokemon_wiggles1Time extends Action {
 
     public String getCamera() {return "gui";};
 
-    Action nextAction;
+    
     
     Sprite helperSprite; //just for helping me position the animation. delete later.
     
@@ -5372,7 +5356,7 @@ class catchPokemon_wiggles2Times extends Action {
 
     public String getCamera() {return "gui";};
 
-    Action nextAction;
+    
     
     Sprite helperSprite; //just for helping me position the animation. delete later.
     
@@ -5564,7 +5548,7 @@ class catchPokemon_wiggles3Times extends Action {
 
     public String getCamera() {return "gui";};
 
-    Action nextAction;
+    
     
     Sprite helperSprite; //just for helping me position the animation. delete later.
     
@@ -5776,7 +5760,7 @@ class PrintAngryEating extends Action {
 
     public String getCamera() {return "gui";};
     
-    Action nextAction;
+    
     
     @Override
     public void step(PkmnGen game) {
@@ -5827,7 +5811,7 @@ class ChanceToRun extends Action {
 
     public String getCamera() {return "gui";};
     
-    Action nextAction;
+    
     
 
     @Override
@@ -5933,7 +5917,7 @@ class OppPokemonFlee extends Action {
 
     public String getCamera() {return "gui";};
 
-    Action nextAction;
+    
     
     Sprite helperSprite; //just for helping me position the animation. delete later.
     
@@ -6046,7 +6030,7 @@ class PokemonCaught_Events extends Action {
 
     public String getCamera() {return "gui";};
     
-    Action nextAction;
+    
     
     boolean startLooking;
     
@@ -6137,7 +6121,7 @@ class ThrowOutPokemon extends Action {
 
     public String getCamera() {return "gui";};
 
-    Action nextAction;
+    
     
     Sprite helperSprite; //just for helping me position the animation. delete later.
     
@@ -6416,7 +6400,7 @@ class ThrowOutPokemonCrystal extends Action {
 
   public String getCamera() {return "gui";};
 
-  Action nextAction;
+  
   
   Sprite helperSprite; //just for helping me position the animation. delete later.
   
@@ -6890,7 +6874,7 @@ class SpecialBattleMewtwo extends Action {
         ArrayList<Vector2> moves_relative;
         Vector2 move;
         
-        Action nextAction;
+        
 
         public int layer = 140;
         public int getLayer(){return this.layer;}
@@ -7109,7 +7093,7 @@ class SpecialBattleMewtwo extends Action {
         ArrayList<Sprite> frames;
         Sprite frame;
         
-        Action nextAction;
+        
 
         public int layer = 139;
         public int getLayer(){return this.layer;}
@@ -7789,7 +7773,7 @@ class SpecialBattleMegaGengar extends Action {
         int timer = 0;
         String vertexShader;
         boolean firstStep = true;
-        Action nextAction;
+        
 
         @Override
         public void step(PkmnGen game) {
@@ -8035,7 +8019,7 @@ class SpecialBattleMegaGengar extends Action {
         ArrayList<Sprite> frames;
         Sprite frame;
         
-        Action nextAction;
+        
 
         public int layer = 139;
         public int getLayer(){return this.layer;}
@@ -8122,7 +8106,7 @@ class PokemonIntroAnim extends Action {
     public int getLayer(){return this.layer;}
     public String getCamera() {return "gui";};
     
-    Action nextAction;
+    
     
     int currFrame = 0;
     Sprite originalSprite;
@@ -8160,7 +8144,6 @@ class AttackAnim extends Action {
 
     String attackName;
     boolean isFriendly;
-    Action nextAction;
 
     @Override
     public void step(PkmnGen game) {
@@ -8365,7 +8348,6 @@ class Battle_Actions extends Action {
             }
         }
         else {
-            // TODO: this won't work yet
             if (game.battle.oppPokemon.name.equals("Mewtwo")) {
                 nextAction = new DisplayText(game, "A wave of psychic power unleashes!", null, true, 
                              Battle_Actions.getAttackAction(game, "Mewtwo_Special1", !isFriendly,
@@ -8376,6 +8358,7 @@ class Battle_Actions extends Action {
             }
             String effectiveness;
             String text_string = "";
+            Action attack;
             if (isFriendly) {
                 // TODO: string based on effectiveness
                 // TODO: 'no effect' attacks
@@ -8387,31 +8370,49 @@ class Battle_Actions extends Action {
                 }
                 if (multiplier > 1f) {
                     effectiveness = "super_effective";
-                    text_string = "It's super- effective!";
+                    text_string = "It' super- effective!";
                 }
                 else if (multiplier == 1f) {
                     effectiveness = "neutral_effective";
                 }
                 else {
                     effectiveness = "not_very_effective";
-                    text_string = "It's not very effective...";
+                    text_string = "It' not very effective...";
                 }
-                return new LoadAndPlayAttackAnimation(game, attackName, game.battle.oppPokemon, 
-                       new LoadAndPlayAttackAnimation(game, effectiveness, game.battle.oppPokemon,
-                       new DepleteEnemyHealth(game,
-                       new WaitFrames(game, 13,
-                       new DisplayText.Clear(game,
-                       new WaitFrames(game, 3,
-                       !effectiveness.equals("neutral_effective") ?
-                           new DisplayText(game,
-                                           text_string,
-                                           null,
-                                           null,
-                           new WaitFrames(game, 3,
-                           nextAction))
-                       :
-                           nextAction
-                       ))))));
+                
+                attack =  new LoadAndPlayAttackAnimation(game, attackName, game.battle.oppPokemon, 
+                          new LoadAndPlayAttackAnimation(game, effectiveness, game.battle.oppPokemon,
+                          new DepleteEnemyHealth(game,
+                          new WaitFrames(game, 13,
+                          !effectiveness.equals("neutral_effective") ?
+                              new DisplayText.Clear(game,
+                              new WaitFrames(game, 3,
+                              new DisplayText(game,
+                                              text_string,
+                                              null,
+                                              true,
+                                              true,
+                              null)))
+                          :
+                              null))));
+                // check if attack traps target pokemon
+                if (game.battle.oppPokemon.trappedBy == null &&
+                    attackName.toLowerCase().equals("whirlpool") ||
+                    attackName.toLowerCase().equals("fire spin") ||
+                    attackName.toLowerCase().equals("wrap") ||
+                    attackName.toLowerCase().equals("clamp")) {
+                    // 2-5 turns for trap
+                    game.battle.oppPokemon.trappedBy = attackName.toLowerCase();
+                    game.battle.oppPokemon.trapCounter = game.map.rand.nextInt(4) + 2;
+                    attack.appendAction(new DisplayText.Clear(game,
+                                        new WaitFrames(game, 3,
+                                        new DisplayText(game,
+                                                        game.battle.oppPokemon.name.toUpperCase()+" was trapped!",
+                                                        null,
+                                                        true,
+                                                        true,
+                                        null))));
+                }
             }
             else {
                 String attackType = game.battle.attacks.get(attackName.toLowerCase()).type;
@@ -8421,32 +8422,52 @@ class Battle_Actions extends Action {
                 }
                 if (multiplier > 1f) {
                     effectiveness = "super_effective";
-                    text_string = "It's super- effective!";
+                    text_string = "It' super- effective!";
                 }
                 else if (multiplier == 1f) {
                     effectiveness = "neutral_effective";
                 }
                 else {
                     effectiveness = "not_very_effective";
-                    text_string = "It's not very effective...";
+                    text_string = "It' not very effective...";
                 }
-                return new LoadAndPlayAttackAnimation(game, attackName, game.player.currPokemon,
-                       new LoadAndPlayAttackAnimation(game, effectiveness, game.player.currPokemon,
-                       new DepleteFriendlyHealth(game.player.currPokemon,
-                       new WaitFrames(game, 13,
-                       new DisplayText.Clear(game,
-                       new WaitFrames(game, 3,
-                       !effectiveness.equals("neutral_effective") ?
-                           new DisplayText(game,
-                                           text_string,
-                                           null,
-                                           null,
-                           new WaitFrames(game, 3,
-                           nextAction))
-                       :
-                           nextAction
-                       ))))));
+                attack = new LoadAndPlayAttackAnimation(game, attackName, game.player.currPokemon,
+                         new LoadAndPlayAttackAnimation(game, effectiveness, game.player.currPokemon,
+                         new DepleteFriendlyHealth(game.player.currPokemon,
+                         new WaitFrames(game, 13,
+                         !effectiveness.equals("neutral_effective") ?
+                             new DisplayText.Clear(game,
+                             new WaitFrames(game, 3,
+                             new DisplayText(game,
+                                             text_string,
+                                             null,
+                                             true,
+                                             true,
+                             new WaitFrames(game, 3,
+                             null))))
+                         :
+                             null))));
+                // check if attack traps target pokemon
+                if (game.player.currPokemon.trappedBy == null &&
+                    attackName.toLowerCase().equals("whirlpool") ||
+                    attackName.toLowerCase().equals("fire spin") ||
+                    attackName.toLowerCase().equals("wrap") ||
+                    attackName.toLowerCase().equals("clamp")) {
+                    // 2-5 turns for trap
+                    game.player.currPokemon.trappedBy = attackName.toLowerCase();
+                    game.player.currPokemon.trapCounter = game.map.rand.nextInt(4) + 2;
+                    attack.appendAction(new DisplayText.Clear(game,
+                                        new WaitFrames(game, 3,
+                                        new DisplayText(game,
+                                                        game.player.currPokemon.name.toUpperCase()+" was trapped!",
+                                                        null,
+                                                        true,
+                                                        true,
+                                        null))));
+                }
             }
+            attack.appendAction(nextAction);
+            return attack;
         }
 
         
@@ -8583,7 +8604,7 @@ class Battle_Actions extends Action {
 
         public String getCamera() {return "gui";};
 
-        Action nextAction;
+        
 
         Sprite helperSprite; //just for helping me position the animation. delete later.
         
@@ -8766,7 +8787,7 @@ class Battle_Actions extends Action {
 
         public String getCamera() {return "gui";};
 
-        Action nextAction;
+        
 
         Sprite helperSprite; //just for helping me position the animation. delete later.
         
@@ -8958,7 +8979,7 @@ class Battle_Actions extends Action {
 
         public String getCamera() {return "gui";};
 
-        Action nextAction;
+        
 
         Sprite helperSprite; //just for helping me position the animation. delete later.
         
@@ -9218,7 +9239,7 @@ class Battle_Actions extends Action {
         String vertexShader;
         boolean firstStep = true;
         boolean isNightShade = false;  // if true, use different sound effect
-        Action nextAction;
+        
         boolean hitSound = true;
 
         @Override
@@ -9601,7 +9622,7 @@ class Battle_Actions extends Action {
         String vertexShader;
         boolean firstStep = true;
         boolean isNightShade = false;  // if true, use different sound effect
-        Action nextAction;
+        
         boolean hitSound = true;
         int timer = 0;
 
@@ -9972,7 +9993,6 @@ class Battle_Actions extends Action {
         public int getLayer(){return this.layer;}
         public String getCamera() {return "gui";};
 
-        Action nextAction;
         int power = 10;
         int accuracy = 10;
         String name;
@@ -10200,7 +10220,7 @@ class DefaultAttack extends Action {
 
     public String getCamera() {return "gui";};
 
-    Action nextAction;
+    
     
     Sprite helperSprite; 
     
@@ -10371,7 +10391,7 @@ class DefaultEnemyAttack extends Action {
 
     public String getCamera() {return "gui";};
 
-    Action nextAction;
+    
     
     Sprite helperSprite; 
     

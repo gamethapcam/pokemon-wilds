@@ -56,6 +56,8 @@ public class Pokemon {
     //Action drawAction; //doesn't work. also, using sprite alpha for now
     
     String[] attacks;
+    String trappedBy = null;  // whirlpool, wrap, bind, etc
+    int trapCounter = 0;  // number turns remaining for trap
     Map<Integer, String[]> learnSet;
     
     // specific, ie GOLD, RED, CRYSTAL
@@ -422,7 +424,7 @@ public class Pokemon {
 //            learnSet.put(3, new String[]{"Rock Throw"});
 //            learnSet.put(4, new String[]{"Peck"});
             learnSet.put(2, new String[]{"Surf"});
-            learnSet.put(3, new String[]{"Rock Throw"});
+            learnSet.put(3, new String[]{"Whirlpool"});
             learnSet.put(4, new String[]{"Hydro Pump"});
             this.types.add("Water");
             this.types.add("Ice");

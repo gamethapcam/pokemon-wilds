@@ -240,14 +240,14 @@ public class PkmnGen extends ApplicationAdapter {
         // old size = 16*20
 //        PublicFunctions.insertToAS(this, new GenIsland1(this, new Vector2(0,0), 20*40)); //16*15 //30*40 // 20*40  //16*18 //20*30
         // generates a mountain now.
-//        PublicFunctions.insertToAS(this, new GenIsland1(this, new Vector2(0,0), 20*30)); //20*30 //60*100 //100*120
+        PublicFunctions.insertToAS(this, new GenIsland1(this, new Vector2(0,0), 20*30)); //20*30 //60*100 //100*120
 
         // TODO - mega gengar battle debug in genforest2, remove that
 
         // this is the special mewtwo debug map
         // comment out the genforest to use this
-        this.map = new PkmnMap("SpecialMewtwo");
-        PublicFunctions.insertToAS(this, new DrawSpecialMewtwoBg());
+//        this.map = new PkmnMap("SpecialMewtwo");
+//        PublicFunctions.insertToAS(this, new DrawSpecialMewtwoBg());
         
         // debug
         //PublicFunctions.insertToAS(this, new spawnGhost(this, new Vector2(32, 0))); //debug
@@ -544,10 +544,9 @@ public class PkmnGen extends ApplicationAdapter {
         textDict.put('È', new Sprite(text, 10+16*9, 5+12+12+12, 8, 8)); 
         textDict.put('…', new Sprite(text, 10+16*9, 5+12+12+12, 8, 8)); //same as lower case È, used in menus (ie POKÈBALL, etc)
         textDict.put('-', new Sprite(text, 10+16*10, 5+12+12+12, 8, 8)); 
+        textDict.put('\'', new Sprite(text, 10+16*11, 5+12+12+12, 8, 8)); 
         textDict.put(null, new Sprite(text, 10+16*0, 5+12+12+12+12, 8, 8)); //use when no char found
-        
         return textDict;
-        
     }
 
     @Override
