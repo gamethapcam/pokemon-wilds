@@ -2,6 +2,7 @@ package com.pkmngen.game;
 
 // import gme_debug.VGMPlayer;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -31,6 +32,9 @@ import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.physics.box2d.World;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
+import com.esotericsoftware.kryonet.Client;
+import com.esotericsoftware.kryonet.Connection;
+import com.esotericsoftware.kryonet.Server;
 
 public class Game extends ApplicationAdapter {
     
@@ -64,6 +68,10 @@ public class Game extends ApplicationAdapter {
     
     boolean playerCanMove;
     Action displayTextAction;
+
+    // Network
+    public Client client;
+    public Server server;
     
     //box2d
     //World world;
@@ -93,6 +101,18 @@ public class Game extends ApplicationAdapter {
     float accumulator = 0;
     int velocityIterations = 6;
     int positionIterations = 2;
+    
+    // Network
+    // ID: Player
+    HashMap<String, Player> players = new HashMap<String, Player>();
+    // server determines outcome of all actions done in battle
+    HashMap<String, Battle> battles = new HashMap<String, Battle>();
+    
+    enum Type {
+        CLIENT,
+        SERVER;
+    }
+    Type type;
 
     @Override
     public void create() {
@@ -149,7 +169,16 @@ public class Game extends ApplicationAdapter {
         
         //stores touch location
         touchLoc = new Vector3();
+
+        //init player structure (store global vars)
+        this.player = new Player();
+        //init map structure
+        this.map = new PkmnMap("default");
+        //init battle structure
+        this.battle = new Battle();
         
+        this.textDict = initTextDict();
+
         //add start actions
         ArrayList<Action> startActions = new ArrayList<Action>();
         //draw map
@@ -181,17 +210,7 @@ public class Game extends ApplicationAdapter {
         
         //initialize action_stack
         this.actionStack  = new ArrayList<Action>();
-        this.actionStack.addAll(startActions); 
-        
-        
-        //init player structure (store global vars)
-        this.player = new Player();
-        //init map structure
-        this.map = new PkmnMap("default");
-        //init battle structure
-        this.battle = new Battle();
-        
-        this.textDict = initTextDict();
+        this.actionStack.addAll(startActions);
         
         // TODO: remove if unused
         //start playing music?
@@ -416,6 +435,10 @@ public class Game extends ApplicationAdapter {
                     System.out.println(action);
                     System.out.println(java.time.LocalTime.now());  
                 }
+                if (action.firstStep) {
+                    action.firstStep(this);
+                    action.firstStep = false;
+                }
                 action.step(this);
                 if (Gdx.input.isKeyPressed(Input.Keys.P)) { 
                     System.out.println(action);
@@ -440,6 +463,10 @@ public class Game extends ApplicationAdapter {
         floatingBatch.begin();
         //iterate through action stack
         for (Action action : new ArrayList<Action>(this.actionStack)) { //iterate copy
+            if (action.firstStep) {
+                action.firstStep(this);
+                action.firstStep = false;
+            }
             if (action.getCamera() == "gui") { //only gui actions
                 action.step(this);
             }
@@ -502,6 +529,22 @@ public class Game extends ApplicationAdapter {
             System.out.println("Layer, Name");
             for (Action action : this.actionStack) {
                 System.out.println(String.valueOf(action.getLayer()) + "  " + action.getClass().getName());
+            }
+        }
+        // check network type (reset when pressed)
+        if (Gdx.input.isKeyJustPressed(Input.Keys.M)) {
+            // set up networking
+            try {
+                initServer();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        } else if (Gdx.input.isKeyJustPressed(Input.Keys.N)) {
+            // set up networking
+            try {
+                initClient();
+            } catch (IOException e) {
+                e.printStackTrace();
             }
         }
     }
@@ -589,7 +632,136 @@ public class Game extends ApplicationAdapter {
     @Override
     public void resume() {
     }
+
+    public void initServer() throws IOException {
+
+        //make screen smaller (not split screen)
+//        Gdx.graphics.setDisplayMode(Gdx.graphics.getWidth()/2, Gdx.graphics.getHeight(), false);
     
+        //resize window
+//          this.viewport.setScreenBounds(0,0, 144, 160); // Gdx.graphics.getWidth()/2, Gdx.graphics.getHeight());
+//          this.viewport.apply(); //provides more control. same as update
+        
+        this.server = new Server() {
+            protected Connection newConnection() {
+                // By providing our own connection implementation, we can
+                // store per
+                // connection state without a connection ID to state look
+                // up.
+                return new CharacterConnection();
+            }
+        };
+
+        Network.register(this.server);
+        this.type = Game.Type.SERVER;
+
+        this.server.bind(Network.port);
+        this.server.start();
+        while (this.server.getUpdateThread() == null) {
+            try {
+                Thread.sleep(1);
+            } catch (InterruptedException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+        }
+
+        //was previously using these lines to restrict when server can receive messages (b/c of threading issues)
+         //may need in future
+//          this.server.getUpdateThread().stop();
+//          this.insertAction(new ServerReceive()); 
+        
+        
+//          this.server.update(0);
+//          this.updateThread = new Thread(this.server, "Server");
+//          updateThread.start();
+
+        //change player 2's type
+//        this.player2.type = HeroPlayer.Type.NETWORK;
+//        this.player2.cam = this.cam2; //have to switch cam, or else causes input errors
+//        Filter filter = new Filter();
+//        filter.maskBits = Mask.None.getValue();
+//        filter.categoryBits = Category.None.getValue();
+//        this.player2.physics.fixture.setFilterData(filter);
+        
+        // add action that will continually update client of positions
+        
+        PublicFunctions.insertToAS(this, new ServerBroadcast(this));
+    }
+
+    public void initClient() throws IOException {
+        if (this.client != null) {
+            this.client.close();
+        }
+        this.client = new Client();
+        this.type = Game.Type.CLIENT;
+
+        Network.register(client);
+
+        this.client.start();
+        
+        try {
+            this.client.connect(5000, "127.0.0.1", Network.port);
+//              this.client.connect(5000, "192.168.101", Network.port); 
+            // Server communication after connection can go here, or in
+            // Listener#connected().
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+        
+//          this.client.stop(); //attempting to manually update
+        //didn't work - it seems like this will prevent future updates from working
+        
+        //these lines were used to avoid threading issues (see notes in server above)
+//          this.client.getUpdateThread().stop(); //stop thread and update manually in future
+//          insertAction(new ClientReceive());
+        
+//        Log.set(Log.LEVEL_DEBUG);
+
+        //TODO - put this somewhere?
+//        this.player.type = HeroPlayer.Type.NETWORK;
+//        Filter filter = new Filter();
+//        filter.maskBits = Mask.None.getValue();
+//        filter.categoryBits = Category.None.getValue();
+//        this.player.physics.fixture.setFilterData(filter);
+//        
+//        //register fireball as networked
+//        this.map.fireball.type = Fireball.Type.NETWORK;
+//        //register map as networked
+//        this.map.type = GameMap.Type.NETWORK;
+//        
+//        //remove ghosts and spawner from map
+//        this.actionStack.remove(this.spawnGhosts);
+//        for (Ghost ghost : map.enemies) {
+//            b2World.destroyBody(ghost.physics.body);
+//            actionStack.remove(ghost.physics);
+//            actionStack.remove(ghost.graphics);
+//            actionStack.remove(ghost);
+//        }
+//        this.map.enemies.clear();
+//        this.map.networkGhosts = new SpawnNetworkGhosts(this);
+//
+//        System.out.println("client requesting all ghosts");
+        
+        //request ghosts from server
+//        this.client.sendTCP(new Network.AllGhosts());
+
+        this.player.network.id = "dummy_id2";
+        this.player.type = Player.Type.LOCAL;
+        this.client.sendTCP(new Network.Login(this.player.network.id));
+
+        // server won't say when to clear tiles, so do it now.
+        this.map.tiles.clear();
+        this.map.trees.clear(); // TODO: needs to be handled differently
+        
+        PublicFunctions.insertToAS(this, new ClientBroadcast(this));
+    }
+
+    // TODO - keep? remove?
+    // This holds per connection state.
+    static class CharacterConnection extends Connection {
+        public Vector2 character;
+    }
     
     
     

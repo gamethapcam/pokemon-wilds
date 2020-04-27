@@ -35,6 +35,11 @@ public class Action {
     // init functions and step function.
 //    Game game = Game.staticGame;
     
+    
+    //what to do at each iteration
+    boolean firstStep = true;
+    public void firstStep(Game game){}
+    
     //what to do at each iteration
     public void step(Game game){}
     
@@ -78,23 +83,25 @@ class DoneAction extends Action {
 //pass in two actions. Will add both to action stack.
 class SplitAction extends Action {
     
-    private Action nextAction1;
     private Action nextAction2;
+    
+    // TODO: shouldn't this have layer == LARGE_NUMBER?
+    public int getLayer(){return 500;};
 
     String camera = "map";
     public String getCamera() {return camera;};
     
     public SplitAction(Action nextAction1, Action nextAction2) {
         //put two new actions in the actionStack
-        this.nextAction1 = nextAction1;
-        this.nextAction2 = nextAction2;
+        this.nextAction2 = nextAction1;
+        this.nextAction = nextAction2;
     }
     
     @Override
     public void step(Game game) {
         game.actionStack.remove(this);
-        PublicFunctions.insertToAS(game, nextAction1);
         PublicFunctions.insertToAS(game, nextAction2);
+        PublicFunctions.insertToAS(game, nextAction);
         
         // TODO: test this - didn't seem to have an effect
 //        if (this.camera.equals(this.nextAction1.getCamera())) {

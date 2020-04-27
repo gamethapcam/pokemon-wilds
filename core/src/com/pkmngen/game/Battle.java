@@ -26,6 +26,7 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.pkmngen.game.DrawPlayerMenu.Intro;
+import com.pkmngen.game.Player.Network;
 
 
 class Attack {
@@ -36,6 +37,12 @@ class Attack {
     int accuracy;
     int pp;
     int effect_chance; // chance to paralyze, lower speed, poison, etc.
+    boolean isPhysical = false;
+    
+    // network-related things
+    int damage;
+    
+    public Attack() {}
     
     public Attack(String name, int power, String type, int accuracy, int pp, int effect_chance) {
         this.name = name;
@@ -73,6 +80,13 @@ public class Battle {
     // HashMap<Generation, ... ?
     HashMap<String, HashMap<String, Float>> gen2TypeEffectiveness;
     HashMap<String, Attack> attacks = new HashMap<String, Attack>();
+    
+    class Network {
+        com.pkmngen.game.Network.BattleTurnData turnData;
+        
+        public Network() {}
+    }
+    Network network = new Network();
 
     public Battle() {
 
@@ -84,6 +98,12 @@ public class Battle {
         this.victoryFanfare.setLooping(true);
         this.victoryFanfare.setVolume(.3f);
         
+        // TODO: this could have been a string table, converted to map
+//                normal fire water ...
+//        normal  1      1    1
+//        fire    1      .5   .5
+//        water   1      2    .5
+//        ...                       ...
         this.gen2TypeEffectiveness = new HashMap<String, HashMap<String, Float>>();
         this.gen2TypeEffectiveness.put("normal", new HashMap<String, Float>());
         this.gen2TypeEffectiveness.get("normal").put("normal", 1f);
@@ -428,6 +448,17 @@ public class Battle {
         this.gen2TypeEffectiveness.get("fairy").put("steel", .5f);
         this.gen2TypeEffectiveness.get("fairy").put("fairy", 1f);
         
+        ArrayList<String> gen2PhysicalTypes = new ArrayList<String>();
+        gen2PhysicalTypes.add("normal");
+        gen2PhysicalTypes.add("fighting");
+        gen2PhysicalTypes.add("poison");
+        gen2PhysicalTypes.add("ground");
+        gen2PhysicalTypes.add("flying");
+        gen2PhysicalTypes.add("bug");
+        gen2PhysicalTypes.add("rock");
+        gen2PhysicalTypes.add("ghost");
+        gen2PhysicalTypes.add("steel");
+        
         // load all attacks and attributes
         
         try {
@@ -446,6 +477,9 @@ public class Battle {
                     Attack attack = new Attack(attrs[0].toLowerCase().replace('_', ' '), Integer.valueOf(attrs[2]), 
                                                attrs[3].toLowerCase(), Integer.valueOf(attrs[4]),
                                                Integer.valueOf(attrs[5]), Integer.valueOf(attrs[6]));
+                    if (gen2PhysicalTypes.contains(attack.type.toLowerCase())) {
+                        attack.isPhysical = true;
+                    }
                     this.attacks.put(attack.name, attack);
 //                    System.out.println(attack.name + " " + attack.type);
                 } 
@@ -457,6 +491,164 @@ public class Battle {
         } catch (IOException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
+        }
+        
+        Attack attack = new Attack("Mewtwo_Special1", 100, "Psychic", 100, 1, 100);
+        this.attacks.put(attack.name, attack);
+    }
+    
+    static int calcAndApplyDamage(Pokemon source, Attack attack, Pokemon target) {
+        int attackStat = attack.isPhysical ? source.currentStats.get("attack") : source.currentStats.get("specialAtk");
+        int defenseStat = attack.isPhysical ? target.currentStats.get("defense") : target.currentStats.get("specialDef");
+        int damage = (int)Math.floor(Math.floor(Math.floor(2 * source.level / 5 + 2) * attackStat * attack.power / defenseStat) / 50) + 2;
+        if (source.types.contains(attack.type)) {damage = (int)(damage * 1.5f);}  // STAB
+        // type effectiveness
+        float multiplier = 1f;
+        for (String type : target.types){
+            multiplier *= Game.staticGame.battle.gen2TypeEffectiveness.get(attack.type).get(type.toLowerCase());
+        }
+        damage = (int)(damage * multiplier);
+        int currHealth = target.currentStats.get("hp");
+        int finalHealth = currHealth - damage > 0 ? currHealth - damage : 0;
+        target.currentStats.put("hp", finalHealth);
+        return damage;
+    }
+    
+    /*
+     * Wait for the server to send turn data back to client.
+     * 
+     * Example: the player sends an attack, waits to see result of the attack.
+     */
+    static class WaitTurnData extends Action {
+
+        public int getLayer() {return 500;};
+        
+        @Override
+        public void step(Game game) {
+            if (this.firstStep) {
+                PublicFunctions.insertToAS(game, new DisplayText(game, "Waiting for server...", null, true, false, null));
+                this.firstStep = false;
+            }
+
+            if (game.battle.network.turnData == null) {
+                return;
+            }
+            DisplayText.textPersist = false;  // Clear any displayed text
+            game.actionStack.remove(this);
+        }
+        
+        public WaitTurnData(Game game, Action nextAction) {
+            this.nextAction = nextAction;
+        }
+    }
+    
+    /*
+     * Play turn attack animations.
+     * 
+     * If client, get player order and attack choices from game.battle.network. Else, determine manually.
+     */
+    static class DoTurn extends Action {
+
+        public int getLayer() {return 500;};
+
+        @Override
+        public void step(Game game) {
+            boolean oppFirst = false;
+            Attack playerAttack;
+            Attack enemyAttack;
+            if (game.type != Game.Type.CLIENT) {
+                //find which pokemon is first
+                int yourSpeed = game.player.currPokemon.currentStats.get("speed");
+                int oppSpeed = game.battle.oppPokemon.currentStats.get("speed");
+                
+                if (yourSpeed > oppSpeed) {
+                    oppFirst = false;
+                }
+                else if (yourSpeed < oppSpeed) {
+                    oppFirst = true;
+                }
+                else {
+                    int randNum = game.map.rand.nextInt(2);
+                    if (randNum == 0) {
+                        oppFirst = true;
+                    }
+                }
+                //set up enemy attack
+                String attackChoice = game.battle.oppPokemon.attacks[game.map.rand.nextInt(game.battle.oppPokemon.attacks.length)];
+                if (attackChoice.equals("-")) {
+                    attackChoice = "Struggle";
+                }
+                // TODO: determine if hit/miss, crit, effect hit, etc
+                playerAttack = game.battle.attacks.get(game.player.currPokemon.attacks[DrawAttacksMenu.curr].toLowerCase());
+                enemyAttack = game.battle.attacks.get(attackChoice.toLowerCase());
+            }
+            else {
+                com.pkmngen.game.Network.BattleTurnData turnData = game.battle.network.turnData;
+                oppFirst = turnData.oppFirst;
+                playerAttack = turnData.playerAttack;
+                enemyAttack = turnData.enemyAttack;
+                game.battle.network.turnData = null;
+            }
+            
+            boolean isFriendly = true;
+            Action attack;
+            if (!oppFirst) {
+                // apply damage
+                Battle.calcAndApplyDamage(game.player.currPokemon, playerAttack, game.battle.oppPokemon);
+                if (game.battle.oppPokemon.currentStats.get("hp") > 0) {
+                    Battle.calcAndApplyDamage(game.battle.oppPokemon, enemyAttack, game.player.currPokemon);
+                }
+                attack = new DisplayText(game,
+                                         game.player.currPokemon.name.toUpperCase()+" used "+playerAttack.name.toUpperCase()+"!",
+                                         null,
+                                         true,
+                                         false,
+                         new AttackAnim(game, playerAttack, isFriendly,
+                         new DisplayText.Clear(game,
+                         new WaitFrames(game, 3,
+                         new DisplayText(game, 
+                                         "Enemy "+game.battle.oppPokemon.name.toUpperCase()+" used "+enemyAttack.name.toUpperCase()+"!",
+                                         null, 
+                                         true,
+                                         false,
+                         new AttackAnim(game, enemyAttack, !isFriendly,
+                         null))))));
+            }
+            else{
+                // apply damage
+                Battle.calcAndApplyDamage(game.battle.oppPokemon, enemyAttack, game.player.currPokemon);
+                if (game.player.currPokemon.currentStats.get("hp") > 0) {
+                    Battle.calcAndApplyDamage(game.player.currPokemon, playerAttack, game.battle.oppPokemon);
+                }
+                attack = new DisplayText(game,
+                                         "Enemy "+game.battle.oppPokemon.name.toUpperCase()+" used "+enemyAttack.name.toUpperCase()+"!",
+                                         null,
+                                         true,
+                                         false,
+                         new AttackAnim(game, enemyAttack, !isFriendly,
+                         new DisplayText.Clear(game,
+                         new WaitFrames(game, 3,
+                         new DisplayText(game, 
+                                         game.player.currPokemon.name.toUpperCase()+" used "+playerAttack.name.toUpperCase()+"!",
+                                         null, 
+                                         true,
+                                         false,
+                         new AttackAnim(game, playerAttack, isFriendly,
+                         null))))));
+            }
+            // TODO: Battle.CheckTrapped is annoying, b/c we can't check if pkmn is trapped now
+            // because it's determined in AttackAnim
+            attack.appendAction(game.battle.new CheckTrapped(game,
+                                new DisplayText.Clear(game,
+                                new WaitFrames(game, 3,
+                                this.nextAction))));
+            game.actionStack.remove(this);
+            PublicFunctions.insertToAS(game, attack);
+            return;
+        }
+        
+        public DoTurn(Game game, Action nextAction) {
+            this.nextAction = nextAction;
         }
     }
     
@@ -1699,7 +1891,7 @@ class DrawAttacksMenu extends Action {
 
     
     Map<Integer, Vector2> getCoords;
-    int curr;
+    public static int curr = 0;
     Vector2 newPos;
     Sprite helperSprite;
     ArrayList<ArrayList<Sprite>> spritesToDraw;
@@ -1713,16 +1905,16 @@ class DrawAttacksMenu extends Action {
          //'tl' = top left, etc. 
          //modify position by modifying curr to tl, tr, bl or br
         if(Gdx.input.isKeyJustPressed(Input.Keys.UP)) {
-            if (curr != 0) {
-                curr -= 1;
-                newPos = getCoords.get(curr);
+            if (DrawAttacksMenu.curr != 0) {
+                DrawAttacksMenu.curr -= 1;
+                newPos = getCoords.get(DrawAttacksMenu.curr);
             }
             
         }
         else if(Gdx.input.isKeyJustPressed(Input.Keys.DOWN)) {
-            if (curr != 3) {
-                curr += 1;
-                newPos = getCoords.get(curr);
+            if (DrawAttacksMenu.curr != 3) {
+                DrawAttacksMenu.curr += 1;
+                newPos = getCoords.get(DrawAttacksMenu.curr);
             }
         }
         
@@ -1731,76 +1923,19 @@ class DrawAttacksMenu extends Action {
             
             //explanation of speed move priority: http://bulbapedia.bulbagarden.net/wiki/Stats#Speed
              // pkmn with higher speed moves first
-            
-            //find which pokemon is first
-            
-            int yourSpeed = game.player.currPokemon.currentStats.get("speed");
-            int oppSpeed = game.battle.oppPokemon.currentStats.get("speed");
-            
-            boolean oppFirst = false;
-            if (yourSpeed > oppSpeed) {
-                oppFirst = false;
-            }
-            else if (yourSpeed < oppSpeed) {
-                oppFirst = true;
+
+            //play select sound
+            Action attack = new SplitAction(new PlaySound("click1", null),
+                            null);
+            if (game.type != Game.Type.CLIENT) {
             }
             else {
-                int randNum = game.map.rand.nextInt(2);
-                if (randNum == 0) {
-                    oppFirst = true;
-                }
+                // send move to server, wait response
+                String attackName = game.player.currPokemon.attacks[DrawAttacksMenu.curr];
+                game.client.sendTCP(new com.pkmngen.game.Network.DoAttack(game.player.network.id, attackName));
+                attack.appendAction(new Battle.WaitTurnData(game, null));
             }
-            // TODO: probably have Action ClearDisplayText instead of using triggers; too confusing atm
-
-            boolean isFriendly = true;
-            //set up enemy attack
-            String attackChoice = game.battle.oppPokemon.attacks[game.map.rand.nextInt(game.battle.oppPokemon.attacks.length)];
-            if (attackChoice.equals("-")) {
-                attackChoice = "Struggle";
-            }
-            //play select sound
-            PublicFunctions.insertToAS(game, new PlaySound("click1", null));
-            Action attack;
-            if (!oppFirst) {
-                attack = new DisplayText(game,
-                                         game.player.currPokemon.name.toUpperCase()+" used "+game.player.currPokemon.attacks[this.curr].toUpperCase()+"!",
-                                         null,
-                                         true,
-                                         false,
-                         new AttackAnim(game, game.player.currPokemon.attacks[curr], isFriendly,
-                         new DisplayText.Clear(game,
-                         new WaitFrames(game, 3,
-                         new DisplayText(game, 
-                                         "Enemy "+game.battle.oppPokemon.name.toUpperCase()+" used "+attackChoice.toUpperCase()+"!",
-                                         null, 
-                                         true,
-                                         false,
-                         new AttackAnim(game, attackChoice, !isFriendly,
-                         null))))));
-            }
-            else{
-                attack = new DisplayText(game,
-                                         "Enemy "+game.battle.oppPokemon.name.toUpperCase()+" used "+attackChoice.toUpperCase()+"!",
-                                         null,
-                                         true,
-                                         false,
-                         new AttackAnim(game, attackChoice, !isFriendly,
-                         new DisplayText.Clear(game,
-                         new WaitFrames(game, 3,
-                         new DisplayText(game, 
-                                         game.player.currPokemon.name.toUpperCase()+" used "+game.player.currPokemon.attacks[curr].toUpperCase()+"!",
-                                         null, 
-                                         true,
-                                         false,
-                         new AttackAnim(game, game.player.currPokemon.attacks[curr], isFriendly,
-                         null))))));
-            }
-            // TODO: Battle.CheckTrapped is annoying, b/c we can't check if pkmn is trapped now
-            // because it's determined in AttackAnim
-            attack.appendAction(game.battle.new CheckTrapped(game,
-                                new DisplayText.Clear(game,
-                                new WaitFrames(game, 3,
-                                this.nextAction))));
+            attack.appendAction(new Battle.DoTurn(game, null));
             game.actionStack.remove(this);
             PublicFunctions.insertToAS(game, attack);
             return;
@@ -1864,7 +1999,6 @@ class DrawAttacksMenu extends Action {
         //this.newPos =  new Vector2(32, 79); //post scaling change
         this.newPos =  new Vector2(41, 32);
         this.arrow.setPosition(newPos.x, newPos.y);
-        this.curr = 0;
         
         //convert pokemon attacks to sprites
         for (String attack : Game.staticGame.player.currPokemon.attacks) {
@@ -8147,19 +8281,19 @@ class AttackAnim extends Action {
     public int layer = 500;  // ensure that this triggers before other actions
     public int getLayer(){return this.layer;};
 
-    String attackName;
+    Attack attack;
     boolean isFriendly;
 
     @Override
     public void step(Game game) {
         // TODO: move the Battle_Actions.getAttackAction code here
         game.actionStack.remove(this);
-        PublicFunctions.insertToAS(game, Battle_Actions.getAttackAction(game, attackName, isFriendly, nextAction));
+        PublicFunctions.insertToAS(game, Battle_Actions.getAttackAction(game, attack, isFriendly, nextAction));
     }
     
-    public AttackAnim(Game game, String attackName, boolean isFriendly, Action nextAction) {
+    public AttackAnim(Game game, Attack attack, boolean isFriendly, Action nextAction) {
         this.nextAction = nextAction;
-        this.attackName = attackName;
+        this.attack = attack;
         this.isFriendly = isFriendly;
     }
 }
@@ -8258,7 +8392,7 @@ class Battle_Actions extends Action {
         return new catchPokemon_wiggles3Times(game, new PrintAngryEating(game, new ChanceToRun(game, nextAction) ) );
     }
     
-    public static Action getAttackAction(Game game, String attackName, boolean isFriendly, Action nextAction) {
+    public static Action getAttackAction(Game game, Attack attack, boolean isFriendly, Action nextAction) {
         
         //construct default attack?
         // TODO: the non-loaded ones are broken now, need to do DisplayText.Clear()
@@ -8267,27 +8401,27 @@ class Battle_Actions extends Action {
         int power = 40;
         int accuracy = 100;
         
-        if (attackName.equals("Aurora Beam")) {
+        if (attack.name.equals("Aurora Beam")) {
             //normally return new attack here
             power = 65; accuracy = 100;
         }
-        else if (attackName.equals("Clamp")) {
+        else if (attack.name.equals("Clamp")) {
             //normally return new attack here
             power = 35; accuracy = 85;
         }
-        else if (attackName.equals("Supersonic")) {
+        else if (attack.name.equals("Supersonic")) {
             //normally return new attack here
             power = 0; accuracy = 55;
         }
-        else if (attackName.equals("Withdraw")) {
+        else if (attack.name.equals("Withdraw")) {
             //normally return new attack here
             power = 20; accuracy = 100;
         }
-        else if (attackName.equals("Struggle")) {
+        else if (attack.name.equals("Struggle")) {
             //normally return new attack here
             power = 50; accuracy = 100;
         }
-        else if (attackName.equals("Psychic")) {
+        else if (attack.name.equals("Psychic")) {
             if (isFriendly) {
                 return new Battle_Actions.Psychic(game,
                                                   game.player.currPokemon,
@@ -8303,13 +8437,13 @@ class Battle_Actions extends Action {
                                                   nextAction);
             }
         }
-        else if (attackName.equals("Mewtwo_Special1")) {
+        else if (attack.name.equals("Mewtwo_Special1")) {
             return new Battle_Actions.Mewtwo_Special1(game,
                                                       game.battle.oppPokemon,
                                                       game.player.currPokemon,
                                                       nextAction);
         }
-        else if (attackName.equals("Night Shade")) {
+        else if (attack.name.equals("Night Shade")) {
             if (isFriendly) {
                 return new Battle_Actions.Psychic(game,
                                                   game.player.currPokemon,
@@ -8325,7 +8459,7 @@ class Battle_Actions extends Action {
                                                   nextAction);
             }
         }
-        else if (attackName.equals("Slash")) {
+        else if (attack.name.equals("Slash")) {
             if (isFriendly) {
                 // TODO
                 return new DefaultAttack(game, power, accuracy, nextAction);
@@ -8334,7 +8468,7 @@ class Battle_Actions extends Action {
                 return new Battle_Actions.Slash(game, game.battle.oppPokemon, game.player.currPokemon, nextAction);
             }
         }
-        else if (attackName.equals("Shadow Claw")) {
+        else if (attack.name.equals("Shadow Claw")) {
             if (isFriendly) {
                 // TODO
                 return new DefaultAttack(game, power, accuracy, nextAction);
@@ -8343,7 +8477,7 @@ class Battle_Actions extends Action {
                 return new Battle_Actions.ShadowClaw(game, game.battle.oppPokemon, game.player.currPokemon, nextAction);
             }
         }
-        else if (attackName.equals("Lick")) {
+        else if (attack.name.equals("Lick")) {
             if (isFriendly) {
                 // TODO
                 return new DefaultAttack(game, power, accuracy, nextAction);
@@ -8355,7 +8489,7 @@ class Battle_Actions extends Action {
         else {
             if (game.battle.oppPokemon.name.equals("Mewtwo")) {
                 nextAction = new DisplayText(game, "A wave of psychic power unleashes!", null, true, 
-                             Battle_Actions.getAttackAction(game, "Mewtwo_Special1", !isFriendly,
+                             Battle_Actions.getAttackAction(game, game.battle.attacks.get("Mewtwo_Special1"), !isFriendly,
                              new DepleteFriendlyHealth(game.player.currPokemon, 
                              new WaitFrames(game, 30, 
                              new DisplayText.Clear(game,
@@ -8363,12 +8497,12 @@ class Battle_Actions extends Action {
             }
             String effectiveness;
             String text_string = "";
-            Action attack;
+            Action attackAction;
             if (isFriendly) {
                 // TODO: string based on effectiveness
                 // TODO: 'no effect' attacks
                 // attack data loaded from Crystal
-                String attackType = game.battle.attacks.get(attackName.toLowerCase()).type;
+                String attackType = attack.type;
                 float multiplier = game.battle.gen2TypeEffectiveness.get(attackType).get(game.battle.oppPokemon.types.get(0).toLowerCase());
                 if (game.battle.oppPokemon.types.size() > 1) {
                     multiplier *= game.battle.gen2TypeEffectiveness.get(attackType).get(game.battle.oppPokemon.types.get(1).toLowerCase());
@@ -8385,42 +8519,42 @@ class Battle_Actions extends Action {
                     text_string = "It' not very effective...";
                 }
                 
-                attack =  new LoadAndPlayAttackAnimation(game, attackName, game.battle.oppPokemon, 
-                          new LoadAndPlayAttackAnimation(game, effectiveness, game.battle.oppPokemon,
-                          new DepleteEnemyHealth(game,
-                          new WaitFrames(game, 13,
-                          !effectiveness.equals("neutral_effective") ?
-                              new DisplayText.Clear(game,
-                              new WaitFrames(game, 3,
-                              new DisplayText(game,
-                                              text_string,
-                                              null,
-                                              true,
-                                              true,
-                              null)))
-                          :
-                              null))));
+                attackAction =  new LoadAndPlayAttackAnimation(game, attack.name, game.battle.oppPokemon, 
+                                new LoadAndPlayAttackAnimation(game, effectiveness, game.battle.oppPokemon,
+                                new DepleteEnemyHealth(game,
+                                new WaitFrames(game, 13,
+                                !effectiveness.equals("neutral_effective") ?
+                                    new DisplayText.Clear(game,
+                                    new WaitFrames(game, 3,
+                                    new DisplayText(game,
+                                                    text_string,
+                                                    null,
+                                                    true,
+                                                    true,
+                                    null)))
+                                :
+                                    null))));
                 // check if attack traps target pokemon
                 if (game.battle.oppPokemon.trappedBy == null &&
-                    attackName.toLowerCase().equals("whirlpool") ||
-                    attackName.toLowerCase().equals("fire spin") ||
-                    attackName.toLowerCase().equals("wrap") ||
-                    attackName.toLowerCase().equals("clamp")) {
+                    attack.name.toLowerCase().equals("whirlpool") ||
+                    attack.name.toLowerCase().equals("fire spin") ||
+                    attack.name.toLowerCase().equals("wrap") ||
+                    attack.name.toLowerCase().equals("clamp")) {
                     // 2-5 turns for trap
-                    game.battle.oppPokemon.trappedBy = attackName.toLowerCase();
+                    game.battle.oppPokemon.trappedBy = attack.name.toLowerCase();
                     game.battle.oppPokemon.trapCounter = game.map.rand.nextInt(4) + 2;
-                    attack.appendAction(new DisplayText.Clear(game,
-                                        new WaitFrames(game, 3,
-                                        new DisplayText(game,
-                                                        game.battle.oppPokemon.name.toUpperCase()+" was trapped!",
-                                                        null,
-                                                        true,
-                                                        true,
-                                        null))));
+                    attackAction.appendAction(new DisplayText.Clear(game,
+                                              new WaitFrames(game, 3,
+                                              new DisplayText(game,
+                                                              game.battle.oppPokemon.name.toUpperCase()+" was trapped!",
+                                                              null,
+                                                              true,
+                                                              true,
+                                              null))));
                 }
             }
             else {
-                String attackType = game.battle.attacks.get(attackName.toLowerCase()).type;
+                String attackType = game.battle.attacks.get(attack.name.toLowerCase()).type;
                 float multiplier = game.battle.gen2TypeEffectiveness.get(attackType).get(game.player.currPokemon.types.get(0).toLowerCase());
                 if (game.player.currPokemon.types.size() > 1) {
                     multiplier *= game.battle.gen2TypeEffectiveness.get(attackType).get(game.player.currPokemon.types.get(1).toLowerCase());
@@ -8436,43 +8570,43 @@ class Battle_Actions extends Action {
                     effectiveness = "not_very_effective";
                     text_string = "It' not very effective...";
                 }
-                attack = new LoadAndPlayAttackAnimation(game, attackName, game.player.currPokemon,
-                         new LoadAndPlayAttackAnimation(game, effectiveness, game.player.currPokemon,
-                         new DepleteFriendlyHealth(game.player.currPokemon,
-                         new WaitFrames(game, 13,
-                         !effectiveness.equals("neutral_effective") ?
-                             new DisplayText.Clear(game,
-                             new WaitFrames(game, 3,
-                             new DisplayText(game,
-                                             text_string,
-                                             null,
-                                             true,
-                                             true,
-                             new WaitFrames(game, 3,
-                             null))))
-                         :
-                             null))));
+                attackAction = new LoadAndPlayAttackAnimation(game, attack.name, game.player.currPokemon,
+                               new LoadAndPlayAttackAnimation(game, effectiveness, game.player.currPokemon,
+                               new DepleteFriendlyHealth(game.player.currPokemon,
+                               new WaitFrames(game, 13,
+                               !effectiveness.equals("neutral_effective") ?
+                                   new DisplayText.Clear(game,
+                                   new WaitFrames(game, 3,
+                                   new DisplayText(game,
+                                                   text_string,
+                                                   null,
+                                                   true,
+                                                   true,
+                                   new WaitFrames(game, 3,
+                                   null))))
+                               :
+                                   null))));
                 // check if attack traps target pokemon
                 if (game.player.currPokemon.trappedBy == null &&
-                    attackName.toLowerCase().equals("whirlpool") ||
-                    attackName.toLowerCase().equals("fire spin") ||
-                    attackName.toLowerCase().equals("wrap") ||
-                    attackName.toLowerCase().equals("clamp")) {
+                    attack.name.toLowerCase().equals("whirlpool") ||
+                    attack.name.toLowerCase().equals("fire spin") ||
+                    attack.name.toLowerCase().equals("wrap") ||
+                    attack.name.toLowerCase().equals("clamp")) {
                     // 2-5 turns for trap
-                    game.player.currPokemon.trappedBy = attackName.toLowerCase();
+                    game.player.currPokemon.trappedBy = attack.name.toLowerCase();
                     game.player.currPokemon.trapCounter = game.map.rand.nextInt(4) + 2;
-                    attack.appendAction(new DisplayText.Clear(game,
-                                        new WaitFrames(game, 3,
-                                        new DisplayText(game,
-                                                        game.player.currPokemon.name.toUpperCase()+" was trapped!",
-                                                        null,
-                                                        true,
-                                                        true,
-                                        null))));
+                    attackAction.appendAction(new DisplayText.Clear(game,
+                                              new WaitFrames(game, 3,
+                                              new DisplayText(game,
+                                                              game.player.currPokemon.name.toUpperCase()+" was trapped!",
+                                                              null,
+                                                              true,
+                                                              true,
+                                              null))));
                 }
             }
-            attack.appendAction(nextAction);
-            return attack;
+            attackAction.appendAction(nextAction);
+            return attackAction;
         }
 
         
@@ -9998,8 +10132,6 @@ class Battle_Actions extends Action {
         public int getLayer(){return this.layer;}
         public String getCamera() {return "gui";};
 
-        int power = 10;
-        int accuracy = 10;
         String name;
         HashMap<Integer, String> metadata = new HashMap<Integer, String>();
         Music sound;
@@ -10016,7 +10148,7 @@ class Battle_Actions extends Action {
 
         @Override
         public void step(Game game) {
-            // TODO: load attack power/accuracy
+
             if (this.firstStep) {
                 // load metadata for each frame
                 // ex: player_healthbar_gone -> means to make player's healthbar transparent during this frame
@@ -10061,12 +10193,6 @@ class Battle_Actions extends Action {
             // if next frame doesn't exist in animation, return
             FileHandle filehandle = Gdx.files.internal("attacks/" + this.name + "/output/frame-" + String.format("%03d", this.frameNum) + ".png"); 
             if (!filehandle.exists()) {
-                //assign damage to target pkmn
-                int currHealth = this.target.currentStats.get("hp");
-                //TODO - correct damage calculation
-                int finalHealth = currHealth - this.power;
-                if (finalHealth < 0) {finalHealth = 0;} //make sure finalHealth isn't negative
-                this.target.currentStats.put("hp", finalHealth);
                 game.actionStack.remove(this);
                 PublicFunctions.insertToAS(game, this.nextAction);
                 

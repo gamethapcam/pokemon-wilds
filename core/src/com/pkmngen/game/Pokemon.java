@@ -422,8 +422,8 @@ public class Pokemon {
             learnSet.put(1, new String[]{"Ice Beam"});
 //            learnSet.put(2, new String[]{"Earthquake"});
 //            learnSet.put(3, new String[]{"Rock Throw"});
-//            learnSet.put(4, new String[]{"Peck"});
-            learnSet.put(2, new String[]{"Surf"});
+            learnSet.put(2, new String[]{"Peck"});
+//            learnSet.put(2, new String[]{"Surf"});
             learnSet.put(3, new String[]{"Whirlpool"});
             learnSet.put(4, new String[]{"Hydro Pump"});
             this.types.add("Water");

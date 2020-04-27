@@ -83,6 +83,31 @@ public class Player {
     int buildTileIndex = 0;
     ArrayList<Tile> buildTiles = new ArrayList<Tile>();
     HashMap<String, HashMap<String, Integer>> buildTileRequirements = new HashMap<String, HashMap<String, Integer>>();
+    boolean canMove = true;  // TODO: migrate to start using this
+
+    enum Type {
+        LOCAL,   // local, ie accepting keyboard input
+        REMOTE;  // being synced from remote machine
+    }
+    public Type type;
+    
+    class Network {
+        Vector2 loadingZoneBL = new Vector2();
+        Vector2 loadingZoneTR = new Vector2();
+        String id;  // when this is a FROMSERVER player, this is an index number
+        boolean shouldMove = false;
+        String dirFacing = "down";
+        boolean isRunning = false;
+        int connectionId;  // kryonet connection id
+        String number;
+        com.pkmngen.game.Network.BattleData doEncounter;  // acts as flag that battle has been entered
+        
+        public Network(Vector2 position) {
+            loadingZoneBL = position.cpy().add(-128*2, -128*2);
+            loadingZoneTR = position.cpy().add(128*2, 128*2);
+        }
+    }
+    Network network;
     
     public Player() {
         
@@ -203,21 +228,19 @@ public class Player {
         this.itemsDict.put("Ultra Ball", 99);
         this.itemsDict.put("Sleeping Bag", 1);
         
+        this.network = new Network(this.position);
+        this.type = Type.LOCAL;
     }
-    
 }
 
 
 
-//draw character action
- //need to build in 'button press delay'
+// draw character action
+//  need to build in 'button press delay'
 
-//this action is basically the decision-maker for
- //what to do next when a player presses a button 
- //all moving states come back to here
-//TODO - game code currently uses 'playerCanMove' flag,
- //and relies on removing from AS. will switch when 
- //grass has it's own 'onWalkOver' function
+// this action is basically the decision-maker for
+//  what to do next when a player presses a button 
+//  all moving states come back to here
 class playerStanding extends Action {
 
     public int layer = 130;
@@ -230,6 +253,8 @@ class playerStanding extends Action {
     boolean checkWildEncounter = true; //TODO - remove when playWait is implemented
     
     boolean isRunning;
+    
+    Player player;
 
     public void detectIsHouseBuilt(Game game, Tile currTile) {
         Vector2 pos = currTile.position.cpy();
@@ -299,6 +324,15 @@ class playerStanding extends Action {
     
     @Override
     public void step(Game game) {
+        if (this.player.type == Player.Type.LOCAL) {
+            this.localStep(game);
+        }
+        else if (this.player.type == Player.Type.REMOTE) {
+            this.remoteStep(game);
+        }
+    }
+    
+    public void localStep(Game game) {
 
         if (game.playerCanMove == false || game.player.isSleeping) {
             if(Gdx.input.isKeyJustPressed(Input.Keys.X) && game.player.isSleeping) {
@@ -317,7 +351,7 @@ class playerStanding extends Action {
         
         //check wild encounter
          //TODO - in future, this action will jump to a waiting action after one iteration
-        if (this.checkWildEncounter == true) {
+        if (this.checkWildEncounter == true && game.type != Game.Type.CLIENT) {
             if (checkWildEncounter(game) == true) {
                 //game.actionStack.remove(this); //now using playerCanMove flag
                 
@@ -339,6 +373,23 @@ class playerStanding extends Action {
             
             this.checkWildEncounter = false;
         }
+        // else, check if the server sent an encounter
+        else if (this.player.network.doEncounter != null) {
+            game.playerCanMove = false;
+            Network.PokemonData pokemonData = this.player.network.doEncounter.pokemonData;
+            game.battle.oppPokemon = new Pokemon(pokemonData.name,
+                                                 pokemonData.level,
+                                                 pokemonData.generation);
+            game.battle.oppPokemon.currentStats.put("hp", pokemonData.hp);
+            PublicFunctions.insertToAS(game, Battle_Actions.get(game)); 
+            game.currMusic.pause();
+            game.currMusic = game.battle.music;
+            game.currMusic.stop();
+            game.currMusic.play();
+            this.checkWildEncounter = false;
+            this.player.network.doEncounter = null;
+            return;
+        }
         
         //check if player wants to access the menu
         if(Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
@@ -352,8 +403,7 @@ class playerStanding extends Action {
             game.playerCanMove = false;
             return;
         }
-        
-        
+
         //check user input
         if(Gdx.input.isKeyPressed(Input.Keys.UP)) {
             //if the block below isn't solid,
@@ -548,10 +598,17 @@ class playerStanding extends Action {
             }
         }
 
-        if (shouldMove == true) {
+        if (shouldMove) {
+            // If client, send move command to server
+            if (game.type == Game.Type.CLIENT) {
+                game.client.sendTCP(new Network.MovePlayer(game.player.network.id,
+                                                           game.player.dirFacing,
+                                                           Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT)));
+            }
+            
             Tile temp = game.map.tiles.get(newPos);
             // first check if traveling through interior door
-            if (game.player.dirFacing == "down" && game.map.tiles.get(game.player.position).name.contains("rug")) {
+            if (game.player.dirFacing.equals("down") && game.map.tiles.get(game.player.position).name.contains("rug")) {
                 // do leave building anim, then player travels down one space
                 PublicFunctions.insertToAS(game, new EnterBuilding(game, "exit",
                                                  new playerMoving(game, this.alternate)));
@@ -607,6 +664,229 @@ class playerStanding extends Action {
         this.isRunning = false;
         
     }
+
+    public void remoteStep(Game game) {
+        if (!this.player.canMove) {
+            return;
+        }
+        // TODO: not sure what to do with this
+//        if (game.playerCanMove == false || game.player.isSleeping) {
+//            if(Gdx.input.isKeyJustPressed(Input.Keys.X) && game.player.isSleeping) {
+//                game.player.isSleeping = false;
+//                Tile currTile = game.map.tiles.get(game.player.position);
+//                Texture text = new Texture(Gdx.files.internal("tiles/sleeping_bag1.png"));
+//                Sprite temp = new Sprite(text, 0, 0, 24, 16);
+//                temp.setPosition(currTile.overSprite.getX(), currTile.overSprite.getY());
+//                currTile.overSprite = temp;
+//            }
+//            return;
+//        }
+
+        Vector2 newPos = new Vector2();
+        
+        //check wild encounter
+         //TODO - in future, this action will jump to a waiting action after one iteration
+//        if (this.checkWildEncounter == true) {
+//            if (checkWildEncounter(game) == true) {
+//                !!!
+//                this.player.canMove = false;
+//                PublicFunctions.insertToAS(game, Battle_Actions.get(game)); 
+//                game.currMusic.pause();
+//                game.currMusic = game.battle.music;
+//                game.currMusic.stop();
+//                game.currMusic.play();
+//                //game.battle.music.play(); //would rather have an action that does this?
+//                this.checkWildEncounter = false;
+//                return;
+//            }
+//            
+//            // TODO: idk where the right place for this is.
+//            if (game.map.tiles.get(game.player.position) != null && game.map.tiles.get(game.player.position).name.contains("door")) {
+//                PublicFunctions.insertToAS(game, new EnterBuilding(game, new DoneAction()));
+//            }
+//            this.checkWildEncounter = false;
+//        }
+        
+        // if player is at edge of loading zone, send more tiles to client
+        if (game.type == Game.Type.SERVER) {
+            if (this.player.position.x <= this.player.network.loadingZoneBL.x+96) {
+                this.player.network.loadingZoneBL.add(-128, 0);
+                this.player.network.loadingZoneTR.add(-128, 0);
+                Network.MapTiles mapTiles = new Network.MapTiles();
+                for (Vector2 position = this.player.network.loadingZoneBL.cpy();
+                     position.y < this.player.network.loadingZoneTR.y; position.add(16, 0)) {
+                    Tile tile = game.map.tiles.get(position);
+                    if (tile == null) {
+                        continue;
+                    }
+                    mapTiles.tiles.add(new Network.TileData(tile));
+                    if (position.x >= player.position.x) {
+                        position.add(0, 16);
+                        position.x = player.network.loadingZoneBL.x;
+                    }
+                    // the larger the number, the more the client hangs when receiving. 
+                    // 16 seemed to cause little hangup.
+                    if (mapTiles.tiles.size() >= 16) {
+                        game.server.sendToTCP(this.player.network.connectionId, mapTiles);
+                        mapTiles.tiles.clear();
+                    }
+                }
+                game.server.sendToTCP(this.player.network.connectionId, mapTiles);
+            }
+            if (this.player.position.x >= this.player.network.loadingZoneTR.x-96) {
+                this.player.network.loadingZoneBL.add(128, 0);
+                this.player.network.loadingZoneTR.add(128, 0);
+                Network.MapTiles mapTiles = new Network.MapTiles();
+                for (Vector2 position = new Vector2(this.player.position.x, this.player.network.loadingZoneBL.y);
+                     position.y < this.player.network.loadingZoneTR.y; position.add(16, 0)) {
+                    Tile tile = game.map.tiles.get(position);
+                    if (tile == null) {
+                        continue;
+                    }
+                    mapTiles.tiles.add(new Network.TileData(tile));
+                    if (position.x >= this.player.network.loadingZoneTR.x) {
+                        position.add(0, 16);
+                        position.x = this.player.position.x;
+                    }
+                    if (mapTiles.tiles.size() >= 16) {
+                        game.server.sendToTCP(this.player.network.connectionId, mapTiles);
+                        mapTiles.tiles.clear();
+                    }
+                }
+                game.server.sendToTCP(this.player.network.connectionId, mapTiles);
+            }
+            if (this.player.position.y <= this.player.network.loadingZoneBL.y+96) {
+                this.player.network.loadingZoneBL.add(0, -128);
+                this.player.network.loadingZoneTR.add(0, -128);
+                Network.MapTiles mapTiles = new Network.MapTiles();
+                for (Vector2 position = this.player.network.loadingZoneBL.cpy();
+                     position.y < this.player.position.y; position.add(16, 0)) {
+                    Tile tile = game.map.tiles.get(position);
+                    if (tile == null) {
+                        continue;
+                    }
+                    mapTiles.tiles.add(new Network.TileData(tile));
+                    if (position.x >= this.player.network.loadingZoneTR.x) {
+                        position.add(0, 16);
+                        position.x = this.player.network.loadingZoneBL.x;
+                    }
+                    if (mapTiles.tiles.size() >= 16) {
+                        game.server.sendToTCP(this.player.network.connectionId, mapTiles);
+                        mapTiles.tiles.clear();
+                    }
+                }
+                game.server.sendToTCP(this.player.network.connectionId, mapTiles);
+            }
+            if (this.player.position.y >= this.player.network.loadingZoneTR.y-96) {
+                this.player.network.loadingZoneBL.add(0, 128);
+                this.player.network.loadingZoneTR.add(0, 128);
+                Network.MapTiles mapTiles = new Network.MapTiles();
+                for (Vector2 position = new Vector2(this.player.network.loadingZoneBL.x, this.player.position.y);
+                     position.y < this.player.network.loadingZoneTR.y; position.add(16, 0)) {
+                    Tile tile = game.map.tiles.get(position);
+                    if (tile == null) {
+                        continue;
+                    }
+                    mapTiles.tiles.add(new Network.TileData(tile));
+                    if (position.x >= this.player.network.loadingZoneTR.x) {
+                        position.add(0, 16);
+                        position.x = this.player.network.loadingZoneBL.x;
+                    }
+                    if (mapTiles.tiles.size() >= 16) {
+                        game.server.sendToTCP(this.player.network.connectionId, mapTiles);
+                        mapTiles.tiles.clear();
+                    }
+                }
+                game.server.sendToTCP(this.player.network.connectionId, mapTiles);
+            }
+        }
+
+        if (this.player.network.shouldMove) {
+            this.player.network.shouldMove = false;
+            if(this.player.network.dirFacing.equals("up")) {
+                this.player.dirFacing = "up";
+                newPos = new Vector2(this.player.position.x, this.player.position.y+16);
+            }
+            else if(this.player.network.dirFacing.equals("down")) {
+                this.player.dirFacing = "down";
+                newPos = new Vector2(this.player.position.x, this.player.position.y-16);
+            }
+            else if(this.player.network.dirFacing.equals("left")) {
+                this.player.dirFacing = "left";
+                newPos = new Vector2(this.player.position.x-16, this.player.position.y);
+            }
+            else if(this.player.network.dirFacing.equals("right")) {
+                this.player.dirFacing = "right";
+                newPos = new Vector2(this.player.position.x+16, this.player.position.y);
+            }
+            Tile temp = game.map.tiles.get(newPos);
+            // first check if traveling through interior door
+            if (this.player.dirFacing.equals("down") && game.map.tiles.get(this.player.position).name.contains("rug")) {
+                // do leave building anim, then player travels down one space
+                PublicFunctions.insertToAS(game, new EnterBuilding(game, "exit",
+                                                 new playerMoving(game, this.alternate)));
+                game.actionStack.remove(this);
+            }
+            else if (temp == null) { //need this check to avoid attr checks after this if null
+                //no tile here, so just move normally
+                if (this.player.network.isRunning) { //check if player should be running
+                    PublicFunctions.insertToAS(game, new playerRunning(game, this.player, this.alternate));
+                }
+                else {
+                    PublicFunctions.insertToAS(game, new playerMoving(game, this.player, this.alternate));
+                }
+                game.actionStack.remove(this);
+            }
+            else if (temp.attrs.get("solid") == true) {
+                    PublicFunctions.insertToAS(game, new playerBump(game, this.player));
+                    game.actionStack.remove(this);
+            }
+            else if (temp.attrs.get("ledge") == true) {
+                if (temp.ledgeDir == this.player.dirFacing) {
+                    //jump over ledge
+                    PublicFunctions.insertToAS(game, new playerLedgeJump(game, this.player));
+                    game.actionStack.remove(this);
+                }
+                else {
+                    //bump into ledge
+                    PublicFunctions.insertToAS(game, new playerBump(game, this.player));
+                    game.actionStack.remove(this); 
+                }
+            }
+            else {
+                if (this.player.network.isRunning) { //check if player should be running
+                    PublicFunctions.insertToAS(game, new playerRunning(game, this.player, this.alternate));
+                }
+                else {
+                    PublicFunctions.insertToAS(game, new playerMoving(game, this.player, this.alternate));
+                }
+                // check wild encounter on next position, send back if yes
+                Pokemon pokemon = checkWildEncounter(game, newPos);
+                if (pokemon != null) {
+                    // TODO: this may stop player from moving server-side
+                    this.player.canMove = false;
+                    game.server.sendToTCP(this.player.network.connectionId,
+                                          new Network.BattleData(pokemon));
+                    // set up battle server-side, so server can keep track of move outcomes
+                    game.battles.put(this.player.network.id, new Battle());
+                    game.battles.get(this.player.network.id).oppPokemon = pokemon;
+                }
+                
+                game.actionStack.remove(this);
+            }
+        }
+        //draw the sprite corresponding to player direction
+        
+        if (this.player.network.isRunning == true) {  //check running
+            this.player.currSprite = new Sprite(this.player.standingSprites.get(this.player.dirFacing+"_running"));
+        }
+        else {
+            this.player.currSprite = new Sprite(this.player.standingSprites.get(this.player.dirFacing));
+        }
+//        this.alternate = false;
+        this.player.network.isRunning = false;
+    }
+    
     
     public playerStanding(Game game) {
         
@@ -615,12 +895,14 @@ class playerStanding extends Action {
         this.alternate = true;
         this.checkWildEncounter = false;
         this.isRunning = false;
+        this.player = game.player;
     }
     public playerStanding(Game game, boolean alternate) {
 
         //only used by playerMoving atm
         this.alternate = alternate;
         this.isRunning = false;
+        this.player = game.player;
         //todo - might be able to remove above alternate code, should work atm. after 1 iter this.alternate = false, init to true
     }
     public playerStanding(Game game, boolean alternate, boolean isRunning) {
@@ -628,21 +910,36 @@ class playerStanding extends Action {
         //only used by playerMoving atm
         this.alternate = alternate;
         this.isRunning = isRunning;
+        this.player = game.player;
         //todo - might be able to remove above alternate code, should work atm. after 1 iter this.alternate = false, init to true
+    }
+    public playerStanding(Game game, Player player, boolean alternate, boolean isRunning) {
+        this.alternate = alternate;
+        this.isRunning = isRunning;
+        this.checkWildEncounter = false;
+        this.player = player;
+    }
+    
+    boolean checkWildEncounter(Game game) {
+        Pokemon pokemon = this.checkWildEncounter(game, game.player.position);
+        if (pokemon != null) {
+            game.battle.oppPokemon = pokemon;
+        }
+        return pokemon != null;
     }
     
     //when moving to tile, no chance of encounter unless continuing to move
      //i think the real game uses an encounter table or something
-    boolean checkWildEncounter(Game game) {
+    Pokemon checkWildEncounter(Game game, Vector2 position) {
         
         // no encounters at night (subject to change)
         // TODO: need to enable this. shaders shouldn't be active on floatingbatch so should be fine. not sure abt ghost
         // timer though.
         if (game.map.timeOfDay == "Night") {
-            return false;
+            return null;
         }
         
-        Tile currTile = game.map.tiles.get(game.player.position);
+        Tile currTile = game.map.tiles.get(position);
         
         if (currTile != null) {
             // if currently on grass
@@ -656,15 +953,15 @@ class playerStanding extends Action {
                     
                     //select new pokemon to encounter, put it in battle struct
                     int index = game.map.rand.nextInt(game.map.currRoute.pokemon.size());
-                    game.battle.oppPokemon = game.map.currRoute.pokemon.get(index);
+                    
                     
                     //System.out.println("Wild encounter.");
                     
-                    return true;
+                    return game.map.currRoute.pokemon.get(index);
                 }
             }
         }
-        return false;
+        return null;
     }
 
 }
@@ -673,7 +970,6 @@ class playerStanding extends Action {
 //draw character action
 //need to build in 'button press delay'
 class playerMoving extends Action {
-    
 
     public int layer = 150;
     //changed, was 130
@@ -688,17 +984,24 @@ class playerMoving extends Action {
     //float speed = 50.0f;
     
     boolean alternate = false;
-    
+    Player player;
+
     @Override
     public void step(Game game) {
-        
+        if (this.player.type == Player.Type.LOCAL) {
+            this.localStep(game);
+        }
+        else if (this.player.type == Player.Type.REMOTE) {
+            this.remoteStep(game);
+        }
+    }
+
+    public void localStep(Game game) {
 
         //allows game to pause in middle of run
         if (game.playerCanMove == false) {
             return;
         }
-        
-        
         //can consider doing skipping here if I need to slow down animation
         //bug - have to add 1 to cam position at beginning of each iteration.
          //probably related to occasionaly shakiness, which is probably related to floats
@@ -771,23 +1074,68 @@ class playerMoving extends Action {
             game.actionStack.remove(this);
         }
     }
+
+    public void remoteStep(Game game) {
+        //allows game to pause in middle of run
+        if (this.player.dirFacing == "up") {
+            this.player.position.y +=1;
+        }
+        else if (this.player.dirFacing == "down") {
+            this.player.position.y -=1;
+        }
+        else if (this.player.dirFacing == "left") {
+            this.player.position.x -=1;
+        }
+        else if (this.player.dirFacing == "right") {
+            this.player.position.x +=1;
+        }
+        this.xDist = Math.abs(this.initialPos.x - this.player.position.x);
+        this.yDist = Math.abs(this.initialPos.y - this.player.position.y);
+        //if u remove the below check, youll notice that there's a bit of 
+         //movement that you don't want
+        if(    (this.yDist < 13 && this.yDist > 2)
+            || (this.xDist < 13 && this.xDist > 2)) {
+            if (this.alternate) {
+                this.player.currSprite = this.player.altMovingSprites.get(this.player.dirFacing);
+            }
+            else {
+                this.player.currSprite = this.player.movingSprites.get(this.player.dirFacing);
+            }
+        }
+        else {
+            this.player.currSprite = this.player.standingSprites.get(this.player.dirFacing);
+        }
+        if (this.xDist >= 16 || this.yDist >= 16) {
+            if (game.map.tiles.get(this.targetPos) != null && game.map.tiles.get(this.targetPos).routeBelongsTo != null) {
+                game.map.currRoute = game.map.tiles.get(this.targetPos).routeBelongsTo;
+            }
+            this.player.position.set(this.targetPos);
+            Action standingAction = new playerStanding(game, this.player, !this.alternate, false);
+            PublicFunctions.insertToAS(game, standingAction);
+            standingAction.step(game);
+            game.actionStack.remove(this);
+        }
+    }
     
     public playerMoving(Game game, boolean alternate) {
-        
+        this(game, game.player, alternate);
+    }
+
+    public playerMoving(Game game, Player player, boolean alternate) {
         this.alternate = alternate;
-        
-        this.initialPos = new Vector2(game.player.position);
-        if (game.player.dirFacing == "up") {
-            this.targetPos = new Vector2(game.player.position.x, game.player.position.y+16);
+        this.player = player;
+        this.initialPos = new Vector2(this.player.position);
+        if (this.player.dirFacing == "up") {
+            this.targetPos = new Vector2(this.player.position.x, this.player.position.y+16);
         }
-        else if (game.player.dirFacing == "down") {
-            this.targetPos = new Vector2(game.player.position.x, game.player.position.y-16);
+        else if (this.player.dirFacing == "down") {
+            this.targetPos = new Vector2(this.player.position.x, this.player.position.y-16);
         }
-        else if (game.player.dirFacing == "left") {
-            this.targetPos = new Vector2(game.player.position.x-16, game.player.position.y);
+        else if (this.player.dirFacing == "left") {
+            this.targetPos = new Vector2(this.player.position.x-16, this.player.position.y);
         }
-        else if (game.player.dirFacing == "right") {
-            this.targetPos = new Vector2(game.player.position.x+16, game.player.position.y);
+        else if (this.player.dirFacing == "right") {
+            this.targetPos = new Vector2(this.player.position.x+16, this.player.position.y);
         }
     }
 }
@@ -798,7 +1146,6 @@ class playerMoving extends Action {
  //differences are - player sprites, movement speed
 class playerRunning extends Action {
     
-
     public int layer = 150;
     //changed, was 130
     //alternative is to call cam.update(blah) each draw thingy, but
@@ -812,16 +1159,24 @@ class playerRunning extends Action {
     //float speed = 50.0f;
     
     boolean alternate = false;
+    Player player;
     
     @Override
     public void step(Game game) {
+        if (this.player.type == Player.Type.LOCAL) {
+            this.localStep(game);
+        }
+        else if (this.player.type == Player.Type.REMOTE) {
+            this.remoteStep(game);
+        }
+    }
+    
+    public void localStep(Game game) {
         
         //allows game to pause in middle of run
         if (game.playerCanMove == false) {
             return;
         }
-        
-        
         //can consider doing skipping here if I need to slow down animation
         //bug - have to add 1 to cam position at beginning of each iteration.
          //probably related to occasionaly shakiness, which is probably related to floats
@@ -832,7 +1187,7 @@ class playerRunning extends Action {
         float speed = 1.6f; //this needs to add up to 16 for smoothness?
         
         if (game.player.dirFacing == "up") {
-            game.player.position.y +=speed;
+            this.player.position.y +=speed;
             game.cam.position.y +=speed;
         }
         else if (game.player.dirFacing == "down") {
@@ -895,24 +1250,74 @@ class playerRunning extends Action {
         }
     }
     
+    public void remoteStep(Game game) {
+        //allows player to pause in middle of run
+        float speed = 1.6f; //this needs to add up to 16 for smoothness?
+        
+        if (this.player.dirFacing.equals("up")) {
+            this.player.position.y += speed;
+        }
+        else if (this.player.dirFacing.equals("down")) {
+            this.player.position.y -= speed;
+        }
+        else if (this.player.dirFacing.equals("left")) {
+            this.player.position.x -= speed;
+        }
+        else if (this.player.dirFacing.equals("right")) {
+            this.player.position.x += speed;
+        }
+
+        this.xDist = Math.abs(this.initialPos.x - this.player.position.x);
+        this.yDist = Math.abs(this.initialPos.y - this.player.position.y);
+        
+        //if u remove the below check, you'll notice that there's a bit of 
+         //movement that you don't want
+        String spriteString = String.valueOf(this.player.dirFacing+"_running");
+        //System.out.println("spriteString: " + String.valueOf(spriteString)); //debug
+        if(    (this.yDist < 13 && this.yDist > 2)
+            || (this.xDist < 13 && this.xDist > 2)) {
+            if (this.alternate) {
+                this.player.currSprite = this.player.altMovingSprites.get(spriteString);
+            }
+            else {
+                this.player.currSprite = this.player.movingSprites.get(spriteString);
+            }
+        }
+        else {
+            this.player.currSprite = this.player.standingSprites.get(spriteString);
+        }
+        if (this.xDist >= 16 || this.yDist >= 16) {
+            this.player.position.set(this.targetPos);
+            Action standingAction = new playerStanding(game, this.player, !this.alternate, true); //pass true to keep running animation going
+            PublicFunctions.insertToAS(game, standingAction);
+            standingAction.step(game); //decide where to move //doesn't actually seem to do much
+            game.actionStack.remove(this);
+        }
+    }
+    
     public playerRunning(Game game, boolean alternate) {
-        
+        this(game, game.player, alternate);
+    }
+    
+    public playerRunning(Game game, Player player, boolean alternate) {
+
         this.alternate = alternate;
+        this.player = player;
         
-        this.initialPos = new Vector2(game.player.position);
-        if (game.player.dirFacing == "up") {
-            this.targetPos = new Vector2(game.player.position.x, game.player.position.y+16);
+        this.initialPos = new Vector2(this.player.position);
+        if (this.player.dirFacing == "up") {
+            this.targetPos = new Vector2(this.player.position.x, this.player.position.y+16);
         }
-        else if (game.player.dirFacing == "down") {
-            this.targetPos = new Vector2(game.player.position.x, game.player.position.y-16);
+        else if (this.player.dirFacing == "down") {
+            this.targetPos = new Vector2(this.player.position.x, this.player.position.y-16);
         }
-        else if (game.player.dirFacing == "left") {
-            this.targetPos = new Vector2(game.player.position.x-16, game.player.position.y);
+        else if (this.player.dirFacing == "left") {
+            this.targetPos = new Vector2(this.player.position.x-16, this.player.position.y);
         }
-        else if (game.player.dirFacing == "right") {
-            this.targetPos = new Vector2(game.player.position.x+16, game.player.position.y);
+        else if (this.player.dirFacing == "right") {
+            this.targetPos = new Vector2(this.player.position.x+16, this.player.position.y);
         }
-        game.player.currState = "Running";
+        this.player.currState = "Running";
     }
 }
 
@@ -926,12 +1331,20 @@ class playerBump extends Action {
     int timer = 0;
     int maxTime = 10; //20 reminded me of gold version I think
     
-    
     boolean alternate = false;
+    Player player;
     
     @Override
     public void step(Game game) {
-        
+        if (this.player.type == Player.Type.LOCAL) {
+            this.localStep(game);
+        }
+        else if (this.player.type == Player.Type.REMOTE) {
+            this.remoteStep(game);
+        }
+    }
+
+    public void localStep(Game game) {
         timer++;
         
         if (this.timer >= 2*maxTime ) {
@@ -975,13 +1388,54 @@ class playerBump extends Action {
             game.actionStack.remove(this);
         }
     }
-    
-    
-    
+
+    public void remoteStep(Game game) {
+        timer++;
+        
+        if (this.timer >= 2*maxTime ) {
+            this.alternate = !this.alternate;
+            this.timer = 0;
+            PublicFunctions.insertToAS(game, new PlaySound("bump2", new DoneAction()));
+        }
+        
+        if (this.timer < maxTime) {
+            if (this.alternate) {
+                this.player.currSprite = this.player.altMovingSprites.get(this.player.dirFacing);
+            }
+            else {
+                this.player.currSprite = this.player.movingSprites.get(this.player.dirFacing);
+            }
+        }
+        else {
+            this.player.currSprite = this.player.standingSprites.get(this.player.dirFacing);
+        }
+        
+        //when facingDir key is released, go to playerStanding
+        if(!game.player.network.shouldMove && game.player.dirFacing == "up") {
+            PublicFunctions.insertToAS(game, new playerStanding(game, this.player, true, false));
+            game.actionStack.remove(this);
+        }
+        else if(!game.player.network.shouldMove && game.player.dirFacing == "down") {
+            PublicFunctions.insertToAS(game, new playerStanding(game, this.player, true, false));
+            game.actionStack.remove(this);
+        }
+        else if(!game.player.network.shouldMove && game.player.dirFacing == "left") {
+            PublicFunctions.insertToAS(game, new playerStanding(game, this.player, true, false));
+            game.actionStack.remove(this);
+        }
+        else if(!game.player.network.shouldMove && game.player.dirFacing == "right") {
+            PublicFunctions.insertToAS(game, new playerStanding(game, this.player, true, false));
+            game.actionStack.remove(this);
+        }
+    }
+
     public playerBump(Game game) {
-        
+        this(game, game.player);
+    }
+    
+    public playerBump(Game game, Player player) {
+        this.player = player;
         PublicFunctions.insertToAS(game, new PlaySound("bump2", new DoneAction()));
-        
     }
 }
 
@@ -1006,10 +1460,19 @@ class playerLedgeJump extends Action {
     ArrayList<Integer> yMovesList = new ArrayList<Integer>();
     ArrayList<Map<String, Sprite>> spriteAnim = new ArrayList<Map<String, Sprite>>();
     //Map<String, ArrayList<Sprite>> spritesAnimList = new HashMap<String, ArrayList<Sprite>>();
+    Player player;
     
     @Override
     public void step(Game game) {
-        
+        if (this.player.type == Player.Type.LOCAL) {
+            this.localStep(game);
+        }
+        else if (this.player.type == Player.Type.REMOTE) {
+            this.remoteStep(game);
+        }
+    }
+    
+    public void localStep(Game game) {
         //gb does a weird anim here
          //looked at frame-by-frame (ledge_anim_notes.txt text file)
         
@@ -1074,21 +1537,62 @@ class playerLedgeJump extends Action {
         
         this.timer1++;
     }
+
+    public void remoteStep(Game game) {
+        if ( this.timer1 < 32) {
+            if (this.player.dirFacing == "up") {
+                this.player.position.y +=1;
+            }
+            else if (this.player.dirFacing == "down") {
+                this.player.position.y -=1;
+            }
+            else if (this.player.dirFacing == "left") {
+                this.player.position.x -=1;
+            }
+            else if (this.player.dirFacing == "right") {
+                this.player.position.x +=1;
+            }
+            
+            if (this.timer1 % 2 == 1) {
+                this.player.position.y += this.yMovesList.get(0);
+                this.yMovesList.remove(0);
+                //use next sprite in list
+                this.player.currSprite = this.spriteAnim.get(0).get(this.player.dirFacing);
+                this.spriteAnim.remove(0);
+            }
+        }
+        else {
+            this.player.currSprite = this.player.standingSprites.get(this.player.dirFacing);
+        }
+        //draw shadow
+        game.batch.draw(this.shadow, this.player.position.x-16, this.player.position.y-4);
+        if (this.timer1 >= 38) {
+            this.player.position.set(this.targetPos);
+            Action playerStanding = new playerStanding(game, this.player, true, false);
+            PublicFunctions.insertToAS(game, playerStanding);
+            game.actionStack.remove(this);
+        }
+        this.timer1++;
+    }
     
     public playerLedgeJump(Game game) {
-        
-        this.initialPos = new Vector2(game.player.position);
-        if (game.player.dirFacing == "up") {
-            this.targetPos = new Vector2(game.player.position.x, game.player.position.y+32);
+        this(game, game.player);
+    }
+    
+    public playerLedgeJump(Game game, Player player) {
+        this.player = player;
+        this.initialPos = new Vector2(this.player.position);
+        if (this.player.dirFacing == "up") {
+            this.targetPos = new Vector2(this.player.position.x, this.player.position.y+32);
         }
-        else if (game.player.dirFacing == "down") {
-            this.targetPos = new Vector2(game.player.position.x, game.player.position.y-32);
+        else if (this.player.dirFacing == "down") {
+            this.targetPos = new Vector2(this.player.position.x, this.player.position.y-32);
         }
-        else if (game.player.dirFacing == "left") {
-            this.targetPos = new Vector2(game.player.position.x-32, game.player.position.y);
+        else if (this.player.dirFacing == "left") {
+            this.targetPos = new Vector2(this.player.position.x-32, this.player.position.y);
         }
-        else if (game.player.dirFacing == "right") {
-            this.targetPos = new Vector2(game.player.position.x+32, game.player.position.y);
+        else if (this.player.dirFacing == "right") {
+            this.targetPos = new Vector2(this.player.position.x+32, this.player.position.y);
         }
         
         //shadow sprite
@@ -1118,22 +1622,22 @@ class playerLedgeJump extends Action {
         this.yMovesList.add(0);
         
         //sprites to use (according to frame-by-frame)
-        this.spriteAnim.add(game.player.standingSprites);
-        this.spriteAnim.add(game.player.standingSprites);
-        this.spriteAnim.add(game.player.movingSprites);
-        this.spriteAnim.add(game.player.movingSprites);
-        this.spriteAnim.add(game.player.movingSprites);
-        this.spriteAnim.add(game.player.movingSprites);
-        this.spriteAnim.add(game.player.standingSprites);
-        this.spriteAnim.add(game.player.standingSprites);
-        this.spriteAnim.add(game.player.standingSprites);
-        this.spriteAnim.add(game.player.standingSprites);
-        this.spriteAnim.add(game.player.altMovingSprites);
-        this.spriteAnim.add(game.player.altMovingSprites);
-        this.spriteAnim.add(game.player.altMovingSprites);
-        this.spriteAnim.add(game.player.altMovingSprites);
-        this.spriteAnim.add(game.player.standingSprites);
-        this.spriteAnim.add(game.player.standingSprites);
+        this.spriteAnim.add(this.player.standingSprites);
+        this.spriteAnim.add(this.player.standingSprites);
+        this.spriteAnim.add(this.player.movingSprites);
+        this.spriteAnim.add(this.player.movingSprites);
+        this.spriteAnim.add(this.player.movingSprites);
+        this.spriteAnim.add(this.player.movingSprites);
+        this.spriteAnim.add(this.player.standingSprites);
+        this.spriteAnim.add(this.player.standingSprites);
+        this.spriteAnim.add(this.player.standingSprites);
+        this.spriteAnim.add(this.player.standingSprites);
+        this.spriteAnim.add(this.player.altMovingSprites);
+        this.spriteAnim.add(this.player.altMovingSprites);
+        this.spriteAnim.add(this.player.altMovingSprites);
+        this.spriteAnim.add(this.player.altMovingSprites);
+        this.spriteAnim.add(this.player.standingSprites);
+        this.spriteAnim.add(this.player.standingSprites);
     }
 }
 
