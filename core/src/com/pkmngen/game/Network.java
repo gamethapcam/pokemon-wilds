@@ -44,7 +44,9 @@ public class Network {
         kryo.register(BattleData.class);
         kryo.register(BattleTurnData.class);
         kryo.register(Attack.class);
-        kryo.register(DoAttack.class);
+        kryo.register(DoBattleAction.class);
+        kryo.register(Battle.DoTurn.Type.class);
+        kryo.register(RelocatePlayer.class);
     }
     
 
@@ -191,6 +193,19 @@ public class Network {
         }
     }
     
+    /*
+     * Sent by server, tells client to move player to given location
+     */
+    static public class RelocatePlayer {
+        Vector2 position;
+
+        public RelocatePlayer(){}
+
+        public RelocatePlayer(Vector2 position) {
+            this.position = position.cpy();
+        }
+    }
+    
     static public class BattleData {
         PokemonData pokemonData;
 
@@ -201,22 +216,40 @@ public class Network {
         }
     }
     
-    static public class DoAttack {
+    static public class DoBattleAction {
         String playerId;
         String attack;
+        Battle.DoTurn.Type type = Battle.DoTurn.Type.ATTACK;
 
-        public DoAttack(){}
+        public DoBattleAction(){}
 
-        public DoAttack(String playerId, String attack) {
+        public DoBattleAction(String playerId, Battle.DoTurn.Type type, String attack) {
             this.playerId = playerId;
+            this.type = type;
             this.attack = attack;
         }
     }
     
+//    static public class DoRunAway {
+//        String playerId;
+//
+//        public DoRunAway(){}
+//
+//        public DoRunAway(String playerId) {
+//            this.playerId = playerId;
+//        }
+//    }
+    
     static public class BattleTurnData {
         boolean oppFirst;
         Attack playerAttack;
+        String playerTrappedBy = null;
+        int playerTrapCounter = 0;
         Attack enemyAttack;
+        String enemyTrappedBy = null;
+        int enemyTrapCounter = 0;
+        
+        boolean runSuccessful;
 
         public BattleTurnData(){}
     }
@@ -279,6 +312,12 @@ class ClientBroadcast extends Action {
                             }
                             game.player.itemsDict = playerData.itemsDict;
                             System.out.println("Received player.");
+                        }
+                        
+                        if (object instanceof Network.RelocatePlayer) {
+                            Network.RelocatePlayer relocatePlayer = (Network.RelocatePlayer) object;
+                            game.player.position = relocatePlayer.position.cpy();
+                            game.cam.position.set(relocatePlayer.position.cpy().add(16,0), 0f);
                         }
 
                         if (object instanceof Network.MapTiles) {
@@ -502,220 +541,285 @@ class ClientBroadcast extends Action {
 
 //this class will broadcast positions that client must update periodically
 class ServerBroadcast extends Action {
-  
-  int timeStep = 0;
 
-  public int layer = 1;
-  public int getLayer(){return this.layer;}
-  
-  public ServerBroadcast(final Game game) {
-      
-      //register server listeners
-      game.server.addListener(new Listener() {
-          public void received(Connection c, final Object object) {
+    int timeStep = 0;
 
-              // We know all connections for this server are actually
-              // CharacterConnections.
-              final CharacterConnection connection = (CharacterConnection) c;
-              Vector2 character = connection.character;
+    public int layer = 1;
+    public int getLayer(){return this.layer;}
 
-              // annoying, but need to handle the received object in the Gdx thread
-              // because only Gdx thread can make OpenGL calls
-              Runnable runnable = new Runnable() {
-                  public void run() {
-                      
-                      // client is notifying server that it wants to load map tiles
-                      if (object instanceof Network.Login) {
-        
-                          Network.Login login = (Network.Login) object;
-                          Network.MapTiles mapTiles = new Network.MapTiles();
-        
-                          // if player doesn't exist, add it
-                          // TODO: obviously need diff handling
-                          
-                          if (!game.players.containsKey(login.playerId)) {
-                              final String playerId = login.playerId;
-                              Player player = new Player();
-                              player.type = Player.Type.REMOTE;
-                              player.network.connectionId = connection.getID();
-                              player.network.id = playerId;
-                              player.network.number = String.valueOf(game.players.keySet().size());
-                              // TODO: debug, remove
-                              player.currPokemon = new Pokemon("sneasel", 50, Pokemon.Generation.CRYSTAL);
-                              player.currPokemon.attacks[0] = "Ice Beam";
-                              player.currPokemon.attacks[1] = "Hydro Pump";
-                              player.pokemon.add(player.currPokemon);
-                              game.players.put(playerId, player);
-                          }
-                          Player player = game.players.get(login.playerId);
-                          // send over player data
-                          Network.PlayerData playerData = new Network.PlayerData(player);
-                          connection.sendTCP(playerData);
+    public ServerBroadcast(final Game game) {
 
-                          // add standing action to actionstack
-                          PublicFunctions.insertToAS(game, new playerStanding(game, player, false, true));
+        //register server listeners
+        game.server.addListener(new Listener() {
+            public void received(Connection c, final Object object) {
 
-                          // get map.tiles in square around player and send them back
-                          for (Vector2 position = player.network.loadingZoneBL.cpy();
-                                  position.y < player.network.loadingZoneTR.y; position.add(16, 0)) {
-                              Tile tile = game.map.tiles.get(position);
-                              mapTiles.tiles.add(new Network.TileData(tile));
-                              if (position.x >= player.network.loadingZoneTR.x) {
-                                  position.add(0, 16);
-                                  position.x = player.network.loadingZoneBL.x;
-                              }
-                              // how many can we send without hitting buffer limit?
-//                              if (mapTiles.tiles.size() >= 16) {
-                              if (mapTiles.tiles.size() >= 32) {
-                                  connection.sendTCP(mapTiles);
-                                  mapTiles.tiles.clear();
-                              }
-                          }
-                          connection.sendTCP(mapTiles);
-                          
-                          // send players that are within loading zone
-                          // TODO: may have to have a HashMap<Vector2, Player> for performance
-                          for (Player otherPlayer : game.players.values()) {
-                              if (otherPlayer == player) {
-                                  continue;
-                              }
-                              if (otherPlayer.position.x <= player.network.loadingZoneTR.x &&
-                                  otherPlayer.position.x >= player.network.loadingZoneBL.x &&
-                                  otherPlayer.position.y <= player.network.loadingZoneTR.y &&
-                                  otherPlayer.position.y >= player.network.loadingZoneBL.y) {
-                                  Network.ServerPlayerData serverPlayerData = new Network.ServerPlayerData(otherPlayer);
-                                  connection.sendTCP(serverPlayerData);
-                                  // also send to the other player
-                                  serverPlayerData = new Network.ServerPlayerData(player);
-                                  game.server.sendToTCP(otherPlayer.network.connectionId, serverPlayerData);
-                                  
-                                  System.out.println("Sent FROMSERVER player: " + serverPlayerData.number);
-                              }
-                          }
-                      }
-                      
-                      // client is notifying server that player has moved
-                      if (object instanceof Network.MovePlayer) {
-                          Network.MovePlayer movePlayer = (Network.MovePlayer) object;
-                          if (!game.players.containsKey(movePlayer.playerId)) {
-                              System.out.println("MovePlayer: Invalid player ID " + movePlayer.playerId + ", sent by: " + connection.getRemoteAddressTCP().toString());
-                              return;
-                          }
-                          Player player = game.players.get(movePlayer.playerId);
-                          player.network.shouldMove = true;
-                          player.network.dirFacing = movePlayer.dirFacing;
-                          player.network.isRunning = movePlayer.isRunning;
-                          
-                          // send movement to all other clients if it's in that client's loading zone
-                          for (Player p : game.players.values()) {
-                              if (p == player) {
-                                  continue;
-                              }
-                              if (player.position.x <= p.network.loadingZoneTR.x &&
-                                  player.position.x >= p.network.loadingZoneBL.x &&
-                                  player.position.y <= p.network.loadingZoneTR.y &&
-                                  player.position.y >= p.network.loadingZoneBL.y) {
-                                  game.server.sendToTCP(p.network.connectionId,
-                                                        new Network.MovePlayer(player.network.number,
-                                                                               player.network.dirFacing,
-                                                                               player.network.isRunning));
-                              }
-                          }
-                      }
+                // debug code
+//                try {
+//                    Thread.sleep(game.map.rand.nextInt(400));
+//                } catch (InterruptedException e) {
+//                    // TODO Auto-generated catch block
+//                    e.printStackTrace();
+//                }
+                
+                // We know all connections for this server are actually
+                // CharacterConnections.
+                final CharacterConnection connection = (CharacterConnection) c;
+                Vector2 character = connection.character;
 
-                      // client is notifying server that it wants to load map tiles
-                      if (object instanceof Network.DoAttack) {
-                          Network.DoAttack doAttack = (Network.DoAttack) object;
-                          if (!game.players.containsKey(doAttack.playerId)) {
-                              System.out.println("DoAttack: Invalid player id " + doAttack.playerId + ", sent by: " + connection.getRemoteAddressTCP().toString());
-                              return;
-                          }
-                          Player player = game.players.get(doAttack.playerId);
-                          if (!game.battles.containsKey(doAttack.playerId)) {
-                              System.out.println("DoAttack: player ID not currently in battle " + doAttack.playerId + ", sent by: " + connection.getRemoteAddressTCP().toString());
-                              return;
-                          }
-                          Battle battle = game.battles.get(doAttack.playerId);
-                          // determine attack outcome
-                          boolean found = false;
-                          for (int i=0; i < player.currPokemon.attacks.length; i++) {
-                              if (player.currPokemon.attacks[i] == null) {
-                                  continue;
-                              }
-                              if (player.currPokemon.attacks[i].toLowerCase().equals(doAttack.attack.toLowerCase())) {
-                                  found = true;
-                                  break;
-                              }
-                          }
-                          if (!found) {
-                              System.out.println("DoAttack: Invalid attack choice " + doAttack.attack + ", sent by: " + connection.getRemoteAddressTCP().toString());
-                              return;
-                          }
-                          // decide enemy attack choice
-                          String attackChoice = battle.oppPokemon.attacks[game.map.rand.nextInt(battle.oppPokemon.attacks.length)];
-                          if (attackChoice.equals("-")) {
-                              attackChoice = "Struggle";
-                          }
-                          // apply the effects of the attack, and send back to client
-                          // TODO: calculations here for hit/miss, crit, effect hit, etc.
-                          Network.BattleTurnData turnData = new Network.BattleTurnData();
-                          int yourSpeed = player.currPokemon.currentStats.get("speed");
-                          int oppSpeed = battle.oppPokemon.currentStats.get("speed");
-                          if (yourSpeed > oppSpeed) {
-                              turnData.oppFirst = false;
-                          }
-                          else if (yourSpeed < oppSpeed) {
-                              turnData.oppFirst = true;
-                          }
-                          else {
-                              if (game.map.rand.nextInt(2) == 0) {
-                                  turnData.oppFirst = true;
-                              }
-                          }
-                          // update enemy pokemon locally
-                          turnData.playerAttack = battle.attacks.get(doAttack.attack.toLowerCase());
-                          turnData.enemyAttack = battle.attacks.get(attackChoice.toLowerCase());
-                          int damage = Battle.calcAndApplyDamage(player.currPokemon, turnData.playerAttack, battle.oppPokemon);
-                          turnData.playerAttack.damage = damage;
-                          damage = Battle.calcAndApplyDamage(battle.oppPokemon, turnData.enemyAttack, player.currPokemon);
-                          turnData.enemyAttack.damage = damage;
-                          
-                          // TODO: if pokemon is ko'd, other pkmn shouldn't get hit
-                          System.out.println("Sending turn data.");
-                          game.server.sendToTCP(player.network.connectionId, turnData);
-                      }
-        
-                      // client is requesting server to send all ghosts
-                      if (object instanceof Network.AllGhosts) {
-        
-                          Network.AllGhosts allGhosts = new Network.AllGhosts();
-                          allGhosts.ghosts = new ArrayList<Network.UpdateGhostData>(); 
-                          int i = 0;
-        //                  for (Ghost ghost : game.map.enemies) {
-        //                      Network.UpdateGhostData updateGhost = new Network.UpdateGhostData();
-        //                      updateGhost.position = ghost.physics.getPosition();
-        //                      updateGhost.dirFacing = ghost.dirFacing;
-        //                      updateGhost.target = ghost.targetIndex;
-        //                      updateGhost.id =  ghost.id;
-        //                      
-        //                      allGhosts.ghosts.add(updateGhost);
-        //                      i++;
-        //                  }
-        
-        //                  game.insertAction(new PrintText("sending back all ghosts: " + String.valueOf(allGhosts.ghosts.size())));
-                          
-        //                server.sendToAllTCP(allGhosts);
-                          
-                          connection.sendTCP(allGhosts);
-                      }
-        
-        
-                      // client is notifying of it's player's position
-                      if (object instanceof Network.UpdatePlayer) {
-        
-                          Network.UpdatePlayer updatePlayer = (Network.UpdatePlayer) object;
-        
-                          /* TODO - remove
+                // annoying, but need to handle the received object in the Gdx thread
+                // because only Gdx thread can make OpenGL calls
+                Runnable runnable = new Runnable() {
+                    public void run() {
+
+                        
+                        // client is notifying server that it wants to load map tiles
+                        if (object instanceof Network.Login) {
+
+                            Network.Login login = (Network.Login) object;
+                            Network.MapTiles mapTiles = new Network.MapTiles();
+
+                            // if player doesn't exist, add it
+                            // TODO: obviously need diff handling
+
+                            if (!game.players.containsKey(login.playerId)) {
+                                final String playerId = login.playerId;
+                                Player player = new Player();
+                                player.type = Player.Type.REMOTE;
+                                player.network.connectionId = connection.getID();
+                                player.network.id = playerId;
+                                player.network.number = String.valueOf(game.players.keySet().size());
+                                // TODO: debug, remove
+                                player.currPokemon = new Pokemon("sneasel", 50, Pokemon.Generation.CRYSTAL);
+                                player.currPokemon.attacks[0] = "Ice Beam";
+                                player.currPokemon.attacks[1] = "Hydro Pump";
+                                player.pokemon.add(player.currPokemon);
+                                game.players.put(playerId, player);
+                            }
+                            Player player = game.players.get(login.playerId);
+                            // send over player data
+                            Network.PlayerData playerData = new Network.PlayerData(player);
+                            connection.sendTCP(playerData);
+
+                            // add standing action to actionstack
+                            PublicFunctions.insertToAS(game, new playerStanding(game, player, false, true));
+
+                            // get map.tiles in square around player and send them back
+                            for (Vector2 position = player.network.loadingZoneBL.cpy();
+                                    position.y < player.network.loadingZoneTR.y; position.add(16, 0)) {
+                                Tile tile = game.map.tiles.get(position);
+                                mapTiles.tiles.add(new Network.TileData(tile));
+                                if (position.x >= player.network.loadingZoneTR.x) {
+                                    position.add(0, 16);
+                                    position.x = player.network.loadingZoneBL.x;
+                                }
+                                // how many can we send without hitting buffer limit?
+                                //                              if (mapTiles.tiles.size() >= 16) {
+                                if (mapTiles.tiles.size() >= 32) {
+                                    connection.sendTCP(mapTiles);
+                                    mapTiles.tiles.clear();
+                                }
+                            }
+                            connection.sendTCP(mapTiles);
+
+                            // send players that are within loading zone
+                            // TODO: may have to have a HashMap<Vector2, Player> for performance
+                            for (Player otherPlayer : game.players.values()) {
+                                if (otherPlayer == player) {
+                                    continue;
+                                }
+                                if (otherPlayer.position.x <= player.network.loadingZoneTR.x &&
+                                        otherPlayer.position.x >= player.network.loadingZoneBL.x &&
+                                        otherPlayer.position.y <= player.network.loadingZoneTR.y &&
+                                        otherPlayer.position.y >= player.network.loadingZoneBL.y) {
+                                    Network.ServerPlayerData serverPlayerData = new Network.ServerPlayerData(otherPlayer);
+                                    connection.sendTCP(serverPlayerData);
+                                    // also send to the other player
+                                    serverPlayerData = new Network.ServerPlayerData(player);
+                                    game.server.sendToTCP(otherPlayer.network.connectionId, serverPlayerData);
+
+                                    System.out.println("Sent FROMSERVER player: " + serverPlayerData.number);
+                                }
+                            }
+                        }
+
+                        // client is notifying server that player has moved
+                        if (object instanceof Network.MovePlayer) {
+                            Network.MovePlayer movePlayer = (Network.MovePlayer) object;
+                            if (!game.players.containsKey(movePlayer.playerId)) {
+                                System.out.println("MovePlayer: Invalid player ID " + movePlayer.playerId + ", sent by: " + connection.getRemoteAddressTCP().toString());
+                                return;
+                            }
+                            Player player = game.players.get(movePlayer.playerId);
+                            player.network.shouldMove = true;
+                            player.network.dirFacing = movePlayer.dirFacing;
+                            player.network.isRunning = movePlayer.isRunning;
+
+                            // send movement to all other clients if it's in that client's loading zone
+                            for (Player p : game.players.values()) {
+                                if (p == player) {
+                                    continue;
+                                }
+                                if (player.position.x <= p.network.loadingZoneTR.x &&
+                                        player.position.x >= p.network.loadingZoneBL.x &&
+                                        player.position.y <= p.network.loadingZoneTR.y &&
+                                        player.position.y >= p.network.loadingZoneBL.y) {
+                                    game.server.sendToTCP(p.network.connectionId,
+                                            new Network.MovePlayer(player.network.number,
+                                                    player.network.dirFacing,
+                                                    player.network.isRunning));
+                                }
+                            }
+                        }
+
+                        // client is notifying server that it's doing a battle action (fight, run, item, switch)
+                        if (object instanceof Network.DoBattleAction) {
+                            Network.DoBattleAction battleAction = (Network.DoBattleAction) object;
+                            if (!game.players.containsKey(battleAction.playerId)) {
+                                System.out.println("DoAttack: Invalid player id " + battleAction.playerId + ", sent by: " + connection.getRemoteAddressTCP().toString());
+                                return;
+                            }
+                            Player player = game.players.get(battleAction.playerId);
+                            if (!game.battles.containsKey(battleAction.playerId)) {
+                                System.out.println("DoAttack: player ID not currently in battle " + battleAction.playerId + ", sent by: " + connection.getRemoteAddressTCP().toString());
+                                return;
+                            }
+                            Battle battle = game.battles.get(battleAction.playerId);
+                            
+                            // TODO: don't determine player attack outcome if run, item, or switch.
+                            
+                            // apply the effects of the attack, and send back to client
+                            // TODO: calculations here for hit/miss, crit, effect hit, etc.
+                            Network.BattleTurnData turnData = new Network.BattleTurnData();
+                            if (battleAction.type == Battle.DoTurn.Type.RUN) {
+                                turnData.oppFirst = false;
+                                turnData.runSuccessful = battle.calcIfRunSuccessful(game, player);
+                                if (turnData.runSuccessful) {
+                                    player.numFlees = 0;
+                                }
+                                else {
+                                    player.numFlees++;
+                                }
+                            }
+                            // determine attack outcome
+                            else {
+                                boolean found = false;
+                                for (int i=0; i < player.currPokemon.attacks.length; i++) {
+                                    if (player.currPokemon.attacks[i] == null) {
+                                        continue;
+                                    }
+                                    if (player.currPokemon.attacks[i].toLowerCase().equals(battleAction.attack.toLowerCase())) {
+                                        found = true;
+                                        break;
+                                    }
+                                }
+                                if (!found) {
+                                    System.out.println("DoAttack: Invalid attack choice " + battleAction.attack + ", sent by: " + connection.getRemoteAddressTCP().toString());
+                                    return;
+                                }
+                                turnData.playerAttack = battle.attacks.get(battleAction.attack.toLowerCase());
+                            }
+                            // decide enemy attack choice
+                            String attackChoice = battle.oppPokemon.attacks[game.map.rand.nextInt(battle.oppPokemon.attacks.length)];
+                            if (attackChoice.equals("-")) {
+                                attackChoice = "Struggle";
+                            }
+                            // TODO: fix
+                            int yourSpeed = player.currPokemon.currentStats.get("speed");
+                            int oppSpeed = battle.oppPokemon.currentStats.get("speed");
+                            if (yourSpeed > oppSpeed) {
+                                turnData.oppFirst = false;
+                            }
+                            else if (yourSpeed < oppSpeed) {
+                                turnData.oppFirst = true;
+                            }
+                            else {
+                                if (game.map.rand.nextInt(2) == 0) {
+                                    turnData.oppFirst = true;
+                                }
+                            }
+
+                            // update enemy pokemon locally
+                            turnData.enemyAttack = battle.attacks.get(attackChoice.toLowerCase());
+                            if (!turnData.oppFirst) {
+                                int finalHealth = 0;
+                                if (battleAction.type == Battle.DoTurn.Type.ATTACK) {
+                                    int damage = Battle.calcDamage(player.currPokemon, turnData.playerAttack, battle.oppPokemon);
+                                    int currHealth = battle.oppPokemon.currentStats.get("hp");
+                                    finalHealth = currHealth - damage > 0 ? currHealth - damage : 0;
+                                    battle.oppPokemon.currentStats.put("hp", finalHealth);
+                                    turnData.playerAttack.damage = damage;
+                                }
+                                if (finalHealth > 0 || (battleAction.type == Battle.DoTurn.Type.RUN && !turnData.runSuccessful)) {
+                                    int damage = Battle.calcDamage(battle.oppPokemon, turnData.enemyAttack, player.currPokemon);
+                                    int currHealth = player.currPokemon.currentStats.get("hp");
+                                    finalHealth = currHealth - damage > 0 ? currHealth - damage : 0;
+                                    player.currPokemon.currentStats.put("hp", finalHealth);
+                                    turnData.enemyAttack.damage = damage;
+                                }
+                            }
+                            else {
+                                int damage = Battle.calcDamage(battle.oppPokemon, turnData.enemyAttack, player.currPokemon);
+                                int currHealth = player.currPokemon.currentStats.get("hp");
+                                int finalHealth = currHealth - damage > 0 ? currHealth - damage : 0;
+                                player.currPokemon.currentStats.put("hp", finalHealth);
+                                turnData.enemyAttack.damage = damage;
+                                if (finalHealth > 0) {
+                                    damage = Battle.calcDamage(player.currPokemon, turnData.playerAttack, battle.oppPokemon);
+                                    currHealth = battle.oppPokemon.currentStats.get("hp");
+                                    finalHealth = currHealth - damage > 0 ? currHealth - damage : 0;
+                                    battle.oppPokemon.currentStats.put("hp", finalHealth);
+                                    turnData.playerAttack.damage = damage;
+                                }
+                            }
+                            // TODO: won't work for trainer battles
+                            //  might be something like battle.oppPokemons or battle.pokemon
+                            if (battle.oppPokemon.currentStats.get("hp") <= 0 || (battleAction.type == Battle.DoTurn.Type.RUN && turnData.runSuccessful)) {
+                                battle.oppPokemon.inBattle = false;
+                                player.canMove = true;
+                                player.numFlees = 0;
+                            }
+                            // debug code
+                            try {
+                                Thread.sleep(5000);
+                            } catch (InterruptedException e) {
+                                // TODO Auto-generated catch block
+                                e.printStackTrace();
+                            }
+                            System.out.println("Sending turn data.");
+                            game.server.sendToTCP(player.network.connectionId, turnData);
+                        }
+
+                        // client is requesting server to send all ghosts
+                        if (object instanceof Network.AllGhosts) {
+
+                            Network.AllGhosts allGhosts = new Network.AllGhosts();
+                            allGhosts.ghosts = new ArrayList<Network.UpdateGhostData>(); 
+                            int i = 0;
+                            //                  for (Ghost ghost : game.map.enemies) {
+                            //                      Network.UpdateGhostData updateGhost = new Network.UpdateGhostData();
+                            //                      updateGhost.position = ghost.physics.getPosition();
+                            //                      updateGhost.dirFacing = ghost.dirFacing;
+                            //                      updateGhost.target = ghost.targetIndex;
+                            //                      updateGhost.id =  ghost.id;
+                            //                      
+                            //                      allGhosts.ghosts.add(updateGhost);
+                            //                      i++;
+                            //                  }
+
+                            //                  game.insertAction(new PrintText("sending back all ghosts: " + String.valueOf(allGhosts.ghosts.size())));
+
+                            //                server.sendToAllTCP(allGhosts);
+
+                            connection.sendTCP(allGhosts);
+                        }
+
+
+                        // client is notifying of it's player's position
+                        if (object instanceof Network.UpdatePlayer) {
+
+                            Network.UpdatePlayer updatePlayer = (Network.UpdatePlayer) object;
+
+                            /* TODO - remove
                           while (game.b2World.isLocked()) {
                               try {
                                   Thread.sleep(1);
@@ -724,133 +828,134 @@ class ServerBroadcast extends Action {
                                   e.printStackTrace();
                               }
                           }
-                          
+
                           // move player1 on screen
                           game.players[1].physics.setPosition(updatePlayer.position);
                           game.players[1].dirFacing = updatePlayer.dirFacing;
-        
+
                           // player.isDead = updatePlayer.isDead;
                           //essentially want a trigger here
                           game.players[1].swordSwingCooldown = updatePlayer.swordSwingCooldown;
                           game.players[1].damageCooldown = updatePlayer.damageCooldown;
                           game.players[1].health = updatePlayer.health;
-                          
+
                           game.players[1].sword.physics.setPosition(updatePlayer.swordPos);
                           game.players[1].sword.physics.fixture.setFilterData(updatePlayer.swordFilter);
-        
+
         //                insertAction(new PrintText("setting wasd player position"));
-                          */
-        
-        //                  // move player1 on screen
-        //                  game.players[1].network.position = updatePlayer.position;
-        //                  game.players[1].network.dirFacing = updatePlayer.dirFacing;
-        //
-        //                  //essentially want a trigger here
-        //                  game.players[1].network.swordSwingCooldown = updatePlayer.swordSwingCooldown;
-        //                  game.players[1].network.damageCooldown = updatePlayer.damageCooldown;
-        //                  game.players[1].network.health = updatePlayer.health;
-        //                  // player.isDead = updatePlayer.isDead; 
-        //                  
-        //                  game.players[1].network.swordPos = updatePlayer.swordPos;
-        //                  game.players[1].network.swordFilter = updatePlayer.swordFilter;
-                      }
+                             */
 
-                      synchronized (this) {
-                          this.notify();
-                      }
-                  }
-              };
-              Gdx.app.postRunnable(runnable);
-              try {
-                  synchronized (runnable) {
-                      runnable.wait();
-                  }
-              } catch (InterruptedException e) {
-                  // TODO Auto-generated catch block
-                  e.printStackTrace();
-              }
-          }
-      });
-  }
+                            //                  // move player1 on screen
+                            //                  game.players[1].network.position = updatePlayer.position;
+                            //                  game.players[1].network.dirFacing = updatePlayer.dirFacing;
+                            //
+                            //                  //essentially want a trigger here
+                            //                  game.players[1].network.swordSwingCooldown = updatePlayer.swordSwingCooldown;
+                            //                  game.players[1].network.damageCooldown = updatePlayer.damageCooldown;
+                            //                  game.players[1].network.health = updatePlayer.health;
+                            //                  // player.isDead = updatePlayer.isDead; 
+                            //                  
+                            //                  game.players[1].network.swordPos = updatePlayer.swordPos;
+                            //                  game.players[1].network.swordFilter = updatePlayer.swordFilter;
+                        }
 
-  @Override
-  public void step(Game game) {
+                        synchronized (this) {
+                            this.notify();
+                        }
+                    }
+                };
 
-      this.timeStep++;
-      
-      //note - 1 WILL NOT work if you are using ServerReceive to receive client requests (use 2)
-       //not sure why this is, but happens when stopping the thread in game.initNetwork and then updating via ServerReceive every frame
-      if (this.timeStep >= 1) {
-          
-          Network.UpdatePlayer updatePlayer = new Network.UpdatePlayer();
-          
-//          updatePlayer.position = game.player.physics.getPosition();
-//          updatePlayer.dirFacing = game.player.dirFacing;
-//          
-//          updatePlayer.health = game.player.health;
-//          updatePlayer.swordSwingCooldown = game.player.swordSwingCooldown;
-//          updatePlayer.damageCooldown = game.player.damageCooldown;
-//          
-//          updatePlayer.swordPos = game.player.sword.physics.getPosition();
-//          updatePlayer.swordFilter = game.player.sword.physics.fixture.getFilterData();
-          
-//          game.server.sendToAllTCP(updatePlayer);
-          
-//        System.out.println("Server - update player  "+String.valueOf(1));
-          
-          
-//          //update fireball
-//          Network.UpdateFireball updateFireball = new Network.UpdateFireball();
-////          updateFireball.position = game.map.fireball.physics.getPosition();
-//
-//          game.server.sendToAllTCP(updateFireball);
+                Gdx.app.postRunnable(runnable);
+                try {
+                    synchronized (runnable) {
+                        runnable.wait();
+                    }
+                } catch (InterruptedException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
+            }
+        });
+    }
 
-          
-          //update ghosts
-//          int i = 0;
-//          for (Ghost ghost : game.map.enemies) {
-//              Network.UpdateGhostData updateGhost = new Network.UpdateGhostData();
-//              updateGhost.position = ghost.physics.getPosition();
-//              updateGhost.dirFacing = ghost.dirFacing;
-//              updateGhost.id = ghost.id;
-//
-//              updateGhost.damageCooldown = ghost.damageCooldown;
-//              updateGhost.isDying = ghost.isDying;
-//              updateGhost.attackingCooldown = ghost.attackingCooldown;
-//              updateGhost.damageBoxCooldown = ghost.damageBoxCooldown;
-//
-//              updateGhost.target = ghost.targetIndex;
-//              
-//              game.server.sendToAllTCP(updateGhost);
-//              
-//              i++; //unused
-//          }
-          
-          //update game.map score for both players
-           //only occurs when score changes
-//          if (game.map.network.prevPlayer1Score != game.map.player1Score) {
-//
-//              Network.UpdateScore updateScore = new Network.UpdateScore();
-//              updateScore.player = 0;
-//              updateScore.score = game.map.player1Score;
-//              game.server.sendToAllTCP(updateScore);
-//              
-//              game.map.network.prevPlayer1Score = game.map.player1Score;
-////            System.out.println("server - sent player 1 score: " + String.valueOf(updateScore.score)); //debug
-//          }
-//
-//          if (game.map.network.prevPlayer2Score != game.map.player2Score) {
-//
-//              Network.UpdateScore updateScore = new Network.UpdateScore();
-//              updateScore.player = 1;
-//              updateScore.score = game.map.player2Score;
-//              game.server.sendToAllTCP(updateScore);
-//              
-//              game.map.network.prevPlayer2Score = game.map.player2Score;
-//          }
-//        System.out.println("Num ghosts:  "+String.valueOf(i));
-          this.timeStep = 0;
-      }
-  }
+    @Override
+    public void step(Game game) {
+
+        this.timeStep++;
+
+        //note - 1 WILL NOT work if you are using ServerReceive to receive client requests (use 2)
+        //not sure why this is, but happens when stopping the thread in game.initNetwork and then updating via ServerReceive every frame
+        if (this.timeStep >= 1) {
+
+            Network.UpdatePlayer updatePlayer = new Network.UpdatePlayer();
+
+            //          updatePlayer.position = game.player.physics.getPosition();
+            //          updatePlayer.dirFacing = game.player.dirFacing;
+            //          
+            //          updatePlayer.health = game.player.health;
+            //          updatePlayer.swordSwingCooldown = game.player.swordSwingCooldown;
+            //          updatePlayer.damageCooldown = game.player.damageCooldown;
+            //          
+            //          updatePlayer.swordPos = game.player.sword.physics.getPosition();
+            //          updatePlayer.swordFilter = game.player.sword.physics.fixture.getFilterData();
+
+            //          game.server.sendToAllTCP(updatePlayer);
+
+            //        System.out.println("Server - update player  "+String.valueOf(1));
+
+
+            //          //update fireball
+            //          Network.UpdateFireball updateFireball = new Network.UpdateFireball();
+            ////          updateFireball.position = game.map.fireball.physics.getPosition();
+            //
+            //          game.server.sendToAllTCP(updateFireball);
+
+
+            //update ghosts
+            //          int i = 0;
+            //          for (Ghost ghost : game.map.enemies) {
+            //              Network.UpdateGhostData updateGhost = new Network.UpdateGhostData();
+            //              updateGhost.position = ghost.physics.getPosition();
+            //              updateGhost.dirFacing = ghost.dirFacing;
+            //              updateGhost.id = ghost.id;
+            //
+            //              updateGhost.damageCooldown = ghost.damageCooldown;
+            //              updateGhost.isDying = ghost.isDying;
+            //              updateGhost.attackingCooldown = ghost.attackingCooldown;
+            //              updateGhost.damageBoxCooldown = ghost.damageBoxCooldown;
+            //
+            //              updateGhost.target = ghost.targetIndex;
+            //              
+            //              game.server.sendToAllTCP(updateGhost);
+            //              
+            //              i++; //unused
+            //          }
+
+            //update game.map score for both players
+            //only occurs when score changes
+            //          if (game.map.network.prevPlayer1Score != game.map.player1Score) {
+            //
+            //              Network.UpdateScore updateScore = new Network.UpdateScore();
+            //              updateScore.player = 0;
+            //              updateScore.score = game.map.player1Score;
+            //              game.server.sendToAllTCP(updateScore);
+            //              
+            //              game.map.network.prevPlayer1Score = game.map.player1Score;
+            ////            System.out.println("server - sent player 1 score: " + String.valueOf(updateScore.score)); //debug
+            //          }
+            //
+            //          if (game.map.network.prevPlayer2Score != game.map.player2Score) {
+            //
+            //              Network.UpdateScore updateScore = new Network.UpdateScore();
+            //              updateScore.player = 1;
+            //              updateScore.score = game.map.player2Score;
+            //              game.server.sendToAllTCP(updateScore);
+            //              
+            //              game.map.network.prevPlayer2Score = game.map.player2Score;
+            //          }
+            //        System.out.println("Num ghosts:  "+String.valueOf(i));
+            this.timeStep = 0;
+        }
+    }
 }
 

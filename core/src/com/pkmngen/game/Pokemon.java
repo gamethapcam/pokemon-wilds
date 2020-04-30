@@ -59,6 +59,7 @@ public class Pokemon {
     String trappedBy = null;  // whirlpool, wrap, bind, etc
     int trapCounter = 0;  // number turns remaining for trap
     Map<Integer, String[]> learnSet;
+    boolean inBattle = false;
     
     // specific, ie GOLD, RED, CRYSTAL
     // sprites, stats, attacks etc differ depending

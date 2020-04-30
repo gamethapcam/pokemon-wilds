@@ -496,8 +496,29 @@ public class Battle {
         Attack attack = new Attack("Mewtwo_Special1", 100, "Psychic", 100, 1, 100);
         this.attacks.put(attack.name, attack);
     }
+    /*
+     * Determine if run from battle is successful or not.
+     * 
+     * https://web.archive.org/web/20140712063943/http://www.upokecenter.com/content/pokemon-gold-version-silver-version-and-crystal-version-timing-notes
+     * Whether current run attempt is counted or not is contradicted here: https://pokemondb.net/pokebase/71124/how-is-cant-escape-determined
+     */
+    boolean calcIfRunSuccessful(Game game, Player player) {
+        int currSpeed = player.currPokemon.currentStats.get("speed");
+        int b = (this.oppPokemon.currentStats.get("speed")/4) % 256;
+        if (b == 0) {
+            return true;
+        }
+        int x = (int)(currSpeed*32/b)+(30*player.numFlees);
+        if (x > 255) {
+            return true;
+        }
+        if (game.map.rand.nextInt(256) >= x) {
+            return true;
+        }
+        return false;
+    }
     
-    static int calcAndApplyDamage(Pokemon source, Attack attack, Pokemon target) {
+    static int calcDamage(Pokemon source, Attack attack, Pokemon target) {
         int attackStat = attack.isPhysical ? source.currentStats.get("attack") : source.currentStats.get("specialAtk");
         int defenseStat = attack.isPhysical ? target.currentStats.get("defense") : target.currentStats.get("specialDef");
         int damage = (int)Math.floor(Math.floor(Math.floor(2 * source.level / 5 + 2) * attackStat * attack.power / defenseStat) / 50) + 2;
@@ -508,9 +529,6 @@ public class Battle {
             multiplier *= Game.staticGame.battle.gen2TypeEffectiveness.get(attack.type).get(type.toLowerCase());
         }
         damage = (int)(damage * multiplier);
-        int currHealth = target.currentStats.get("hp");
-        int finalHealth = currHealth - damage > 0 ? currHealth - damage : 0;
-        target.currentStats.put("hp", finalHealth);
         return damage;
     }
     
@@ -521,20 +539,40 @@ public class Battle {
      */
     static class WaitTurnData extends Action {
 
+        Action text;
+        
         public int getLayer() {return 500;};
+
+        public String getCamera() {return "gui";};
+        
+        @Override
+        public void firstStep(Game game) {
+            DisplayText.textPersist = false;  // Clear any displayed text
+            this.text = new DisplayText(game, "Waiting for server...", null, true, false, null);
+            PublicFunctions.insertToAS(game, text);
+            this.text.step(game);
+        }
         
         @Override
         public void step(Game game) {
-            if (this.firstStep) {
-                PublicFunctions.insertToAS(game, new DisplayText(game, "Waiting for server...", null, true, false, null));
-                this.firstStep = false;
-            }
-
             if (game.battle.network.turnData == null) {
                 return;
             }
+            // There was an issue when I didn't have this line. Action order went like:
+            // 1 - WaitTurnData.firstStep - created the DisplayText(game, "Waiting for server...", ...), and calls step,
+            //   which will set DisplayText.textPersist = true
+            // 2 - WaitTurnData.step - set DisplayText.textPersist = false and insert nextAction, in this case it was 
+            //     a new DisplayText(game, "...", false, true, ...). This action was inserted before the "Waiting for server..."
+            //     DisplayText Action.
+            // 3 - The new DisplayText(game, "...", false, true, ...).step() is called, which re-sets DisplayText.textPersist = true
+            // 4 - DisplayText(game, "Waiting for server...", ...).step() is called, sees that DisplayText.textPersist == true so it
+            //     keeps drawing the text, and because it's called second it's displayed over the previous text.
+            // So basically, it was sort of a race conditions that was obfuscated by the action chaining. Very hard to debug,
+            // need to think about what should be changed here.
+            game.actionStack.remove(this.text);  // this line.
             DisplayText.textPersist = false;  // Clear any displayed text
             game.actionStack.remove(this);
+            PublicFunctions.insertToAS(game, this.nextAction);
         }
         
         public WaitTurnData(Game game, Action nextAction) {
@@ -543,115 +581,222 @@ public class Battle {
     }
     
     /*
-     * Play turn attack animations.
+     * Play turn animations. Includes attack, item, switch, run.
      * 
      * If client, get player order and attack choices from game.battle.network. Else, determine manually.
      */
     static class DoTurn extends Action {
+        
+        public enum Type {
+            ATTACK,
+            SWITCH,
+            ITEM,
+            RUN
+        }
+        Type type = Type.ATTACK;
 
         public int getLayer() {return 500;};
 
         @Override
         public void step(Game game) {
-            boolean oppFirst = false;
-            Attack playerAttack;
+            boolean oppFirst = false;  // opponent doesn't go first in case of run or item, so default to false.
+            boolean isFriendly = true;
             Attack enemyAttack;
-            if (game.type != Game.Type.CLIENT) {
-                //find which pokemon is first
-                int yourSpeed = game.player.currPokemon.currentStats.get("speed");
-                int oppSpeed = game.battle.oppPokemon.currentStats.get("speed");
-                
-                if (yourSpeed > oppSpeed) {
-                    oppFirst = false;
-                }
-                else if (yourSpeed < oppSpeed) {
-                    oppFirst = true;
+            Action playerAction;
+            Action doTurn;
+            
+            if (this.type == Type.RUN) {
+                boolean runSuccessful;
+                if (game.type != Game.Type.CLIENT) {
+                    runSuccessful = game.battle.calcIfRunSuccessful(game, game.player);
                 }
                 else {
-                    int randNum = game.map.rand.nextInt(2);
-                    if (randNum == 0) {
+                    // Get run result from server
+                    com.pkmngen.game.Network.BattleTurnData turnData = game.battle.network.turnData;
+                    runSuccessful = turnData.runSuccessful;
+                }
+                if (runSuccessful) {
+                    game.player.numFlees = 0;
+                    game.battle.oppPokemon.inBattle = false;
+                    game.actionStack.remove(this);
+                    PublicFunctions.insertToAS(game, new WaitFrames(game, 18, 
+                                                     new DisplayText(game, "Got away safely!", null, null,
+                                                     new SplitAction(new BattleFadeOut(game,
+                                                                     null),
+                                                     new BattleFadeOutMusic(game,
+                                                     null)))));
+                    PublicFunctions.insertToAS(game, new PlaySound("run1",
+                                                     null));
+                    game.battle.network.turnData = null;
+                    return;
+                }
+                // Failed to run away if we got here.
+                game.player.numFlees++;
+                playerAction =  new DisplayText(game,
+                                                "Canì Escape!",
+                                                null,
+                                                null,
+                                null);
+            }
+            // else, player selected attack
+            else {
+                game.player.numFlees = 0;  // reset this counter if attack is picked.
+                Attack playerAttack;
+                if (game.type != Game.Type.CLIENT) {
+                    // Find which pokemon is first
+                    int yourSpeed = game.player.currPokemon.currentStats.get("speed");
+                    int oppSpeed = game.battle.oppPokemon.currentStats.get("speed");
+                    
+                    if (yourSpeed > oppSpeed) {
+                        oppFirst = false;
+                    }
+                    else if (yourSpeed < oppSpeed) {
                         oppFirst = true;
                     }
+                    else {
+                        int randNum = game.map.rand.nextInt(2);
+                        if (randNum == 0) {
+                            oppFirst = true;
+                        }
+                    }
+                    // TODO: determine if hit/miss, crit, effect hit, etc
+                    playerAttack = game.battle.attacks.get(game.player.currPokemon.attacks[DrawAttacksMenu.curr].toLowerCase());
+                    playerAttack.damage = Battle.calcDamage(game.player.currPokemon, playerAttack, game.battle.oppPokemon);
+
+                    if (game.battle.oppPokemon.trappedBy == null &&
+                        playerAttack.name.toLowerCase().equals("whirlpool") ||
+                        playerAttack.name.toLowerCase().equals("fire spin") ||
+                        playerAttack.name.toLowerCase().equals("wrap") ||
+                        playerAttack.name.toLowerCase().equals("clamp")) {
+                        // 2-5 turns for trap
+                        game.battle.oppPokemon.trappedBy = playerAttack.name.toLowerCase();
+                        game.battle.oppPokemon.trapCounter = game.map.rand.nextInt(4) + 2;
+                    }
                 }
+                // if this is a CLIENT, get all outcomes of attacks etc from the server.
+                else {
+                    com.pkmngen.game.Network.BattleTurnData turnData = game.battle.network.turnData;
+                    oppFirst = turnData.oppFirst;
+                    playerAttack = turnData.playerAttack;
+                    game.player.currPokemon.trappedBy = turnData.playerTrappedBy;
+                    game.player.currPokemon.trapCounter = turnData.playerTrapCounter;
+                }
+                playerAction =  new DisplayText(game,
+                                                game.player.currPokemon.name.toUpperCase()+" used "+playerAttack.name.toUpperCase()+"!",
+                                                null,
+                                                true,
+                                                false,
+                                new AttackAnim(game, playerAttack, isFriendly,
+                                null));
+            }
+
+            // select enemy attack
+            if (game.type != Game.Type.CLIENT) {
                 //set up enemy attack
                 String attackChoice = game.battle.oppPokemon.attacks[game.map.rand.nextInt(game.battle.oppPokemon.attacks.length)];
                 if (attackChoice.equals("-")) {
                     attackChoice = "Struggle";
                 }
-                // TODO: determine if hit/miss, crit, effect hit, etc
-                playerAttack = game.battle.attacks.get(game.player.currPokemon.attacks[DrawAttacksMenu.curr].toLowerCase());
                 enemyAttack = game.battle.attacks.get(attackChoice.toLowerCase());
+                enemyAttack.damage = Battle.calcDamage(game.battle.oppPokemon, enemyAttack, game.player.currPokemon);
+                
+                // check if attack traps player pokemon
+                if (game.player.currPokemon.trappedBy == null &&
+                    enemyAttack.name.toLowerCase().equals("whirlpool") ||
+                    enemyAttack.name.toLowerCase().equals("fire spin") ||
+                    enemyAttack.name.toLowerCase().equals("wrap") ||
+                    enemyAttack.name.toLowerCase().equals("clamp")) {
+                    // 2-5 turns for trap
+                    game.player.currPokemon.trappedBy = enemyAttack.name.toLowerCase();
+                    game.player.currPokemon.trapCounter = game.map.rand.nextInt(4) + 2;
+                }
             }
             else {
                 com.pkmngen.game.Network.BattleTurnData turnData = game.battle.network.turnData;
-                oppFirst = turnData.oppFirst;
-                playerAttack = turnData.playerAttack;
                 enemyAttack = turnData.enemyAttack;
-                game.battle.network.turnData = null;
+                game.battle.oppPokemon.trappedBy = turnData.enemyTrappedBy;
+                game.battle.oppPokemon.trapCounter = turnData.enemyTrapCounter;
             }
-            
-            boolean isFriendly = true;
-            Action attack;
+
+            Action enemyAction =  new DisplayText(game,
+                                                  "Enemy "+game.battle.oppPokemon.name.toUpperCase()+" used "+enemyAttack.name.toUpperCase()+"!",
+                                                  null,
+                                                  true,
+                                                  false,
+                                  new AttackAnim(game, enemyAttack, !isFriendly,
+                                  null));
             if (!oppFirst) {
-                // apply damage
-                Battle.calcAndApplyDamage(game.player.currPokemon, playerAttack, game.battle.oppPokemon);
-                if (game.battle.oppPokemon.currentStats.get("hp") > 0) {
-                    Battle.calcAndApplyDamage(game.battle.oppPokemon, enemyAttack, game.player.currPokemon);
-                }
-                attack = new DisplayText(game,
-                                         game.player.currPokemon.name.toUpperCase()+" used "+playerAttack.name.toUpperCase()+"!",
-                                         null,
-                                         true,
-                                         false,
-                         new AttackAnim(game, playerAttack, isFriendly,
-                         new DisplayText.Clear(game,
-                         new WaitFrames(game, 3,
-                         new DisplayText(game, 
-                                         "Enemy "+game.battle.oppPokemon.name.toUpperCase()+" used "+enemyAttack.name.toUpperCase()+"!",
-                                         null, 
-                                         true,
-                                         false,
-                         new AttackAnim(game, enemyAttack, !isFriendly,
-                         null))))));
+                doTurn = playerAction;
+                doTurn.appendAction(new DisplayText.Clear(game,
+                                    new WaitFrames(game, 3,
+                                    enemyAction)));
+                
             }
             else{
-                // apply damage
-                Battle.calcAndApplyDamage(game.battle.oppPokemon, enemyAttack, game.player.currPokemon);
-                if (game.player.currPokemon.currentStats.get("hp") > 0) {
-                    Battle.calcAndApplyDamage(game.player.currPokemon, playerAttack, game.battle.oppPokemon);
-                }
-                attack = new DisplayText(game,
-                                         "Enemy "+game.battle.oppPokemon.name.toUpperCase()+" used "+enemyAttack.name.toUpperCase()+"!",
-                                         null,
-                                         true,
-                                         false,
-                         new AttackAnim(game, enemyAttack, !isFriendly,
-                         new DisplayText.Clear(game,
-                         new WaitFrames(game, 3,
-                         new DisplayText(game, 
-                                         game.player.currPokemon.name.toUpperCase()+" used "+playerAttack.name.toUpperCase()+"!",
-                                         null, 
-                                         true,
-                                         false,
-                         new AttackAnim(game, playerAttack, isFriendly,
-                         null))))));
+                doTurn = enemyAction;
+                doTurn.appendAction(new DisplayText.Clear(game,
+                                    new WaitFrames(game, 3,
+                                    playerAction)));
             }
-            // TODO: Battle.CheckTrapped is annoying, b/c we can't check if pkmn is trapped now
-            // because it's determined in AttackAnim
-            attack.appendAction(game.battle.new CheckTrapped(game,
-                                new DisplayText.Clear(game,
+            // always goes you, then opponent for trap check
+            if (game.player.currPokemon.trappedBy != null) {
+                Attack trap = game.battle.attacks.get(game.player.currPokemon.trappedBy);
+                trap.damage = Battle.calcDamage(game.battle.oppPokemon, trap, game.player.currPokemon);  // TODO: does STAB apply to traps?
+                doTurn.appendAction(new Battle_Actions.LoadAndPlayAttackAnimation(game, game.player.currPokemon.trappedBy, game.player.currPokemon,
+                                    new DisplayText.Clear(game,
+                                    new WaitFrames(game, 3,
+                                    new DisplayText(game, 
+                                                    game.player.currPokemon.name.toUpperCase()+"' hurt by "+game.player.currPokemon.trappedBy.toUpperCase()+"!",
+                                                    null, 
+                                                    true,
+                                    new DepleteFriendlyHealth(game.player.currPokemon, trap.damage,
+                                    new WaitFrames(game, 13,
+                                    null)))))));
+                game.player.currPokemon.trapCounter -= 1;
+                if (game.battle.oppPokemon.trapCounter <= 0) {
+                    game.battle.oppPokemon.trappedBy = null;
+                }
+            }
+            if (game.battle.oppPokemon.trappedBy != null) {
+                Attack trap = game.battle.attacks.get(game.player.currPokemon.trappedBy);
+                trap.damage = Battle.calcDamage(game.battle.oppPokemon, trap, game.player.currPokemon);  // TODO: does STAB apply to traps?
+                doTurn.appendAction(new Battle_Actions.LoadAndPlayAttackAnimation(game, game.battle.oppPokemon.trappedBy, game.battle.oppPokemon,
+                                    new DisplayText.Clear(game,
+                                    new WaitFrames(game, 3,
+                                    new DisplayText(game, 
+                                                    game.battle.oppPokemon.name.toUpperCase()+"' hurt by "+game.battle.oppPokemon.trappedBy.toUpperCase()+"!",
+                                                    null,
+                                                    true,
+                                    new DepleteEnemyHealth(game, trap.damage, 
+                                    new WaitFrames(game, 13,
+                                    null)))))));
+                game.battle.oppPokemon.trapCounter -= 1;
+                if (game.battle.oppPokemon.trapCounter <= 0) {
+                    game.battle.oppPokemon.trappedBy = null;
+                }
+            }
+            doTurn.appendAction(new DisplayText.Clear(game,
                                 new WaitFrames(game, 3,
-                                this.nextAction))));
+                                this.nextAction)));
             game.actionStack.remove(this);
-            PublicFunctions.insertToAS(game, attack);
+            PublicFunctions.insertToAS(game, doTurn);
+            game.battle.network.turnData = null;
             return;
         }
-        
+
         public DoTurn(Game game, Action nextAction) {
+            this(game, Type.ATTACK, nextAction);
+        }
+        
+        public DoTurn(Game game, Type type, Action nextAction) {
+            this.type = type;
             this.nextAction = nextAction;
         }
     }
     
+    /*
+     * TODO: remove if unused
+     */
     class CheckTrapped extends Action {
         public int layer = 500;
         public int getLayer(){return this.layer;}
@@ -1417,7 +1562,7 @@ class DrawBattleMenu1 extends Action {
                 game.actionStack.remove(this);
                 game.actionStack.remove(game.battle.drawAction); //stop drawing the battle
                 game.battle.drawAction = null;
-
+                game.battle.oppPokemon.inBattle = false;
             }
         }
 
@@ -1815,19 +1960,22 @@ class DrawBattleMenu_Normal extends MenuAction {
             
             //user selected 'run'
             else if (curr.equals("br")) {
-                 //also need a 'stop playing music' thing here
-                 //also need 'stop drawing battle' here
-                PublicFunctions.insertToAS(game, new WaitFrames(game, 18, 
-                                                 new DisplayText(game, "Got away safely!", null, null,
-                                                 new SplitAction(new BattleFadeOut(game,
-                                                                   new DoneAction()), //new playerStanding(game)),
-                                                 new BattleFadeOutMusic(game,
-                                                 new DoneAction())
-                                                 ))));
-                PublicFunctions.insertToAS(game, new PlaySound("click1",
-                                                 new PlaySound("run1",
-                                                 new DoneAction())));
+//                Action runAction = new Battle.DoTurn(game, Battle.DoTurn.Type.RUN, this);
+//                if (game.type == Game.Type.CLIENT) {
+//                    runAction = new Battle.WaitTurnData(game, runAction);
+//                    game.client.sendTCP(new com.pkmngen.game.Network.DoBattleAction(game.player.network.id, Battle.DoTurn.Type.RUN, ""));
+//                }
+//                game.actionStack.remove(this);
+//                PublicFunctions.insertToAS(game, new PlaySound("click1", null));
+//                PublicFunctions.insertToAS(game, runAction);
+                Action runAction = new SplitAction(new PlaySound("click1", null), null);
+                if (game.type == Game.Type.CLIENT) {
+                    runAction.appendAction(new Battle.WaitTurnData(game, null));
+                    game.client.sendTCP(new com.pkmngen.game.Network.DoBattleAction(game.player.network.id, Battle.DoTurn.Type.RUN, ""));
+                }
+                runAction.appendAction(new Battle.DoTurn(game, Battle.DoTurn.Type.RUN, this));
                 game.actionStack.remove(this);
+                PublicFunctions.insertToAS(game, runAction);
             }
         }
 
@@ -1871,6 +2019,54 @@ class DrawBattleMenu_Normal extends MenuAction {
         text = new Texture(Gdx.files.internal("attack_menu/helper4.png"));
         this.helperSprite = new Sprite(text, 0,0, 16*10, 16*9);
     }
+    
+    // TODO: remove if unused
+//    static class DoRun extends Action {
+//
+//        public int getLayer() {return 500;}
+//
+//        @Override
+//        public void step(Game game) {
+//            // TODO: fail to run scenario
+//            // TODO: do this while I'm here.
+//            boolean runSuccessful;
+//            if (game.type != Game.Type.CLIENT) {
+//                runSuccessful = game.battle.calcIfRunSuccessful(game);
+//            }
+//            else {
+//                // Get run result from server
+//                com.pkmngen.game.Network.BattleTurnData turnData = game.battle.network.turnData;
+//                game.battle.network.turnData = null;
+//                runSuccessful = turnData.runSuccessful;
+//            }
+//            if (runSuccessful) {
+//                game.player.numFlees = 0;
+//                game.battle.oppPokemon.inBattle = false;
+//                PublicFunctions.insertToAS(game, new WaitFrames(game, 18, 
+//                                                 new DisplayText(game, "Got away safely!", null, null,
+//                                                 new SplitAction(new BattleFadeOut(game,
+//                                                                 null),
+//                                                 new BattleFadeOutMusic(game,
+//                                                 null)))));
+//                PublicFunctions.insertToAS(game, new PlaySound("run1",
+//                                                 null));
+//            }
+//            else {
+//                game.player.numFlees++;
+//                // TODO: needs to go to attack here
+//                // TODO: something is off about the text.
+//                // TODO: timing is off too.
+//                PublicFunctions.insertToAS(game, new WaitFrames(game, 18, 
+//                                                 new DisplayText(game, "Canì Escape!", null, null,
+//                                                 this.nextAction)));
+//            }
+//            game.actionStack.remove(this);
+//        }
+//        
+//        public DoRun(Game game, Action nextAction) {
+//            this.nextAction = nextAction;
+//        }
+//    }
     
 }
 
@@ -1919,28 +2115,29 @@ class DrawAttacksMenu extends Action {
         }
         
         //if press a, do attack
-        if(Gdx.input.isKeyJustPressed(Input.Keys.Z)) { //using isKeyJustPressed rather than isKeyPressed
+        if(Gdx.input.isKeyJustPressed(Input.Keys.Z)) {
+            // Reset counter keeping track of number flees done by player this battle (used in run away mechanic).
+            game.player.numFlees = 0;
             
             //explanation of speed move priority: http://bulbapedia.bulbagarden.net/wiki/Stats#Speed
              // pkmn with higher speed moves first
 
             //play select sound
-            Action attack = new SplitAction(new PlaySound("click1", null),
-                            null);
-            if (game.type != Game.Type.CLIENT) {
-            }
-            else {
+            Action attack = new SplitAction(new PlaySound("click1", null), null);
+            if (game.type == Game.Type.CLIENT) {
                 // send move to server, wait response
                 String attackName = game.player.currPokemon.attacks[DrawAttacksMenu.curr];
-                game.client.sendTCP(new com.pkmngen.game.Network.DoAttack(game.player.network.id, attackName));
                 attack.appendAction(new Battle.WaitTurnData(game, null));
+                game.client.sendTCP(new com.pkmngen.game.Network.DoBattleAction(game.player.network.id, Battle.DoTurn.Type.ATTACK, attackName));
             }
-            attack.appendAction(new Battle.DoTurn(game, null));
+            // We don't know the result of attack miss/crit etc checks yet whenever the game
+            // is a client, so DoTurn will act accordingly once we get that from the server.
+            attack.appendAction(new Battle.DoTurn(game, Battle.DoTurn.Type.ATTACK, this.nextAction));
             game.actionStack.remove(this);
             PublicFunctions.insertToAS(game, attack);
             return;
         }
-        //player presses b, ie wants to go back
+        // player presses b, ie wants to go back
         else if(Gdx.input.isKeyJustPressed(Input.Keys.X)) { 
             game.actionStack.remove(this);
             PublicFunctions.insertToAS(game, this.nextAction);
@@ -1963,8 +2160,7 @@ class DrawAttacksMenu extends Action {
             }
             j+=1;
         }
-        
-        
+
         //draw arrow
         if (this.cursorDelay >= 2) {
             this.arrow.setPosition(newPos.x, newPos.y);
@@ -2031,13 +2227,11 @@ class DrawAttacksMenu extends Action {
             }        
             spritesToDraw.add(word);    
         }
-        
-        
+
         //helper sprite
         text = new Texture(Gdx.files.internal("attack_menu/helper2.png"));
         this.helperSprite = new Sprite(text, 0,0, 16*10, 16*9);
     }
-    
 }
 
 
@@ -2053,7 +2247,6 @@ class DrawPlayerMenu extends MenuAction {
 
     public String getCamera() {return "gui";};
 
-    
     Map<Integer, Vector2> arrowCoords;
     Vector2 newPos;
     Sprite helperSprite;
@@ -2061,10 +2254,7 @@ class DrawPlayerMenu extends MenuAction {
     int cursorDelay; //this is just extra detail. cursor has 2 frame delay before showing in R/B
     String[] entries; //pokemon, items etc
     public static int lastIndex = 0;
-    
-    
 
-    
     @Override
     public void step(Game game) {
 
@@ -2140,7 +2330,6 @@ class DrawPlayerMenu extends MenuAction {
             PublicFunctions.insertToAS(game, new PlaySound("click1", new DoneAction()));
         }
 
-        
         //draw arrow
         if (this.cursorDelay >= 2) {
             this.arrow.setPosition(newPos.x, newPos.y);
@@ -4009,12 +4198,19 @@ class DepleteEnemyHealth extends Action {
     int timer;
     int removeNumber;
     int targetSize; //reduce enemy health bar to this number
+    int damage = 0;
     
     
     @Override
     public void step(Game game) {
     
         if (this.firstStep == true) {
+            // apply damage if there is any (otherwise assume it's already applied)
+            if (this.damage > 0) {
+                int currHealth = game.battle.oppPokemon.currentStats.get("hp");
+                int finalHealth = currHealth - this.damage > 0 ? currHealth - this.damage : 0;
+                game.battle.oppPokemon.currentStats.put("hp", finalHealth);
+            }
             this.targetSize = (int)Math.ceil( (game.battle.oppPokemon.currentStats.get("hp")*48) / game.battle.oppPokemon.maxStats.get("hp"));
             this.firstStep = false;
         }
@@ -4070,14 +4266,17 @@ class DepleteEnemyHealth extends Action {
     }
     
     public DepleteEnemyHealth(Game game, Action nextAction) {
+        this(game, 0, nextAction);
+    }
+    
+    public DepleteEnemyHealth(Game game, int damage, Action nextAction) {
         
         this.nextAction = nextAction;
         
         this.firstStep = true;
         this.timer = 3;
         this.removeNumber = 2;
-        
-        
+        this.damage = damage;
     }
 }
 
@@ -4102,12 +4301,18 @@ class DepleteFriendlyHealth extends Action {
     int timer;
     int removeNumber;
     int targetSize; //reduce enemy health bar to this number
-    
+    int damage = 0;
     
     @Override
     public void step(Game game) {
     
         if (this.firstStep == true) {
+            // apply damage if there is any (otherwise assume it's already applied)
+            if (this.damage > 0) {
+                int currHealth = game.player.currPokemon.currentStats.get("hp");
+                int finalHealth = currHealth - this.damage > 0 ? currHealth - this.damage : 0;
+                game.player.currPokemon.currentStats.put("hp", finalHealth);
+            }
             this.targetSize = (int)Math.ceil( (this.pokemon.currentStats.get("hp")*48) / this.pokemon.maxStats.get("hp"));
             this.firstStep = false;
         }
@@ -4164,16 +4369,16 @@ class DepleteFriendlyHealth extends Action {
     }
     
     public DepleteFriendlyHealth(Pokemon friendlyPokemon, Action nextAction) {
-        
+        this(friendlyPokemon, 0, nextAction);
+    }
+    
+    public DepleteFriendlyHealth(Pokemon friendlyPokemon, int damage, Action nextAction) {
         this.pokemon = friendlyPokemon;
-        
         this.nextAction = nextAction;
-        
         this.firstStep = true;
         this.timer = 3;
         this.removeNumber = 2;
-        
-        
+        this.damage = damage;
     }
 }
 
@@ -8488,9 +8693,11 @@ class Battle_Actions extends Action {
         }
         else {
             if (game.battle.oppPokemon.name.equals("Mewtwo")) {
+                Attack mewtwoSpecial1 = game.battle.attacks.get("Mewtwo_Special1");
+                mewtwoSpecial1.damage = Battle.calcDamage(game.battle.oppPokemon, mewtwoSpecial1, game.player.currPokemon);
                 nextAction = new DisplayText(game, "A wave of psychic power unleashes!", null, true, 
-                             Battle_Actions.getAttackAction(game, game.battle.attacks.get("Mewtwo_Special1"), !isFriendly,
-                             new DepleteFriendlyHealth(game.player.currPokemon, 
+                             Battle_Actions.getAttackAction(game, mewtwoSpecial1, !isFriendly,
+                             new DepleteFriendlyHealth(game.player.currPokemon, mewtwoSpecial1.damage,
                              new WaitFrames(game, 30, 
                              new DisplayText.Clear(game,
                              new WaitFrames(game, 3, nextAction))))));
@@ -8518,10 +8725,9 @@ class Battle_Actions extends Action {
                     effectiveness = "not_very_effective";
                     text_string = "It' not very effective...";
                 }
-                
                 attackAction =  new LoadAndPlayAttackAnimation(game, attack.name, game.battle.oppPokemon, 
                                 new LoadAndPlayAttackAnimation(game, effectiveness, game.battle.oppPokemon,
-                                new DepleteEnemyHealth(game,
+                                new DepleteEnemyHealth(game, attack.damage,
                                 new WaitFrames(game, 13,
                                 !effectiveness.equals("neutral_effective") ?
                                     new DisplayText.Clear(game,
@@ -8535,14 +8741,7 @@ class Battle_Actions extends Action {
                                 :
                                     null))));
                 // check if attack traps target pokemon
-                if (game.battle.oppPokemon.trappedBy == null &&
-                    attack.name.toLowerCase().equals("whirlpool") ||
-                    attack.name.toLowerCase().equals("fire spin") ||
-                    attack.name.toLowerCase().equals("wrap") ||
-                    attack.name.toLowerCase().equals("clamp")) {
-                    // 2-5 turns for trap
-                    game.battle.oppPokemon.trappedBy = attack.name.toLowerCase();
-                    game.battle.oppPokemon.trapCounter = game.map.rand.nextInt(4) + 2;
+                if (game.battle.oppPokemon.trappedBy != null) {
                     attackAction.appendAction(new DisplayText.Clear(game,
                                               new WaitFrames(game, 3,
                                               new DisplayText(game,
@@ -8572,7 +8771,7 @@ class Battle_Actions extends Action {
                 }
                 attackAction = new LoadAndPlayAttackAnimation(game, attack.name, game.player.currPokemon,
                                new LoadAndPlayAttackAnimation(game, effectiveness, game.player.currPokemon,
-                               new DepleteFriendlyHealth(game.player.currPokemon,
+                               new DepleteFriendlyHealth(game.player.currPokemon, attack.damage,
                                new WaitFrames(game, 13,
                                !effectiveness.equals("neutral_effective") ?
                                    new DisplayText.Clear(game,
@@ -8587,14 +8786,7 @@ class Battle_Actions extends Action {
                                :
                                    null))));
                 // check if attack traps target pokemon
-                if (game.player.currPokemon.trappedBy == null &&
-                    attack.name.toLowerCase().equals("whirlpool") ||
-                    attack.name.toLowerCase().equals("fire spin") ||
-                    attack.name.toLowerCase().equals("wrap") ||
-                    attack.name.toLowerCase().equals("clamp")) {
-                    // 2-5 turns for trap
-                    game.player.currPokemon.trappedBy = attack.name.toLowerCase();
-                    game.player.currPokemon.trapCounter = game.map.rand.nextInt(4) + 2;
+                if (game.player.currPokemon.trappedBy != null) {
                     attackAction.appendAction(new DisplayText.Clear(game,
                                               new WaitFrames(game, 3,
                                               new DisplayText(game,

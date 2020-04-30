@@ -84,6 +84,7 @@ public class Player {
     ArrayList<Tile> buildTiles = new ArrayList<Tile>();
     HashMap<String, HashMap<String, Integer>> buildTileRequirements = new HashMap<String, HashMap<String, Integer>>();
     boolean canMove = true;  // TODO: migrate to start using this
+    int numFlees = 0;  // used in battle run away mechanic
 
     enum Type {
         LOCAL,   // local, ie accepting keyboard input
@@ -101,6 +102,8 @@ public class Player {
         int connectionId;  // kryonet connection id
         String number;
         com.pkmngen.game.Network.BattleData doEncounter;  // acts as flag that battle has been entered
+
+        int syncTimer = 0;  // used to know when to re-send player location to client
         
         public Network(Vector2 position) {
             loadingZoneBL = position.cpy().add(-128*2, -128*2);
@@ -707,8 +710,20 @@ class playerStanding extends Action {
 //            this.checkWildEncounter = false;
 //        }
         
-        // if player is at edge of loading zone, send more tiles to client
         if (game.type == Game.Type.SERVER) {
+            // timer to re-sync client-side position
+            // only re-sync once, then leave it alone until the player moves.
+            if (this.player.network.syncTimer > 0) {
+                this.player.network.syncTimer++;
+            }
+            if (this.player.network.syncTimer > 240) {
+                this.player.network.syncTimer = 0;
+                // TODO: need to be able to test this over real internet connection
+                // two pc's using hamachi?
+//                game.server.sendToTCP(this.player.network.connectionId, new Network.RelocatePlayer(this.player.position));
+            }
+
+            // if player is at edge of loading zone, send more tiles to client
             if (this.player.position.x <= this.player.network.loadingZoneBL.x+96) {
                 this.player.network.loadingZoneBL.add(-128, 0);
                 this.player.network.loadingZoneTR.add(-128, 0);
@@ -860,23 +875,24 @@ class playerStanding extends Action {
                 else {
                     PublicFunctions.insertToAS(game, new playerMoving(game, this.player, this.alternate));
                 }
-                // check wild encounter on next position, send back if yes
-                Pokemon pokemon = checkWildEncounter(game, newPos);
-                if (pokemon != null) {
-                    // TODO: this may stop player from moving server-side
-                    this.player.canMove = false;
-                    game.server.sendToTCP(this.player.network.connectionId,
-                                          new Network.BattleData(pokemon));
-                    // set up battle server-side, so server can keep track of move outcomes
-                    game.battles.put(this.player.network.id, new Battle());
-                    game.battles.get(this.player.network.id).oppPokemon = pokemon;
+                if (game.type == Game.Type.SERVER) {
+                    // check wild encounter on next position, send back if yes
+                    Pokemon pokemon = checkWildEncounter(game, newPos);
+                    if (pokemon != null) {
+                        // TODO: this may stop player from moving server-side
+                        this.player.canMove = false;
+                        game.server.sendToTCP(this.player.network.connectionId,
+                                              new Network.BattleData(pokemon));
+                        // set up battle server-side, so server can keep track of move outcomes
+                        game.battles.put(this.player.network.id, new Battle());
+                        game.battles.get(this.player.network.id).oppPokemon = pokemon;
+                    }
                 }
                 
                 game.actionStack.remove(this);
             }
         }
         //draw the sprite corresponding to player direction
-        
         if (this.player.network.isRunning == true) {  //check running
             this.player.currSprite = new Sprite(this.player.standingSprites.get(this.player.dirFacing+"_running"));
         }
@@ -887,7 +903,9 @@ class playerStanding extends Action {
         this.player.network.isRunning = false;
     }
     
-    
+    /*
+     * TODO: correct constructors, ie this one should call this(game, something); instead.
+     */
     public playerStanding(Game game) {
         
         //could snap cam, and have playerMoving come here after 15 pixels. saves a little code
@@ -950,14 +968,23 @@ class playerStanding extends Action {
                     //disable player movement 
                     //game.actionStack.remove(this); //using flag now, delete this
                     
-                    
+                    // get list of pokemon not in battle
+                    ArrayList<Pokemon> notInBattle = new ArrayList<Pokemon>();
+                    for (Pokemon pokemon : game.map.currRoute.pokemon) {
+                        if (!pokemon.inBattle) {
+                            notInBattle.add(pokemon);
+                        }
+                    }
+                    // if all pokemon are in battle, return null for now.
+                    if (notInBattle.size() <= 0) {
+                        return null;
+                    }
                     //select new pokemon to encounter, put it in battle struct
-                    int index = game.map.rand.nextInt(game.map.currRoute.pokemon.size());
-                    
-                    
-                    //System.out.println("Wild encounter.");
-                    
-                    return game.map.currRoute.pokemon.get(index);
+                    int index = game.map.rand.nextInt(notInBattle.size());
+                    // assume pokemon is getting put into a battle
+                    Pokemon pokemon = notInBattle.get(index);
+                    pokemon.inBattle = true;
+                    return pokemon;
                 }
             }
         }
@@ -1076,6 +1103,7 @@ class playerMoving extends Action {
     }
 
     public void remoteStep(Game game) {
+        this.player.network.syncTimer++;
         //allows game to pause in middle of run
         if (this.player.dirFacing == "up") {
             this.player.position.y +=1;
@@ -1251,6 +1279,7 @@ class playerRunning extends Action {
     }
     
     public void remoteStep(Game game) {
+        this.player.network.syncTimer++;
         //allows player to pause in middle of run
         float speed = 1.6f; //this needs to add up to 16 for smoothness?
         
@@ -1390,6 +1419,7 @@ class playerBump extends Action {
     }
 
     public void remoteStep(Game game) {
+        this.player.network.syncTimer++;
         timer++;
         
         if (this.timer >= 2*maxTime ) {
@@ -1539,6 +1569,7 @@ class playerLedgeJump extends Action {
     }
 
     public void remoteStep(Game game) {
+        this.player.network.syncTimer++;
         if ( this.timer1 < 32) {
             if (this.player.dirFacing == "up") {
                 this.player.position.y +=1;

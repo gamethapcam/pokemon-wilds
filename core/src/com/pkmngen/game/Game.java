@@ -463,11 +463,11 @@ public class Game extends ApplicationAdapter {
         floatingBatch.begin();
         //iterate through action stack
         for (Action action : new ArrayList<Action>(this.actionStack)) { //iterate copy
-            if (action.firstStep) {
-                action.firstStep(this);
-                action.firstStep = false;
-            }
-            if (action.getCamera() == "gui") { //only gui actions
+            if (action.getCamera().equals("gui")) { //only gui actions
+                if (action.firstStep) {
+                    action.firstStep(this);
+                    action.firstStep = false;
+                }
                 action.step(this);
             }
         }
@@ -588,6 +588,7 @@ public class Game extends ApplicationAdapter {
         textDict.put('…', new Sprite(text, 10+16*9, 5+12+12+12, 8, 8)); //same as lower case È, used in menus (ie POKÈBALL, etc)
         textDict.put('-', new Sprite(text, 10+16*10, 5+12+12+12, 8, 8)); 
         textDict.put('\'', new Sprite(text, 10+16*11, 5+12+12+12, 8, 8)); 
+        textDict.put('Ï', new Sprite(text, 10+16*12, 5+12+12+12, 8, 8)); 
         textDict.put(null, new Sprite(text, 10+16*0, 5+12+12+12+12, 8, 8)); //use when no char found
         return textDict;
     }
@@ -702,6 +703,7 @@ public class Game extends ApplicationAdapter {
         
         try {
             this.client.connect(5000, "127.0.0.1", Network.port);
+//            this.client.connect(5000, "25.10.89.3", Network.port);  // hamachi?
 //              this.client.connect(5000, "192.168.101", Network.port); 
             // Server communication after connection can go here, or in
             // Listener#connected().
@@ -724,7 +726,7 @@ public class Game extends ApplicationAdapter {
 //        filter.maskBits = Mask.None.getValue();
 //        filter.categoryBits = Category.None.getValue();
 //        this.player.physics.fixture.setFilterData(filter);
-//        
+//        WaitTurnData
 //        //register fireball as networked
 //        this.map.fireball.type = Fireball.Type.NETWORK;
 //        //register map as networked
@@ -746,7 +748,7 @@ public class Game extends ApplicationAdapter {
         //request ghosts from server
 //        this.client.sendTCP(new Network.AllGhosts());
 
-        this.player.network.id = "dummy_id2";
+        this.player.network.id = "dummy_id3";
         this.player.type = Player.Type.LOCAL;
         this.client.sendTCP(new Network.Login(this.player.network.id));
 

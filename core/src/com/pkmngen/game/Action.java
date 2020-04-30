@@ -851,7 +851,7 @@ class DisplayText extends Action {
         
         // TODO: deprecate this
         //don't do anything if trigger action is in actionStack
-        if (this.checkTrigger == true) {
+        if (this.checkTrigger == true || (this.persist && !DisplayText.textPersist)) {
             if (this.triggerAction == null && !DisplayText.textPersist) {
                 game.actionStack.remove(this);
                 return;
@@ -1140,11 +1140,11 @@ class DisplayText extends Action {
         }
     }
 
+    /*
+     * Clear any text persisting on screen.
+     */
     static class Clear extends Action {
-        // clear any text persisting on screen
 
-        
-        
         @Override
         public void step(Game game) {
             DisplayText.textPersist = false;

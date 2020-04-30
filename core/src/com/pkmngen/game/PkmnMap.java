@@ -1035,7 +1035,7 @@ class Route {
         
         // TODO: debug, delete
         this.pokemon.clear();
-        Pokemon debug = new Pokemon("Rhydon", 22, Pokemon.Generation.CRYSTAL);
+        Pokemon debug = new Pokemon("Rhydon", 70, Pokemon.Generation.CRYSTAL);  // 22
         debug.attacks[0] = "Whirlpool";
         debug.attacks[1] = "Whirlpool";
         debug.attacks[2] = "Whirlpool";
