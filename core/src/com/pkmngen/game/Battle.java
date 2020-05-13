@@ -460,7 +460,6 @@ public class Battle {
         gen2PhysicalTypes.add("steel");
         
         // load all attacks and attributes
-        
         try {
             FileHandle file = Gdx.files.internal("crystal_pokemon/moves.asm");
             Reader reader = file.reader();
@@ -489,10 +488,42 @@ public class Battle {
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         }
-        
+
+        // load prism moves
+        try {
+            FileHandle file = Gdx.files.internal("crystal_pokemon/prism/moves.asm");
+            Reader reader = file.reader();
+            BufferedReader br = new BufferedReader(reader);
+            String line;
+            int lineNum = 1;
+            while ((line = br.readLine()) != null)   {
+                if (lineNum > 13 && lineNum < 268) {
+                    // Weird prism-exclusive types
+                    if (line.contains("PRISM_T") || line.contains(", SOUND,") || line.contains("FAIRY_T") || line.contains("CURSE_T") || line.contains(", GAS,") || line.contains("TRI_T")) {
+                        continue;
+                    }
+                    // TODO: prism moves.asm includes info about physical/special/status
+                    // Not using 'STATUS' type for gen2, so ignoring for now.
+                    String attrs[] = line.split("\tmove ")[1].split(",\\s+");
+                    Attack attack = new Attack(attrs[0].toLowerCase().replace('_', ' '), Integer.valueOf(attrs[2]), 
+                                               attrs[3].toLowerCase(), Integer.valueOf(attrs[5]),
+                                               Integer.valueOf(attrs[6]), Integer.valueOf(attrs[7].split(" ")[0]));
+                    if (gen2PhysicalTypes.contains(attack.type.toLowerCase())) {
+                        attack.isPhysical = true;
+                    }
+                    this.attacks.put(attack.name, attack);
+                } 
+                lineNum++;
+            }
+            reader.close();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
         Attack attack = new Attack("Mewtwo_Special1", 100, "Psychic", 100, 1, 100);
         this.attacks.put(attack.name, attack);
     }
@@ -517,13 +548,19 @@ public class Battle {
         }
         return false;
     }
+
     
+    /*
+     * Calculate an attack's damage.
+     * 
+     * Note: below is taken based off of Gen 2.
+     */
     static int calcDamage(Pokemon source, Attack attack, Pokemon target) {
         int attackStat = attack.isPhysical ? source.currentStats.get("attack") : source.currentStats.get("specialAtk");
         int defenseStat = attack.isPhysical ? target.currentStats.get("defense") : target.currentStats.get("specialDef");
         int damage = (int)Math.floor(Math.floor(Math.floor(2 * source.level / 5 + 2) * attackStat * attack.power / defenseStat) / 50) + 2;
         if (source.types.contains(attack.type)) {damage = (int)(damage * 1.5f);}  // STAB
-        // type effectiveness
+        // factor in type effectiveness
         float multiplier = 1f;
         for (String type : target.types){
             multiplier *= Game.staticGame.battle.gen2TypeEffectiveness.get(attack.type).get(type.toLowerCase());
@@ -560,10 +597,10 @@ public class Battle {
             }
             // There was an issue when I didn't have this line. Action order went like:
             // 1 - WaitTurnData.firstStep - created the DisplayText(game, "Waiting for server...", ...), and calls step,
-            //   which will set DisplayText.textPersist = true
-            // 2 - WaitTurnData.step - set DisplayText.textPersist = false and insert nextAction, in this case it was 
+            //     which will set DisplayText.textPersist = true
+            // 2 - WaitTurnData.step - set DisplayText.textPersist = false and insert nextAction, in this case nextAction was 
             //     a new DisplayText(game, "...", false, true, ...). This action was inserted before the "Waiting for server..."
-            //     DisplayText Action.
+            //     DisplayText Action because it is on the same layer.
             // 3 - The new DisplayText(game, "...", false, true, ...).step() is called, which re-sets DisplayText.textPersist = true
             // 4 - DisplayText(game, "Waiting for server...", ...).step() is called, sees that DisplayText.textPersist == true so it
             //     keeps drawing the text, and because it's called second it's displayed over the previous text.
@@ -579,7 +616,7 @@ public class Battle {
             this.nextAction = nextAction;
         }
     }
-    
+
     /*
      * Play turn animations. Includes attack, item, switch, run.
      * 
@@ -698,6 +735,12 @@ public class Battle {
                     attackChoice = "Struggle";
                 }
                 enemyAttack = game.battle.attacks.get(attackChoice.toLowerCase());
+                // TODO: debug, remove
+//                for (int i=0; i<game.battle.oppPokemon.attacks.length;i++) {
+//                    System.out.println(game.battle.oppPokemon.attacks[i]);
+//                }
+//                System.out.println(attackChoice);
+//                System.out.println(enemyAttack.name);
                 enemyAttack.damage = Battle.calcDamage(game.battle.oppPokemon, enemyAttack, game.player.currPokemon);
                 
                 // check if attack traps player pokemon
@@ -758,7 +801,7 @@ public class Battle {
                 }
             }
             if (game.battle.oppPokemon.trappedBy != null) {
-                Attack trap = game.battle.attacks.get(game.player.currPokemon.trappedBy);
+                Attack trap = game.battle.attacks.get(game.battle.oppPokemon.trappedBy);
                 trap.damage = Battle.calcDamage(game.battle.oppPokemon, trap, game.player.currPokemon);  // TODO: does STAB apply to traps?
                 doTurn.appendAction(new Battle_Actions.LoadAndPlayAttackAnimation(game, game.battle.oppPokemon.trappedBy, game.battle.oppPokemon,
                                     new DisplayText.Clear(game,
@@ -1217,7 +1260,7 @@ class EnemyFaint extends Action {
              //'FriendlyFaint' , ie remove drawAction for pokemon
             
             //stop drawing enemy sprite
-            game.battle.drawAction.shouldDrawOppPokemon = false;
+            DrawBattle.shouldDrawOppPokemon = false;
             
             this.firstStep = false;
         }
@@ -3750,6 +3793,7 @@ class BattleFadeOut extends Action {
             PublicFunctions.insertToAS(game, this.nextAction);
             game.actionStack.remove(this);
             game.playerCanMove = true;
+            DrawBattle.shouldDrawOppPokemon = true;
             return;
         }
         
@@ -3898,6 +3942,7 @@ class BattleFadeOutMusic extends Action {
 class DrawBattle extends Action {
 
     Sprite bgSprite;
+    Sprite bgSprite2;
 
     DrawFriendlyHealth drawFriendlyHealthAction;
     DrawEnemyHealth drawEnemyHealthAction;
@@ -3931,6 +3976,10 @@ class DrawBattle extends Action {
 //                                    game.battle.oppPokemon.sprite.getY());
         }
         game.player.battleSprite.draw(game.floatingBatch);
+
+        game.floatingBatch.draw(this.bgSprite2, -160-8, 0);
+        game.floatingBatch.draw(this.bgSprite2, 160+8, 0);
+        
 //        game.floatingBatch.draw(game.player.battleSprite, game.player.battleSprite.getX(), game.player.battleSprite.getY());
         
         //todo - remove
@@ -3976,7 +4025,10 @@ class DrawBattle extends Action {
         
         // sprite is bigger than bg, needed for screen shake
         this.bgSprite.setPosition(-8, -8);
-        
+
+        text = new Texture(Gdx.files.internal("battle/intro_frame6.png"));
+        //Texture text = new Texture(Gdx.files.internal("battle/helper1.png"));
+        this.bgSprite2 = new Sprite(text, 0, 0, 160, 144);
     }
 }
 
@@ -3997,7 +4049,7 @@ class DrawEnemyHealth extends Action {
     @Override
     public void step(Game game) {
 
-        if (this.shouldDraw) {
+        if (DrawEnemyHealth.shouldDraw) {
             
             //draw helper sprite
              //probly remove
@@ -10357,17 +10409,17 @@ class Battle_Actions extends Action {
 //                        lineNum++;
                     }
                     reader.close();
+                    // load sound to play and play it
+                    this.sound = Gdx.audio.newMusic(Gdx.files.internal("attacks/" + this.name + "/sound.ogg"));
+                    this.sound.play();
                 } catch (FileNotFoundException e) {
                     e.printStackTrace();
                 } catch (IOException e) {
-                    // TODO Auto-generated catch block
                     e.printStackTrace();
+                } catch (com.badlogic.gdx.utils.GdxRuntimeException e) {
+                    // pass, this animation will just be skipped
                 }
-                // load sound to play and play it
-                this.sound = Gdx.audio.newMusic(Gdx.files.internal("attacks/" + this.name + "/sound.ogg"));
-                this.sound.play();
                 this.firstStep = false;
-                
                 this.playerSpriteOrigin = new Vector2(game.player.currPokemon.backSprite.getX(), 
                                                       game.player.currPokemon.backSprite.getY());
                 this.enemySpriteOrigin = new Vector2(game.battle.oppPokemon.sprite.getX(), 
@@ -10405,20 +10457,25 @@ class Battle_Actions extends Action {
                     String[] values = properties.split("screenshot:")[1].split(" ")[0].split(",");
                     this.pixmapX = Integer.valueOf(values[0]);
                     this.pixmapY = Integer.valueOf(values[1]);
-                    int width = Integer.valueOf(values[2]);
-                    int height = Integer.valueOf(values[3]);
-                    this.pixmap = ScreenUtils.getFrameBufferPixmap(this.pixmapX*3, this.pixmapY*3, width*3, height*3);
+//                    int width = Integer.valueOf(values[2]);
+//                    int height = Integer.valueOf(values[3]);
+//                    this.pixmap = ScreenUtils.getFrameBufferPixmap(this.pixmapX*3, this.pixmapY*3, width*3, height*3);
+                    // 
+                    // TODO: just screenshotting full screen, since screen resizing will screw this up.
+                    int offsetX = (int)((game.currScreen.x-((160*game.currScreen.y)/144))/2);  // x = (currWidth-160*currHeight/144)/2
+                    this.pixmap = ScreenUtils.getFrameBufferPixmap(offsetX, 0, (int)game.currScreen.x-(offsetX*2), (int)game.currScreen.y);
                 }
                 if (properties.contains("row_copy")) {
                     // copy the screenshotted pixmap
-                    Pixmap newPixmap = new Pixmap((int)(this.pixmap.getWidth()/3f), (int)(this.pixmap.getHeight()/3f), Pixmap.Format.RGBA8888);
+                    float heightM = (game.currScreen.y / 144);  // 144*x = height
+                    Pixmap newPixmap = new Pixmap((int)(this.pixmap.getWidth()/heightM), (int)(this.pixmap.getHeight()/heightM), Pixmap.Format.RGBA8888);
 //                    Pixmap newPixmap = new Pixmap(this.pixmap.getWidth(), this.pixmap.getHeight(), Pixmap.Format.RGBA8888);
                     newPixmap.setColor(new Color(0, 0, 0, 0));
                     newPixmap.fill();
                     // drawPixmap didn't work for some reason, copying manually
                     for (int i = 0; i < newPixmap.getWidth(); i++) {
                         for (int j = 0; j < newPixmap.getHeight(); j++) {
-                            Color color = new Color(this.pixmap.getPixel(i*3, j*3));
+                            Color color = new Color(this.pixmap.getPixel((int)(i*heightM), (int)(j*heightM)));
                             newPixmap.drawPixel(i, j, Color.rgba8888(color));
                         }
                     }
@@ -10447,7 +10504,7 @@ class Battle_Actions extends Action {
                             if (enemySpriteIgnore && x >= 96 && (144-targetY) >= 88) {
                                 continue;
                             }
-                            Color color = new Color(this.pixmap.getPixel(x*3, (144-sourceY)*3));
+                            Color color = new Color(this.pixmap.getPixel((int)(x*heightM), (int)((144-sourceY)*heightM)));
                             newPixmap.drawPixel(x, 144-targetY, Color.rgba8888(color));
                         }
                     }

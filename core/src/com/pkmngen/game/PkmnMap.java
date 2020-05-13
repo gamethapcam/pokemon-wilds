@@ -1,9 +1,16 @@
 package com.pkmngen.game;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
+import java.util.zip.DeflaterOutputStream;
+import java.util.zip.InflaterInputStream;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
@@ -13,9 +20,10 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Sprite;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
+import com.esotericsoftware.kryo.io.Output;
+import com.pkmngen.game.Network.PokemonData;
 
 import box2dLight.PointLight;
 
@@ -53,6 +61,9 @@ class Tile {
 
     // if you need to see what type of tile this is, use name variable
     String name;
+    // Needed to store which object is above the 'terrain'. Like a tree, rock, house piece, etc.
+    // This must be stored because it needs to be sent over the network, and saved locally.
+    String nameUpper = "";
     
     // for when you collect items from this tile
     HashMap<String, Integer> items = new HashMap<String, Integer>();
@@ -65,13 +76,21 @@ class Tile {
 
     }
     public Tile(String tileName, Vector2 pos) {
-        this(tileName, pos, false);
+        this(tileName, "", pos);
+    }
+    public Tile(String tileName, String nameUpper, Vector2 pos) {
+        this(tileName, nameUpper, pos, false);
+    }
+    public Tile(String tileName, String nameUpper, Vector2 pos, boolean color) {
+        this(tileName, nameUpper, pos, color, null);
     }
     public Tile(String tileName, Vector2 pos, boolean color) {
-        this(tileName, pos, color, null);
+        this(tileName, "", pos, color, null);
     }
-
     public Tile(String tileName, Vector2 pos, boolean color, Route routeBelongsTo) {
+        this(tileName, "", pos, color, routeBelongsTo);
+    }
+    public Tile(String tileName, String nameUpper, Vector2 pos, boolean color, Route routeBelongsTo) {
 
         // initialize attributes of tile
         this.attrs = new HashMap<String, Boolean>();
@@ -82,6 +101,7 @@ class Tile {
         this.attrs.put("tree",  false);
 
         this.name = tileName;
+        this.nameUpper = nameUpper;  // object above the terrain, ie house, tree, rock etc.
 
         // this.attrs.put("qmark", false); //TODO - delete if unused//tile that
         // is available to be changed to another tile later
@@ -90,60 +110,60 @@ class Tile {
         this.routeBelongsTo = routeBelongsTo;
 
         if (tileName.equals("ground1")) {
-            Texture playerText = new Texture(Gdx.files.internal("ground1.png"));
+            Texture playerText = TextureCache.get(Gdx.files.internal("ground1.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
         } else if (tileName.equals("ground2")) {
-            Texture playerText = new Texture(Gdx.files.internal("ground2.png"));
+            Texture playerText = TextureCache.get(Gdx.files.internal("ground2.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
         } else if (tileName.equals("block1")) {
-            Texture playerText = new Texture(Gdx.files.internal("block1.png"));
+            Texture playerText = TextureCache.get(Gdx.files.internal("block1.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
             this.attrs.put("solid", true); // block is solid
         } else if (tileName.equals("grass1")) {
-            Texture playerText = new Texture(Gdx.files.internal("tiles/blank2.png"));
+            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/blank2.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
-            playerText = new Texture(Gdx.files.internal("grass1.png"));
+            playerText = TextureCache.get(Gdx.files.internal("grass1.png"));
             this.overSprite = new Sprite(playerText, 0, 0, 16, 16);
             this.attrs.put("grass", true);
 
             // this.sprite.setColor(new Color(.1f, .1f, .1f, 1f)); //debug
         } else if (tileName.equals("grass2")) {
-            Texture playerText = new Texture(Gdx.files.internal("tiles/grass2_under.png"));
+            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/grass2_under.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
-            playerText = new Texture(Gdx.files.internal("tiles/grass2_over.png"));
+            playerText = TextureCache.get(Gdx.files.internal("tiles/grass2_over.png"));
             this.overSprite = new Sprite(playerText, 0, 0, 16, 16);
             this.attrs.put("grass", true);
             this.attrs.put("cuttable", true);
             this.items.put("grass", 1);
             // this.sprite.setColor(new Color(.1f, .1f, .1f, 1f)); //debug
         } else if (tileName.equals("grass3")) {
-            Texture playerText = new Texture(Gdx.files.internal("tiles/grass3_under.png"));
+            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/grass3_under.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
-            playerText = new Texture(Gdx.files.internal("tiles/grass3_over.png"));
+            playerText = TextureCache.get(Gdx.files.internal("tiles/grass3_over.png"));
             this.overSprite = new Sprite(playerText, 0, 0, 16, 16);
             this.attrs.put("grass", true);
 
             // this.sprite.setColor(new Color(.1f, .1f, .1f, 1f)); //debug
         } else if (tileName.equals("flower1")) {
-            Texture playerText = new Texture(
+            Texture playerText = TextureCache.get(
                     Gdx.files.internal("tiles/flower1.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
         } else if (tileName.equals("ground3")) {
-            Texture playerText = new Texture(
+            Texture playerText = TextureCache.get(
                     Gdx.files.internal("tiles/ground3.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
         
         } else if (tileName.equals("mountain1")) {
-            Texture playerText = new Texture(Gdx.files.internal("tiles/mountain1.png"));
+            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/mountain1.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
         } else if (tileName.equals("mountain2")) {
-            Texture playerText = new Texture(Gdx.files.internal("tiles/mountain2.png"));
+            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/mountain2.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
         } else if (tileName.equals("mountain3")) {
-            Texture playerText = new Texture(Gdx.files.internal("tiles/mountain3.png"));
+            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/mountain3.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
         } else if (tileName.contains("mountain")) {
-            Texture playerText = new Texture(Gdx.files.internal("tiles/"+tileName+".png"));
+            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/"+tileName+".png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
             if (tileName.contains("left")) {
                 this.attrs.put("ledge", true);
@@ -169,15 +189,15 @@ class Tile {
         else if (tileName.equals("tree_large1")) { //
             Texture playerText;
             if (color) {
-                playerText = new Texture(Gdx.files.internal("tiles/tree_large1_color.png"));
+                playerText = TextureCache.get(Gdx.files.internal("tiles/tree_large1_color.png"));
             }
             else {
-                playerText = new Texture(Gdx.files.internal("tiles/tree_large1.png"));
+                playerText = TextureCache.get(Gdx.files.internal("tiles/tree_large1.png"));
             }
             this.sprite = new Sprite(playerText, 0, 0, 32, 32);
             this.attrs.put("solid", true);
         } else if (tileName.equals("tree_large1_noSprite")) {
-            Texture playerText = new Texture(
+            Texture playerText = TextureCache.get(
                     Gdx.files.internal("tiles/blank.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
             this.attrs.put("solid", true);
@@ -186,10 +206,10 @@ class Tile {
         else if (tileName.equals("ledge1_down")) {
             Texture playerText;
             if (color) {
-                playerText = new Texture(Gdx.files.internal("ledge1_down_color.png"));
+                playerText = TextureCache.get(Gdx.files.internal("ledge1_down_color.png"));
             }
             else {
-                playerText = new Texture(Gdx.files.internal("ledge1_down.png"));
+                playerText = TextureCache.get(Gdx.files.internal("ledge1_down.png"));
             }
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
             this.attrs.put("ledge", true);
@@ -199,10 +219,10 @@ class Tile {
         } else if (tileName.equals("ledge1_left")) {
             Texture playerText;
             if (color) {
-                playerText = new Texture(Gdx.files.internal("ledge1_left_color.png"));
+                playerText = TextureCache.get(Gdx.files.internal("ledge1_left_color.png"));
             }
             else {
-                playerText = new Texture(Gdx.files.internal("ledge1_left.png"));
+                playerText = TextureCache.get(Gdx.files.internal("ledge1_left.png"));
             }
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
             this.attrs.put("ledge", true);
@@ -212,46 +232,46 @@ class Tile {
         } else if (tileName.equals("ledge1_right")) {
             Texture playerText;
             if (color) {
-                playerText = new Texture( Gdx.files.internal("ledge1_right_color.png"));
+                playerText = TextureCache.get( Gdx.files.internal("ledge1_right_color.png"));
             }
             else {
-                playerText = new Texture( Gdx.files.internal("ledge1_right.png"));
+                playerText = TextureCache.get( Gdx.files.internal("ledge1_right.png"));
             }
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
             this.attrs.put("ledge", true);
             this.ledgeDir = "right";
         } else if (tileName.equals("ground2_top")) {
-            Texture playerText = new Texture(
+            Texture playerText = TextureCache.get(
                     Gdx.files.internal("ground2_top.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
             this.attrs.put("ledge", true);
         } else if (tileName.equals("ledge1_corner_bl")) {
             Texture playerText;
             if (color) {
-                playerText = new Texture(Gdx.files.internal("ledge1_corner_bl_color.png"));
+                playerText = TextureCache.get(Gdx.files.internal("ledge1_corner_bl_color.png"));
             }
             else {
-                playerText = new Texture(Gdx.files.internal("ledge1_corner_bl.png"));
+                playerText = TextureCache.get(Gdx.files.internal("ledge1_corner_bl.png"));
             }
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
             this.attrs.put("solid", true);
         } else if (tileName.equals("ledge1_corner_br")) {
             Texture playerText;
             if (color) {
-                playerText = new Texture(Gdx.files.internal("ledge1_corner_br_color.png"));
+                playerText = TextureCache.get(Gdx.files.internal("ledge1_corner_br_color.png"));
             }
             else {
-                playerText = new Texture(Gdx.files.internal("ledge1_corner_br.png"));
+                playerText = TextureCache.get(Gdx.files.internal("ledge1_corner_br.png"));
             }
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
             this.attrs.put("solid", true);
         } else if (tileName.equals("ledge2_corner_tl")) {
-            Texture playerText = new Texture(
+            Texture playerText = TextureCache.get(
                     Gdx.files.internal("ledge2_corner_tl.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
             this.attrs.put("solid", true);
         } else if (tileName.equals("ledge2_corner_tr")) {
-            Texture playerText = new Texture(
+            Texture playerText = TextureCache.get(
                     Gdx.files.internal("ledge2_corner_tr.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
             this.attrs.put("solid", true);
@@ -260,14 +280,14 @@ class Tile {
         else if (tileName.equals("ledge_grass_ramp")) {
             Texture playerText;
             if (color) {
-                playerText = new Texture(Gdx.files.internal("tiles/ledge_grass_ramp_color.png"));
+                playerText = TextureCache.get(Gdx.files.internal("tiles/ledge_grass_ramp_color.png"));
             }
             else {
-                playerText = new Texture(Gdx.files.internal("tiles/ledge_grass_ramp.png"));
+                playerText = TextureCache.get(Gdx.files.internal("tiles/ledge_grass_ramp.png"));
             }
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
         } else if (tileName.equals("ledge_grass_safari_up")) {
-            Texture playerText = new Texture(
+            Texture playerText = TextureCache.get(
                     Gdx.files.internal("tiles/ledge_grass_safari_up.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
             this.attrs.put("ledge", true); // TODO - need ledgeDir variable?
@@ -275,33 +295,33 @@ class Tile {
         } else if (tileName.equals("ledge_grass_down")) {
             Texture playerText;
             if (color) {
-                playerText = new Texture(Gdx.files.internal("tiles/ledge1_down_color.png"));
+                playerText = TextureCache.get(Gdx.files.internal("tiles/ledge1_down_color.png"));
             }
             else {
-                playerText = new Texture(Gdx.files.internal("tiles/ledge_grass_down.png"));
+                playerText = TextureCache.get(Gdx.files.internal("tiles/ledge_grass_down.png"));
             }
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
             this.attrs.put("ledge", true);
             this.ledgeDir = "down";
         } else if (tileName.equals("ledge_grass_left")) {
-            Texture playerText = new Texture(
+            Texture playerText = TextureCache.get(
                     Gdx.files.internal("tiles/ledge_grass_left.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
             this.attrs.put("ledge", true);
             this.ledgeDir = "left";
         } else if (tileName.equals("ledge_grass_right")) {
-            Texture playerText = new Texture(
+            Texture playerText = TextureCache.get(
                     Gdx.files.internal("tiles/ledge_grass_right.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
             this.attrs.put("ledge", true);
             this.ledgeDir = "right";
         } else if (tileName.equals("ledge_grass_inside_tl")) {
-            Texture playerText = new Texture(
+            Texture playerText = TextureCache.get(
                     Gdx.files.internal("tiles/ledge_grass_inside_tl.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
             this.attrs.put("solid", true);
         } else if (tileName.equals("ledge_grass_inside_tr")) {
-            Texture playerText = new Texture(
+            Texture playerText = TextureCache.get(
                     Gdx.files.internal("tiles/ledge_grass_inside_tr.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
             this.attrs.put("solid", true);
@@ -309,115 +329,115 @@ class Tile {
 
         // water
         else if (tileName.equals("water1")) {
-            Texture playerText = new Texture(
+            Texture playerText = TextureCache.get(
                     Gdx.files.internal("tiles/water1.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
             this.attrs.put("solid", true);
             this.attrs.put("water", true);
         } else if (tileName.equals("water1_ledge1_left")) {
-            Texture playerText = new Texture(
+            Texture playerText = TextureCache.get(
                     Gdx.files.internal("tiles/water1.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
             this.attrs.put("solid", true);
             this.attrs.put("water", true);
-            playerText = new Texture(
+            playerText = TextureCache.get(
                     Gdx.files.internal("tiles/water1_ledge1_left.png"));
             this.overSprite = new Sprite(playerText, 0, 0, 16, 16);
         } else if (tileName.equals("water1_ledge1_right")) {
-            Texture playerText = new Texture(
+            Texture playerText = TextureCache.get(
                     Gdx.files.internal("tiles/water1.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
             this.attrs.put("solid", true);
             this.attrs.put("water", true);
-            playerText = new Texture(
+            playerText = TextureCache.get(
                     Gdx.files.internal("tiles/water1_ledge1_right.png"));
             this.overSprite = new Sprite(playerText, 0, 0, 16, 16);
         } else if (tileName.equals("water1_ledge1_tl")) {
-            Texture playerText = new Texture(
+            Texture playerText = TextureCache.get(
                     Gdx.files.internal("tiles/water1.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
             this.attrs.put("solid", true);
             this.attrs.put("water", true);
-            playerText = new Texture(
+            playerText = TextureCache.get(
                     Gdx.files.internal("tiles/water1_ledge1_tl.png"));
             this.overSprite = new Sprite(playerText, 0, 0, 16, 16);
         } else if (tileName.equals("water1_ledge1_top")) {
-            Texture playerText = new Texture(
+            Texture playerText = TextureCache.get(
                     Gdx.files.internal("tiles/water1.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
             this.attrs.put("solid", true);
             this.attrs.put("water", true);
-            playerText = new Texture(
+            playerText = TextureCache.get(
                     Gdx.files.internal("tiles/water1_ledge1_top.png"));
             this.overSprite = new Sprite(playerText, 0, 0, 16, 16);
         } else if (tileName.equals("water1_ledge1_tr")) {
-            Texture playerText = new Texture(
+            Texture playerText = TextureCache.get(
                     Gdx.files.internal("tiles/water1.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
             this.attrs.put("solid", true);
             this.attrs.put("water", true);
-            playerText = new Texture(
+            playerText = TextureCache.get(
                     Gdx.files.internal("tiles/water1_ledge1_tr.png"));
             this.overSprite = new Sprite(playerText, 0, 0, 16, 16);
         }
 
         else if (tileName.equals("grass_short2")) {
-            Texture playerText = new Texture(
+            Texture playerText = TextureCache.get(
                     Gdx.files.internal("tiles/grass_short2.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
         } else if (tileName.equals("grass_short3")) {
-            Texture playerText = new Texture(
+            Texture playerText = TextureCache.get(
                     Gdx.files.internal("tiles/grass_short3.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
         } else if (tileName.equals("warp1_greyed")) {
-            Texture playerText = new Texture(
+            Texture playerText = TextureCache.get(
                     Gdx.files.internal("tiles/warp1_greyed.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
         } else if (tileName.equals("warp1")) {
-            Texture playerText = new Texture(
+            Texture playerText = TextureCache.get(
                     Gdx.files.internal("tiles/warp1.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
         }
 
         // overw pokemon
         else if (tileName.equals("raikou_overw1")) {
-            Texture playerText = new Texture(Gdx.files.internal("ground1.png"));
+            Texture playerText = TextureCache.get(Gdx.files.internal("ground1.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
-            playerText = new Texture(
+            playerText = TextureCache.get(
                     Gdx.files.internal("pokemon/raikou_overw1.png"));
             this.overSprite = new Sprite(playerText, 0, 0, 16, 16);
             this.attrs.put("solid", true);
         } else if (tileName.equals("entei_overw1")) {
-            Texture playerText = new Texture(Gdx.files.internal("ground1.png"));
+            Texture playerText = TextureCache.get(Gdx.files.internal("ground1.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
-            playerText = new Texture(
+            playerText = TextureCache.get(
                     Gdx.files.internal("pokemon/entei_overw1.png"));
             this.overSprite = new Sprite(playerText, 0, 0, 16, 16);
             this.attrs.put("solid", true);
         } else if (tileName.equals("suicune_overw1")) {
-            Texture playerText = new Texture(Gdx.files.internal("ground1.png"));
+            Texture playerText = TextureCache.get(Gdx.files.internal("ground1.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
-            playerText = new Texture(
+            playerText = TextureCache.get(
                     Gdx.files.internal("pokemon/suicune_overw1.png"));
             this.overSprite = new Sprite(playerText, 0, 0, 16, 16);
             this.attrs.put("solid", true);
         } else if (tileName.equals("mewtwo_overw1")) {
-//            Texture playerText = new Texture(Gdx.files.internal("ground1.png"));
-            Texture playerText = new Texture(Gdx.files.internal("tiles/blank.png"));
+//            Texture playerText = TextureCache.get(Gdx.files.internal("ground1.png"));
+            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/blank.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
-            playerText = new Texture(
+            playerText = TextureCache.get(
                     Gdx.files.internal("pokemon/mewtwo_overworld1.png"));
             this.overSprite = new Sprite(playerText, 0, 0, 16, 16);
             this.attrs.put("solid", true);
         } else if (tileName.equals("mega_gengar_overworld1")) {
-            Texture playerText = new Texture(Gdx.files.internal("tiles/blank.png"));
+            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/blank.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
-            playerText = new Texture(
+            playerText = TextureCache.get(
                     Gdx.files.internal("pokemon/mgengar_overworld1.png"));
             this.overSprite = new Sprite(playerText, 0, 0, 16, 16);
             this.attrs.put("solid", true);
         } else if (tileName.equals("solid")) {
-            Texture playerText = new Texture(
+            Texture playerText = TextureCache.get(
                     Gdx.files.internal("tiles/qmark_tile1.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
             // this.attrs.put("qmark", true); //TODO - remove if unused
@@ -426,13 +446,15 @@ class Tile {
         } else if (tileName.equals("bush1")) {
             Texture playerText;
             if (color) {
-                playerText = new Texture(Gdx.files.internal("tiles/bush1_color.png"));
-
+                playerText = TextureCache.get(Gdx.files.internal("tiles/bush2_color.png"));
                 this.overSprite = new Sprite(playerText, 0, 0, 16, 16);
+                this.nameUpper = "bush2_color";
             }
             else {
-                playerText = new Texture(Gdx.files.internal("tiles/bush1.png"));
+                playerText = TextureCache.get(Gdx.files.internal("tiles/bush1.png"));
             }
+            this.name = "green1";
+            playerText = TextureCache.get(Gdx.files.internal("tiles/green1.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
             this.attrs.put("solid", true);
             this.attrs.put("cuttable", true);
@@ -440,112 +462,141 @@ class Tile {
             this.items.put("logs", 1);
         } else if (tileName.equals("bush2")) {
             Texture playerText;
-            playerText = new Texture(Gdx.files.internal("tiles/bush2_color.png"));
+            playerText = TextureCache.get(Gdx.files.internal("tiles/bush2_color.png"));
             this.overSprite = new Sprite(playerText, 0, 0, 16, 16);
-            playerText = new Texture(Gdx.files.internal("tiles/green1.png"));
+            playerText = TextureCache.get(Gdx.files.internal("tiles/green1.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
             this.attrs.put("solid", true);
         } else if (tileName.equals("tree_small1")) {
-            Texture playerText = new Texture(
+            Texture playerText = TextureCache.get(
                     Gdx.files.internal("tiles/tree_small1.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
             this.attrs.put("solid", true);
         } else if (tileName.equals("rock1")) {
-            Texture playerText = new Texture(
+            Texture playerText = TextureCache.get(
                     Gdx.files.internal("tiles/rock1.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
             this.attrs.put("solid", true);
         } else if (tileName.equals("rock2")) {
-            Texture playerText = new Texture(
+            Texture playerText = TextureCache.get(
                     Gdx.files.internal("tiles/rock2.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
             this.attrs.put("solid", true);
         } else if (tileName.equals("rock3")) {
-            Texture playerText = new Texture(
+            Texture playerText = TextureCache.get(
                     Gdx.files.internal("tiles/rock3.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
             this.attrs.put("solid", true);
         } else if (tileName.equals("sand1")) {
-            Texture playerText = new Texture(
+            Texture playerText = TextureCache.get(
                     Gdx.files.internal("tiles/sand1.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
         // grass-like ground
         } else if (tileName.contains("green")) {
-            Texture playerText = new Texture(Gdx.files.internal("tiles/"+tileName+".png"));
+            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/"+tileName+".png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
         } else if (tileName.contains("snow")) {
-            Texture playerText = new Texture(Gdx.files.internal("tiles/"+tileName+".png"));
+            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/"+tileName+".png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
         // tall tree
         } else if (tileName.equals("tree1")) {
-            Texture playerText = new Texture(
+            Texture playerText = TextureCache.get(
                     Gdx.files.internal("tiles/tree1.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 32);
             this.attrs.put("solid", true);
         // tall tree - one sprite over, one under
         } else if (tileName.equals("tree2")) {
-//            Texture playerText = new Texture(Gdx.files.internal("tiles/tree2_under.png"));
+//            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/tree2_under.png"));
 //            this.sprite = new Sprite(playerText, 0, 0, 16, 32);
-            Texture playerText = new Texture(Gdx.files.internal("tiles/tree3_under.png"));
+            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/tree3_under.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
-            playerText = new Texture(Gdx.files.internal("tiles/tree3_over.png"));
+            playerText = TextureCache.get(Gdx.files.internal("tiles/tree3_over.png"));
             this.overSprite = new Sprite(playerText, 0, 0, 16, 32);
             this.attrs.put("solid", true);
             this.attrs.put("tree", true);
         } else if (tileName.equals("tree4")) {
-          Texture playerText = new Texture(Gdx.files.internal("tiles/tree4_under.png"));
+          Texture playerText = TextureCache.get(Gdx.files.internal("tiles/tree4_under.png"));
           this.sprite = new Sprite(playerText, 0, 0, 16, 16);
-          playerText = new Texture(Gdx.files.internal("tiles/tree4_over.png"));
+          playerText = TextureCache.get(Gdx.files.internal("tiles/tree4_over.png"));
           this.overSprite = new Sprite(playerText, 0, 0, 16, 32);
           this.attrs.put("solid", true);
           this.attrs.put("tree", true);
         } else if (tileName.equals("tree5")) {
-//          Texture playerText = new Texture(Gdx.files.internal("tiles/tree5_under.png"));
-          Texture playerText = new Texture(Gdx.files.internal("tiles/green1.png"));
+//          Texture playerText = TextureCache.get(Gdx.files.internal("tiles/tree5_under.png"));
+          Texture playerText = TextureCache.get(Gdx.files.internal("tiles/green1.png"));
           this.sprite = new Sprite(playerText, 0, 0, 16, 16);
-//          playerText = new Texture(Gdx.files.internal("tiles/tree5_over.png"));
-          playerText = new Texture(Gdx.files.internal("tiles/tree6.png"));
+//          playerText = TextureCache.get(Gdx.files.internal("tiles/tree5_over.png"));
+          playerText = TextureCache.get(Gdx.files.internal("tiles/tree6.png"));
           this.overSprite = new Sprite(playerText, 0, 0, 16, 32);
           this.attrs.put("solid", true);
           this.attrs.put("tree", true);
           this.attrs.put("headbuttable", true);
         // colored water
         } else if (tileName.equals("water2")) {
-            Texture playerText = new Texture(
+            Texture playerText = TextureCache.get(
                     Gdx.files.internal("tiles/water2.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
             this.attrs.put("solid", true);
             this.attrs.put("water", true);
         }
         else if (tileName.equals("water3")) {
-            Texture playerText = new Texture(
+            Texture playerText = TextureCache.get(
                     Gdx.files.internal("tiles/water3.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
             this.attrs.put("solid", true);
             this.attrs.put("water", true);
         }
         else if (tileName.equals("black1")) {
-            Texture playerText = new Texture(Gdx.files.internal("tiles/blank3.png"));
+            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/blank3.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
             this.attrs.put("solid", true);
         }
         else if (tileName.equals("campfire1")) {
-            Texture playerText = new Texture(Gdx.files.internal("tiles/campfire1.png"));
+            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/campfire1.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 20);
             this.attrs.put("solid", true);
         }
         else if (tileName.equals("sleeping_bag1")) {
-            Texture playerText = new Texture(Gdx.files.internal("tiles/sleeping_bag1.png"));
+            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/sleeping_bag1.png"));
             this.sprite = new Sprite(playerText, 0, 0, 24, 16);
         }
         else {
             // just load from image file
-            Texture playerText = new Texture(Gdx.files.internal("tiles/buildings/"+tileName+".png"));
+            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/buildings/"+tileName+".png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
             if (!tileName.contains("door") && !tileName.contains("floor")) {
                 this.attrs.put("solid", true);
             }
         }
+        // TODO: refactors
+        //  - just load file based on tile name. Names can probably contain slashes.
+        //  - remove references above to setting overSprite, and just have whatever calls Tile() pass in nameUpper.
+        //  - remove attrs, just do booleans isCuttable, isLedge, etc.
+        // TODO: it would be even better if this.name was just in the format "lower:upper". 
+        //  - that way code can just check tile.name once without checking both. Also keeps backwards compatibility.
+        
+        // if there is an 'upper' (above terrain' object, load it and set oversprite to it.
+        if (!this.nameUpper.equals("")){
+            // load from image file based on the name
+            Texture text;
+            if (this.nameUpper.contains("house")) {
+                text = TextureCache.get(Gdx.files.internal("tiles/buildings/"+this.nameUpper+".png"));
+            }
+            else {
+                text = TextureCache.get(Gdx.files.internal("tiles/"+this.nameUpper+".png"));
+            }
+            this.overSprite = new Sprite(text, 0, 0, 16, 16);
+            if (!this.nameUpper.contains("door") && !this.nameUpper.contains("floor")) {
+                this.attrs.put("solid", true);
+            }
+            if (!this.nameUpper.contains("floor")) {
+                this.attrs.put("cuttable", true); 
+            }
+            if (this.nameUpper.equals("bush2_color")) {
+                this.attrs.put("headbuttable", true);
+            }
+        }
+        
         this.sprite.setPosition(pos.x, pos.y);
         if (this.overSprite != null) {
             this.overSprite.setPosition(pos.x, pos.y);
@@ -877,6 +928,21 @@ class Route {
 
     Random rand;
 
+    /*
+     * Constructor for loading from file or loading over network.
+     */
+    public Route(Network.RouteData routeData) {
+//        this.rand = new Random();  // TODO: delete, should just use single random num generator which can be seeded.
+        this.name = routeData.name;
+        this.level = routeData.level;
+        this.allowedPokemon = new ArrayList<String>(routeData.allowedPokemon);
+        this.musics = new ArrayList<String>(routeData.musics);
+        this.musicsIndex = routeData.musicsIndex;
+        for (Network.PokemonData pokemonData : routeData.pokemon) {
+            this.pokemon.add(new Pokemon(pokemonData));
+        }
+    }
+
     public Route(String name, int level) {
 
         this.name = name;
@@ -1001,7 +1067,6 @@ class Route {
 //            this.music = Gdx.audio.newMusic(Gdx.files.internal("route1_1.ogg"));
 //            this.music.setLooping(true);
 //            this.music.setVolume(.3f);
-            return;
         }
         else {
             this.allowedPokemon.clear();
@@ -1032,15 +1097,16 @@ class Route {
         this.musics.add("route_3_gs");
         this.musics.add("route_1");
         this.musics.add("route_idk1");
+        // TODO: victory road theme thing
         
         // TODO: debug, delete
-        this.pokemon.clear();
-        Pokemon debug = new Pokemon("Rhydon", 70, Pokemon.Generation.CRYSTAL);  // 22
-        debug.attacks[0] = "Whirlpool";
-        debug.attacks[1] = "Whirlpool";
-        debug.attacks[2] = "Whirlpool";
-        debug.attacks[3] = "Whirlpool";
-        this.pokemon.add(debug);
+//        this.pokemon.clear();
+//        Pokemon debug = new Pokemon("Rhydon", 70, Pokemon.Generation.CRYSTAL);  // 22
+//        debug.attacks[0] = "Whirlpool";
+//        debug.attacks[1] = "Whirlpool";
+//        debug.attacks[2] = "Whirlpool";
+//        debug.attacks[3] = "Whirlpool";
+//        this.pokemon.add(debug);
 
         /*
          * //below will add all from allowed pkmn for (String pokemonName :
@@ -1076,6 +1142,14 @@ class Route {
 
         // TODO - bug if maxed out on catch rates, and need to repeat a pkmn
 
+        // if less than needed pokemon for randomization, just use them all.
+        if (this.allowedPokemon.size() < 4) {
+            for (String pokemonName : this.allowedPokemon) {
+                this.pokemon.add(new Pokemon(pokemonName, this.level + rand.nextInt(3), Pokemon.Generation.CRYSTAL));
+            }
+            return;
+        }
+        
         int randomNum;
         int randomLevel;
         String pokemonName;
@@ -1128,7 +1202,7 @@ public class PkmnMap {
 
     // use this to drop the tops of trees over the player
     //  hopefully makes drawing take less time
-    Map<Vector2, Tile> trees = new HashMap<Vector2, Tile>();
+//    Map<Vector2, Tile> trees = new HashMap<Vector2, Tile>();
     
     // routes on map
     ArrayList<Route> routes;
@@ -1139,11 +1213,13 @@ public class PkmnMap {
     // needed for wild encounters etc
     Random rand;
 
-    String timeOfDay; // used by cycleDayNight
+    String timeOfDay = "Day";  // used by cycleDayNight
+    
+    String id;  // needed for saving to file
 
     public PkmnMap(String mapName) {
 
-        this.timeOfDay = "Day";
+        this.id = mapName;
 
         Vector2 pos;
 
@@ -1324,6 +1400,123 @@ public class PkmnMap {
             this.currRoute = new Route("Route 1", 20);
         }
     }
+    
+    public void loadFromFile(Game game) {
+        // If map exists as file, load it
+        try {
+            // TODO: tile Route is not saved here.
+            // Should be able to serialize route pokemon and save. Although might be ineffecient to save all
+            //  pokemon details.
+            InputStream inputStream = new InflaterInputStream(new FileInputStream(this.id + ".sav"));
+            com.esotericsoftware.kryo.io.Input input = new com.esotericsoftware.kryo.io.Input(inputStream);
+//            com.esotericsoftware.kryo.io.Input input = new com.esotericsoftware.kryo.io.Input(new FileInputStream(this.id + ".sav"));  // uncompressed
+            Network.MapTiles mapTiles = game.server.getKryo().readObject(input, Network.MapTiles.class);
+            input.close();
+            this.tiles.clear();
+            HashMap<String, Route> loadedRoutes = new HashMap<String, Route>();
+            for (Network.TileData tileData : mapTiles.tiles) {
+                // store unique routes as hashmap ClassID->Route
+                if (tileData.routeBelongsTo != null && !loadedRoutes.containsKey(tileData.routeBelongsTo)) {
+                    loadedRoutes.put(tileData.routeBelongsTo, new Route(mapTiles.routes.get(tileData.routeBelongsTo)));
+                }
+                Route tempRoute = loadedRoutes.get(tileData.routeBelongsTo);
+                this.tiles.put(tileData.pos.cpy(), new Tile(tileData.tileName,
+                                                            tileData.tileNameUpper,
+                                                            tileData.pos.cpy(),
+                                                            true,
+                                                            tempRoute));
+            }
+            // load time of day
+            game.map.timeOfDay = mapTiles.timeOfDay;
+            cycleDayNight.dayTimer = mapTiles.dayTimer;
+            
+            // load players
+            inputStream = new InflaterInputStream(new FileInputStream(this.id + ".players.sav"));
+            input = new com.esotericsoftware.kryo.io.Input(inputStream);
+            ArrayList<Network.PlayerData> players = game.server.getKryo().readObject(input, ArrayList.class);
+            for (Network.PlayerData playerData : players) {
+                Player player = new Player(playerData);
+                player.type = Player.Type.REMOTE;  // TODO: store in playerData?
+                game.players.put(playerData.id, player);
+            }
+            
+            
+        } catch (FileNotFoundException e) {
+            System.out.println("No save file found for map: " + this.id);
+        }
+    }
+    
+    /*
+     * TODO: for large maps, will likely need to split into multiple files corresponding to 
+     * different map regions. Then save regions periodically. Ideally only when cpu cycles
+     * are available.
+     */
+    public static class PeriodicSave extends Action {
+
+        float timeDelta = 60;
+        float saveInterval = 10; //TODO: debug, was 60  // Every minute for now
+        
+        // TODO: map id's?
+        OutputStream outputStream;
+        Output output;
+        
+        public int getLayer() { return 500;}
+
+        @Override
+        public void step(Game game) {
+            // TODO: this only works for server atm, because I'm using game.server.getKryo() below.
+            // Could change to also use game.server.getKryo() if I need for client.
+            if (game.type != Game.Type.SERVER) {
+                return;
+            }
+            this.timeDelta += Gdx.graphics.getDeltaTime();
+            if (this.timeDelta >= this.saveInterval) {
+                this.timeDelta = 0f;
+                System.out.println("Saving map tiles to file...");
+                try {
+                    this.outputStream = new DeflaterOutputStream(new FileOutputStream(game.map.id + ".sav"));
+//                    this.output = new Output(new FileOutputStream(game.map.id + ".sav"));  // uncompressed
+                    this.output = new Output(this.outputStream);
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                }
+                Network.MapTiles mapTiles = new Network.MapTiles();
+                for (Tile tile : game.map.tiles.values()) {
+                    // store unique routes as hashmap ClassID->Route
+                    if (tile.routeBelongsTo != null && !mapTiles.routes.containsKey(tile.routeBelongsTo.toString())) {
+                        mapTiles.routes.put(tile.routeBelongsTo.toString(), new Network.RouteData(tile.routeBelongsTo));
+                    }
+                    mapTiles.tiles.add(new Network.TileData(tile));
+                }
+                mapTiles.timeOfDay = game.map.timeOfDay;
+                mapTiles.dayTimer = cycleDayNight.dayTimer;
+                game.server.getKryo().writeObject(this.output, mapTiles);
+                this.output.close();
+                
+                // Save players to separate file
+                System.out.println("Saving players to file...");
+                try {
+                    this.outputStream = new DeflaterOutputStream(new FileOutputStream(game.map.id + ".players.sav"));
+                    this.output = new Output(this.outputStream);
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                }
+                ArrayList<Network.PlayerData> players = new ArrayList<Network.PlayerData>();
+                for (Player player : game.players.values()) {
+                    players.add(new Network.PlayerData(player));
+                }
+                game.server.getKryo().writeObject(this.output, players);
+                this.output.close();
+                System.out.println("Done.");
+            }
+        }
+        
+        public PeriodicSave(Game game) {
+            // Ends up under ...\pokemon_world_gen\Workspace\desktop\<game.map.id>.sav
+            // DeflaterOutputStream <- output compression.
+//            this.outputStream = new DeflaterOutputStream(new FileOutputStream(game.map.id + ".sav"));
+        }
+    }
 
 }
 
@@ -1347,7 +1540,7 @@ class DrawSpecialMewtwoBg extends Action {
     }
     
     public DrawSpecialMewtwoBg() {
-        Texture text = new Texture(Gdx.files.internal("lab1_fl1.png"));
+        Texture text = TextureCache.get(Gdx.files.internal("lab1_fl1.png"));
         this.bgSprite = new Sprite(text, 0, 0, 479, 448);
         
         this.bgSprite.setPosition(-80 +1, -242 +1 +16*4);
@@ -1375,6 +1568,10 @@ class drawMap extends Action { // /
     Vector3 worldCoordsBR;
     Tile tile;
 
+    Sprite spritePart;
+    Sprite zSprite;
+    int zsTimer = 0;
+
     @Override
     public void step(Game game) {
 
@@ -1382,13 +1579,15 @@ class drawMap extends Action { // /
             System.out.println("Camera unproject");
             System.out.println(java.time.LocalTime.now());  
         }
+//        System.out.println(game.currScreen.x);
+//        System.out.println(game.currScreen.y);
 
         // draw every sprite in the map
 //        for (Tile tile : new ArrayList<Tile>(game.map.tiles.values())) {
         // TODO: this screws up when screen resizes
         // trying to draw tl to br of screen, so that sprites layer on top of each other
-        worldCoordsTL = game.cam.unproject(new Vector3(-128, 0, 0f));
-        worldCoordsBR = game.cam.unproject(new Vector3(game.viewport.getScreenWidth(), game.viewport.getScreenHeight()+128, 0f));
+        worldCoordsTL = game.cam.unproject(new Vector3(-256, 0, 0f));
+        worldCoordsBR = game.cam.unproject(new Vector3(game.currScreen.x, game.currScreen.y+128, 0f));
         worldCoordsTL.x = (int)worldCoordsTL.x - (int)worldCoordsTL.x % 16;
         worldCoordsTL.y = (int)worldCoordsTL.y - (int)worldCoordsTL.y % 16;
         worldCoordsBR.x = (int)worldCoordsBR.x - (int)worldCoordsBR.x % 16;
@@ -1454,33 +1653,116 @@ class drawMap extends Action { // /
 //                                       (int)tile.sprite.getWidth(), (int)tile.sprite.getHeight());
 //            }
 //            game.map.tiles.remove(tile.position);
-//            this.texture = new Texture(this.pixels);
-            
-            // TODO: remove
-//            if (tile.attrs.get("grass") == false) {
+//            this.texture = TextureCache.get(this.pixels);
 
-
-            game.batch.draw(tile.sprite, tile.sprite.getX(),
-                    tile.sprite.getY());
+            game.batch.draw(tile.sprite, tile.sprite.getX(), tile.sprite.getY());
             // tile.sprite.draw(game.batch);
 
             // oversprite is often ledges
             if (tile.overSprite != null) {
-                game.batch.draw(tile.overSprite, tile.overSprite.getX(),
-                        tile.overSprite.getY());
+                game.batch.draw(tile.overSprite, tile.overSprite.getX(), tile.overSprite.getY());
                 // tile.overSprite.draw(game.batch); //doesn't allow
                 // coloring via batch //TODO - remove
             }
-
-            // TODO: remove
-//            else if (tile.attrs.get("grass") == true) {
-//                game.batch.draw(this.blankSprite, tile.sprite.getX(),
-//                        tile.sprite.getY());
+            
+            /*
+             * I regret everything, shouldn't have tried to do this at all.
+             * TODO: remove if unused.
+             */
+//            // if this is same position as player, draw player
+//            if (game.player.position.y >= currPos.y-16 && game.player.position.y < currPos.y+16 && game.player.position.x >= currPos.x-32 && game.player.position.x < currPos.x) {
+//                // draw player lower
+//                if (!game.player.isSleeping) {
+//                    this.spritePart = new Sprite(game.player.currSprite);
+//                    this.spritePart.setRegionY(8);
+//                    this.spritePart.setRegionHeight(8);
+//                    game.batch.draw(this.spritePart, game.player.position.x, game.player.position.y+4);
+//                }
+//                // draw grass over lower part of player
+//                if (tile.attrs.get("grass") == true) {
+//                    game.batch.draw(tile.overSprite, tile.sprite.getX(), tile.sprite.getY());
+//                }
+//                // TODO: shouldn't be doing this here, need to refactor map draw action
+//                if (tile.nameUpper.contains("sleeping_bag")) {
+//                    tile.overSprite.draw(game.batch);
+//                }
+//                
+//                // draw player upper
+//                if (game.player.isSleeping) {
+//                    if (this.zsTimer < 64) {
+//                        this.zSprite.setPosition(game.player.position.x+8, game.player.position.y+18);
+//                    }
+//                    else {
+//                        this.zSprite.setPosition(game.player.position.x+16, game.player.position.y+18);
+//                    }
+//                    this.zsTimer++;
+//                    if (this.zsTimer >= 128) {
+//                        this.zsTimer = 0;
+//                    }
+//                    this.zSprite.draw(game.batch);
+//                }
+//                else {
+//                    // TODO: this is broken
+//                    // draw building tile if building
+//                    if (game.player.isBuilding) {
+//                        // get direction facing 
+//                        Vector2 pos = new Vector2(0,0);
+//                        if (game.player.dirFacing == "right") {
+//                            pos = new Vector2(game.player.position.cpy().add(16,0));
+//                        }
+//                        else if (game.player.dirFacing == "left") {
+//                            pos = new Vector2(game.player.position.cpy().add(-16,0));
+//                        }
+//                        else if (game.player.dirFacing == "up") {
+//                            pos = new Vector2(game.player.position.cpy().add(0,16));
+//                        }
+//                        else if (game.player.dirFacing == "down") {
+//                            pos = new Vector2(game.player.position.cpy().add(0,-16));
+//                        }
+//                        // get game.player.currBuildTile and draw it at position
+//                        Sprite sprite = new Sprite(game.player.currBuildTile.sprite);
+//                        sprite.setAlpha(.8f);
+//                        sprite.setPosition(pos.x, pos.y);
+//                        Tile nextTile = game.map.tiles.get(pos);
+//                        if (nextTile != null && nextTile.attrs.get("solid")) {
+//                            sprite.setColor(1f, .7f, .7f, .8f);
+//                        }
+//                        boolean requirementsMet = true;
+//                        for (String reqName : game.player.buildTileRequirements.get(game.player.currBuildTile.name).keySet()) {
+//                            if (!game.player.itemsDict.containsKey(reqName)) {
+//                                requirementsMet = false;
+//                                break;
+//                            }
+//                            int playerOwns = game.player.itemsDict.get(reqName);
+//                            if (playerOwns < game.player.buildTileRequirements.get(game.player.currBuildTile.name).get(reqName)) {
+//                                requirementsMet = false;
+//                                break;
+//                            }
+//                        }
+//                        if (!requirementsMet) {
+//                            sprite.setColor(1f, .7f, .7f, .8f);
+//                        }
+//                        sprite.draw(game.batch);
+//                        if (game.player.currBuildTile.overSprite != null) {
+//                            sprite = new Sprite(game.player.currBuildTile.overSprite);
+//                            sprite.setAlpha(.8f);
+//                            sprite.setPosition(pos.x, pos.y);
+//                            if (nextTile != null && nextTile.attrs.get("solid")) {
+//                                sprite.setColor(1f, .7f, .7f, .8f);
+//                            }
+//                            sprite.draw(game.batch);
+//                        }
+//                    }
+//                    this.spritePart = new Sprite(game.player.currSprite);
+//                    this.spritePart.setRegionY(0);
+//                    this.spritePart.setRegionHeight(8);
+//                    game.batch.draw(this.spritePart, game.player.position.x, game.player.position.y+12);
+//                    game.player.currSprite.setPosition(game.player.position.x, game.player.position.y);  // this needs to be set to detect collision
+//                }
 //            }
         }
-        
-        // TODO: this depends slightly on drawing refactors
-        // draw other players
+
+        // Draw other players
         for (Player player : game.players.values()) {
             // TODO: could check for player in frustum, not checking for now
             player.currSprite.setPosition(player.position.x, player.position.y+4);
@@ -1499,8 +1781,8 @@ class drawMap extends Action { // /
     public drawMap(Game game) {
         this.pixels = new Pixmap(Gdx.files.internal("tiles/blank2.png"));
         this.texture = new Texture(this.pixels);
-        this.blankSprite = new Sprite(new Texture(Gdx.files.internal("tiles/blank2.png")), 0, 0, 16, 16);
-//        this.sprite = new Sprite(text, 0, 0, 16, 16);
+        this.blankSprite = new Sprite(TextureCache.get(Gdx.files.internal("tiles/blank2.png")), 0, 0, 16, 16);
+        this.zSprite = new Sprite(TextureCache.get(Gdx.files.internal("tiles/zs1.png")), 0, 0, 16, 16);
     }
 
 }
@@ -1536,7 +1818,7 @@ class MoveWater extends Action {
     @Override
     public void step(Game game) {
         worldCoordsTL = game.cam.unproject(new Vector3(-256, -256, 0f));
-        worldCoordsBR = game.cam.unproject(new Vector3(game.viewport.getScreenWidth()+256, game.viewport.getScreenHeight()+256, 0f));
+        worldCoordsBR = game.cam.unproject(new Vector3(game.currScreen.x+256, game.currScreen.y+256, 0f));
         worldCoordsTL.x = (int)worldCoordsTL.x - (int)worldCoordsTL.x % 16;
         worldCoordsTL.y = (int)worldCoordsTL.y - (int)worldCoordsTL.y % 16;
         worldCoordsBR.x = (int)worldCoordsBR.x - (int)worldCoordsBR.x % 16;
@@ -1584,7 +1866,7 @@ class MoveWater extends Action {
             }
 
             //animate campfires
-            if (tile.name.equals("campfire1")) {
+            if (tile.nameUpper.equals("campfire1")) {
                 if (this.campfireTimer == 0) {
                     Sprite newSprite = new Sprite(this.campfireSprites[0]);
                     newSprite.setPosition(tile.overSprite.getX(), tile.overSprite.getY());
@@ -1652,13 +1934,13 @@ class MoveWater extends Action {
     public MoveWater(Game game) {
         this.positions = new ArrayList<Vector2>();
         resetVars();
-        Texture text = new Texture(Gdx.files.internal("tiles/campfire1.png"));
+        Texture text = TextureCache.get(Gdx.files.internal("tiles/campfire1.png"));
         this.campfireSprites = new Sprite[4];
         this.campfireSprites[0] = new Sprite(text, 0,  0, 16, 20);
         this.campfireSprites[1] = new Sprite(text, 16, 0, 16, 20);
-        text = new Texture(Gdx.files.internal("fire_mask1.png"));
+        text = TextureCache.get(Gdx.files.internal("fire_mask1.png"));
         this.campfireSprites[2] = new Sprite(text, 0,  0, 160, 144);
-        text = new Texture(Gdx.files.internal("fire_mask2.png"));
+        text = TextureCache.get(Gdx.files.internal("fire_mask2.png"));
         this.campfireSprites[3] = new Sprite(text, 0, 0, 160, 144);
         
 //        this.pointLight = new PointLight(game.rayHandler, 20, new Color(.3f,.2f,.1f,1), 2, -0, 0);
@@ -1689,7 +1971,7 @@ class MoveWater extends Action {
 }
 
 // action is separate because grass in on different layer
-class drawMap_grass extends Action {
+class DrawMapGrass extends Action {
 
     public int layer = 120;
 
@@ -1710,7 +1992,7 @@ class drawMap_grass extends Action {
     public void step(Game game) {
 
         worldCoordsTL = game.cam.unproject(new Vector3(-128, 0, 0f));
-        worldCoordsBR = game.cam.unproject(new Vector3(game.viewport.getScreenWidth(), game.viewport.getScreenHeight()+128, 0f));
+        worldCoordsBR = game.cam.unproject(new Vector3(game.currScreen.x, game.currScreen.y+128, 0f));
         worldCoordsTL.x = (int)worldCoordsTL.x - (int)worldCoordsTL.x % 16;
         worldCoordsTL.y = (int)worldCoordsTL.y - (int)worldCoordsTL.y % 16;
         worldCoordsBR.x = (int)worldCoordsBR.x - (int)worldCoordsBR.x % 16;
@@ -1743,48 +2025,80 @@ class drawMap_grass extends Action {
                     !game.cam.frustum.pointInFrustum(tile.position.x, tile.position.y+tile.sprite.getHeight(), game.cam.position.z)) {
                continue;
             }
-            if (tile.attrs.get("grass") == true) {
+            if (tile.attrs.get("grass")) {
                 // tile.sprite.draw(game.batch); doesn't allow coloring
-                game.batch.draw(tile.overSprite, tile.sprite.getX(),
-                        tile.sprite.getY());
+                game.batch.draw(tile.overSprite, tile.sprite.getX(), tile.sprite.getY());
             }
 
             // TODO: shouldn't be doing this here, need to refactor map draw action
-            if (tile.name.contains("sleeping_bag")) {
+            if (tile.nameUpper.contains("sleeping_bag")) {
                 tile.overSprite.draw(game.batch);
             }
         }
 
     }
 
-    public drawMap_grass(Game game) {
+    public DrawMapGrass(Game game) {
 
     }
 
 }
 
 
-//action is separate because grass in on different layer
+/*
+ * Draw tops of some trees over the player.
+ * 
+ * TODO: this isn't working for some reason.
+ */
 class DrawMapTrees extends Action {
     public int layer = 110;
     public int getLayer() {
         return this.layer;
     }
+    Vector3 startPos;
+    Vector3 endPos;
+    Vector3 worldCoordsTL;
+    Vector3 worldCoordsBR;
+    Tile tile;
+    
     @Override
     public void step(Game game) {
         if (game.map.tiles != game.map.overworldTiles) {
             return;
         }
-        
-        // draw every sprite in the map
-        for (Tile tile : game.map.trees.values()) {
-            if (!game.cam.frustum.pointInFrustum(tile.position.x, tile.position.y, game.cam.position.z) &&
-                    !game.cam.frustum.pointInFrustum(tile.position.x+tile.sprite.getWidth(), tile.position.y+tile.sprite.getHeight(), game.cam.position.z) &&
-                    !game.cam.frustum.pointInFrustum(tile.position.x+tile.sprite.getWidth(), tile.position.y, game.cam.position.z) &&
-                    !game.cam.frustum.pointInFrustum(tile.position.x, tile.position.y+tile.sprite.getHeight(), game.cam.position.z)) {
-               continue;
+
+        worldCoordsTL = game.cam.unproject(new Vector3(-256, 0, 0f));
+        worldCoordsBR = game.cam.unproject(new Vector3(game.currScreen.x, game.currScreen.y+128, 0f));
+        worldCoordsTL.x = (int)worldCoordsTL.x - (int)worldCoordsTL.x % 16;
+        worldCoordsTL.y = (int)worldCoordsTL.y - (int)worldCoordsTL.y % 16;
+        worldCoordsBR.x = (int)worldCoordsBR.x - (int)worldCoordsBR.x % 16;
+        worldCoordsBR.y = (int)worldCoordsBR.y - (int)worldCoordsBR.y % 16;
+        this.startPos = worldCoordsTL;
+        this.endPos = worldCoordsBR;
+        for (Vector2 currPos = new Vector2(startPos.x, startPos.y); currPos.y > endPos.y;) {
+            tile = game.map.tiles.get(currPos);
+            currPos.x += 16;
+            if (currPos.x > endPos.x) {
+                currPos.x = startPos.x;
+                currPos.y -= 16;
             }
-            game.batch.draw(tile.overSprite, tile.overSprite.getX(), tile.overSprite.getY());
+            if (tile == null) {
+                continue;
+            }
+            if (!game.cam.frustum.pointInFrustum(tile.position.x, tile.position.y, game.cam.position.z) &&
+                !game.cam.frustum.pointInFrustum(tile.position.x+tile.sprite.getWidth(), tile.position.y+tile.sprite.getHeight(), game.cam.position.z) &&
+                !game.cam.frustum.pointInFrustum(tile.position.x+tile.sprite.getWidth(), tile.position.y, game.cam.position.z) &&
+                !game.cam.frustum.pointInFrustum(tile.position.x, tile.position.y+tile.sprite.getHeight(), game.cam.position.z)) {
+                continue;
+            }
+            // If this tree is supposed to be behind the player, don't re-draw it. 
+            if (tile.position.y > game.player.position.y) {
+                continue;
+            }
+            // TODO: only do for subset of trees?
+            if ((tile.name.contains("tree") || tile.nameUpper.contains("tree")) && tile.overSprite != null) {
+                game.batch.draw(tile.overSprite, tile.sprite.getX(), tile.sprite.getY());
+            }
         }
     }
     public DrawMapTrees(Game game) {
@@ -2058,7 +2372,7 @@ class EnterBuilding extends Action {
       this.nextAction = nextAction;
       this.action = action;
       //fade out from white anim
-      Texture text1 = new Texture(Gdx.files.internal("battle/intro_frame6.png"));
+      Texture text1 = TextureCache.get(Gdx.files.internal("battle/intro_frame6.png"));
       this.sprite = new Sprite(text1);
       this.sprite.setPosition(0,0);
   }

@@ -72,6 +72,10 @@ public class Pokemon {
     
     // contains all loaded pkmn textures, so that only one is used for each pkmn. ie don't load duplicate textures.
     public static HashMap<String, Texture> textures = new HashMap<String, Texture>();
+    
+    // add to this when loading pokemon
+    public static HashMap<String, Map<Integer, String>> gen2Evos = new HashMap<String, Map<Integer, String>>();
+    public static HashMap<String, Map<Integer, String[]>> gen2Attacks = new HashMap<String, Map<Integer, String[]>>();
 
     String nameToIndex(String name) {
         name = name.toLowerCase();
@@ -201,6 +205,67 @@ public class Pokemon {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
+
+        // load attacks from file
+        if (!Pokemon.gen2Attacks.containsKey(name) || !Pokemon.gen2Evos.containsKey(name)) {
+            Map<Integer, String[]> attacks = new HashMap<Integer, String[]>();
+            Map<Integer, String> evos = new HashMap<Integer, String>();
+            Pokemon.gen2Attacks.put(name, attacks);
+            Pokemon.gen2Evos.put(name, evos);
+            try {
+                FileHandle file = Gdx.files.internal("crystal_pokemon/evos_attacks.asm");
+                Reader reader = file.reader();
+                BufferedReader br = new BufferedReader(reader);
+                String line;
+                boolean inSection = false;
+                ArrayList<String> lines = new ArrayList<String>();
+                while ((line = br.readLine()) != null)   {
+                    lines.add(line);
+                }
+
+                for (int i=0; i < lines.size(); i++) {
+                    line = lines.get(i);
+                    if (line.toLowerCase().contains(name)) {
+                        inSection = true;
+                        continue;
+                    }
+                    if (!inSection) {
+                        continue;
+                    }
+                    if (line.contains("EVOLVE_LEVEL")) {
+                        String vals[] = line.split(", ");
+                        evos.put(Integer.valueOf(vals[1]), vals[2]);
+                    }
+                    else if (line.contains("EVOLVE_ITEM") || line.contains("EVOLVE_TRADE")) {
+                        // TODO
+                    }
+                    else if (!line.contains("\t")) {
+                        inSection = false;
+                    }
+                    else if (!line.contains("db 0")) {
+                        String vals[] = line.split(", ");
+                        String attack = vals[1].toLowerCase().replace('_', ' ');
+                        int level = Integer.valueOf(vals[0].split(" ")[1]);
+                        String[] attacksArray = new String[]{attack};
+                        if (attacks.containsKey(level)) {
+                            attacksArray = new String[attacks.get(level).length+1];
+                            for (int j=0; j<attacks.get(level).length; j++) {
+                                attacksArray[j] = attacks.get(level)[j];
+                            }
+                            attacksArray[attacks.get(level).length] = attack;
+                        }
+                        attacks.put(level, attacksArray);
+                    }
+                }
+                reader.close();
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+        }
+        this.learnSet = Pokemon.gen2Attacks.get(name);
     }
     
     void loadPrismPokemon(String name) {
@@ -301,11 +366,83 @@ public class Pokemon {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
+
+
+        // load attacks from file
+        if (!Pokemon.gen2Attacks.containsKey(name) || !Pokemon.gen2Evos.containsKey(name)) {
+            Map<Integer, String[]> attacks = new HashMap<Integer, String[]>();
+            Map<Integer, String> evos = new HashMap<Integer, String>();
+            Pokemon.gen2Attacks.put(name, attacks);
+            Pokemon.gen2Evos.put(name, evos);
+            try {
+                FileHandle file = Gdx.files.internal("crystal_pokemon/prism/movesets/"+name.substring(0,1).toUpperCase()+name.substring(1)+".asm");
+                Reader reader = file.reader();
+                BufferedReader br = new BufferedReader(reader);
+                String line;
+                ArrayList<String> lines = new ArrayList<String>();
+                while ((line = br.readLine()) != null)   {
+                    lines.add(line);
+                }
+
+                for (int i=0; i < lines.size(); i++) {
+                    line = lines.get(i);
+                    if (!line.toLowerCase().contains("\t")) {
+                        continue;
+                    }
+                    if (line.contains("EVOLVE_LEVEL")) {
+                        String vals[] = line.split(", ");
+                        evos.put(Integer.valueOf(vals[1]), vals[2]);
+                    }
+                    else if (line.contains("EVOLVE_ITEM") || line.contains("EVOLVE_TRADE")) {
+                        // TODO
+                    }
+                    else if (!line.contains("db 0")) {
+                        String vals[] = line.split(", ");
+                        String attack = vals[1].toLowerCase().replace('_', ' ');
+                        // TODO: there are a bunch of prism attacks that can't be handled by the engine,
+                        //  so check if the attack exists currently.
+                        // Ie, attacks with different typings (SOUND, FAIRY etc). 
+                        // Would be ideal to update the prism pokemon from later generations to use
+                        //  valid types and attacks (I'm undecided tho as to what exactly is the best
+                        //  solution).
+                        if (!Game.staticGame.battle.attacks.containsKey(attack)) {
+                            continue;
+                        }
+                        int level = Integer.valueOf(vals[0].split(" ")[1]);
+                        String[] attacksArray = new String[]{attack};
+                        if (attacks.containsKey(level)) {
+                            attacksArray = new String[attacks.get(level).length+1];
+                            for (int j=0; j<attacks.get(level).length; j++) {
+                                attacksArray[j] = attacks.get(level)[j];
+                            }
+                            attacksArray[attacks.get(level).length] = attack;
+                        }
+                        attacks.put(level, attacksArray);
+                    }
+                }
+                reader.close();
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+        }
+        this.learnSet = Pokemon.gen2Attacks.get(name);
     }
     
     public Pokemon (String name, int level) {
         // generation defaults to RED
         this(name, level, Generation.RED);
+    }
+    
+    public Pokemon (Network.PokemonData pokemonData) {
+        this(pokemonData.name, pokemonData.level, pokemonData.generation);
+        this.currentStats.put("hp", pokemonData.hp);
+        this.attacks[0] = pokemonData.attacks[0];
+        this.attacks[1] = pokemonData.attacks[1];
+        this.attacks[2] = pokemonData.attacks[2];
+        this.attacks[3] = pokemonData.attacks[3];
     }
     
     public Pokemon (String name, int level, Generation generation) {

@@ -2,6 +2,8 @@ package com.pkmngen.game;
 
 // import gme_debug.VGMPlayer;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -14,6 +16,7 @@ import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.audio.Music;
+import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
@@ -38,7 +41,6 @@ import com.esotericsoftware.kryonet.Server;
 
 public class Game extends ApplicationAdapter {
     
-
     Vector3 touchLoc;
     
     //put alarm-type things in here
@@ -101,6 +103,7 @@ public class Game extends ApplicationAdapter {
     float accumulator = 0;
     int velocityIterations = 6;
     int positionIterations = 2;
+    Vector2 currScreen;
     
     // Network
     // ID: Player
@@ -113,6 +116,8 @@ public class Game extends ApplicationAdapter {
         SERVER;
     }
     Type type;
+    
+    Music.OnCompletionListener musicCompletionListener;
 
     @Override
     public void create() {
@@ -128,8 +133,8 @@ public class Game extends ApplicationAdapter {
         this.b2World = new World(new Vector2(0, 0), true);
         this.rayHandler = new RayHandler(this.b2World);
         
-        batch = new SpriteBatch();
-        floatingBatch = new SpriteBatch();
+        this.batch = new SpriteBatch();
+        this.floatingBatch = new SpriteBatch();
             
         //have the map return a camera to use
         //some borrowed camera dimensions
@@ -153,7 +158,7 @@ public class Game extends ApplicationAdapter {
 ////        floatingBatch.setProjectionMatrix(cam2.projection);
 //        System.out.println("mtrx: \n" + String.valueOf(new Matrix4(new Vector3(0,2,0), new Quaternion(), new Vector3())));
         //fit viewport?
-        this.viewport = new FitViewport(160, 144, this.cam);
+//        this.viewport = new FitViewport(160, 144, this.cam);
         
         //set the font //disabled as per html5
         FreeTypeFontGenerator gen = new FreeTypeFontGenerator(Gdx.files.internal("fonts.ttf"));
@@ -172,10 +177,10 @@ public class Game extends ApplicationAdapter {
 
         //init player structure (store global vars)
         this.player = new Player();
-        //init map structure
-        this.map = new PkmnMap("default");
         //init battle structure
         this.battle = new Battle();
+        //init map structure
+        this.map = new PkmnMap("default");
         
         this.textDict = initTextDict();
 
@@ -186,11 +191,11 @@ public class Game extends ApplicationAdapter {
         //set player
         startActions.add(new playerStanding(this));
         //lower player draw action
-        startActions.add(new drawPlayer_lower(this));
+        startActions.add(new DrawPlayerLower(this));
         //draw map grass
-        startActions.add(new drawMap_grass(this));
+        startActions.add(new DrawMapGrass(this));
         //upper player draw action
-        startActions.add(new drawPlayer_upper(this));
+        startActions.add(new DrawPlayerUpper(this));
         //draw tops of trees over player
         startActions.add(new DrawMapTrees(this));
         //move water tiles around
@@ -227,22 +232,22 @@ public class Game extends ApplicationAdapter {
 //        this.currMusic.setPosition(141); // TODO: debug, delete
 //        this.currMusic.setPosition(93); // TODO: debug, delete
         // this music should 'radio' through a selection of musics for the route
-        this.currMusic.setOnCompletionListener(new Music.OnCompletionListener() {
-                @Override
-                public void onCompletion(Music aMusic) {
-                    String nextMusicName = Game.staticGame.map.currRoute.getNextMusic(true);
-                    // TODO: would it be good to also accept music instance here?
-                    // TODO: these fade-ins don't even work. will need for route musics
-                    Action nextMusic = new FadeMusic("currMusic", "out", "", .025f,
-                                       // TODO: there's def a bug here if you run into a wild
-                                       // pokemon while waiting frames, the next music will start anyway
-                                       new WaitFrames(Game.staticGame, 360,
-                                       new FadeMusic(nextMusicName, "in", "", .2f, true, 1f, this, new DoneAction())));
-                    PublicFunctions.insertToAS(Game.staticGame, nextMusic);
-                    nextMusic.step(Game.staticGame);
-                }
+        this.musicCompletionListener = new Music.OnCompletionListener() {
+            @Override
+            public void onCompletion(Music aMusic) {
+                String nextMusicName = Game.staticGame.map.currRoute.getNextMusic(true);
+                // TODO: would it be good to also accept music instance here?
+                // TODO: these fade-ins don't even work. will need for route musics
+                Action nextMusic = new FadeMusic("currMusic", "out", "", .025f,
+                                   // TODO: there's def a bug here if you run into a wild
+                                   // pokemon while waiting frames, the next music will start anyway
+                                   new WaitFrames(Game.staticGame, 360,
+                                   new FadeMusic(nextMusicName, "in", "", .2f, true, 1f, this, new DoneAction())));
+                PublicFunctions.insertToAS(Game.staticGame, nextMusic);
+                nextMusic.step(Game.staticGame);
             }
-        );
+        };
+        this.currMusic.setOnCompletionListener(this.musicCompletionListener);
         
         this.playerCanMove = true;
 
@@ -259,7 +264,7 @@ public class Game extends ApplicationAdapter {
         // old size = 16*20
 //        PublicFunctions.insertToAS(this, new GenIsland1(this, new Vector2(0,0), 20*40)); //16*15 //30*40 // 20*40  //16*18 //20*30
         // generates a mountain now.
-        PublicFunctions.insertToAS(this, new GenIsland1(this, new Vector2(0,0), 20*30)); //20*30 //60*100 //100*120
+        PublicFunctions.insertToAS(this, new GenIsland1(this, new Vector2(0,0), 100*100)); //20*30 //60*100 //100*120
 
         // TODO - mega gengar battle debug in genforest2, remove that
 
@@ -530,6 +535,8 @@ public class Game extends ApplicationAdapter {
             for (Action action : this.actionStack) {
                 System.out.println(String.valueOf(action.getLayer()) + "  " + action.getClass().getName());
             }
+            // TODO: debug, remove
+            System.out.println("Musics: " + String.valueOf(this.map.currRoute.musics.size()));
         }
         // check network type (reset when pressed)
         if (Gdx.input.isKeyJustPressed(Input.Keys.M)) {
@@ -606,20 +613,32 @@ public class Game extends ApplicationAdapter {
         //not sure if pixels are right or wrong
         
         //below will scale floatingBatch regardless of current screen size
-        this.floatingBatch.getProjectionMatrix().setToOrtho2D(0, 0, 160, 144);
-        //width/3, height/3);
+        int menuWidth = (144*width)/height;  // height/width = 144/menuWidth
+//        System.out.println(menuWidth);
+        int offsetX = (menuWidth-160)/2;  // 144/160 = height/x; x = (height*160)/144
+        System.out.println(offsetX);
         
+        this.floatingBatch.getProjectionMatrix().setToOrtho2D(-offsetX, 0, menuWidth, 144);
+//        this.floatingBatch.
+        // this might not be technically the best method; works for now.
+        this.currScreen = new Vector2(width, height);
+        this.cam.viewportWidth = width/3;
+        this.cam.viewportHeight = height/3;
+        //width/3, height/3);;
+//        System.out.println(width);
+//        System.out.println(height);
 
         //if (Gdx.app.getType() == ApplicationType.Android) {
             //below is basically prototype.\
              //this isn't perfect atm, because requires scale variable
             //also, restricts drawing to inside viewport, which isn't right. 
             //need to draw controls outside
-            int left = (width - 160*3)/2;
-            int bottom = (height - 144*3)/2;
-            this.viewport.setScreenBounds(left,bottom, 160*3, 144*3);
-            //Gdx.graphics.
-            this.viewport.apply(); //provides more control. same as update
+        
+//            int left = (width - 160*3)/2;
+//            int bottom = (height - 144*3)/2;
+//            this.viewport.setScreenBounds(left, bottom, 160*3, 144*3);
+//            //Gdx.graphics.
+//            this.viewport.apply(); //provides more control. same as update
         //}
         //this.viewport.update(160*3, 144*3, false);
         //int newWidth = (height/144)*160; - didn't work right. should have?
@@ -687,7 +706,9 @@ public class Game extends ApplicationAdapter {
         
         // add action that will continually update client of positions
         
+        this.map.loadFromFile(this);  // load map if it exists already
         PublicFunctions.insertToAS(this, new ServerBroadcast(this));
+        PublicFunctions.insertToAS(this, new PkmnMap.PeriodicSave(this));
     }
 
     public void initClient() throws IOException {
@@ -748,13 +769,13 @@ public class Game extends ApplicationAdapter {
         //request ghosts from server
 //        this.client.sendTCP(new Network.AllGhosts());
 
-        this.player.network.id = "dummy_id3";
+        this.player.network.id = "dummy_id4";
         this.player.type = Player.Type.LOCAL;
         this.client.sendTCP(new Network.Login(this.player.network.id));
 
         // server won't say when to clear tiles, so do it now.
         this.map.tiles.clear();
-        this.map.trees.clear(); // TODO: needs to be handled differently
+//        this.map.trees.clear(); // TODO: needs to be handled differently
         
         PublicFunctions.insertToAS(this, new ClientBroadcast(this));
     }

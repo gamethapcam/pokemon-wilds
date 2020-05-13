@@ -1,5 +1,6 @@
 package com.pkmngen.game;
 
+import java.awt.List;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -47,6 +48,7 @@ public class Network {
         kryo.register(DoBattleAction.class);
         kryo.register(Battle.DoTurn.Type.class);
         kryo.register(RelocatePlayer.class);
+        kryo.register(RouteData.class);
     }
     
 
@@ -124,18 +126,24 @@ public class Network {
         ArrayList<PokemonData> pokemon;
         PokemonData currPokemon;
         Map<String, Integer> itemsDict;
+        String id;
+        String number;
         
         public PlayerData(){}
         
         public PlayerData(Player player) {
-            this.position = player.position;
+            this.position = player.position.cpy();
+            this.position.x = this.position.x - (this.position.x % 16);
+            this.position.y = this.position.y - (this.position.y % 16);
             this.name = player.name;
             this.pokemon = new ArrayList<PokemonData>();
-            for (Pokemon p : player.pokemon) {
-                this.pokemon.add(new PokemonData(p));
+            for (Pokemon pokemon : player.pokemon) {
+                this.pokemon.add(new PokemonData(pokemon));
             }
             this.currPokemon = new PokemonData(player.currPokemon);
             this.itemsDict = player.itemsDict;
+            this.id = player.network.id;
+            this.number = player.network.number;
         }
     }
     
@@ -166,17 +174,56 @@ public class Network {
     static public class TileData {
         public Vector2 pos;
         public String tileName;
+        public String tileNameUpper;
+        String routeBelongsTo;  // this is a string of the route's class id
 
         public TileData(){}
 
         public TileData(Tile tile) {
             this.pos = tile.position.cpy();
             this.tileName = tile.name;
+            this.tileNameUpper = tile.nameUpper;
+            if (tile.routeBelongsTo != null) {
+                this.routeBelongsTo = tile.routeBelongsTo.toString();
+            }
+        }
+    }
+    
+    static public class RouteData {
+        
+        String classId;
+        String name;
+        int level;
+        ArrayList<PokemonData> pokemon = new ArrayList<PokemonData>();
+        ArrayList<String> allowedPokemon;
+        ArrayList<String> musics;
+        int musicsIndex = 0;
+
+        public RouteData(){}
+
+        public RouteData(Route route) {
+            this.classId = route.toString();
+            this.name = route.name;
+            this.level = route.level;
+            this.allowedPokemon = new ArrayList<String>(route.allowedPokemon);
+            this.musics = new ArrayList<String>(route.musics);
+            this.musicsIndex = route.musicsIndex;
+            for (Pokemon pokemon : route.pokemon) {
+                this.pokemon.add(new PokemonData(pokemon));
+            }
         }
     }
 
     static public class MapTiles {
         public ArrayList<TileData> tiles = new ArrayList<TileData>();
+        // store routes as classId->Route
+        public HashMap<String, RouteData> routes = new HashMap<String, RouteData>();
+        
+        // used to sync time with server
+        String timeOfDay;
+        int dayTimer;
+        
+        public MapTiles(){}
     }
     
     static public class MovePlayer {
@@ -290,28 +337,16 @@ class ClientBroadcast extends Action {
                             
                             game.player.position = playerData.position;
                             game.player.name = playerData.name;
-                            game.player.currPokemon = new Pokemon(playerData.currPokemon.name,
-                                                                  playerData.currPokemon.level,
-                                                                  playerData.currPokemon.generation);
-                            game.player.currPokemon.currentStats.put("hp", playerData.currPokemon.hp);
-                            game.player.currPokemon.attacks[0] = playerData.currPokemon.attacks[0];
-                            game.player.currPokemon.attacks[1] = playerData.currPokemon.attacks[1];
-                            game.player.currPokemon.attacks[2] = playerData.currPokemon.attacks[2];
-                            game.player.currPokemon.attacks[3] = playerData.currPokemon.attacks[3];
+                            // TODO: use the Pokemon(PokemonData) constructor
                             game.player.pokemon = new ArrayList<Pokemon>();
                             for (Network.PokemonData pokemonData : playerData.pokemon) {
-                                Pokemon pokemon = new Pokemon(pokemonData.name,
-                                                              pokemonData.level,
-                                                              pokemonData.generation);
-                                pokemon.currentStats.put("hp", pokemonData.hp);
-                                pokemon.attacks[0] = pokemonData.attacks[0];
-                                pokemon.attacks[1] = pokemonData.attacks[1];
-                                pokemon.attacks[2] = pokemonData.attacks[2];
-                                pokemon.attacks[3] = pokemonData.attacks[3];
-                                game.player.pokemon.add(pokemon);
+                                game.player.pokemon.add(new Pokemon(pokemonData));
+                            }
+                            if (game.player.pokemon.size() > 0) {
+                                game.player.currPokemon = game.player.pokemon.get(0);
                             }
                             game.player.itemsDict = playerData.itemsDict;
-                            System.out.println("Received player.");
+//                            System.out.println("Received player.");
                         }
                         
                         if (object instanceof Network.RelocatePlayer) {
@@ -322,10 +357,13 @@ class ClientBroadcast extends Action {
 
                         if (object instanceof Network.MapTiles) {
                             Network.MapTiles mapTiles = (Network.MapTiles) object;
-
                             for (Network.TileData tileData : mapTiles.tiles) {
-                                Tile tile = new Tile(tileData.tileName, tileData.pos.cpy(), true, null);
+                                Tile tile = new Tile(tileData.tileName, tileData.tileNameUpper, tileData.pos.cpy(), true, null);
                                 game.map.tiles.put(tileData.pos.cpy(), tile);
+                            }
+                            if (mapTiles.timeOfDay != null) {
+                                cycleDayNight.dayTimer = mapTiles.dayTimer;
+                                game.map.timeOfDay = mapTiles.timeOfDay;
                             }
                         }
 
@@ -364,6 +402,14 @@ class ClientBroadcast extends Action {
                             Network.BattleTurnData turnData = (Network.BattleTurnData) object;
                             game.battle.network.turnData = turnData;
                             System.out.println("Recieved turn data.");
+                        }
+
+                        // a server is changing a tile (ie player built or cut something within the loading zone)
+                        if (object instanceof Network.TileData) {
+                            Network.TileData tileData = (Network.TileData) object;
+                            game.map.tiles.put(tileData.pos.cpy(),
+                                               new Tile(tileData.tileName, tileData.tileNameUpper,
+                                                        tileData.pos.cpy(), true, null));
                         }
                         
                         if (object instanceof Network.UpdatePlayer) {
@@ -589,24 +635,34 @@ class ServerBroadcast extends Action {
                                 player.network.id = playerId;
                                 player.network.number = String.valueOf(game.players.keySet().size());
                                 // TODO: debug, remove
-                                player.currPokemon = new Pokemon("sneasel", 50, Pokemon.Generation.CRYSTAL);
+                                player.currPokemon = new Pokemon("machop", 50, Pokemon.Generation.CRYSTAL);
                                 player.currPokemon.attacks[0] = "Ice Beam";
                                 player.currPokemon.attacks[1] = "Hydro Pump";
                                 player.pokemon.add(player.currPokemon);
                                 game.players.put(playerId, player);
                             }
                             Player player = game.players.get(login.playerId);
+                            player.network.connectionId = connection.getID();
                             // send over player data
                             Network.PlayerData playerData = new Network.PlayerData(player);
                             connection.sendTCP(playerData);
 
-                            // add standing action to actionstack
-                            PublicFunctions.insertToAS(game, new playerStanding(game, player, false, true));
+                            // add standing action to actionStack
+                            if (player.standingAction == null) {
+                                player.standingAction = new playerStanding(game, player, false, true);
+                            }
+                            if (!game.actionStack.contains(player.standingAction)) {
+                                PublicFunctions.insertToAS(game, player.standingAction);
+                            }
+//                            PublicFunctions.insertToAS(game, new playerStanding(game, player, false, true));
 
                             // get map.tiles in square around player and send them back
                             for (Vector2 position = player.network.loadingZoneBL.cpy();
-                                    position.y < player.network.loadingZoneTR.y; position.add(16, 0)) {
+                                 position.y < player.network.loadingZoneTR.y; position.add(16, 0)) {
                                 Tile tile = game.map.tiles.get(position);
+                                if (tile == null) {
+                                    continue;
+                                }
                                 mapTiles.tiles.add(new Network.TileData(tile));
                                 if (position.x >= player.network.loadingZoneTR.x) {
                                     position.add(0, 16);
@@ -619,6 +675,9 @@ class ServerBroadcast extends Action {
                                     mapTiles.tiles.clear();
                                 }
                             }
+                            // time of day sync
+                            mapTiles.dayTimer = cycleDayNight.dayTimer;
+                            mapTiles.timeOfDay = game.map.timeOfDay;
                             connection.sendTCP(mapTiles);
 
                             // send players that are within loading zone
@@ -653,20 +712,19 @@ class ServerBroadcast extends Action {
                             player.network.shouldMove = true;
                             player.network.dirFacing = movePlayer.dirFacing;
                             player.network.isRunning = movePlayer.isRunning;
-
                             // send movement to all other clients if it's in that client's loading zone
                             for (Player p : game.players.values()) {
                                 if (p == player) {
                                     continue;
                                 }
                                 if (player.position.x <= p.network.loadingZoneTR.x &&
-                                        player.position.x >= p.network.loadingZoneBL.x &&
-                                        player.position.y <= p.network.loadingZoneTR.y &&
-                                        player.position.y >= p.network.loadingZoneBL.y) {
+                                    player.position.x >= p.network.loadingZoneBL.x &&
+                                    player.position.y <= p.network.loadingZoneTR.y &&
+                                    player.position.y >= p.network.loadingZoneBL.y) {
                                     game.server.sendToTCP(p.network.connectionId,
-                                            new Network.MovePlayer(player.network.number,
-                                                    player.network.dirFacing,
-                                                    player.network.isRunning));
+                                                          new Network.MovePlayer(player.network.number,
+                                                                                 player.network.dirFacing,
+                                                                                 player.network.isRunning));
                                 }
                             }
                         }
@@ -717,25 +775,27 @@ class ServerBroadcast extends Action {
                                     return;
                                 }
                                 turnData.playerAttack = battle.attacks.get(battleAction.attack.toLowerCase());
+
+                                // TODO: fix
+                                int yourSpeed = player.currPokemon.currentStats.get("speed");
+                                int oppSpeed = battle.oppPokemon.currentStats.get("speed");
+                                if (yourSpeed > oppSpeed) {
+                                    turnData.oppFirst = false;
+                                }
+                                else if (yourSpeed < oppSpeed) {
+                                    turnData.oppFirst = true;
+                                }
+                                else {
+                                    if (game.map.rand.nextInt(2) == 0) {
+                                        turnData.oppFirst = true;
+                                    }
+                                }
+                                
                             }
                             // decide enemy attack choice
                             String attackChoice = battle.oppPokemon.attacks[game.map.rand.nextInt(battle.oppPokemon.attacks.length)];
                             if (attackChoice.equals("-")) {
                                 attackChoice = "Struggle";
-                            }
-                            // TODO: fix
-                            int yourSpeed = player.currPokemon.currentStats.get("speed");
-                            int oppSpeed = battle.oppPokemon.currentStats.get("speed");
-                            if (yourSpeed > oppSpeed) {
-                                turnData.oppFirst = false;
-                            }
-                            else if (yourSpeed < oppSpeed) {
-                                turnData.oppFirst = true;
-                            }
-                            else {
-                                if (game.map.rand.nextInt(2) == 0) {
-                                    turnData.oppFirst = true;
-                                }
                             }
 
                             // update enemy pokemon locally
@@ -779,14 +839,47 @@ class ServerBroadcast extends Action {
                                 player.numFlees = 0;
                             }
                             // debug code
-                            try {
-                                Thread.sleep(5000);
-                            } catch (InterruptedException e) {
-                                // TODO Auto-generated catch block
-                                e.printStackTrace();
-                            }
+//                            try {
+//                                Thread.sleep(5000);
+//                            } catch (InterruptedException e) {
+//                                // TODO Auto-generated catch block
+//                                e.printStackTrace();
+//                            }
                             System.out.println("Sending turn data.");
                             game.server.sendToTCP(player.network.connectionId, turnData);
+                        }
+                        // a client is requesting to change this tile
+                        if (object instanceof Network.TileData) {
+                            Network.TileData tileData = (Network.TileData) object;
+                            if (!game.map.tiles.containsKey(tileData.pos)) {
+                                System.out.println("TileData: Invalid tile position " + tileData.pos.toString() + ", sent by: " + connection.getRemoteAddressTCP().toString());
+                                return;
+                            }
+                            if (game.map.tiles.get(tileData.pos).attrs.containsKey("solid") && game.map.tiles.get(tileData.pos).attrs.get("solid")) {
+                                return;  // may be trying to build on a tile that was just built on.
+                            }
+                            for (Player player : game.players.values()) { 
+                                if (player.position.equals(tileData.pos)) {
+                                    return;
+                                }
+                            }
+                            Tile oldTile = game.map.tiles.get(tileData.pos);
+                            // preserve route from previous tile here.
+                            game.map.tiles.put(tileData.pos.cpy(),
+                                               new Tile(tileData.tileName, tileData.tileNameUpper,
+                                                        tileData.pos.cpy(), true, oldTile.routeBelongsTo));
+                            // Send the change to clients (including the one that requested the change.)
+                            // Only send to clients that have this tile in their loading zone
+
+                            // TODO: may have to use a HashMap<Vector2, Player> for performance
+                            for (Player player : game.players.values()) {
+                                if (tileData.pos.x <= player.network.loadingZoneTR.x &&
+                                    tileData.pos.x >= player.network.loadingZoneBL.x &&
+                                    tileData.pos.y <= player.network.loadingZoneTR.y &&
+                                    tileData.pos.y >= player.network.loadingZoneBL.y) {
+                                    game.server.sendToTCP(player.network.connectionId, tileData);
+                                }
+                            }
                         }
 
                         // client is requesting server to send all ghosts

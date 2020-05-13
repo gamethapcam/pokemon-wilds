@@ -2019,11 +2019,8 @@ class PlaySound extends Action {
 
 
 class FadeMusic extends Action {
-    
     String musicName;
     Music music;
-    
-    
     
     String direction;
     String shouldPause;
@@ -2039,6 +2036,9 @@ class FadeMusic extends Action {
     Music.OnCompletionListener onCompleteListener;
     
     public void step(Game game) {
+        if (!game.playerCanMove) {
+            return;
+        }
         
         if (this.firstStep == true) {
             
