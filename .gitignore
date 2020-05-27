@@ -22,7 +22,6 @@ android/libs/armeabi/
 android/libs/armeabi-v7a/
 android/libs/x86/
 android/gen/
-android/assets/
 .idea/
 *.ipr
 *.iws
@@ -63,3 +62,4 @@ build/
 
 ## OS Specific
 .DS_Store
+Thumbs.db
