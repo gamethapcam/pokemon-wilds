@@ -143,7 +143,12 @@ class Tile {
             this.overSprite = new Sprite(playerText, 0, 0, 16, 16);
             this.attrs.put("grass", true);
 
-            // this.sprite.setColor(new Color(.1f, .1f, .1f, 1f)); //debug
+        } else if (tileName.equals("grass_sand1")) {
+            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/sand1.png"));
+            this.sprite = new Sprite(playerText, 0, 0, 16, 16);
+            playerText = TextureCache.get(Gdx.files.internal("tiles/grass2_over.png"));
+            this.overSprite = new Sprite(playerText, 0, 0, 16, 16);
+            this.attrs.put("grass", true);
         } else if (tileName.equals("flower1")) {
             Texture playerText = TextureCache.get(
                     Gdx.files.internal("tiles/flower1.png"));
@@ -1042,10 +1047,49 @@ class Route {
             this.allowedPokemon.add("pidgey");
             this.allowedPokemon.add("hoppip");
             this.allowedPokemon.add("machop");
+            this.allowedPokemon.add("stantler");
+            this.allowedPokemon.add("tauros");
+            this.allowedPokemon.add("bulbasaur");
+            this.allowedPokemon.add("charmander");
+            this.allowedPokemon.add("chikorita");
+            this.allowedPokemon.add("paras");
+            this.allowedPokemon.add("pikachu");
+            this.allowedPokemon.add("weedle");
+            this.allowedPokemon.add("caterpie");
+            this.allowedPokemon.add("spinarak");
+            this.allowedPokemon.add("ledyba");
             // TODO: remove
 //            this.music = Gdx.audio.newMusic(Gdx.files.internal("route1_1.ogg"));
 //            this.music.setLooping(true);
 //            this.music.setVolume(.3f);
+        }
+        else if (name.equals("beach1")) {
+            this.allowedPokemon.add("squirtle");
+            this.allowedPokemon.add("krabby");
+            this.allowedPokemon.add("totodile");
+            this.allowedPokemon.add("shellder");
+            this.allowedPokemon.add("wooper");
+            this.allowedPokemon.add("shuckle");
+            this.allowedPokemon.add("staryu");
+        }
+        else if (name.equals("desert1")) {
+            // TODO: these are just some ideas
+            this.allowedPokemon.add("gible");
+            this.allowedPokemon.add("gabite");
+            // TODO: would be sweet if fully evolved forms were hard to escape from and catch
+            //  ie, they were scary to run into.
+            //  probably just make them high level.
+            this.allowedPokemon.add("garchomp");   // high-level
+            this.allowedPokemon.add("shieldon");
+            this.allowedPokemon.add("cacnea");
+            this.allowedPokemon.add("sandshrew");
+            this.allowedPokemon.add("kangaskan");
+            this.allowedPokemon.add("rhyhorn");
+            this.allowedPokemon.add("shieldon");
+            this.allowedPokemon.add("bastiodon");  // high-level
+            this.allowedPokemon.add("skorupi");
+            this.allowedPokemon.add("drapion");    // high-level
+            this.allowedPokemon.add("trapinch");
         }
         else if (name.equals("snow1")) {
             this.allowedPokemon.add("larvitar");
@@ -1099,6 +1143,9 @@ class Route {
         this.musics.add("route_idk1");
         // TODO: victory road theme thing
         
+        // TODO: mountain musics
+        //  - ruins of alps theme?
+        
         // TODO: debug, delete
 //        this.pokemon.clear();
 //        Pokemon debug = new Pokemon("Rhydon", 70, Pokemon.Generation.CRYSTAL);  // 22
@@ -1137,7 +1184,11 @@ class Route {
         return this.musics.get(this.musicsIndex);
     }
 
-    // this will bring the route pkmn count back to 4
+    /*
+     * This will bring the route pkmn count back to 4.
+     * 
+     * TODO: probably should have more than 4 pokemon.
+     */
     public void genPokemon(int maxCatchRate) {
 
         // TODO - bug if maxed out on catch rates, and need to repeat a pkmn
@@ -1220,9 +1271,7 @@ public class PkmnMap {
     public PkmnMap(String mapName) {
 
         this.id = mapName;
-
         Vector2 pos;
-
         this.rand = new Random();
         
         // init interior tiles
@@ -1535,7 +1584,7 @@ class DrawSpecialMewtwoBg extends Action {
     @Override
     public void step(Game game) {
         
-        this.bgSprite.draw(game.batch);
+        this.bgSprite.draw(game.mapBatch);
         
     }
     
@@ -1551,7 +1600,7 @@ class DrawSpecialMewtwoBg extends Action {
 // TODO - bug where grass tiles move out of sync with normal
 // probably because drawmap is before a camera update, drawGrass is after
 
-class drawMap extends Action { // /
+class DrawMap extends Action { // /
 
     public int layer = 140;
 
@@ -1655,12 +1704,12 @@ class drawMap extends Action { // /
 //            game.map.tiles.remove(tile.position);
 //            this.texture = TextureCache.get(this.pixels);
 
-            game.batch.draw(tile.sprite, tile.sprite.getX(), tile.sprite.getY());
+            game.mapBatch.draw(tile.sprite, tile.sprite.getX(), tile.sprite.getY());
             // tile.sprite.draw(game.batch);
 
             // oversprite is often ledges
             if (tile.overSprite != null) {
-                game.batch.draw(tile.overSprite, tile.overSprite.getX(), tile.overSprite.getY());
+                game.mapBatch.draw(tile.overSprite, tile.overSprite.getX(), tile.overSprite.getY());
                 // tile.overSprite.draw(game.batch); //doesn't allow
                 // coloring via batch //TODO - remove
             }
@@ -1767,7 +1816,7 @@ class drawMap extends Action { // /
             // TODO: could check for player in frustum, not checking for now
             player.currSprite.setPosition(player.position.x, player.position.y+4);
 //            game.batch.draw(player.currSprite, player.position.x, player.position.y);
-            player.currSprite.draw(game.batch);
+            player.currSprite.draw(game.mapBatch);
         }
 
         if (Gdx.input.isKeyPressed(Input.Keys.P)) {
@@ -1778,7 +1827,7 @@ class drawMap extends Action { // /
 //        game.batch.draw(this.texture, 5, 5);
     }
 
-    public drawMap(Game game) {
+    public DrawMap(Game game) {
         this.pixels = new Pixmap(Gdx.files.internal("tiles/blank2.png"));
         this.texture = new Texture(this.pixels);
         this.blankSprite = new Sprite(TextureCache.get(Gdx.files.internal("tiles/blank2.png")), 0, 0, 16, 16);
@@ -1878,37 +1927,37 @@ class MoveWater extends Action {
                     tile.overSprite = newSprite;
                 }
 
-                if (this.campfireTimer % 20 < 10 && game.batch.getColor().r < .5f) {
-                    Color tempColor = game.batch.getColor();
-                    game.batch.setColor(new Color(1f, 1f, 1f, 1f));
+                if (this.campfireTimer % 20 < 10 && game.mapBatch.getColor().r < .5f) {
+                    Color tempColor = game.mapBatch.getColor();
+                    game.mapBatch.setColor(new Color(1f, 1f, 1f, 1f));
                     // no idea how/why this works
-                    int temp1 = game.batch.getBlendSrcFunc();
-                    int temp2 = game.batch.getBlendDstFunc();
-                    game.batch.setBlendFunction(GL20.GL_DST_COLOR, GL20.GL_SRC_ALPHA);
+                    int temp1 = game.mapBatch.getBlendSrcFunc();
+                    int temp2 = game.mapBatch.getBlendDstFunc();
+                    game.mapBatch.setBlendFunction(GL20.GL_DST_COLOR, GL20.GL_SRC_ALPHA);
                     this.campfireSprites[2].setPosition(tile.overSprite.getX()+(tile.overSprite.getWidth()/2f)-(this.campfireSprites[2].getWidth()/2f), tile.overSprite.getY()+(tile.overSprite.getHeight()/2f)-(this.campfireSprites[2].getHeight()/2f));
                     // looked better with 'double-exposure'
-                    game.batch.draw(this.campfireSprites[2], this.campfireSprites[2].getX(), this.campfireSprites[2].getY());
-                    game.batch.draw(this.campfireSprites[2], this.campfireSprites[2].getX(), this.campfireSprites[2].getY());
-                    game.batch.draw(this.campfireSprites[2], this.campfireSprites[2].getX(), this.campfireSprites[2].getY());
-                    game.batch.setBlendFunction(temp1, temp2);
-                    tile.overSprite.draw(game.batch);
-                    game.batch.setColor(tempColor);
+                    game.mapBatch.draw(this.campfireSprites[2], this.campfireSprites[2].getX(), this.campfireSprites[2].getY());
+                    game.mapBatch.draw(this.campfireSprites[2], this.campfireSprites[2].getX(), this.campfireSprites[2].getY());
+                    game.mapBatch.draw(this.campfireSprites[2], this.campfireSprites[2].getX(), this.campfireSprites[2].getY());
+                    game.mapBatch.setBlendFunction(temp1, temp2);
+                    tile.overSprite.draw(game.mapBatch);
+                    game.mapBatch.setColor(tempColor);
                 }
-                else if (this.campfireTimer % 20 < 20 && game.batch.getColor().r < .5f) {
-                    Color tempColor = game.batch.getColor();
-                    game.batch.setColor(new Color(1f, 1f, 1f, 1f));
+                else if (this.campfireTimer % 20 < 20 && game.mapBatch.getColor().r < .5f) {
+                    Color tempColor = game.mapBatch.getColor();
+                    game.mapBatch.setColor(new Color(1f, 1f, 1f, 1f));
                     // no idea how/why this works
-                    int temp1 = game.batch.getBlendSrcFunc();
-                    int temp2 = game.batch.getBlendDstFunc();
-                    game.batch.setBlendFunction(GL20.GL_DST_COLOR, GL20.GL_SRC_ALPHA);
+                    int temp1 = game.mapBatch.getBlendSrcFunc();
+                    int temp2 = game.mapBatch.getBlendDstFunc();
+                    game.mapBatch.setBlendFunction(GL20.GL_DST_COLOR, GL20.GL_SRC_ALPHA);
                     this.campfireSprites[3].setPosition(tile.overSprite.getX()+(tile.overSprite.getWidth()/2f)-(this.campfireSprites[3].getWidth()/2f), tile.overSprite.getY()+(tile.overSprite.getHeight()/2f)-(this.campfireSprites[3].getHeight()/2f));
                     // looked better with 'double-exposure'
-                    game.batch.draw(this.campfireSprites[3], this.campfireSprites[3].getX(), this.campfireSprites[3].getY());
-                    game.batch.draw(this.campfireSprites[3], this.campfireSprites[3].getX(), this.campfireSprites[3].getY());
-                    game.batch.draw(this.campfireSprites[3], this.campfireSprites[3].getX(), this.campfireSprites[3].getY());
-                    game.batch.setBlendFunction(temp1, temp2);
-                    tile.overSprite.draw(game.batch);
-                    game.batch.setColor(tempColor);
+                    game.mapBatch.draw(this.campfireSprites[3], this.campfireSprites[3].getX(), this.campfireSprites[3].getY());
+                    game.mapBatch.draw(this.campfireSprites[3], this.campfireSprites[3].getX(), this.campfireSprites[3].getY());
+                    game.mapBatch.draw(this.campfireSprites[3], this.campfireSprites[3].getX(), this.campfireSprites[3].getY());
+                    game.mapBatch.setBlendFunction(temp1, temp2);
+                    tile.overSprite.draw(game.mapBatch);
+                    game.mapBatch.setColor(tempColor);
                 }
                 
             }
@@ -2027,12 +2076,12 @@ class DrawMapGrass extends Action {
             }
             if (tile.attrs.get("grass")) {
                 // tile.sprite.draw(game.batch); doesn't allow coloring
-                game.batch.draw(tile.overSprite, tile.sprite.getX(), tile.sprite.getY());
+                game.mapBatch.draw(tile.overSprite, tile.sprite.getX(), tile.sprite.getY());
             }
 
             // TODO: shouldn't be doing this here, need to refactor map draw action
             if (tile.nameUpper.contains("sleeping_bag")) {
-                tile.overSprite.draw(game.batch);
+                tile.overSprite.draw(game.mapBatch);
             }
         }
 
@@ -2097,7 +2146,7 @@ class DrawMapTrees extends Action {
             }
             // TODO: only do for subset of trees?
             if ((tile.name.contains("tree") || tile.nameUpper.contains("tree")) && tile.overSprite != null) {
-                game.batch.draw(tile.overSprite, tile.sprite.getX(), tile.sprite.getY());
+                game.mapBatch.draw(tile.overSprite, tile.sprite.getX(), tile.sprite.getY());
             }
         }
     }
@@ -2325,35 +2374,35 @@ class EnterBuilding extends Action {
   public void step(Game game) {
       
       if (this.timer < 2) {
-          if (this.timer == 0) {
+          if (this.timer == 0 && this.action.equals("enter") || this.action.equals("exit")) {
               PublicFunctions.insertToAS(game, new PlaySound(this.action+"1", new DoneAction()));
           }
       }
       else if (this.timer < 4) {
-          this.sprite.draw(game.floatingBatch, .25f);
+          this.sprite.draw(game.uiBatch, .25f);
       }
       else if (this.timer < 6) {
-          this.sprite.draw(game.floatingBatch, .50f);
+          this.sprite.draw(game.uiBatch, .50f);
       }
       else if (this.timer < 12) {
           if (this.timer == 6) {
               if (this.action.equals("enter")) {
                   game.map.tiles = game.map.interiorTiles.get(game.map.interiorTilesIndex);
               }
-              else {
+              else if (this.action.equals("exit")){
                   game.map.tiles = game.map.overworldTiles;
               }
           }
-          this.sprite.draw(game.floatingBatch, 1f);
+          this.sprite.draw(game.uiBatch, 1f);
       }
       else if (this.timer < 14) {
-          this.sprite.draw(game.floatingBatch, .75f);
+          this.sprite.draw(game.uiBatch, .75f);
       }
       else if (this.timer < 16) {
-          this.sprite.draw(game.floatingBatch, .50f);
+          this.sprite.draw(game.uiBatch, .50f);
       }
       else if (this.timer < 18) {
-          this.sprite.draw(game.floatingBatch, .25f);
+          this.sprite.draw(game.uiBatch, .25f);
       }
       else {
           game.actionStack.remove(this);

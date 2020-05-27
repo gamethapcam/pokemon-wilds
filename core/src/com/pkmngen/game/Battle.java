@@ -569,6 +569,21 @@ public class Battle {
         return damage;
     }
     
+
+    
+    /*
+     * Reference - https://bulbapedia.bulbagarden.net/wiki/Experience#Example_.28Generation_II_to_IV.29
+     */
+    int calcFaintExp() {
+        int a = 1; // TODO: 1.5 if owned by trainer
+        int t = 1; // TODO: 1.5 if traded
+        int b = this.oppPokemon.baseStats.get("baseExp");
+        int e = 1; // TODO: 1.5 if curr pokemon holding lucky egg
+        int l = this.oppPokemon.level;
+        int s = 1; // TODO: equals number of pokemon participated in battle that didn't faint
+        return (a*t*b*e*l)/(7*s);
+    }
+    
     /*
      * Wait for the server to send turn data back to client.
      * 
@@ -924,7 +939,7 @@ class BattleIntro extends Action {
         if (this.frame != null) {
             this.frame.setScale(3); //scale doesn't work in batch.draw
             this.frame.setPosition(0,0);
-            this.frame.draw(game.floatingBatch);
+            this.frame.draw(game.uiBatch);
             //game.batch.draw(this.frame, 0, -20);
         }
 
@@ -1059,7 +1074,7 @@ class BattleIntro_anim1 extends Action {
             //gui version
                 //this.frame.setScale(3); //scale doesn't work in batch.draw //used these when scaling mattered
                 //this.frame.setPosition(16*10,16*9);
-            this.frame.draw(game.floatingBatch);
+            this.frame.draw(game.uiBatch);
             //map version
             //game.batch.draw(this.frame, 16, -16);
         }
@@ -1258,16 +1273,25 @@ class EnemyFaint extends Action {
             //TODO - because drawing enemy sprite will likely be an
              //action later, this flag will need to instead be like
              //'FriendlyFaint' , ie remove drawAction for pokemon
-            
+
             //stop drawing enemy sprite
             DrawBattle.shouldDrawOppPokemon = false;
-            
+
             this.firstStep = false;
         }
         
         //if done with anim, do nextAction
         if (positions.isEmpty() || repeats.isEmpty()) {
-            
+            // remove enemy from route, and add a new pokemon in route
+            if (game.type != Game.Type.CLIENT) {
+                game.map.currRoute.pokemon.remove(game.battle.oppPokemon);
+                game.map.currRoute.genPokemon(256);
+                // TODO: debug, remove
+                for (Pokemon pokemon : game.map.currRoute.pokemon) {
+                    System.out.println(pokemon.name);
+                }
+            }
+
             //stop drawing enemy healthbar
             game.actionStack.remove(game.battle.drawAction.drawEnemyHealthAction);
             game.battle.drawAction.drawEnemyHealthAction = null;
@@ -1280,7 +1304,7 @@ class EnemyFaint extends Action {
         //debug
 //        this.helperSprite.draw(game.floatingBatch);
 
-        this.sprite.draw(game.floatingBatch);
+        this.sprite.draw(game.uiBatch);
         
         //debug
 //        if (this.repeats.size() == 1) {
@@ -1379,7 +1403,9 @@ class EnemyFaint extends Action {
 }
 
 
-//scroll enemy pkmn off screen
+/* 
+ * Scroll friendly Pokemon off screen.
+ */
 class FriendlyFaint extends Action {
     
     ArrayList<Vector2> positions;
@@ -1389,8 +1415,6 @@ class FriendlyFaint extends Action {
     
     Vector2 position;
     Sprite sprite;
-    
-    
 
     public int layer = 120;
     public int getLayer(){return this.layer;}
@@ -1428,7 +1452,7 @@ class FriendlyFaint extends Action {
         //debug
 //        this.helperSprite.draw(game.floatingBatch);
 
-        this.sprite.draw(game.floatingBatch);
+        this.sprite.draw(game.uiBatch);
         
         //debug
 //        if (this.repeats.size() == 1) {
@@ -1455,7 +1479,8 @@ class FriendlyFaint extends Action {
 //                game.currMusic.stop();
 //                game.currMusic.play();
                 //TODO - right timing?
-                PublicFunctions.insertToAS(game, new PlaySound(game.player.currPokemon.name, this.nextAction));
+//                PublicFunctions.insertToAS(game, new PlaySound(game.player.currPokemon.name, this.nextAction));
+                PublicFunctions.insertToAS(game, new PlaySound(game.player.currPokemon, this.nextAction));
             }
             
             positions.remove(0);
@@ -1526,6 +1551,76 @@ class FriendlyFaint extends Action {
 }
 
 
+/*
+ * TODO: not doing 'blue bar' animation for now, do at some point.
+ */
+class GainExpAnimation extends Action {
+    
+    boolean gainedLevel = false;
+    
+    @Override
+    public void step(Game game) {
+        if (game.player.currPokemon.level < 100 && game.player.currPokemon.gen2CalcExpForLevel(game.player.currPokemon.level+1) <= game.player.currPokemon.exp) {
+            // TODO: debug, remove
+            System.out.println("Curr exp: " + String.valueOf(game.player.currPokemon.exp));
+            System.out.println("Needed for next level: " + String.valueOf(game.player.currPokemon.gen2CalcExpForLevel(game.player.currPokemon.level+1)));
+            game.player.currPokemon.level += 1;
+            game.actionStack.remove(this);
+            game.insertAction(new DisplayText.Clear(game,
+                              new WaitFrames(game, 3,
+                              new DisplayText(game, game.player.currPokemon.name.toUpperCase() + " grew to level " + game.player.currPokemon.level+"!",
+                                              "fanfare1.ogg", true, true,
+                              this))));
+            this.gainedLevel = true;
+            return;
+        }
+
+        // Check if the Pokemon should evolve
+        if (this.gainedLevel) {
+            for (int i=1; i <= game.player.currPokemon.level; i++) {
+                if (Pokemon.gen2Evos.get(game.player.currPokemon.name.toLowerCase()).containsKey(String.valueOf(i))) {
+                    String evolveTo = Pokemon.gen2Evos.get(game.player.currPokemon.name.toLowerCase()).get(String.valueOf(i));
+                    this.nextAction = new WaitFrames(game, 61,
+                                    new WaitFrames(game, 3,  // NOTE: this is in case I add 3 frame delay to DisplayText, in that case
+                                                             // remove this line.
+                                    new DisplayText(game, "What? "+game.player.currPokemon.name.toUpperCase()+" is evolving!",
+                                                    null, true, false,
+                                    new WaitFrames(game, 51,
+                                    new EvolutionAnim(game.player.currPokemon, evolveTo,
+                                    new PlaySound(game.player.currPokemon,
+                                    new SplitAction(
+                                        new EvolutionAnim.StartMusic(),
+                                    new Battle_Actions.LoadAndPlayAttackAnimation(game, "evolve", null,
+                                    new WaitFrames(game, 30,  // about 30 frames after bubble anim until pokemon cry is heard
+                                    new PlaySound(new Pokemon(evolveTo.toLowerCase(), 10, Pokemon.Generation.CRYSTAL),
+                                    new DisplayText.Clear(game,
+                                    new WaitFrames(game, 3,
+                                    new DisplayText(game, "Congratulations! Your "+game.player.currPokemon.name.toUpperCase(),
+                                                    null, true, true,
+                                    new DisplayText.Clear(game, 
+                                    new WaitFrames(game, 3,
+                                    new DisplayText(game, "evolved into "+evolveTo.toUpperCase()+"!",
+                                                    "fanfare2.ogg", true, false,
+//                                            new WaitFrames(game, 206,  // TODO: remove
+                                    new DisplayText.Clear(game, 
+                                    new WaitFrames(game, 2,
+                                    new EvolutionAnim.Done(
+                                    this.nextAction)))))))))))))))))));
+                    break;
+                }
+            }
+        }
+        // TODO: test that this is working.
+        game.actionStack.remove(this);
+        game.insertAction(new DisplayText.Clear(game,
+                          new WaitFrames(game, 3,
+                          this.nextAction)));
+    }
+    
+    public GainExpAnimation(Action nextAction) {
+        this.nextAction = nextAction;
+    }
+}
 
 
 
@@ -1613,7 +1708,7 @@ class DrawBattleMenu1 extends Action {
 
         //draw arrow
         this.arrow.setPosition(newPos.x, newPos.y);
-        this.arrow.draw(game.floatingBatch);
+        this.arrow.draw(game.uiBatch);
     }
     
     public DrawBattleMenu1(Game game, Action nextAction) {
@@ -1780,11 +1875,11 @@ class DrawBattleMenu_SafariZone extends Action {
         //System.out.println("curr: " + curr);
 
         //draw text box
-        this.textBox.draw(game.floatingBatch);
+        this.textBox.draw(game.uiBatch);
         
         //draw arrow
         this.arrow.setPosition(newPos.x, newPos.y);
-        this.arrow.draw(game.floatingBatch);
+        this.arrow.draw(game.uiBatch);
     }
     
     public DrawBattleMenu_SafariZone(Game game, Action nextAction) {
@@ -1987,7 +2082,7 @@ class DrawBattleMenu_Normal extends MenuAction {
                 // remove this action,
                 game.actionStack.remove(this);
             }
-            
+            // TODO: draw pokemon menu
             //user selected 'throw bait'
             else if (curr.equals("tr")) {
                 
@@ -2025,14 +2120,14 @@ class DrawBattleMenu_Normal extends MenuAction {
         //System.out.println("curr: " + curr);
 
         //draw text box
-        this.textBox.draw(game.floatingBatch);
+        this.textBox.draw(game.uiBatch);
 
         //debug
 //        helperSprite.draw(game.floatingBatch);
         
         //draw arrow
         this.arrow.setPosition(newPos.x, newPos.y);
-        this.arrow.draw(game.floatingBatch);
+        this.arrow.draw(game.uiBatch);
     }
     
     public DrawBattleMenu_Normal(Game game, Action nextAction) {
@@ -2189,7 +2284,7 @@ class DrawAttacksMenu extends Action {
         //System.out.println("curr: " + curr);
 
         //draw text box
-        this.textBox.draw(game.floatingBatch);
+        this.textBox.draw(game.uiBatch);
 
         //debug
 //        helperSprite.draw(game.floatingBatch);
@@ -2199,7 +2294,7 @@ class DrawAttacksMenu extends Action {
         for (ArrayList<Sprite> word : this.spritesToDraw) {
             for (Sprite sprite : word) {
                 //convert string to text 
-                game.floatingBatch.draw(sprite, sprite.getX() + 40, sprite.getY() - j*8 + 8);
+                game.uiBatch.draw(sprite, sprite.getX() + 40, sprite.getY() - j*8 + 8);
             }
             j+=1;
         }
@@ -2207,7 +2302,7 @@ class DrawAttacksMenu extends Action {
         //draw arrow
         if (this.cursorDelay >= 2) {
             this.arrow.setPosition(newPos.x, newPos.y);
-            this.arrow.draw(game.floatingBatch);
+            this.arrow.draw(game.uiBatch);
         }
         else {
             this.cursorDelay+=1;
@@ -2304,7 +2399,7 @@ class DrawPlayerMenu extends MenuAction {
         //System.out.println("curr: " + curr);
 
         //draw text box
-        this.textBox.draw(game.floatingBatch);
+        this.textBox.draw(game.uiBatch);
 
         //debug
 //        helperSprite.draw(game.floatingBatch);
@@ -2314,7 +2409,7 @@ class DrawPlayerMenu extends MenuAction {
         for (ArrayList<Sprite> word : this.spritesToDraw) {
             for (Sprite sprite : word) {
                 //convert string to text 
-                game.floatingBatch.draw(sprite, sprite.getX(), sprite.getY() - j*16);
+                game.uiBatch.draw(sprite, sprite.getX(), sprite.getY() - j*16);
             }
             j+=1;
         }
@@ -2322,7 +2417,7 @@ class DrawPlayerMenu extends MenuAction {
         if (this.disabled == true) {
             if (this.drawArrowWhite == true) {
                 this.arrowWhite.setPosition(newPos.x, newPos.y);
-                this.arrowWhite.draw(game.floatingBatch);
+                this.arrowWhite.draw(game.uiBatch);
             }
             return;
         }
@@ -2376,7 +2471,7 @@ class DrawPlayerMenu extends MenuAction {
         //draw arrow
         if (this.cursorDelay >= 2) {
             this.arrow.setPosition(newPos.x, newPos.y);
-            this.arrow.draw(game.floatingBatch);
+            this.arrow.draw(game.uiBatch);
         }
         else {
             this.cursorDelay+=1;
@@ -2476,7 +2571,7 @@ class DrawPlayerMenu extends MenuAction {
 
 
             //get next frame
-            this.sprite.draw(game.floatingBatch);
+            this.sprite.draw(game.uiBatch);
             
             //set sprite position
             //if done with anim, do nextAction
@@ -2588,7 +2683,7 @@ class DrawItemMenu extends MenuAction {
         //System.out.println("curr: " + curr);
 
         //draw text box
-        this.textBox.draw(game.floatingBatch);
+        this.textBox.draw(game.uiBatch);
 
         //debug
 //        helperSprite.draw(game.floatingBatch);
@@ -2600,7 +2695,7 @@ class DrawItemMenu extends MenuAction {
                 ArrayList<Sprite> word = this.spritesToDraw.get(i);
                 for (Sprite sprite : word) {
                     //draw this string as text on the screen
-                    game.floatingBatch.draw(sprite, sprite.getX(), sprite.getY() - j*16);
+                    game.uiBatch.draw(sprite, sprite.getX(), sprite.getY() - j*16);
                 }
                 j+=1;
             }
@@ -2609,7 +2704,7 @@ class DrawItemMenu extends MenuAction {
         //return at this point if this menu is disabled
         if (this.disabled == true) {
             this.arrowWhite.setPosition(newPos.x, newPos.y);
-            this.arrowWhite.draw(game.floatingBatch);
+            this.arrowWhite.draw(game.uiBatch);
             return;
         }
         //check user input
@@ -2638,7 +2733,7 @@ class DrawItemMenu extends MenuAction {
         //draw arrow
         if (this.cursorDelay >= 5) {
             this.arrow.setPosition(newPos.x, newPos.y);
-            this.arrow.draw(game.floatingBatch);
+            this.arrow.draw(game.uiBatch);
         }
         else {
             this.cursorDelay+=1;
@@ -2647,7 +2742,7 @@ class DrawItemMenu extends MenuAction {
         //draw downarrow if applicable
         if ( (this.itemsList.size() - this.currIndex) > 4 ) {
             if (this.downArrowTimer < 22) {
-                this.downArrow.draw(game.floatingBatch);
+                this.downArrow.draw(game.uiBatch);
             }
             this.downArrowTimer++;
         }
@@ -2882,7 +2977,7 @@ class DrawUseTossMenu extends MenuAction {
         //System.out.println("curr: " + curr);
 
         //draw text box
-        this.textBox.draw(game.floatingBatch);
+        this.textBox.draw(game.uiBatch);
 
         //debug
 //        helperSprite.draw(game.floatingBatch);
@@ -2892,7 +2987,7 @@ class DrawUseTossMenu extends MenuAction {
         for (ArrayList<Sprite> word : this.spritesToDraw) {
             for (Sprite sprite : word) {
                 //convert string to text 
-                game.floatingBatch.draw(sprite, sprite.getX() + 40, sprite.getY() - j*8 + 8);
+                game.uiBatch.draw(sprite, sprite.getX() + 40, sprite.getY() - j*8 + 8);
             }
             j+=1;
         }
@@ -2901,7 +2996,7 @@ class DrawUseTossMenu extends MenuAction {
         //draw arrow
         if (this.cursorDelay >= 2) {
             this.arrow.setPosition(newPos.x, newPos.y);
-            this.arrow.draw(game.floatingBatch);
+            this.arrow.draw(game.uiBatch);
         }
         else {
             this.cursorDelay+=1;
@@ -3003,7 +3098,7 @@ class DrawPokemonMenu extends MenuAction {
             this.prevMenu.step(game);
         }
 
-        this.bgSprite.draw(game.floatingBatch);    
+        this.bgSprite.draw(game.uiBatch);    
         
         //draw helper sprite
         //debug
@@ -3018,75 +3113,75 @@ class DrawPokemonMenu extends MenuAction {
             //animate current pokemon avatar
             if (i == this.currIndex) {
                 if (this.avatarAnimCounter >= 6) {
-                    game.floatingBatch.draw(currPokemon.avatarSprites.get(0), 8, 128 -16*i);
+                    game.uiBatch.draw(currPokemon.avatarSprites.get(0), 8, 128 -16*i);
                 }
                 else {
-                    game.floatingBatch.draw(currPokemon.avatarSprites.get(1), 8, 128 -16*i);
+                    game.uiBatch.draw(currPokemon.avatarSprites.get(1), 8, 128 -16*i);
                 }
             }
             else {
-                game.floatingBatch.draw(currPokemon.avatarSprites.get(0), 8, 128 -16*i);
+                game.uiBatch.draw(currPokemon.avatarSprites.get(0), 8, 128 -16*i);
             }
 
             //draw status bar
-            game.floatingBatch.draw(this.healthBar, 0, 128 -16*i);
+            game.uiBatch.draw(this.healthBar, 0, 128 -16*i);
 
             //draw pkmn level text
             int tensPlace = currPokemon.level/10;
             Sprite tensPlaceSprite = game.textDict.get(Character.forDigit(tensPlace,10));
-            game.floatingBatch.draw(tensPlaceSprite, 112, 136 -16*i);
+            game.uiBatch.draw(tensPlaceSprite, 112, 136 -16*i);
             int offset = 0;
             if (currPokemon.level >= 10) {
                 offset = 8;
             }
             int onesPlace = currPokemon.level % 10;
             Sprite onesPlaceSprite = game.textDict.get(Character.forDigit(onesPlace,10));
-            game.floatingBatch.draw(onesPlaceSprite, 112 +offset, 136 -16*i);
+            game.uiBatch.draw(onesPlaceSprite, 112 +offset, 136 -16*i);
 
             //draw pkmn max health text
             int maxHealth = currPokemon.maxStats.get("hp");
             int hundredsPlace = maxHealth/100;
             if (hundredsPlace > 0) {
                 Sprite hudredsPlaceSprite = game.textDict.get(Character.forDigit(hundredsPlace,10));
-                game.floatingBatch.draw(hudredsPlaceSprite, 136, 128 -16*i);
+                game.uiBatch.draw(hudredsPlaceSprite, 136, 128 -16*i);
             }
             tensPlace = (maxHealth % 100) / 10;
             if (tensPlace > 0 || hundredsPlace > 0) {
                 tensPlaceSprite = game.textDict.get(Character.forDigit(tensPlace,10));
-                game.floatingBatch.draw(tensPlaceSprite, 136 +8, 128 -16*i);
+                game.uiBatch.draw(tensPlaceSprite, 136 +8, 128 -16*i);
             }
             onesPlace = maxHealth % 10;
             onesPlaceSprite = game.textDict.get(Character.forDigit(onesPlace,10));
-            game.floatingBatch.draw(onesPlaceSprite, 136 +16, 128 -16*i);
+            game.uiBatch.draw(onesPlaceSprite, 136 +16, 128 -16*i);
 
             //draw pkmn current health text
             int currHealth = currPokemon.currentStats.get("hp");
             hundredsPlace = currHealth/100;
             if (hundredsPlace > 0) {
                 Sprite hudredsPlaceSprite = game.textDict.get(Character.forDigit(hundredsPlace,10));
-                game.floatingBatch.draw(hudredsPlaceSprite, 104, 128 -16*i);
+                game.uiBatch.draw(hudredsPlaceSprite, 104, 128 -16*i);
             }
             tensPlace = (currHealth % 100) / 10;
             if (tensPlace > 0 || hundredsPlace > 0) {
                 tensPlaceSprite = game.textDict.get(Character.forDigit(tensPlace,10));
-                game.floatingBatch.draw(tensPlaceSprite, 104 +8, 128 -16*i);
+                game.uiBatch.draw(tensPlaceSprite, 104 +8, 128 -16*i);
             }
             onesPlace = currHealth % 10;
             onesPlaceSprite = game.textDict.get(Character.forDigit(onesPlace,10));
-            game.floatingBatch.draw(onesPlaceSprite, 104 +16, 128 -16*i);
+            game.uiBatch.draw(onesPlaceSprite, 104 +16, 128 -16*i);
 
             //draw pokemon name
             char[] textArray = currPokemon.name.toUpperCase().toCharArray();
             Sprite letterSprite;
             for (int j=0; j < textArray.length; j++) {
                 letterSprite = game.textDict.get(textArray[j]);
-                game.floatingBatch.draw(letterSprite, 24 +8*j, 136 -16*i);
+                game.uiBatch.draw(letterSprite, 24 +8*j, 136 -16*i);
             }
 
             //draw health bar
             int targetSize = (int)Math.ceil( (currPokemon.currentStats.get("hp")*48) / currPokemon.maxStats.get("hp"));
             for (int j=0; j < targetSize; j++) {
-                game.floatingBatch.draw(this.healthSprite, 48 +1*j, 131 -16*i);
+                game.uiBatch.draw(this.healthSprite, 48 +1*j, 131 -16*i);
             }
         }
 
@@ -3096,14 +3191,14 @@ class DrawPokemonMenu extends MenuAction {
             Sprite letterSprite;
             for (int j=0; j < textArray.length; j++) {
                 letterSprite = game.textDict.get(textArray[j]);
-                game.floatingBatch.draw(letterSprite, 8 +8*j, 24);
+                game.uiBatch.draw(letterSprite, 8 +8*j, 24);
             }
         }
         
         if (this.drawArrowWhite == true) {
             //draw white arrow
             this.arrowWhite.setPosition(this.newPos.x, this.newPos.y);
-            this.arrowWhite.draw(game.floatingBatch);
+            this.arrowWhite.draw(game.uiBatch);
         }
 
         //return at this point if this menu is disabled
@@ -3134,17 +3229,37 @@ class DrawPokemonMenu extends MenuAction {
 
         //draw the arrow sprite
         this.arrow.setPosition(this.newPos.x, this.newPos.y);
-        this.arrow.draw(game.floatingBatch);
+        this.arrow.draw(game.uiBatch);
 
         //button interaction is below drawing b/c I want to be able to return here
         //if press a, draw use/toss for item
         if(Gdx.input.isKeyJustPressed(Input.Keys.Z)) { //using isKeyJustPressed rather than isKeyPressed
             PublicFunctions.insertToAS(game, new PlaySound("click1", new DoneAction()));
+            
+            // This was done from battle screen, so just send out pokemon.
+            if (this.prevMenu == null) {
+                game.player.currPokemon = game.player.pokemon.get(DrawPokemonMenu.currIndex);
+                game.actionStack.remove(this);
+                game.insertAction(new DrawPokemonMenu.Intro(13,
+                                  new DisplayText(game, "Go! "+game.player.currPokemon.name.toUpperCase()+"!",
+                                                  null, true, false,
+                                  new ThrowOutPokemonCrystal(game,
+                                  new PlaySound(game.player.currPokemon, 
+                                  new WaitFrames(game, 6,
+                                  new DrawFriendlyHealth(game,
+                                  new DisplayText.Clear(game,
+                                  new WaitFrames(game, 3,
+                                  new WaitFrames(game, 15,
+                                  new DrawBattleMenu_Normal(game,
+                                  null)))))))))));
+                return;
+            }
+            
 
             this.disabled = true;
             this.drawArrowWhite = true;
             //once player hits b in selected menu, avatar anim starts over
-            Pokemon currPokemon = game.player.pokemon.get(this.currIndex);
+            Pokemon currPokemon = game.player.pokemon.get(DrawPokemonMenu.currIndex);
             PublicFunctions.insertToAS(game, new DrawPokemonMenu.SelectedMenu(this, currPokemon));
             game.actionStack.remove(this);
             return;
@@ -3200,7 +3315,7 @@ class DrawPokemonMenu extends MenuAction {
 
     static class Intro extends Action {
 
-        MenuAction prevMenu;
+        Action nextAction;
 
         public int layer = 110;
         public int getLayer(){return this.layer;}
@@ -3213,21 +3328,24 @@ class DrawPokemonMenu extends MenuAction {
         @Override
         public void step(Game game) {
 
-            this.bgSprite.draw(game.floatingBatch);
+            this.bgSprite.draw(game.uiBatch);
             
             //draw a white bg for 18 frames
             this.duration--;
             
             if (this.duration <= 0) {
-                PublicFunctions.insertToAS(game, this.prevMenu);
+                PublicFunctions.insertToAS(game, this.nextAction);
                 game.actionStack.remove(this);
             }    
         }
 
-        public Intro(MenuAction prevMenu) {
+        public Intro(int duration, Action nextAction) {
+            this(nextAction);
+            this.duration = duration;
+        }
 
-            this.prevMenu = prevMenu;
-
+        public Intro(Action nextAction) {
+            this.nextAction = nextAction;
             Texture text = new Texture(Gdx.files.internal("battle/intro_frame6.png"));
             this.bgSprite = new Sprite(text, 0, 0, 16*10, 16*9);
         }
@@ -3260,7 +3378,7 @@ class DrawPokemonMenu extends MenuAction {
 
             //last from no white bg
             if (this.duration > 0) {
-                this.bgSprite.draw(game.floatingBatch);
+                this.bgSprite.draw(game.uiBatch);
             }
 
             if (this.duration <= 0) {
@@ -3305,6 +3423,11 @@ class DrawPokemonMenu extends MenuAction {
         
         // maps menu selection to an action
         public Action getAction(Game game, String word, MenuAction prevMenu) {
+            if (game.type == Game.Type.CLIENT) {
+                game.client.sendTCP(new com.pkmngen.game.Network.UseHM(game.player.network.id,
+                                                                       DrawPokemonMenu.currIndex,
+                                                                       word));
+            }
             if (word.equals("STATS")) {
                 return new SelectedMenu.Switch(prevMenu); //TODO - Stats menu
             }
@@ -3329,6 +3452,7 @@ class DrawPokemonMenu extends MenuAction {
                 game.player.isBuilding = true;  // tile to build appears in front of player
                 game.player.isCutting = false;
                 game.player.isHeadbutting = false;
+                game.player.isJumping = false;
                 return new SelectedMenu.ExitAfterActions(this.prevMenu,
                        new DisplayText(game, game.player.pokemon.get(DrawPokemonMenu.currIndex).name.toUpperCase()+" used BUILD! Press C and V to select tiles.", null, null, 
                        new DoneAction()
@@ -3338,6 +3462,7 @@ class DrawPokemonMenu extends MenuAction {
                 game.player.isCutting = true;
                 game.player.isBuilding = false;
                 game.player.isHeadbutting = false;
+                game.player.isJumping = false;
                 return new SelectedMenu.ExitAfterActions(this.prevMenu,
                        new DisplayText(game, game.player.pokemon.get(DrawPokemonMenu.currIndex).name.toUpperCase()+" is using CUT!", null, null, 
                        new DoneAction()));
@@ -3346,8 +3471,18 @@ class DrawPokemonMenu extends MenuAction {
                 game.player.isHeadbutting = true;
                 game.player.isBuilding = false;
                 game.player.isCutting = false;
+                game.player.isJumping = false;
                 return new SelectedMenu.ExitAfterActions(this.prevMenu,
                        new DisplayText(game, game.player.pokemon.get(DrawPokemonMenu.currIndex).name.toUpperCase()+" is using HEADBUTT!", null, null, 
+                       new DoneAction()));
+            }
+            else if (word.equals("JUMP")) {
+                game.player.isHeadbutting = false;
+                game.player.isBuilding = false;
+                game.player.isCutting = false;
+                game.player.isJumping = true;
+                return new SelectedMenu.ExitAfterActions(this.prevMenu,
+                       new DisplayText(game, game.player.pokemon.get(DrawPokemonMenu.currIndex).name.toUpperCase()+" is using JUMP!", null, null, 
                        new DoneAction()));
             }
             return null;
@@ -3384,7 +3519,7 @@ class DrawPokemonMenu extends MenuAction {
             }
 
             //draw text box
-            this.textBox.draw(game.floatingBatch);
+            this.textBox.draw(game.uiBatch);
 
             //debug
 //            helperSprite.draw(game.floatingBatch);
@@ -3397,14 +3532,14 @@ class DrawPokemonMenu extends MenuAction {
                     char letter = word.charAt(j);
                     //convert string to text 
                     letterSprite = game.textDict.get(letter);
-                    game.floatingBatch.draw(letterSprite, 104 +8*j, 40 -16*i);
+                    game.uiBatch.draw(letterSprite, 104 +8*j, 40 -16*i);
                     // todo: need to modify to shift words up if there are hms
                 }
             }
 
             //draw arrow sprite
             this.arrow.setPosition(newPos.x, newPos.y);
-            this.arrow.draw(game.floatingBatch);
+            this.arrow.draw(game.uiBatch);
 
             if(Gdx.input.isKeyJustPressed(Input.Keys.Z)) { 
                 
@@ -3608,7 +3743,7 @@ class DrawPokemonMenu extends MenuAction {
 
                 //draw arrow sprite
                 this.arrow.setPosition(newPos.x, newPos.y);
-                this.arrow.draw(game.floatingBatch);
+                this.arrow.draw(game.uiBatch);
 
                 if (this.disabled == true) {
                     return;
@@ -3632,12 +3767,12 @@ class DrawPokemonMenu extends MenuAction {
                     Sprite letterSprite;
                     for (int j=0; j < textArray.length; j++) {
                         letterSprite = game.textDict.get(textArray[j]);
-                        game.floatingBatch.draw(letterSprite, 8 +8*j, 24);
+                        game.uiBatch.draw(letterSprite, 8 +8*j, 24);
                     }
                     textArray = "where?".toCharArray();
                     for (int j=0; j < textArray.length; j++) {
                         letterSprite = game.textDict.get(textArray[j]);
-                        game.floatingBatch.draw(letterSprite, 8 +8*j, 8);
+                        game.uiBatch.draw(letterSprite, 8 +8*j, 8);
                     }
                 }
                 if (this.timer > 8) {
@@ -3688,7 +3823,7 @@ class DrawPokemonMenu extends MenuAction {
                         return;
                     }
                     //player presses b, ie wants to go back
-                    else if(Gdx.input.isKeyJustPressed(Input.Keys.X)) {
+                    else if (Gdx.input.isKeyJustPressed(Input.Keys.X)) {
 
                         this.disabled = true;
                         PublicFunctions.insertToAS(game, new PlaySound("click1", new DoneAction()));
@@ -3804,7 +3939,7 @@ class BattleFadeOut extends Action {
             //gui version
             this.frame.setScale(3); //scale doesn't work in batch.draw
             this.frame.setPosition(16*10,16*9);
-            this.frame.draw(game.floatingBatch);
+            this.frame.draw(game.uiBatch);
             //map version
             //game.batch.draw(this.frame, 16, -16);
         }
@@ -3961,7 +4096,7 @@ class DrawBattle extends Action {
     public void step(Game game) {
 
         
-        this.bgSprite.draw(game.floatingBatch);
+        this.bgSprite.draw(game.uiBatch);
 //        game.floatingBatch.draw(this.bgSprite,
 //                                this.bgSprite.getX(),
 //                                this.bgSprite.getY());
@@ -3970,15 +4105,15 @@ class DrawBattle extends Action {
 //        this.helperSprite.draw(game.floatingBatch);
 
         if (this.shouldDrawOppPokemon) {
-            game.battle.oppPokemon.sprite.draw(game.floatingBatch);
+            game.battle.oppPokemon.sprite.draw(game.uiBatch);
 //            game.floatingBatch.draw(game.battle.oppPokemon.sprite, 
 //                                    game.battle.oppPokemon.sprite.getX(),
 //                                    game.battle.oppPokemon.sprite.getY());
         }
-        game.player.battleSprite.draw(game.floatingBatch);
+        game.player.battleSprite.draw(game.uiBatch);
 
-        game.floatingBatch.draw(this.bgSprite2, -160-8, 0);
-        game.floatingBatch.draw(this.bgSprite2, 160+8, 0);
+        game.uiBatch.draw(this.bgSprite2, -160-8, 0);
+        game.uiBatch.draw(this.bgSprite2, 160+8, 0);
         
 //        game.floatingBatch.draw(game.player.battleSprite, game.player.battleSprite.getX(), game.player.battleSprite.getY());
         
@@ -4033,6 +4168,246 @@ class DrawBattle extends Action {
 }
 
 
+class EvolutionAnim extends Action {
+
+    public int layer = 130;
+    public int getLayer(){return this.layer;}
+
+    public String getCamera() {return "gui";};
+    
+    public static Sprite bgSprite;
+    Sprite spritePart;
+    Sprite preEvoSprite;
+    Sprite postEvoSprite;
+    Sprite preEvoSpriteTop;
+    Sprite postEvoSpriteTop;
+    Sprite preEvoSpriteBottom;
+    Sprite postEvoSpriteBottom;
+    
+    Music preEvoCry;
+    Music postEvoCry;
+
+    int timer = 0;
+
+    public static boolean drawSprite = true;
+    public static boolean drawPostEvoBottom = false;
+    public static boolean drawPostEvoTop = false;
+    public static boolean isGreyscale = false;
+    public static boolean playSound = false;
+    public static boolean isDone = false;
+    
+    Pokemon targetPokemon;
+    String targetName;
+    
+    /*
+     * Source: https://stackoverflow.com/questions/17516177/texture-grayscale-in-libgdx
+     */
+    static String vertexShader = "attribute vec4 a_position;\n" +
+            "attribute vec4 a_color;\n" +
+            "attribute vec2 a_texCoord0;\n" +
+            "\n" +
+            "uniform mat4 u_projTrans;\n" +
+            "\n" +
+            "varying vec4 v_color;\n" +
+            "varying vec2 v_texCoords;\n" +
+            "\n" +
+            "void main() {\n" +
+            "    v_color = a_color;\n" +
+            "    v_texCoords = a_texCoord0;\n" +
+            "    gl_Position = u_projTrans * a_position;\n" +
+            "}";
+
+    static String fragmentShader = "#ifdef GL_ES\n" +
+            "    precision mediump float;\n" +
+            "#endif\n" +
+            "\n" +
+            "varying vec4 v_color;\n" +
+            "varying vec2 v_texCoords;\n" +
+            "uniform sampler2D u_texture;\n" +
+            "\n" +
+            "void main() {\n" +
+            "  vec4 c = v_color * texture2D(u_texture, v_texCoords);\n" +
+//            "  float grey = (c.r + c.g + c.b) / 3.0;\n" +
+            "  int r = int(c.r*31.0);\n" +
+            "  int g = int(c.g*31.0);\n" +
+            "  int b = int(c.b*31.0);\n" +
+            "  int sum = r + g + b;\n" +
+            // casting to int for the sake of trying to keep it close to gbc approximations.
+            "  float grey = float(int(sum*sum*sum)/25947)/31.0;\n" +  // y = sum_c^3/25947
+            "  gl_FragColor = vec4(grey, grey, grey, c.a);\n" +
+            "}";
+
+    ShaderProgram grayscaleShader = new ShaderProgram(vertexShader, fragmentShader);
+    
+    @Override
+    public void firstStep(Game game) {
+        EvolutionAnim.drawSprite = false;
+        EvolutionAnim.drawPostEvoBottom = false;
+        EvolutionAnim.drawPostEvoTop = false;
+        EvolutionAnim.isGreyscale = false;
+        EvolutionAnim.playSound = false;
+        EvolutionAnim.isDone = false;
+        // TODO: refactor to using a flag in DrawBattle instead
+        game.actionStack.remove(game.battle.drawAction); //stop drawing the battle
+        game.battle.drawAction = null;
+        game.currMusic.stop();
+    }
+    
+    @Override
+    public void step(Game game) {
+        game.uiBatch.draw(EvolutionAnim.bgSprite, -8, -8);
+
+        // Screen is blank for 33 frames, then sprite appears
+        if (this.timer == 33) {
+            EvolutionAnim.drawSprite = true;
+            game.insertAction(this.nextAction);
+        }
+        
+        // TODO: this won't always line up
+        if (EvolutionAnim.playSound) {
+            EvolutionAnim.playSound = false;
+            Music sound = Gdx.audio.newMusic(Gdx.files.internal("evolve_fanfare1.ogg"));
+            sound.play();
+        }
+
+        if (EvolutionAnim.drawSprite) {
+            if (EvolutionAnim.isGreyscale) {
+                // TODO: I don't know how the gameboy is rendering sprites for the grayscale effect.
+                /*
+                 * A cubic function is at least close:
+                 * y = Output grayscale intensity, x = sum of rgb intensities
+                 * n*y = x^3
+                 * n*31 = (31*3)^3; n = 25947
+                 * 25947*y = x^3
+                 * Sample values from cyndaquil evolve anim:
+                 * 25947*y = (31 + 27 + 0)^3; y = 7 (correct)
+                 * 25947*y = (31 + 7 + 5)^3;  y = 3 (correct, except r=2, g=3, b=3 in reality) 
+                 * note: I scaled this from 31 to 1f in the shader. 31 is gameboy rgb channel size. 
+                 */
+                game.uiBatch.setShader(this.grayscaleShader);
+            }
+            
+            if (EvolutionAnim.drawPostEvoBottom) {
+                this.spritePart = this.postEvoSpriteBottom;
+            }
+            else {
+                this.spritePart = this.preEvoSpriteBottom;
+            }
+            // 64/72
+            game.uiBatch.draw(this.spritePart, (160/2)-((int)this.spritePart.getWidth()/2)+4, 72);
+            
+            if (EvolutionAnim.drawPostEvoTop) {
+                this.spritePart = this.postEvoSpriteTop;
+            }
+            else {
+                this.spritePart = this.preEvoSpriteTop;
+            }
+            // 64/72
+            game.uiBatch.draw(this.spritePart, (160/2)-((int)this.spritePart.getWidth()/2)+4, 72+(int)this.preEvoSpriteTop.getWidth()/2);
+
+            game.uiBatch.setShader(null);
+        }
+        if (EvolutionAnim.isDone) {
+            game.actionStack.remove(this);
+            // Actually evolve the pokemon
+            // TODO: add this logic to network code
+            this.targetPokemon.Evolve(this.targetName);
+        }
+        this.timer++;
+    }
+    
+    public EvolutionAnim(Pokemon targetPokemon, String evolveTo, Action nextAction) {
+        this.nextAction = nextAction;
+        this.targetPokemon = targetPokemon;
+        this.targetName = evolveTo;
+        Texture text = new Texture(Gdx.files.internal("battle/battle_bg3.png"));
+        EvolutionAnim.bgSprite = new Sprite(text, 0, 0, 176, 160);
+        this.preEvoSprite = new Sprite(targetPokemon.sprite);
+        this.preEvoSprite.flip(true, false);
+        // TODO: this might not work for prism pokemon
+        if (!Pokemon.textures.containsKey(evolveTo+"_front")) {
+            String dexNumber = Pokemon.nameToIndex(evolveTo);
+            if (Integer.valueOf(dexNumber) <= 251 && Integer.valueOf(dexNumber) > 0) {
+                Pokemon.textures.put(evolveTo+"_front", new Texture(Gdx.files.internal("crystal_pokemon/pokemon/" + evolveTo + "/front.png")));
+            }
+            // else assume prism pokemon
+            else {
+                Pokemon.textures.put(evolveTo+"_front", new Texture(Gdx.files.internal("crystal_pokemon/prism/pics/" + evolveTo + "/front.png")));
+            }
+        }
+        this.postEvoSprite = new Sprite(Pokemon.textures.get(evolveTo+"_front"));
+        this.postEvoSprite.flip(true, false);
+
+        this.preEvoSpriteBottom = new Sprite(this.preEvoSprite);
+        this.preEvoSpriteBottom.setRegionY((int)this.preEvoSprite.getWidth()/2);
+        this.preEvoSpriteBottom.setRegionHeight((int)this.preEvoSprite.getWidth()/2);
+        
+        this.postEvoSpriteBottom = new Sprite(this.postEvoSprite);
+        this.postEvoSpriteBottom.setRegionY((int)this.postEvoSprite.getWidth()-(int)this.preEvoSprite.getWidth()+(int)this.preEvoSprite.getWidth()/2);
+        this.postEvoSpriteBottom.setRegionHeight((int)this.preEvoSprite.getWidth()/2);
+
+        this.preEvoSpriteTop = new Sprite(this.preEvoSprite);
+        this.preEvoSpriteTop.setRegionY(0);
+        this.preEvoSpriteTop.setRegionHeight((int)this.preEvoSprite.getWidth()/2);
+        
+        this.postEvoSpriteTop = new Sprite(this.postEvoSprite);
+        this.postEvoSpriteTop.setRegionY(0);
+        this.postEvoSpriteTop.setRegionHeight((int)this.postEvoSprite.getWidth()-(int)this.preEvoSprite.getWidth()+(int)this.preEvoSprite.getWidth()/2);
+    }
+    
+    /*
+     * Start evolution music. 
+     */
+    public static class StartMusic extends Action {
+
+        @Override
+        public void firstStep(Game game) {
+            game.currMusic = Gdx.audio.newMusic(Gdx.files.internal("evolution1.ogg"));
+            game.currMusic.play();
+            game.actionStack.remove(this);
+        }
+    }
+    
+    /*
+     * Apply changes to evolved pokemon. 
+     */
+    public static class Done extends Action {
+
+        int timer = 0;
+
+        @Override
+        public void firstStep(Game game) {
+            Texture text = new Texture(Gdx.files.internal("battle/intro_frame6.png"));
+            EvolutionAnim.bgSprite = new Sprite(text, 0, 0, 176, 160);
+        }
+        
+        @Override
+        public void step(Game game) {
+            if (this.timer == 2) {
+                EvolutionAnim.drawSprite = false;
+            }
+            if (this.timer == 36) {
+                game.insertAction(new EnterBuilding(game, "",
+                                  new PlayerCanMove(game,
+                                  null)));
+            }
+            if (this.timer == 45) {
+                EvolutionAnim.isDone = true;
+                game.actionStack.remove(this);
+                game.insertAction(this.nextAction);  // TODO: unused realistically, probably should be a fade-out anim
+            }
+            
+            this.timer++;
+        }
+
+        public Done(Action nextAction) {
+            this.nextAction = nextAction;
+        }
+    }
+}
+
+
+
 // TODO: should either step into this in DrawBattle, or just
 // move this code to DrawBattle. 
 //instance of this assigned to DrawBattle.drawEnemyHealthAction
@@ -4053,13 +4428,13 @@ class DrawEnemyHealth extends Action {
             
             //draw helper sprite
              //probly remove
-            this.bgSprite.draw(game.floatingBatch);        
+            this.bgSprite.draw(game.uiBatch);        
             
             //draw pkmn level bars
             int tensPlace = game.battle.oppPokemon.level/10;
             //System.out.println("level: "+String.valueOf(tensPlace));
             Sprite tensPlaceSprite = game.textDict.get(Character.forDigit(tensPlace,10));
-            game.floatingBatch.draw(tensPlaceSprite, 40, 128);
+            game.uiBatch.draw(tensPlaceSprite, 40, 128);
     
             int offset = 0;
             if (game.battle.oppPokemon.level < 10) {
@@ -4068,18 +4443,18 @@ class DrawEnemyHealth extends Action {
             
             int onesPlace = game.battle.oppPokemon.level % 10;
             Sprite onesPlaceSprite = game.textDict.get(Character.forDigit(onesPlace,10));
-            game.floatingBatch.draw(onesPlaceSprite, 48+offset, 128);
+            game.uiBatch.draw(onesPlaceSprite, 48+offset, 128);
     
             char[] textArray = game.battle.oppPokemon.name.toUpperCase().toCharArray();
             Sprite letterSprite;
             for (int i=0; i < textArray.length; i++) {
                 letterSprite = game.textDict.get(textArray[i]);
-                game.floatingBatch.draw(letterSprite, 8+8*i, 136);
+                game.uiBatch.draw(letterSprite, 8+8*i, 136);
             }
             
             //draw health bar
             for (Sprite bar : this.healthBar) {
-                bar.draw(game.floatingBatch);
+                bar.draw(game.uiBatch);
             }
         }
         //detect when battle is over, 
@@ -4148,11 +4523,11 @@ class DrawFriendlyHealth extends Action {
             PublicFunctions.insertToAS(game, this.nextAction);
             this.nextAction = null;
         }
-        if (this.shouldDraw) {
+        if (DrawFriendlyHealth.shouldDraw) {
             
             //draw helper sprite
              //probly remove
-            this.bgSprite.draw(game.floatingBatch);        
+            this.bgSprite.draw(game.uiBatch);        
             
     
     //        this.helperSprite.draw(game.floatingBatch);    //debug
@@ -4161,7 +4536,7 @@ class DrawFriendlyHealth extends Action {
             int tensPlace = game.player.currPokemon.level/10;
             //System.out.println("level: "+String.valueOf(tensPlace));
             Sprite tensPlaceSprite = game.textDict.get(Character.forDigit(tensPlace,10));
-            game.floatingBatch.draw(tensPlaceSprite, 120, 72);
+            game.uiBatch.draw(tensPlaceSprite, 120, 72);
     
             int offset = 0;
             if (game.player.currPokemon.level < 10) {
@@ -4170,7 +4545,7 @@ class DrawFriendlyHealth extends Action {
             
             int onesPlace = game.player.currPokemon.level % 10;
             Sprite onesPlaceSprite = game.textDict.get(Character.forDigit(onesPlace,10));
-            game.floatingBatch.draw(onesPlaceSprite, 128+offset, 72);
+            game.uiBatch.draw(onesPlaceSprite, 128+offset, 72);
     
             char[] textArray = game.player.currPokemon.name.toUpperCase().toCharArray();
             Sprite letterSprite;
@@ -4183,12 +4558,12 @@ class DrawFriendlyHealth extends Action {
             }
             for (int i=0; i < textArray.length; i++) {
                 letterSprite = game.textDict.get(textArray[i]);
-                game.floatingBatch.draw(letterSprite, offset+96+8*i, 80);
+                game.uiBatch.draw(letterSprite, offset+96+8*i, 80);
             }
             
             //draw health bar
             for (Sprite bar : this.healthBar) {
-                bar.draw(game.floatingBatch);
+                bar.draw(game.uiBatch);
             }
         }
         //detect when battle is over, 
@@ -4290,24 +4665,29 @@ class DepleteEnemyHealth extends Action {
         }
         
         if (size <= targetSize) {
-
             game.actionStack.remove(this);
             
-            //if health is 0, run EnemyFaint
+            // If enemy health is 0, do EnemyFaint
             if (game.battle.oppPokemon.currentStats.get("hp") <= 0) {
-                
-                //TODO - play victory music here(?)
-                PublicFunctions.insertToAS(game, new EnemyFaint(game, 
-                                                 new RemoveDisplayText(  // TODO: refactor to stop using this
-                                                 new DisplayText.Clear(game,
-                                                 new WaitFrames(game, 3,
-                                                 new DisplayText(game, "Enemy "+game.battle.oppPokemon.name.toUpperCase()+" fainted!",
-                                                                 null, null, 
-                                                 new SplitAction(
-                                                     new BattleFadeOut(game,
-                                                     new DoneAction()), 
-                                                 new BattleFadeOutMusic(game, new DoneAction())
-                                                 )))))));
+                int exp = game.battle.calcFaintExp();
+                game.player.currPokemon.exp += exp;
+                Action nextAction = new EnemyFaint(game, 
+                                    new RemoveDisplayText(  // TODO: refactor to stop using this
+                                    new DisplayText.Clear(game,
+                                    new WaitFrames(game, 3,
+                                    new DisplayText(game, "Enemy "+game.battle.oppPokemon.name.toUpperCase()+" fainted!",
+                                                    null, null,
+                                    new DisplayText(game, game.player.currPokemon.name.toUpperCase()+" gained "+String.valueOf(exp)+" EXP. Points!",
+                                                    null, true, true,
+                                    new GainExpAnimation(
+                                    null)))))));
+
+                nextAction.appendAction(new SplitAction(
+                                            new BattleFadeOut(game,
+                                            null), 
+                                        new BattleFadeOutMusic(game,
+                                        null)));
+                PublicFunctions.insertToAS(game, nextAction);
             }
             //else, insert nextAction
             else {
@@ -4392,23 +4772,17 @@ class DepleteFriendlyHealth extends Action {
         else {
             this.removeNumber = 2;
         }
-        
+
+        // If health is 0, this pokemon should faint
         if (size <= targetSize) {
-
             game.actionStack.remove(this);
-            
-            //if health is 0, this pokemon should faint
             if (this.pokemon.currentStats.get("hp") <= 0) {
-
-
-                //TODO - your pokemon should faint
-
                 PublicFunctions.insertToAS(game, new FriendlyFaint(game,  
                                                  new RemoveDisplayText(
                                                  new WaitFrames(game, 3, 
-                                                 new DisplayText(game, ""+this.pokemon.name.toUpperCase()+" fainted!",
+                                                 new DisplayText(game, this.pokemon.name.toUpperCase()+" fainted!",
                                                                  null, null, 
-                                                 //decide whether to switch pkmn, send out player, or end game
+                                                 // TODO: decide whether to switch pkmn, send out player, or end game
                                                  new AfterFriendlyFaint()
                                                  )))));
             }
@@ -4436,30 +4810,37 @@ class DepleteFriendlyHealth extends Action {
 
 
 class AfterFriendlyFaint extends Action {
-
-    
     public int layer = 129;
     public int getLayer(){return this.layer;}
-
     
-    
-    
-
     @Override
     public void step(Game game) {
-    
-        //for now, insert two text actions
-        
+        game.actionStack.remove(this);
+        boolean hasAlivePokemon = false;
+        for (Pokemon pokemon : game.player.pokemon) {
+            if (pokemon.currentStats.get("hp") > 0) {
+                hasAlivePokemon = true;
+                break;
+            }
+        }
+        // TODO: network code for this doesn't work yet.
+        if (hasAlivePokemon) {
+            PublicFunctions.insertToAS(game, new DisplayText.Clear(game,
+                                             new WaitFrames(game, 3,
+                                             new DrawPokemonMenu.Intro(
+                                             new DrawPokemonMenu(game,
+                                             null)))));
+            return;
+        }
         PublicFunctions.insertToAS(game, new DisplayText(game, ""+game.player.name.toUpperCase()+" is out of useable POKÈMON!", null, null, 
-                                          new DisplayText(game, ""+game.player.name.toUpperCase()+" whited out!", null, null, 
+                                         new DisplayText(game, ""+game.player.name.toUpperCase()+" whited out!", null, null, 
                                          new SplitAction(
                                              new BattleFadeOut(game,
                                              new DoneWithDemo(game)),
 //                                         new BattleFadeOutMusic(game,  // TODO: re-enable
                                          new DoneAction()
                                          ))));
-        
-        game.actionStack.remove(this);
+
     }
     
 
@@ -4547,7 +4928,7 @@ class ThrowRock extends Action {
         if (this.sprite != null) {
             //this.sprite.setScale(3); //post scaling change
             this.sprite.setPosition(position.x, position.y);
-            this.sprite.draw(game.floatingBatch);
+            this.sprite.draw(game.uiBatch);
         }
         
 //        if (this.frames.size() == 1) { //debug
@@ -4705,7 +5086,7 @@ class ThrowBait extends Action {
         if (this.sprite != null) {
             //this.sprite.setScale(3); //post scaling change
             this.sprite.setPosition(position.x, position.y);
-            this.sprite.draw(game.floatingBatch);
+            this.sprite.draw(game.uiBatch);
         }
         
 //        if (this.frames.size() == 1) { //debug
@@ -4845,7 +5226,7 @@ class ThrowPokeball extends Action {
         if (this.sprite != null) {
             //this.sprite.setScale(3);  //post scaling change
             this.sprite.setPosition(position.x, position.y);
-            this.sprite.draw(game.floatingBatch);            
+            this.sprite.draw(game.uiBatch);            
         }
         
         //debug
@@ -5008,7 +5389,7 @@ class ThrowFastPokeball extends Action {
         if (this.sprite != null) {
             //this.sprite.setScale(3);  //post scaling change
             this.sprite.setPosition(position.x, position.y);
-            this.sprite.draw(game.floatingBatch);            
+            this.sprite.draw(game.uiBatch);            
         }
         
         //debug
@@ -5195,7 +5576,7 @@ class ThrowHyperPokeball extends Action {
         if (this.sprite != null) {
             //this.sprite.setScale(3);  //post scaling change
             this.sprite.setPosition(position.x, position.y);
-            this.sprite.draw(game.floatingBatch);            
+            this.sprite.draw(game.uiBatch);            
         }
         
         //debug
@@ -5413,7 +5794,7 @@ class catchPokemon_wigglesThenCatch extends Action {
         if (this.sprite != null) {
             //this.sprite.setScale(3); //post scaling change
             this.sprite.setPosition(position.x, position.y);
-            this.sprite.draw(game.floatingBatch);            
+            this.sprite.draw(game.uiBatch);            
         }
         
 //        if (this.repeats.size() == 18) { //debug 
@@ -5625,7 +6006,7 @@ class catchPokemon_wiggles1Time extends Action {
         if (this.sprite != null) {
             //this.sprite.setScale(3); //post scaling change
             this.sprite.setPosition(position.x, position.y);
-            this.sprite.draw(game.floatingBatch);            
+            this.sprite.draw(game.uiBatch);            
         }
         
         //debug
@@ -5797,7 +6178,7 @@ class catchPokemon_wiggles2Times extends Action {
         if (this.sprite != null) {
             //this.sprite.setScale(3); //post scaling change
             this.sprite.setPosition(position.x, position.y);
-            this.sprite.draw(game.floatingBatch);            
+            this.sprite.draw(game.uiBatch);            
         }
         
         //debug
@@ -6005,7 +6386,7 @@ class catchPokemon_wiggles3Times extends Action {
         if (this.sprite != null) {
             //this.sprite.setScale(3); //post scaling change
             this.sprite.setPosition(position.x, position.y);
-            this.sprite.draw(game.floatingBatch);            
+            this.sprite.draw(game.uiBatch);            
         }
         
         //debug
@@ -6349,7 +6730,7 @@ class OppPokemonFlee extends Action {
 
         //this.sprite.setScale(3); //post scaling change
         game.battle.oppPokemon.sprite.setPosition(position.x, position.y);
-        game.battle.oppPokemon.sprite.draw(game.floatingBatch);    
+        game.battle.oppPokemon.sprite.draw(game.uiBatch);    
         
         
         //debug
@@ -6434,7 +6815,7 @@ class PokemonCaught_Events extends Action {
     public void step(Game game) {
 
 
-        this.pokeballSprite.draw(game.floatingBatch);
+        this.pokeballSprite.draw(game.uiBatch);
         
         //when text action first appears, start checking for when it leaves AS
         if (this.startLooking == false && game.actionStack.contains(this.displayTextAction)) {
@@ -6573,7 +6954,7 @@ class ThrowOutPokemon extends Action {
             // TODO: not sure why I was doing this, assuming it was for a reason
             for (int i = 0; i < this.sprite.length; i++) {
                 for (int j = 0; j < this.sprite[i].length; j++) {
-                    this.sprite[i][j].draw(game.floatingBatch);
+                    this.sprite[i][j].draw(game.uiBatch);
                 }
             }
             
@@ -6592,7 +6973,7 @@ class ThrowOutPokemon extends Action {
                 for (int j = 0; j < this.sprite[i].length; j++) {
                     if (this.sprite[i][j] != null) {
                         this.sprite[i][j].setPosition(position.x+8*i, position.y+8*j);
-                        this.sprite[i][j].draw(game.floatingBatch);    
+                        this.sprite[i][j].draw(game.uiBatch);    
                     }
                 }
             }
@@ -6859,7 +7240,7 @@ class ThrowOutPokemonCrystal extends Action {
           for (int k = 0; k < this.sprite.length; k++) {
               for (int i = 0; i < this.sprite[k].length; i++) {
                   for (int j = 0; j < this.sprite[k][i].length; j++) {
-                      this.sprite[k][i][j].draw(game.floatingBatch);
+                      this.sprite[k][i][j].draw(game.uiBatch);
                   }
               }
           }
@@ -6880,7 +7261,7 @@ class ThrowOutPokemonCrystal extends Action {
                   for (int j = 0; j < this.sprite[k][i].length; j++) {
                       if (this.sprite[k][i][j] != null) {
                           this.sprite[k][i][j].setPosition(position.x +8*i -4*k, position.y +8*j -8*k);
-                          this.sprite[k][i][j].draw(game.floatingBatch);    
+                          this.sprite[k][i][j].draw(game.uiBatch);    
                       }
                   }
               }
@@ -7249,7 +7630,7 @@ class SpecialBattleMewtwo extends Action {
 //                                    this.mewtwo.sprite.getX(),
 //                                    this.mewtwo.sprite.getY() + this.offsetY);
             this.mewtwo.breathingSprite.setPosition(this.mewtwo.sprite.getX(), this.mewtwo.sprite.getY() + this.offsetY);
-            this.mewtwo.breathingSprite.draw(game.floatingBatch);
+            this.mewtwo.breathingSprite.draw(game.uiBatch);
             
             if (game.battle.drawAction == null) {
                 game.actionStack.remove(this);
@@ -7316,54 +7697,54 @@ class SpecialBattleMewtwo extends Action {
             if (this.timer == 0) {
                 // TODO: will fail if WebGL (maybe LibGDX has fixed this?)
                 ShaderProgram shader = new ShaderProgram(this.vertexShader, this.getShader(.8f));
-                game.floatingBatch.setShader(shader);
+                game.uiBatch.setShader(shader);
 //                game.battle.oppPokemon.sprite.setColor(.2f, .2f, .2f, .2f);
             }
             
             
             if (this.timer == 490) {
                 ShaderProgram shader = new ShaderProgram(this.vertexShader, this.getShader(.6f));
-                game.floatingBatch.setShader(shader);
+                game.uiBatch.setShader(shader);
             }
             else if (this.timer == 490 + 6) {
                 ShaderProgram shader = new ShaderProgram(this.vertexShader, this.getShader(.4f));
-                game.floatingBatch.setShader(shader);
+                game.uiBatch.setShader(shader);
             }
             else if (this.timer == 490 + 6*2) {
                 ShaderProgram shader = new ShaderProgram(this.vertexShader, this.getShader(.2f));
-                game.floatingBatch.setShader(shader);
+                game.uiBatch.setShader(shader);
             }
             else if (this.timer == 490 + 6*3) {
                 ShaderProgram shader = new ShaderProgram(this.vertexShader, this.getShader(0f));
-                game.floatingBatch.setShader(shader);
+                game.uiBatch.setShader(shader);
             }
             else if (this.timer == 490 + 6*4) {
                 ShaderProgram shader = new ShaderProgram(this.vertexShader, this.getShader(-.2f));
-                game.floatingBatch.setShader(shader);
+                game.uiBatch.setShader(shader);
             }
             else if (this.timer == 490 + 6*5) {
                 ShaderProgram shader = new ShaderProgram(this.vertexShader, this.getShader(-.4f));
-                game.floatingBatch.setShader(shader);
+                game.uiBatch.setShader(shader);
             }
             else if (this.timer == 490 + 6*6) {
                 ShaderProgram shader = new ShaderProgram(this.vertexShader, this.getShader(-.6f));
-                game.floatingBatch.setShader(shader);
+                game.uiBatch.setShader(shader);
             }
             else if (this.timer == 490 + 6*7) {
                 ShaderProgram shader = new ShaderProgram(this.vertexShader, this.getShader(-.8f));
-                game.floatingBatch.setShader(shader);
+                game.uiBatch.setShader(shader);
             }
             else if (this.timer == 490 + 6*8) {
                 ShaderProgram shader = new ShaderProgram(this.vertexShader, this.getShader(-.85f));
-                game.floatingBatch.setShader(shader);
+                game.uiBatch.setShader(shader);
             }
             else if (this.timer == 490 + 6*9) {
                 ShaderProgram shader = new ShaderProgram(this.vertexShader, this.getShader(-.90f));
-                game.floatingBatch.setShader(shader);
+                game.uiBatch.setShader(shader);
             }
             else if (this.timer == 490 + 6*10) {
                 ShaderProgram shader = new ShaderProgram(this.vertexShader, this.getShader(-.95f));
-                game.floatingBatch.setShader(shader);
+                game.uiBatch.setShader(shader);
             }
             else if (this.timer == 490 + 6*11) {
                 // stop displaying text box
@@ -7371,14 +7752,14 @@ class SpecialBattleMewtwo extends Action {
                 game.displayTextAction = null;
 
                 ShaderProgram shader = new ShaderProgram(this.vertexShader, this.getShader(-1f));
-                game.floatingBatch.setShader(shader);
+                game.uiBatch.setShader(shader);
             }
             else if (this.timer == 490 + 6*19 + 3) {
                 ShaderProgram shader = new ShaderProgram(this.vertexShader, this.getShader(-.5f));
-                game.floatingBatch.setShader(shader);
+                game.uiBatch.setShader(shader);
             }
             else if (this.timer == 490 + 6*19 + 5) {
-                game.floatingBatch.setShader(null);
+                game.uiBatch.setShader(null);
             }
             else if (this.timer == 620) {
                 SpecialBattleMewtwo.DrawBreathingSprite.shouldBreathe = true;
@@ -7515,7 +7896,7 @@ class SpecialBattleMewtwo extends Action {
                 //gui version
                     //this.frame.setScale(3); //scale doesn't work in batch.draw //used these when scaling mattered
                     //this.frame.setPosition(16*10,16*9);
-                this.frame.draw(game.floatingBatch);
+                this.frame.draw(game.uiBatch);
                 //map version
                 //game.batch.draw(this.frame, 16, -16);
             }
@@ -7571,7 +7952,7 @@ class SpecialBattleMewtwo extends Action {
 //                        this.sprite.setColor(this.pixmap.getPixel(i*3, j*3)); //trippy colors
                         this.sprite.setColor(new Color(this.pixmap.getPixel(i*3, j*3)));
                         this.sprite.setPosition(i + this.offsets[j], j + this.yPos);
-                        this.sprite.draw(game.floatingBatch);
+                        this.sprite.draw(game.uiBatch);
                     }
                 }
             }
@@ -7703,13 +8084,13 @@ class SpecialBattleMewtwo extends Action {
                 if (this.sprites[i].getX() < 0) {
                     this.sprites[i].setPosition(160, rand.nextInt(144) - 32);
                 }
-                this.sprites[i].draw(game.floatingBatch);
+                this.sprites[i].draw(game.uiBatch);
 
             }
             this.whichVelocity = (this.whichVelocity + 1) % 2;
 
             //need textbox over animation
-            this.textboxSprite.draw(game.floatingBatch);
+            this.textboxSprite.draw(game.uiBatch);
             
             if (game.battle.drawAction == null) {
                 game.actionStack.remove(this);
@@ -7820,7 +8201,7 @@ class SpecialBattleMewtwo extends Action {
 //
 //            this.bgSprite.setColor(this.curr_value, this.curr_value, this.curr_value, 1f);
 //            this.bgSprite2.setColor(this.curr_value, this.curr_value, this.curr_value, 1f);
-            this.bgSprite.draw(game.floatingBatch);
+            this.bgSprite.draw(game.uiBatch);
 //            game.floatingBatch.draw(this.bgSprite, 0, 0);
 
             if (this.drawRocks) {
@@ -7850,11 +8231,11 @@ class SpecialBattleMewtwo extends Action {
                         this.sprites[i].setPosition(160, rand.nextInt(144-32));
                         this.sprites[i].setRotation(rand.nextInt(4) * 90);
                     }
-                    this.sprites[i].draw(game.floatingBatch);
+                    this.sprites[i].draw(game.uiBatch);
 
                 }
                 this.whichVelocity = (this.whichVelocity + 1) % 2;
-                this.bgSprite2.draw(game.floatingBatch);
+                this.bgSprite2.draw(game.uiBatch);
             }
 
             
@@ -7918,9 +8299,9 @@ class SpecialBattleMewtwo extends Action {
 //            this.helperSprite.draw(game.floatingBatch);
 
             if (shouldDrawOppPokemon) {
-                game.battle.oppPokemon.sprite.draw(game.floatingBatch);
+                game.battle.oppPokemon.sprite.draw(game.uiBatch);
             }
-            game.player.battleSprite.draw(game.floatingBatch);
+            game.player.battleSprite.draw(game.uiBatch);
         }
         
         public DrawBattle1(Game game) {
@@ -8125,7 +8506,7 @@ class SpecialBattleMegaGengar extends Action {
             }
 
             //need bg under the animation
-            this.bgSprite.draw(game.floatingBatch);
+            this.bgSprite.draw(game.uiBatch);
             
             // TODO: this needs to be above draw enemy sprite
             //
@@ -8136,10 +8517,10 @@ class SpecialBattleMegaGengar extends Action {
 //                                    this.mewtwo.sprite.getY() + this.offsetY);
             //breathing sprite is on top of base in this instance
             this.gengar.breathingSprite.setPosition(this.gengar.sprite.getX(), this.gengar.sprite.getY() - this.offsetY);
-            this.gengar.breathingSprite.draw(game.floatingBatch);
+            this.gengar.breathingSprite.draw(game.uiBatch);
             // annoying workaround
             this.gengar.sprite.setPosition(this.gengar.sprite.getX(), this.gengar.sprite.getY() - this.offsetY2);
-            this.gengar.sprite.draw(game.floatingBatch);
+            this.gengar.sprite.draw(game.uiBatch);
             this.gengar.sprite.setPosition(this.gengar.sprite.getX(), this.gengar.sprite.getY() + this.offsetY2);
             
             if (game.battle.drawAction == null) {
@@ -8177,7 +8558,7 @@ class SpecialBattleMegaGengar extends Action {
             if (this.firstStep) {
                 // TODO: will fail if WebGL (maybe LibGDX has fixed this?)
                 ShaderProgram shader = new ShaderProgram(this.vertexShader, this.getShader(.8f));
-                game.floatingBatch.setShader(shader);
+                game.uiBatch.setShader(shader);
                 this.firstStep = false;
             }
 
@@ -8232,23 +8613,23 @@ class SpecialBattleMegaGengar extends Action {
             //start of flash anim
             else if (this.timer == 20) {
                 ShaderProgram shader = new ShaderProgram(this.vertexShader, this.getShader(.7f));
-                game.floatingBatch.setShader(shader);
+                game.uiBatch.setShader(shader);
             }
             else if (this.timer == 20 + 24) {
                 ShaderProgram shader = new ShaderProgram(this.vertexShader, this.getShader(.6f));
-                game.floatingBatch.setShader(shader);
+                game.uiBatch.setShader(shader);
             }
             else if (this.timer == 20 + 24*2) {
                 ShaderProgram shader = new ShaderProgram(this.vertexShader, this.getShader(.4f));
-                game.floatingBatch.setShader(shader);
+                game.uiBatch.setShader(shader);
             }
             else if (this.timer == 20 + 24*3) {
                 ShaderProgram shader = new ShaderProgram(this.vertexShader, this.getShader(.2f));
-                game.floatingBatch.setShader(shader);
+                game.uiBatch.setShader(shader);
             }
             else if (this.timer == 20 + 24*4) {
                 ShaderProgram shader = new ShaderProgram(this.vertexShader, this.getShader(0f));
-                game.floatingBatch.setShader(shader);
+                game.uiBatch.setShader(shader);
             }
 //            else if (this.timer == 490 + 6*4) {
 //                ShaderProgram shader = new ShaderProgram(this.vertexShader, this.getShader(-.2f));
@@ -8432,7 +8813,7 @@ class SpecialBattleMegaGengar extends Action {
                 //gui version
                     //this.frame.setScale(3); //scale doesn't work in batch.draw //used these when scaling mattered
                     //this.frame.setPosition(16*10,16*9);
-                this.frame.draw(game.floatingBatch);
+                this.frame.draw(game.uiBatch);
                 //map version
                 //game.batch.draw(this.frame, 16, -16);
             }
@@ -8486,7 +8867,7 @@ class SpecialBattleMegaGengar extends Action {
 //            if (shouldDrawOppPokemon) {
 //                game.battle.oppPokemon.sprite.draw(game.floatingBatch);
 //            }
-            game.player.battleSprite.draw(game.floatingBatch);
+            game.player.battleSprite.draw(game.uiBatch);
         }
         
         public DrawBattle1(Game game) {
@@ -9016,7 +9397,7 @@ class Battle_Actions extends Action {
                             this.blockSprite.setColor(new Color(this.pixmap.getPixel(i*3, j*3)));
                             // not using this.currPosition.y here, but may in future animations
                             this.blockSprite.setPosition(i + this.currPosition.x, j + this.currPosition.y);
-                            this.blockSprite.draw(game.floatingBatch);
+                            this.blockSprite.draw(game.uiBatch);
                         }
                     }
                     this.screenPositions.remove(0);
@@ -9051,7 +9432,7 @@ class Battle_Actions extends Action {
             //draw current sprite
             if (this.sprite != null) {
                 this.sprite.setPosition(position.x, position.y);
-                this.sprite.draw(game.floatingBatch);            
+                this.sprite.draw(game.uiBatch);            
             }
 
             //debug
@@ -9199,7 +9580,7 @@ class Battle_Actions extends Action {
                             this.blockSprite.setColor(new Color(this.pixmap.getPixel(i*3, j*3)));
                             // not using this.currPosition.y here, but may in future animations
                             this.blockSprite.setPosition(i + this.currPosition.x, j + this.currPosition.y);
-                            this.blockSprite.draw(game.floatingBatch);
+                            this.blockSprite.draw(game.uiBatch);
                         }
                     }
                     this.screenPositions.remove(0);
@@ -9234,7 +9615,7 @@ class Battle_Actions extends Action {
             //draw current sprite
             if (this.sprite != null) {
                 this.sprite.setPosition(position.x, position.y);
-                this.sprite.draw(game.floatingBatch);            
+                this.sprite.draw(game.uiBatch);            
             }
             
             //debug
@@ -9392,7 +9773,7 @@ class Battle_Actions extends Action {
                             this.blockSprite.setColor(new Color(this.pixmap.getPixel(i*3, j*3)));
                             // not using this.currPosition.y here, but may in future animations
                             this.blockSprite.setPosition(i + this.currPosition.x, j + this.currPosition.y);
-                            this.blockSprite.draw(game.floatingBatch);
+                            this.blockSprite.draw(game.uiBatch);
                         }
                     }
                     this.screenPositions.remove(0);
@@ -9427,7 +9808,7 @@ class Battle_Actions extends Action {
             //draw current sprite
             if (this.sprite != null) {
                 this.sprite.setPosition(position.x, position.y);
-                this.sprite.draw(game.floatingBatch);            
+                this.sprite.draw(game.uiBatch);            
             }
             
             //debug
@@ -9450,7 +9831,7 @@ class Battle_Actions extends Action {
                 this.currShaderVal = this.shaderVals.get(0);
                 this.currShader = new ShaderProgram(this.vertexShader,
                                                     this.currShaderVal);
-                game.floatingBatch.setShader(this.currShader);
+                game.uiBatch.setShader(this.currShader);
                 this.shaderVals.remove(0);
             }
         }
@@ -9643,7 +10024,7 @@ class Battle_Actions extends Action {
                 this.currShaderVal = this.shaderVals.get(0);
                 this.currShader = new ShaderProgram(this.vertexShader,
                                                     this.currShaderVal);
-                game.floatingBatch.setShader(this.currShader);
+                game.uiBatch.setShader(this.currShader);
                 this.shaderVals.remove(0);
             }
             else if (!this.offsets.isEmpty()) {
@@ -9660,7 +10041,7 @@ class Battle_Actions extends Action {
                         // rather than using Color.set() on existing Color
                         this.sprite.setColor(new Color(this.pixmap.getPixel(i*3, j*3)));
                         this.sprite.setPosition(i + this.currOffsets[j%16], j);
-                        this.sprite.draw(game.floatingBatch);
+                        this.sprite.draw(game.uiBatch);
                     }
                 }
                 this.offsets.remove(0);
@@ -9679,7 +10060,7 @@ class Battle_Actions extends Action {
                         this.sprite.setColor(new Color(this.pixmap.getPixel(i*3, j*3)));
                         // not using this.currPosition.y here, but may in future animations
                         this.sprite.setPosition(i + this.currPosition.x, j + this.currPosition.y);
-                        this.sprite.draw(game.floatingBatch);
+                        this.sprite.draw(game.uiBatch);
                     }
                 }
                 this.positions.remove(0);
@@ -10016,7 +10397,7 @@ class Battle_Actions extends Action {
 
                 this.currShader = new ShaderProgram(this.vertexShader,
                                                     this.getShader(.8f));
-                game.floatingBatch.setShader(this.currShader);
+                game.uiBatch.setShader(this.currShader);
                 // pause rock anim
                 SpecialBattleMewtwo.RocksEffect1.shouldMoveY = false;
                 SpecialBattleMewtwo.RocksEffect2.shouldMoveY = false;
@@ -10029,59 +10410,59 @@ class Battle_Actions extends Action {
                 SpecialBattleMewtwo.RocksEffect1.velocityX = -8;
                 SpecialBattleMewtwo.RocksEffect2.velocityX = -2;  // TODO: is this doing anything?
                 this.currShader = new ShaderProgram(this.vertexShader, this.getShader(.6f));
-                game.floatingBatch.setShader(this.currShader);
+                game.uiBatch.setShader(this.currShader);
             }
             else if (this.timer == 120) {
                 SpecialBattleMewtwo.RocksEffect1.velocityX = -12;
                 SpecialBattleMewtwo.RocksEffect2.velocityX = -3;
                 this.currShader = new ShaderProgram(this.vertexShader, this.getShader(.4f));
-                game.floatingBatch.setShader(this.currShader);
+                game.uiBatch.setShader(this.currShader);
             }
             else if (this.timer == 180) {
                 SpecialBattleMewtwo.RocksEffect1.velocityX = -16;
                 SpecialBattleMewtwo.RocksEffect2.velocityX = -4;
                 this.currShader = new ShaderProgram(this.vertexShader, this.getShader(.2f));
-                game.floatingBatch.setShader(this.currShader);
+                game.uiBatch.setShader(this.currShader);
             }
             else if (this.timer == 190) {
                 this.currShader = new ShaderProgram(this.vertexShader, this.getShader(.3f));
-                game.floatingBatch.setShader(this.currShader);
+                game.uiBatch.setShader(this.currShader);
             }
             else if (this.timer == 200) {
                 this.currShader = new ShaderProgram(this.vertexShader, this.getShader(0f));
-                game.floatingBatch.setShader(this.currShader);
+                game.uiBatch.setShader(this.currShader);
             }
             else if (this.timer == 210) {
                 this.currShader = new ShaderProgram(this.vertexShader, this.getShader(.1f));
-                game.floatingBatch.setShader(this.currShader);
+                game.uiBatch.setShader(this.currShader);
             }
             else if (this.timer == 220) {
                 this.currShader = new ShaderProgram(this.vertexShader, this.getShader(-.2f));
-                game.floatingBatch.setShader(this.currShader);
+                game.uiBatch.setShader(this.currShader);
             }
             else if (this.timer == 230) {
                 this.currShader = new ShaderProgram(this.vertexShader, this.getShader(-.1f));
-                game.floatingBatch.setShader(this.currShader);
+                game.uiBatch.setShader(this.currShader);
             }
             else if (this.timer == 240) {
                 this.currShader = new ShaderProgram(this.vertexShader, this.getShader(-.4f));
-                game.floatingBatch.setShader(this.currShader);
+                game.uiBatch.setShader(this.currShader);
             }
             else if (this.timer == 250) {
                 this.currShader = new ShaderProgram(this.vertexShader, this.getShader(-.3f));
-                game.floatingBatch.setShader(this.currShader);
+                game.uiBatch.setShader(this.currShader);
             }
             else if (this.timer == 260) {
                 this.currShader = new ShaderProgram(this.vertexShader, this.getShader(-.6f));
-                game.floatingBatch.setShader(this.currShader);
+                game.uiBatch.setShader(this.currShader);
             }
             else if (this.timer == 270) {
                 this.currShader = new ShaderProgram(this.vertexShader, this.getShader(-.5f));
-                game.floatingBatch.setShader(this.currShader);
+                game.uiBatch.setShader(this.currShader);
             }
             else if (this.timer == 280) {
                 this.currShader = new ShaderProgram(this.vertexShader, this.getShader(-.8f));
-                game.floatingBatch.setShader(this.currShader);
+                game.uiBatch.setShader(this.currShader);
             }
             else if (this.timer < 300) {
                 
@@ -10096,15 +10477,15 @@ class Battle_Actions extends Action {
 
                 if (this.timer == 340) {
                     this.currShader = new ShaderProgram(this.vertexShader, this.getShader(-.6f));
-                    game.floatingBatch.setShader(this.currShader);
+                    game.uiBatch.setShader(this.currShader);
                 }
                 if (this.timer == 400) {
                     this.currShader = new ShaderProgram(this.vertexShader, this.getShader(-.4f));
-                    game.floatingBatch.setShader(this.currShader);
+                    game.uiBatch.setShader(this.currShader);
                 }
                 if (this.timer == 460) {
                     this.currShader = new ShaderProgram(this.vertexShader, this.getShader(-.2f));
-                    game.floatingBatch.setShader(this.currShader);
+                    game.uiBatch.setShader(this.currShader);
                 }
                 
                 if (this.timer == 305 +150) {
@@ -10142,7 +10523,7 @@ class Battle_Actions extends Action {
             else if (this.timer == 550) {
                 game.player.currPokemon.backSprite.setAlpha(1);
                 this.currShader = new ShaderProgram(this.vertexShader, this.getShader(0f));
-                game.floatingBatch.setShader(this.currShader);
+                game.uiBatch.setShader(this.currShader);
                 SpecialBattleMewtwo.RocksEffect1.shouldMoveY = true;
                 SpecialBattleMewtwo.RocksEffect2.shouldMoveY = true;
             }
@@ -10410,8 +10791,10 @@ class Battle_Actions extends Action {
                     }
                     reader.close();
                     // load sound to play and play it
-                    this.sound = Gdx.audio.newMusic(Gdx.files.internal("attacks/" + this.name + "/sound.ogg"));
-                    this.sound.play();
+                    if (!this.name.contains("evolve")) {
+                        this.sound = Gdx.audio.newMusic(Gdx.files.internal("attacks/" + this.name + "/sound.ogg"));
+                        this.sound.play();
+                    }
                 } catch (FileNotFoundException e) {
                     e.printStackTrace();
                 } catch (IOException e) {
@@ -10430,9 +10813,12 @@ class Battle_Actions extends Action {
             DrawEnemyHealth.shouldDraw = true;
             DrawFriendlyHealth.shouldDraw = true;
             DrawBattle.shouldDrawOppPokemon = true;
+            EvolutionAnim.isGreyscale = false;
+//            EvolutionAnim.playStarterCry = false;  // TODO: remove
+//            EvolutionAnim.playEvoCry = false;
             game.player.currPokemon.backSprite.setPosition(this.playerSpriteOrigin.x, this.playerSpriteOrigin.y);
             game.battle.oppPokemon.sprite.setPosition(this.enemySpriteOrigin.x, this.enemySpriteOrigin.y);
-            game.floatingBatch.setTransformMatrix(new Matrix4(new Vector3(0,0,0), new Quaternion(), new Vector3(1,1,1)));
+            game.uiBatch.setTransformMatrix(new Matrix4(new Vector3(0,0,0), new Quaternion(), new Vector3(1,1,1)));
             
             // if next frame doesn't exist in animation, return
             FileHandle filehandle = Gdx.files.internal("attacks/" + this.name + "/output/frame-" + String.format("%03d", this.frameNum) + ".png"); 
@@ -10449,6 +10835,8 @@ class Battle_Actions extends Action {
 //                }
                 return;
             }
+            EvolutionAnim.drawPostEvoBottom = false;
+            EvolutionAnim.drawPostEvoTop = false;
             
             // draw water effect if present
             if (this.metadata.containsKey(this.frameNum)) {
@@ -10514,7 +10902,7 @@ class Battle_Actions extends Action {
 //                    Sprite drawSprite = new Sprite(new Texture(this.pixmap));
 //                    drawSprite.scale(.3f);
 //                    drawSprite.setPosition(this.pixmapX, this.pixmapY);
-                    game.floatingBatch.draw(drawSprite, this.pixmapX, this.pixmapY);
+                    game.uiBatch.draw(drawSprite, this.pixmapX, this.pixmapY);
 //                    drawSprite.draw(game.floatingBatch);
                 }
             }
@@ -10522,7 +10910,7 @@ class Battle_Actions extends Action {
             // draw current frame
             this.currText = new Texture(filehandle);
             this.currFrame = new Sprite(this.currText, 0, 0, 160, 144);
-            this.currFrame.draw(game.floatingBatch);
+            this.currFrame.draw(game.uiBatch);
             
             // handle metadata
             if (this.metadata.containsKey(this.frameNum)) {
@@ -10538,11 +10926,11 @@ class Battle_Actions extends Action {
                 }
                 if (properties.contains("screen_translate_y")) {
                     int translateAmt = Integer.valueOf(properties.split("screen_translate_y:")[1].split(" ")[0]);
-                    game.floatingBatch.setTransformMatrix(new Matrix4(new Vector3(0,translateAmt,0), new Quaternion(), new Vector3(1,1,1)));
+                    game.uiBatch.setTransformMatrix(new Matrix4(new Vector3(0,translateAmt,0), new Quaternion(), new Vector3(1,1,1)));
                 }
                 if (properties.contains("screen_translate_x")) {
                     int translateAmt = Integer.valueOf(properties.split("screen_translate_x:")[1].split(" ")[0]);
-                    game.floatingBatch.setTransformMatrix(new Matrix4(new Vector3(translateAmt,0,0), new Quaternion(), new Vector3(1,1,1)));
+                    game.uiBatch.setTransformMatrix(new Matrix4(new Vector3(translateAmt,0,0), new Quaternion(), new Vector3(1,1,1)));
                 }
                 if (properties.contains("player_translate_x")) {
                     int translateAmt = Integer.valueOf(properties.split("player_translate_x:")[1].split(" ")[0]);
@@ -10560,6 +10948,18 @@ class Battle_Actions extends Action {
                     int translateAmt = Integer.valueOf(properties.split("enemy_translate_y:")[1].split(" ")[0]);
                     game.battle.oppPokemon.sprite.setPosition(game.battle.oppPokemon.sprite.getX(), game.battle.oppPokemon.sprite.getY()+translateAmt);
                 }
+                if (properties.contains("evo_top_sprite_changed")) {
+                    EvolutionAnim.drawPostEvoTop = true;
+                }
+                if (properties.contains("evo_bottom_sprite_changed")) {
+                    EvolutionAnim.drawPostEvoBottom = true;
+                }
+                if (properties.contains("sprite_greyscale")) {
+                    EvolutionAnim.isGreyscale = true;
+                }
+                if (properties.contains("play_evo_fanfare")) {
+                    EvolutionAnim.playSound = true;
+                }
             }
             
             this.frameNum++;
@@ -10570,8 +10970,11 @@ class Battle_Actions extends Action {
             if (target == game.player.currPokemon) {
                 this.name = this.name+"_enemy_gsc";
             }
-            else {
+            else if (target == game.battle.oppPokemon) {
                 this.name = this.name+"_player_gsc";
+            }
+            else {
+                this.name = this.name+"_gsc";
             }
             this.target = target;
             this.nextAction = nextAction;

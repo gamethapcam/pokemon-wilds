@@ -2,13 +2,16 @@ package com.pkmngen.game;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.audio.Music;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Sprite;
+import com.badlogic.gdx.graphics.glutils.ShaderProgram;
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
@@ -55,6 +58,53 @@ public class Action {
         }
         currAction.nextAction = action;
     }
+}
+
+
+/*
+ * Idea for 'runnable' action.
+ * 
+ * TODO: I think since this will be posted to the Gdx thread, it will just cause the thread to hang.
+ */
+class RunnableAction implements Runnable {
+
+    public static Game game = Game.staticGame;
+    
+    boolean firstStep = true;
+    Action nextAction = null;
+    
+    @Override
+    public void run() {  // Can't pass game here
+        try {
+            synchronized (this) {
+                this.wait();
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        if (this.firstStep) {
+            this.firstStep = false;
+            this.firstStep(game);
+        }
+        this.step(game);
+        synchronized (this) {
+            this.notify();
+        }
+    }
+
+    // TODO: change name
+    public void waitHere() throws InterruptedException{
+        synchronized (this) {
+            this.notify();
+            this.wait();
+        }
+    }
+
+    // What one time before anything else.
+    public void firstStep(Game game){}
+
+    // What to do at each iteration.
+    public void step(Game game){}
 }
 
 
@@ -158,7 +208,7 @@ class draw_laser1 extends Action {
 
         this.sprite.translate(this.velocityXY.x, this.velocityXY.y);
         
-        this.sprite.draw(game.batch);
+        this.sprite.draw(game.mapBatch);
         
         timer += 1;
         if (timer >= 100) {
@@ -212,7 +262,7 @@ class draw_crosshair extends Action {
         //this.crosshair.setScale(1/game.cam.zoom);
         
         //draw
-        this.crosshair.draw(game.batch);
+        this.crosshair.draw(game.mapBatch);
                 
     }
     
@@ -350,7 +400,7 @@ class control_ship1 extends Action {
         
         //draw ship hull
         this.hullOuter.rotate(torque);
-        this.hullOuter.draw(game.batch);
+        this.hullOuter.draw(game.mapBatch);
         
         //angle of 'where ship _should_ be going'
         this.angle = this.hullOuter.getRotation(); 
@@ -404,7 +454,7 @@ class control_ship1 extends Action {
             //add velocity
             //tile.translate(velX, velY);
             //draw the tile
-            tile.draw(game.batch);
+            tile.draw(game.mapBatch);
             
             Vector2 tileVec = new Vector2(this.tilesVecs.get(tile));
             
@@ -556,7 +606,7 @@ class drawAction_map1 extends Action {
         for (int i=min_i; i <= max_i; i++) {
             for (int j=min_j; j <= max_j; j++) {
                 this.bgmapSprite.setPosition(i*bgmapSprite.getWidth()*bgmapSprite.getScaleX(), j*bgmapSprite.getHeight()*bgmapSprite.getScaleY());
-                this.bgmapSprite.draw(game.batch);
+                this.bgmapSprite.draw(game.mapBatch);
             }
         }
     }
@@ -640,9 +690,9 @@ class DrawObjectives extends Action {
             numSideDone = numSide;
         }
         
-        this.bgSprite.draw(game.floatingBatch);
-        game.font.draw(game.floatingBatch, "Objective: "+numMainDone+mainObj, 18, 136);
-        game.font.draw(game.floatingBatch, "Extra: "+numSideDone+sideObj, 30, 130); 
+        this.bgSprite.draw(game.uiBatch);
+        game.font.draw(game.uiBatch, "Objective: "+numMainDone+mainObj, 18, 136);
+        game.font.draw(game.uiBatch, "Extra: "+numSideDone+sideObj, 30, 130); 
         
         
         if (this.timer < 8) {
@@ -747,8 +797,8 @@ class DoneWithDemo extends Action {
     @Override
     public void step(Game game) {
         
-        this.bgSprite.draw(game.floatingBatch);
-        game.font.draw(game.floatingBatch, "Thanks for playing!",44,80);
+        this.bgSprite.draw(game.uiBatch);
+        game.font.draw(game.uiBatch, "Thanks for playing!",44,80);
         
     }
 
@@ -818,7 +868,7 @@ class DisplayText extends Action {
         
         //debug
         //this.helperSprite.draw(game.floatingBatch);
-        this.bgSprite.draw(game.floatingBatch);
+        this.bgSprite.draw(game.uiBatch);
         
         //debug //flash on and off
 //        this.timer--;
@@ -833,7 +883,7 @@ class DisplayText extends Action {
         
         //draw all drawable
         for (Sprite sprite : spritesBeingDrawn) {
-            sprite.draw(game.floatingBatch);    
+            sprite.draw(game.uiBatch);    
         }
 
         
@@ -901,7 +951,7 @@ class DisplayText extends Action {
                     this.timer = 33;
                 }
                 else {
-                    this.arrowSprite.draw(game.floatingBatch);
+                    this.arrowSprite.draw(game.uiBatch);
                 }
             }
             this.timer--;
@@ -1142,6 +1192,8 @@ class DisplayText extends Action {
 
     /*
      * Clear any text persisting on screen.
+     * 
+     * TODO: refactor to always insert WaitFrames(3) before nextAction.
      */
     static class Clear extends Action {
 
@@ -1171,11 +1223,10 @@ class DisplayText extends Action {
             this.nextAction = nextAction;
             this.playedYet = false;
             
-            if (sound == "fanfare1") {
+            if (sound.equals("fanfare1")) {
                 this.music = Gdx.audio.newMusic(Gdx.files.internal("catch_fanfare.mp3")); //use this
                 this.music.setLooping(false);
             }
-
             else if (sound == "Raikou") {
                 this.music = Gdx.audio.newMusic(Gdx.files.internal("pokemon/cries/243Cry.ogg")); //use this
                 this.music.setLooping(false);
@@ -1186,6 +1237,10 @@ class DisplayText extends Action {
             }
             else if (sound == "Suicune") {
                 this.music = Gdx.audio.newMusic(Gdx.files.internal("pokemon/cries/245Cry.ogg"));
+                this.music.setLooping(false);
+            }
+            else {
+                this.music = Gdx.audio.newMusic(Gdx.files.internal(sound)); //use this
                 this.music.setLooping(false);
             }
         }
@@ -1253,23 +1308,27 @@ class WaitFrames extends Action {
     }
 }
 
+/*
+ * TODO: migrate references of this to call game.insertAction() instead.
+ */
 class PublicFunctions {
     //this is for inserting into the AS at proper layer
     public static void insertToAS(Game game, Action actionToInsert) {
-        // handle null entry by skipping
-        if (actionToInsert == null) {
-            return;
-        }
-        //for item in as
-        for (int i = 0; i < game.actionStack.size(); i++) {
-            //if actionToInsert layer is <=  action layer, insert before element
-            if (actionToInsert.getLayer() >= game.actionStack.get(i).getLayer()) {
-                game.actionStack.add(i, actionToInsert);
-                return;
-            }
-        }
-        //layer is smallest in stack, add to end
-        game.actionStack.add(actionToInsert);
+//        // handle null entry by skipping
+//        if (actionToInsert == null) {
+//            return;
+//        }
+//        //for item in as
+//        for (int i = 0; i < game.actionStack.size(); i++) {
+//            //if actionToInsert layer is <=  action layer, insert before element
+//            if (actionToInsert.getLayer() >= game.actionStack.get(i).getLayer()) {
+//                game.actionStack.add(i, actionToInsert);
+//                return;
+//            }
+//        }
+//        //layer is smallest in stack, add to end
+//        game.actionStack.add(actionToInsert);
+        game.insertAction(actionToInsert);
     }
 }
 
@@ -1330,7 +1389,7 @@ class DisplayTextIntro extends Action {
         
         //debug
         //this.helperSprite.draw(game.floatingBatch);
-        this.bgSprite.draw(game.floatingBatch);
+        this.bgSprite.draw(game.uiBatch);
         
         //debug //flash on and off
 //        this.timer--;
@@ -1345,7 +1404,7 @@ class DisplayTextIntro extends Action {
         
         //draw all drawable
         for (Sprite sprite : spritesBeingDrawn) {
-            sprite.draw(game.floatingBatch);    
+            sprite.draw(game.uiBatch);    
         }
 
         
@@ -2214,3 +2273,312 @@ class FadeMusic extends Action {
         this.onCompleteListener = onCompleteListener;
     }
 }
+
+/*
+ * Displayed at the beginning of the game so that the player can specify setup options.
+ */
+class DrawSetupMenu extends Action { 
+
+    public int layer = 107;
+    public int getLayer(){return this.layer;}
+
+    public String getCamera() {return "gui";};
+
+    Sprite bgSprite;
+    Sprite helperSprite;
+    Sprite arrow;
+    Sprite arrowFlipped;
+    Sprite arrowWhite;
+    ArrayList<Sprite> avatarSprites = new ArrayList<Sprite>();
+    int avatarColorIndex = 0;
+    Vector2 newPos;
+    Map<Integer, Vector2> arrowCoords;
+    public static boolean drawChoosePokemonText = true;
+    public static int avatarAnimCounter = 24;
+    public static int currIndex = 0; //currently selected menu item
+    public static int lastIndex = 0;
+
+    ArrayList<Character> name = new ArrayList<Character>();
+    ArrayList<Character> serverIp = new ArrayList<Character>();
+
+    // TODO: there probably is an easier way to do this.
+    HashMap<Integer, Character> alphanumericKeys = new HashMap<Integer, Character>();
+    HashMap<Integer, Character> alphanumericKeysShift = new HashMap<Integer, Character>();
+    HashMap<Integer, Character> numberKeys = new HashMap<Integer, Character>();
+    ArrayList<Color> colors = new ArrayList<Color>();
+
+    @Override
+    public void step(Game game) {
+        this.bgSprite.draw(game.uiBatch); 
+
+        for (int j=0; j < 4; j++) {
+
+            // Name: _ (enter name)
+            if (j == 0) {
+                char[] textArray = "Name".toCharArray();
+                Sprite letterSprite;
+                for (int i=0; i < textArray.length; i++) {
+                    letterSprite = game.textDict.get(textArray[i]);
+                    game.uiBatch.draw(letterSprite, 16 +8*i, 128 -16*j);
+                }
+
+                // Let the player type their name in via keyboard
+                if (j == DrawSetupMenu.currIndex) {
+
+                    if (this.name.size() < 11) {
+                        if (Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT)) {
+                            for (Integer key : this.alphanumericKeysShift.keySet()) {
+                                if (Gdx.input.isKeyJustPressed(key)) {
+                                    this.name.add(this.alphanumericKeysShift.get(key));
+                                }
+                            }
+                        }
+                        else {
+                            for (Integer key : this.alphanumericKeys.keySet()) {
+                                if (Gdx.input.isKeyJustPressed(key)) {
+                                    this.name.add(this.alphanumericKeys.get(key));
+                                }
+                            }
+                        }
+                    }
+                    if (Gdx.input.isKeyJustPressed(Input.Keys.BACKSPACE) && this.name.size() > 0) {
+                        this.name.remove(this.name.size()-1);
+                    }
+                    if (DrawSetupMenu.avatarAnimCounter >= 12) {
+                        letterSprite = game.textDict.get('.');
+                        game.uiBatch.draw(letterSprite, 16 +5*8 + 8*this.name.size(), 128 -16*j);
+                    }
+                }
+
+                for (int i=0; i < this.name.size(); i++) {
+                    letterSprite = game.textDict.get(this.name.get(i));
+                    game.uiBatch.draw(letterSprite, 16 +5*8 +8*i, 128 -16*j);
+                }
+
+            }
+
+            // < (character sprite) > 
+            if (j == 1) {
+                Sprite avatarSprite;
+                // Animate player avatar
+                if (j == DrawSetupMenu.currIndex) {
+                    if (DrawSetupMenu.avatarAnimCounter >= 18) {
+                        avatarSprite = new Sprite(this.avatarSprites.get(0));
+                    }
+                    else if (DrawSetupMenu.avatarAnimCounter >= 12) {
+                        avatarSprite = new Sprite(this.avatarSprites.get(1));
+                    }
+                    else if (DrawSetupMenu.avatarAnimCounter >= 6) {
+                        avatarSprite = new Sprite(this.avatarSprites.get(0));
+                    }
+                    else {
+                        avatarSprite = new Sprite(this.avatarSprites.get(2));
+                    }
+                    
+                    if (Gdx.input.isKeyJustPressed(Input.Keys.LEFT)) {
+                        this.avatarColorIndex--;
+                        if (this.avatarColorIndex < 0) {
+                            this.avatarColorIndex = this.colors.size()-1;
+                        }
+                        game.player.setColor(this.colors.get(this.avatarColorIndex));
+                        this.avatarSprites.clear();
+                        this.avatarSprites.add(game.player.standingSprites.get("down"));
+                        this.avatarSprites.add(game.player.movingSprites.get("down"));
+                        this.avatarSprites.add(game.player.altMovingSprites.get("down"));
+                    }
+                    if (Gdx.input.isKeyJustPressed(Input.Keys.RIGHT)) {
+                        this.avatarColorIndex++;
+                        if (this.avatarColorIndex >= this.colors.size()) {
+                            this.avatarColorIndex = 0;
+                        }
+                        game.player.setColor(this.colors.get(this.avatarColorIndex));
+                        this.avatarSprites.clear();
+                        this.avatarSprites.add(game.player.standingSprites.get("down"));
+                        this.avatarSprites.add(game.player.movingSprites.get("down"));
+                        this.avatarSprites.add(game.player.altMovingSprites.get("down"));
+                    }
+                    
+                }
+                else {
+                    avatarSprite = new Sprite(this.avatarSprites.get(0));
+                }
+                avatarSprite.setPosition(24, 124 -16*j);
+                avatarSprite.draw(game.uiBatch);
+                game.uiBatch.draw(this.arrowFlipped, 16, 124 -16*j);
+                game.uiBatch.draw(this.arrow, 43, 124 -16*j);
+            }
+
+            // Server IP address (or "Local") _ (enter ip)
+            if (j == 2) {
+                char[] textArray = "Server IP".toCharArray();
+                Sprite letterSprite;
+                for (int i=0; i < textArray.length; i++) {
+                    letterSprite = game.textDict.get(textArray[i]);
+                    game.uiBatch.draw(letterSprite, 16 +8*i, 128 -16*j);
+                }
+                for (int i=0; i < this.serverIp.size(); i++) {
+                    letterSprite = game.textDict.get(this.serverIp.get(i));
+                    game.uiBatch.draw(letterSprite, 16 +8*i, 128 -16*(j+1));
+                }
+                
+                if (j == DrawSetupMenu.currIndex) {
+                    if (this.serverIp.size() < 15) {
+                        for (Integer key : this.numberKeys.keySet()) {
+                            if (Gdx.input.isKeyJustPressed(key)) {
+                                this.serverIp.add(this.numberKeys.get(key));
+                            }
+                        }
+                    }
+                    if (Gdx.input.isKeyJustPressed(Input.Keys.BACKSPACE) && this.serverIp.size() > 0) {
+                        this.serverIp.remove(this.serverIp.size()-1);
+                    }
+                    if (DrawSetupMenu.avatarAnimCounter >= 12) {
+                        letterSprite = game.textDict.get('.');
+                        game.uiBatch.draw(letterSprite, 16 + 8*this.serverIp.size(), 128 -16 -16*j);
+                    }
+                }
+                
+            }
+
+            // Go!
+            if (j == 3) {
+                char[] textArray = "Go!".toCharArray();
+                Sprite letterSprite;
+                for (int i=0; i < textArray.length; i++) {
+                    letterSprite = game.textDict.get(textArray[i]);
+                    game.uiBatch.draw(letterSprite, 16 +8*i, 128 -16 -16*j);
+                }
+                if (j == DrawSetupMenu.currIndex) {
+                    // Set up the map.
+                    if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
+                        game.actionStack.remove(this);
+                        game.start();
+                    }
+                }
+            }
+        }
+
+        //decrement avatar anim counter
+        DrawSetupMenu.avatarAnimCounter--;
+        if (DrawSetupMenu.avatarAnimCounter <= 0) {
+            DrawSetupMenu.avatarAnimCounter = 24;
+        }
+
+        //handle arrow input
+        if(Gdx.input.isKeyJustPressed(Input.Keys.UP)) {
+            if (DrawSetupMenu.currIndex > 0) {
+                DrawSetupMenu.currIndex -= 1;
+                DrawSetupMenu.avatarAnimCounter = 24; //reset to 12 for 1 extra frame of first frame for avatar anim
+            }
+        }
+        else if(Gdx.input.isKeyJustPressed(Input.Keys.DOWN)) {
+            if (DrawSetupMenu.currIndex < 3) {
+                DrawSetupMenu.currIndex += 1;
+                DrawSetupMenu.avatarAnimCounter = 24; //reset to 12 for 1 extra frame of first frame for avatar anim
+            }
+        }
+
+        newPos = this.arrowCoords.get(DrawSetupMenu.currIndex);
+
+        //draw the arrow sprite
+        this.arrow.setPosition(this.newPos.x, this.newPos.y);
+        this.arrow.draw(game.uiBatch);
+
+        //      //button interaction is below drawing b/c I want to be able to return here
+        //      //if press a, draw use/toss for item
+        //      if(Gdx.input.isKeyJustPressed(Input.Keys.Z)) { //using isKeyJustPressed rather than isKeyPressed
+        //          PublicFunctions.insertToAS(game, new PlaySound("click1", new DoneAction()));
+        //          
+        //          
+        //
+        //          this.disabled = true;
+        //          this.drawArrowWhite = true;
+        //          //once player hits b in selected menu, avatar anim starts over
+        //          Pokemon currPokemon = game.player.pokemon.get(DrawPokemonMenu.currIndex);
+        //          PublicFunctions.insertToAS(game, new DrawPokemonMenu.SelectedMenu(this, currPokemon));
+        //          game.actionStack.remove(this);
+        //          return;
+        //      }
+    }
+
+    public DrawSetupMenu(Game game, Action nextAction) {
+
+        this.nextAction = nextAction;
+
+        Texture text = new Texture(Gdx.files.internal("battle/arrow_right_white.png"));
+        this.arrowWhite = new Sprite(text, 0, 0, 5, 7);
+
+        text = new Texture(Gdx.files.internal("battle/arrow_right1.png"));
+        this.arrow = new Sprite(text, 0, 0, 5, 7);
+        this.arrowFlipped = new Sprite(this.arrow);
+        this.arrowFlipped.flip(true, false);
+
+        this.avatarSprites.add(game.player.standingSprites.get("down"));
+        this.avatarSprites.add(game.player.movingSprites.get("down"));
+        this.avatarSprites.add(game.player.altMovingSprites.get("down"));
+
+        //      text = new Texture(Gdx.files.internal("pokemon_menu/health_bar.png"));
+        //      this.healthBar = new Sprite(text, 0, 0, 160, 16);
+
+        DrawSetupMenu.currIndex = DrawSetupMenu.lastIndex;
+
+        this.arrowCoords = new HashMap<Integer, Vector2>();
+        for (int i=0; i < 3; i++) {
+            this.arrowCoords.put(i, new Vector2(1, 128 - 16*i));
+        }
+        for (int i=3; i < 4; i++) {
+            this.arrowCoords.put(i, new Vector2(1, 128 -16 -16*i));
+        }
+        //cursor position based on lastIndex
+        this.newPos = this.arrowCoords.get(DrawSetupMenu.currIndex);
+
+        //TODO: debug, delete
+        //      for (int i=0; i < game.player.pokemon.size(); i++) {
+        //          System.out.println(game.player.pokemon.get(i).maxStats.get("hp"));
+        //      }
+
+        //      text = new Texture(Gdx.files.internal("battle/health1.png"));
+        //      this.healthSprite = new Sprite(text, 0,0,1,2);
+
+        text = new Texture(Gdx.files.internal("battle/battle_bg3.png"));
+        this.bgSprite = new Sprite(text, 0, 0, 16*10, 16*9);
+
+        //helper sprite
+        //      text = new Texture(Gdx.files.internal("pokemon_menu/helper1.png"));
+        //      Texture text = new Texture(Gdx.files.internal("pokemon_menu/helper2.png"));
+        //      this.helperSprite = new Sprite(text, 0,0, 16*10, 16*9);
+
+        char[] textArray = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".toCharArray();
+        for (int i=0; i < textArray.length; i++) {
+            this.alphanumericKeys.put(Input.Keys.valueOf(String.valueOf(textArray[i])), String.valueOf(textArray[i]).toLowerCase().charAt(0));
+            this.alphanumericKeysShift.put(Input.Keys.valueOf(String.valueOf(textArray[i])), textArray[i]);
+        }
+
+        textArray = "1234567890".toCharArray();
+        for (int i=0; i < textArray.length; i++) {
+            this.numberKeys.put(Input.Keys.valueOf(String.valueOf(textArray[i])), textArray[i]);
+        }
+        this.numberKeys.put(Input.Keys.PERIOD, '.');
+        
+        this.colors.add(new Color(0.9137255f, 0.5294118f, 0.1764706f, 1f));  // Original texture color.
+        this.colors.add(Color.WHITE);
+        this.colors.add(Color.BLACK);
+        this.colors.add(new Color(46f/255f, 113f/255f, 1f, 1f));  // blue
+        this.colors.add(Color.CYAN);
+        this.colors.add(new Color(47f/255f, 229f/255f, 53f/255f, 1f));  // green
+        this.colors.add(Color.MAGENTA);
+        this.colors.add(Color.MAROON);
+        this.colors.add(Color.YELLOW);
+//        this.colors.add(new Color(245f/255f, 250f/255f, 90f/255f, 1f));  // yellow
+        this.colors.add(Color.OLIVE);
+        this.colors.add(Color.TEAL);
+        this.colors.add(Color.RED);
+        this.colors.add(Color.PURPLE);
+        this.colors.add(new Color(255f/255f, 115f/255f, 200f/255f, 1f));  // pink
+    }
+}
+
+
+
+
+

@@ -158,8 +158,9 @@ class GenIsland1 extends Action {
         edgeTiles.add(copyTile);
         Vector2 dir1 = new Vector2(this.rand.nextInt(200)-100, this.rand.nextInt(200)-100);
         Vector2 dir2 = dir1.cpy().rotate(180);
-        System.out.println(dir1);
-        System.out.println(dir2);
+        // TODO: debug, remove
+//        System.out.println(dir1);
+//        System.out.println(dir2);
         edgeDirs.put(originTile, dir1);
         edgeDirs.put(copyTile, dir2);
         
@@ -514,7 +515,7 @@ class GenIsland1 extends Action {
                 mtnTiles2.put(tile.position.cpy(), newTile);
             }
         }
-        
+
         // add all mtnTiles in bulk
         tilesToAdd.putAll(mtnTiles);
         tilesToAdd.putAll(mtnTiles2);
@@ -541,6 +542,7 @@ class GenIsland1 extends Action {
 //		int isMaze = 1; // this.rand.nextInt(2);
         isMaze = 1; //this.rand.nextInt(2);
 		HashMap<Vector2, Tile> forestMazeTiles = new HashMap<Vector2, Tile>();
+//		Route beachRoute = new Route("beach1", 5);
 
 		while (!edgeTiles.isEmpty()) {
 			for (Tile tile : new ArrayList<Tile>(edgeTiles.values())) {
@@ -567,6 +569,7 @@ class GenIsland1 extends Action {
 								int isGrass = this.rand.nextInt(maxDist/8) + (int)distance;
 								if (isGrass < 1*maxDist/2) {
 								    if ((int)distance < 3*maxDist/8) {
+								        // TODO: remove if unused
 //	                                    if (this.rand.nextInt(8) == 0) {
 //	                                        if (this.rand.nextInt(2) == 0) {
 //	                                            newTile = new Tile("green6", edge);
@@ -601,6 +604,10 @@ class GenIsland1 extends Action {
                                     else if (randInt > 1) {
                                         tempRoute.pokemon.add(new Pokemon("Exeggcute", 10+this.rand.nextInt(4), Pokemon.Generation.CRYSTAL));
                                     }
+                                    // TODO: probably will just make puddles spawn pokemon, not sure
+//                                    if (this.rand.nextInt(2) == 0) {
+//                                        ApplyBlotch(game, "grass_sand", newTile, 35, grassTiles, 0, false, beachRoute);
+//                                    }
                                     newTile = new Tile("tree5", edge, true, tempRoute);
 								}
                                 if (isMaze == 0) {
@@ -615,8 +622,8 @@ class GenIsland1 extends Action {
 								int grassBlotchHere = this.rand.nextInt(maxDist/4) + (int)distance;
 								int grassBlotchHere2 = this.rand.nextInt(maxDist);
                                 int grassBlotchHere3 = this.rand.nextInt(maxDist);
-								if ((int)distance > 1*maxDist/4
-									&& (int)distance < maxDist - maxDist/5
+								if ( //(int)distance > 1*maxDist/4 &&  // TODO: what was this for? test.
+									(int)distance < maxDist - maxDist/5
 									&& grassBlotchHere < 3*maxDist/7
 								    && grassBlotchHere2 < maxDist/4
                                     && (maxDist < 300 || grassBlotchHere3 < maxDist/8)) {
@@ -636,7 +643,11 @@ class GenIsland1 extends Action {
 								Tile newTile = new Tile("grass2", edge, false, currRoute);
 								tilesToAdd.put(newTile.position.cpy(), newTile);
 								edgeTiles.put(newTile.position.cpy(), newTile);
-							}
+							} else if (type.equals("grass_sand")) {
+                                Tile newTile = new Tile("grass_sand1", edge, false, currRoute);
+                                tilesToAdd.put(newTile.position.cpy(), newTile);
+                                edgeTiles.put(newTile.position.cpy(), newTile);
+                            }
                             // foresty blotch
                             else if (type.equals("mtn_green1") || type.equals("mtn_snow1")) {
                                 Tile newTile;
@@ -918,6 +929,9 @@ class GenIsland1 extends Action {
 
         // post-process - remove stray trees
         // TODO: there's still some white tiles
+        // TODO: this occasionally causes crash (when tile == null)
+        // Might need a better way to store tiles bigger than 16x16
+        //  TODO: I should just have each of those 16x16 blocks pointing to the same tile, that would solve all of these issues.
         for (int i=0; i<1; i++) {
             for (Tile tile : new ArrayList<Tile>(tilesToAdd.values())) {
                 if (tile.name.equals("tree_large1")) {
@@ -926,21 +940,21 @@ class GenIsland1 extends Action {
                         !this.tilesToAdd.get(tile.position.cpy().add(16,16)).name.equals("tree_large1_noSprite")) {
                         this.tilesToAdd.put(tile.position, new Tile("bush1", tile.position.cpy(), true, tile.routeBelongsTo));
                     }
-                    if (this.tilesToAdd.get(tile.position.cpy().add(-16,16)).name.equals("tree_large1") ||
-                        this.tilesToAdd.get(tile.position.cpy().add(16,16)).name.equals("tree_large1") ||
-                        this.tilesToAdd.get(tile.position.cpy().add(16,-16)).name.equals("tree_large1") ||
-                        this.tilesToAdd.get(tile.position.cpy().add(-16,-16)).name.equals("tree_large1")) {
+                    if ((this.tilesToAdd.containsKey(tile.position.cpy().add(-16,16)) && this.tilesToAdd.get(tile.position.cpy().add(-16,16)).name.equals("tree_large1")) ||
+                        (this.tilesToAdd.containsKey(tile.position.cpy().add(16,16)) && this.tilesToAdd.get(tile.position.cpy().add(16,16)).name.equals("tree_large1")) ||
+                        (this.tilesToAdd.containsKey(tile.position.cpy().add(16,-16)) && this.tilesToAdd.get(tile.position.cpy().add(16,-16)).name.equals("tree_large1")) ||
+                        (this.tilesToAdd.containsKey(tile.position.cpy().add(-16,-16)) && this.tilesToAdd.get(tile.position.cpy().add(-16,-16)).name.equals("tree_large1"))) {
                         this.tilesToAdd.put(tile.position, new Tile("bush1", tile.position.cpy(), true, tile.routeBelongsTo));
                     }
                 }
                 else if (tile.name.equals("tree_large1_noSprite")) {
-                    if ((!this.tilesToAdd.get(tile.position.cpy().add(16,0)).name.equals("tree_large1_noSprite") ||
+                    if ((this.tilesToAdd.containsKey(tile.position.cpy().add(16,-16)) && !this.tilesToAdd.get(tile.position.cpy().add(16,0)).name.equals("tree_large1_noSprite") ||
                          !this.tilesToAdd.get(tile.position.cpy().add(0,-16)).name.equals("tree_large1") ||
                          !this.tilesToAdd.get(tile.position.cpy().add(16,-16)).name.equals("tree_large1_noSprite")) &&
-                        (!this.tilesToAdd.get(tile.position.cpy().add(-16,0)).name.equals("tree_large1_noSprite") ||
+                        (this.tilesToAdd.containsKey(tile.position.cpy().add(-16,-16)) && !this.tilesToAdd.get(tile.position.cpy().add(-16,0)).name.equals("tree_large1_noSprite") ||
                          !this.tilesToAdd.get(tile.position.cpy().add(-16,-16)).name.equals("tree_large1") ||
                          !this.tilesToAdd.get(tile.position.cpy().add(0,-16)).name.equals("tree_large1_noSprite")) &&
-                        (!this.tilesToAdd.get(tile.position.cpy().add(-16,16)).name.equals("tree_large1_noSprite") ||
+                        (this.tilesToAdd.containsKey(tile.position.cpy().add(-16,16)) && !this.tilesToAdd.get(tile.position.cpy().add(-16,16)).name.equals("tree_large1_noSprite") ||
                          !this.tilesToAdd.get(tile.position.cpy().add(-16,0)).name.equals("tree_large1") ||
                          !this.tilesToAdd.get(tile.position.cpy().add(0,16)).name.equals("tree_large1_noSprite"))) {
                         this.tilesToAdd.put(tile.position, new Tile("bush1", tile.position.cpy(), true, tile.routeBelongsTo));

@@ -52,7 +52,8 @@ public class Player {
     
     Sprite battleSprite;
     
-    String name; //player name
+    String name;  // Player display name
+    Color color;  // Used to colorize the player sprite
     
     //players pokemon
      //functions as pokemon storage in demo
@@ -78,6 +79,7 @@ public class Player {
     boolean isBuilding = false; // player has building tile in front of them
     boolean isCutting = false; // player will try to cut tree on A press
     boolean isHeadbutting = false; // player will try to headbutt tree on A press
+    boolean isJumping = false; // player will jump up ledges using 'fast' ledge jump animation.
     boolean isSleeping = false;
     Tile currBuildTile; // which tile will be built next
     int buildTileIndex = 0;
@@ -138,6 +140,7 @@ public class Player {
         //set player standing/moving sprites
 //        Texture playerText = new Texture(Gdx.files.internal("player1_sheet1.png"));
         Texture playerText = new Texture(Gdx.files.internal("player1_sheet1_color.png"));
+        
         this.standingSprites.put("down", new Sprite(playerText, 0, 0, 16, 16));
         this.standingSprites.put("up", new Sprite(playerText, 16, 0, 16, 16));
         this.standingSprites.put("left", new Sprite(playerText, 32, 0, 16, 16));
@@ -155,7 +158,7 @@ public class Player {
         
         //running sprites
 //        playerText = new Texture(Gdx.files.internal("player1_sheet2.png"));
-      playerText = new Texture(Gdx.files.internal("player1_sheet2_color.png"));
+        playerText = new Texture(Gdx.files.internal("player1_sheet2_color.png"));
         this.standingSprites.put("down_running", new Sprite(playerText, 0, 0, 16, 16));
         this.standingSprites.put("up_running", new Sprite(playerText, 16, 0, 16, 16));
         this.standingSprites.put("left_running", new Sprite(playerText, 32, 0, 16, 16));
@@ -254,6 +257,88 @@ public class Player {
         
         this.network = new Network(this.position);
         this.type = Type.LOCAL;
+    }
+    
+    public void setColor(Color newColor) {
+        this.color = newColor;
+
+        // Colorize the sheet based on this.color
+        Texture playerText = new Texture(Gdx.files.internal("player1_sheet1_color.png"));
+        if (!playerText.getTextureData().isPrepared()) {
+            playerText.getTextureData().prepare();
+        }
+        Pixmap pixmap = playerText.getTextureData().consumePixmap();
+        Color clearColor = new Color(0, 0, 0, 0);
+        // pixmap of right-leaning sprite
+        Pixmap coloredPixmap = new Pixmap(playerText.getWidth(), playerText.getHeight(), Pixmap.Format.RGBA8888);
+        coloredPixmap.setColor(clearColor);
+        coloredPixmap.fill();
+        for (int i = 0; i < playerText.getWidth(); i++) {
+            for (int j = 0; j < playerText.getHeight(); j++) {
+                Color color = new Color(pixmap.getPixel(i, j));
+                if (color.equals(new Color(0.9137255f, 0.5294118f, 0.1764706f, 1f))) {
+                    color = this.color;
+                }
+//                System.out.println(color.r);
+//                System.out.println(color.g);
+//                System.out.println(color.b);
+                coloredPixmap.drawPixel(i, j, Color.rgba8888(color));
+                
+            }
+        }
+        playerText = new Texture(coloredPixmap);
+        this.standingSprites.put("down", new Sprite(playerText, 0, 0, 16, 16));
+        this.standingSprites.put("up", new Sprite(playerText, 16, 0, 16, 16));
+        this.standingSprites.put("left", new Sprite(playerText, 32, 0, 16, 16));
+        this.standingSprites.put("right", new Sprite(playerText, 48, 0, 16, 16));
+        this.movingSprites.put("down", new Sprite(playerText, 64, 0, 16, 16));
+        this.movingSprites.put("up", new Sprite(playerText, 80, 0, 16, 16));
+        this.movingSprites.put("left", new Sprite(playerText, 96, 0, 16, 16));
+        this.movingSprites.put("right", new Sprite(playerText, 112, 0, 16, 16));
+        this.altMovingSprites.put("down", new Sprite(playerText, 64, 0, 16, 16));
+        this.altMovingSprites.get("down").flip(true, false);
+        this.altMovingSprites.put("up", new Sprite(playerText, 80, 0, 16, 16));
+        this.altMovingSprites.get("up").flip(true, false);
+        this.altMovingSprites.put("left", new Sprite(playerText, 96, 0, 16, 16));
+        this.altMovingSprites.put("right", new Sprite(playerText, 112, 0, 16, 16));
+        
+        //running sprites
+//        playerText = new Texture(Gdx.files.internal("player1_sheet2.png"));
+        playerText = new Texture(Gdx.files.internal("player1_sheet2_color.png"));
+        if (!playerText.getTextureData().isPrepared()) {
+            playerText.getTextureData().prepare();
+        }
+        pixmap = playerText.getTextureData().consumePixmap();
+        clearColor = new Color(0, 0, 0, 0);
+        // pixmap of right-leaning sprite
+        coloredPixmap = new Pixmap(playerText.getWidth(), playerText.getHeight(), Pixmap.Format.RGBA8888);
+        coloredPixmap.setColor(clearColor);
+        coloredPixmap.fill();
+        for (int i = 0; i < playerText.getWidth(); i++) {
+            for (int j = 0; j < playerText.getHeight(); j++) {
+                Color color = new Color(pixmap.getPixel(i, j));
+                if (color.equals(new Color(0.9137255f, 0.5294118f, 0.1764706f, 1f))) {
+                    color = this.color;
+                }
+                coloredPixmap.drawPixel(i, j, Color.rgba8888(color));
+                
+            }
+        }
+        playerText = new Texture(coloredPixmap);
+        this.standingSprites.put("down_running", new Sprite(playerText, 0, 0, 16, 16));
+        this.standingSprites.put("up_running", new Sprite(playerText, 16, 0, 16, 16));
+        this.standingSprites.put("left_running", new Sprite(playerText, 32, 0, 16, 16));
+        this.standingSprites.put("right_running", new Sprite(playerText, 48, 0, 16, 16));
+        this.movingSprites.put("down_running", new Sprite(playerText, 64, 0, 16, 16));
+        this.movingSprites.put("up_running", new Sprite(playerText, 80, 0, 16, 16));
+        this.movingSprites.put("left_running", new Sprite(playerText, 96, 0, 16, 16));
+        this.movingSprites.put("right_running", new Sprite(playerText, 112, 0, 16, 16));
+        this.altMovingSprites.put("down_running", new Sprite(playerText, 64, 0, 16, 16));
+        this.altMovingSprites.get("down_running").flip(true, false);
+        this.altMovingSprites.put("up_running", new Sprite(playerText, 80, 0, 16, 16));
+        this.altMovingSprites.get("up_running").flip(true, false);
+        this.altMovingSprites.put("left_running", new Sprite(playerText, 96, 0, 16, 16));
+        this.altMovingSprites.put("right_running", new Sprite(playerText, 112, 0, 16, 16));
     }
 }
 
@@ -471,6 +556,12 @@ class playerStanding extends Action {
         }
         
         if(Gdx.input.isKeyJustPressed(Input.Keys.X)) {
+            // TODO: this is broken, no idea what's going on.
+            if (game.type == Game.Type.CLIENT && (game.player.isBuilding || game.player.isCutting || game.player.isHeadbutting || game.player.isJumping)) {
+                game.client.sendTCP(new com.pkmngen.game.Network.UseHM(game.player.network.id,
+                                                                       DrawPokemonMenu.currIndex,
+                                                                       "STOP"));
+            }
             if (game.player.isBuilding) {
                 // player wants to stop building
                 game.player.isBuilding = false;
@@ -482,6 +573,10 @@ class playerStanding extends Action {
             if (game.player.isHeadbutting) {
                 // player wants to stop building
                 game.player.isHeadbutting = false;
+            }
+            if (game.player.isJumping) {
+                // player wants to stop building
+                game.player.isJumping = false;
             }
         }
         
@@ -634,7 +729,17 @@ class playerStanding extends Action {
             }
         }
 
+        // TODO: test that moving this is ok
+        // Draw the sprite corresponding to player direction
+        if (this.isRunning == true) {
+            game.player.currSprite = new Sprite(game.player.standingSprites.get(game.player.dirFacing+"_running"));
+        }
+        else {
+            game.player.currSprite = new Sprite(game.player.standingSprites.get(game.player.dirFacing));
+        }
+        
         if (shouldMove) {
+            game.actionStack.remove(this);
             // If client, send move command to server
             if (game.type == Game.Type.CLIENT) {
                 game.client.sendTCP(new Network.MovePlayer(game.player.network.id,
@@ -643,72 +748,103 @@ class playerStanding extends Action {
             }
             Tile currTile = game.map.tiles.get(game.player.position);
             Tile temp = game.map.tiles.get(newPos);
-            // first check if traveling through interior door
+            String oppDir = "";
+            if (game.player.dirFacing.equals("up")) {
+                oppDir = "down";
+            }
+            else if (game.player.dirFacing.equals("down")) {
+                oppDir = "up";
+            }
+            else if (game.player.dirFacing.equals("right")) {
+                oppDir = "left";
+            }
+            else if (game.player.dirFacing.equals("left")) {
+                oppDir = "right";
+            }
+            // Check if traveling through interior door.
             if (game.player.dirFacing.equals("down") && currTile.name.contains("rug")) {
                 // do leave building anim, then player travels down one space
                 PublicFunctions.insertToAS(game, new EnterBuilding(game, "exit",
                                                  new playerMoving(game, this.alternate)));
-                game.actionStack.remove(this);
+                return;
             }
-            else if (temp == null) { //need this check to avoid attr checks after this if null
-                //no tile here, so just move normally
+            // Check if moving into empty space to avoid temp.attr checks afterwards
+            // If player is pressing space key (debug mode), just move through the object.
+            if (temp == null || Gdx.input.isKeyPressed(Input.Keys.SPACE)) { 
+                // No tile here, so just move normally
                 if (Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT)) { //check if player should be running
                     PublicFunctions.insertToAS(game, new playerRunning(game, this.alternate));
                 }
                 else {
                     PublicFunctions.insertToAS(game, new playerMoving(game, this.alternate));
                 }
-                game.actionStack.remove(this);
+                return;
             }
-            else if (temp.attrs.get("solid") && !Gdx.input.isKeyPressed(Input.Keys.SPACE)) {
-                    PublicFunctions.insertToAS(game, new playerBump(game));
-                    game.actionStack.remove(this);
-            }
-            // handle ledge jump upward case
-            else if (currTile.attrs.get("ledge") && currTile.ledgeDir.equals("up") && game.player.dirFacing.equals("up") && !Gdx.input.isKeyPressed(Input.Keys.SPACE)) {
-                //jump over ledge
-                PublicFunctions.insertToAS(game, new playerLedgeJump(game));
-                game.actionStack.remove(this);
-            }
-            else if (temp.attrs.get("ledge") && temp.ledgeDir.equals("up") && game.player.dirFacing.equals("down") && !Gdx.input.isKeyPressed(Input.Keys.SPACE)) {
+            if (temp.attrs.get("solid")) {
                 PublicFunctions.insertToAS(game, new playerBump(game));
-                game.actionStack.remove(this);
+                return;
             }
-            else if (temp.attrs.get("ledge") && !temp.ledgeDir.equals("up") && !Gdx.input.isKeyPressed(Input.Keys.SPACE)) {
-                if (temp.ledgeDir.equals(game.player.dirFacing)) {
+            if (game.player.isJumping) {
+                if (temp.attrs.get("ledge")){
+                    if (temp.ledgeDir.equals("up") && !game.player.dirFacing.equals("down")) {
+                        
+                    }
+                    else if (temp.ledgeDir.equals(game.player.dirFacing) || temp.ledgeDir.equals(oppDir)) {
+                        // Jump up the ledge
+                        PublicFunctions.insertToAS(game, new PlayerLedgeJumpFast(game));
+                        return;
+                    }
+                    else {
+                        //bump into ledge
+                        PublicFunctions.insertToAS(game, new playerBump(game));
+                        return;
+                    }
+                }
+                // If player is currently on a ledge
+                if (currTile != null && currTile.attrs.get("ledge") && !currTile.ledgeDir.equals("up")) {
+                    if (currTile.ledgeDir.equals(game.player.dirFacing) || currTile.ledgeDir.equals(oppDir)) {
+                        // Jump off the ledge
+                        PublicFunctions.insertToAS(game, new PlayerLedgeJumpFast(game));
+                        return;
+                    }
+                }
+            }
+            // Handle ledge jump upward case
+            if (currTile.attrs.get("ledge") && currTile.ledgeDir.equals("up") && game.player.dirFacing.equals("up")) {
+                //jump over ledge
+                PublicFunctions.insertToAS(game, new PlayerLedgeJumpFast(game));
+                return;
+            }
+            if (temp.attrs.get("ledge") && temp.ledgeDir.equals("up") && game.player.dirFacing.equals("down")) {
+                PublicFunctions.insertToAS(game, new playerBump(game));
+                return;
+            }
+            if (temp.attrs.get("ledge") && !temp.ledgeDir.equals("up")) {
+                // check that the tile the player will jump into isn't solid
+                Vector2 diff = newPos.cpy().sub(game.player.position);
+                Tile fartherOutTile = game.map.tiles.get(newPos.cpy().add(diff));
+                if (temp.ledgeDir.equals(game.player.dirFacing) && (fartherOutTile == null || (!fartherOutTile.attrs.get("solid") && !fartherOutTile.attrs.get("ledge")))) {
                     //jump over ledge
                     PublicFunctions.insertToAS(game, new playerLedgeJump(game));
-                    game.actionStack.remove(this);
                 }
                 else {
                     //bump into ledge
                     PublicFunctions.insertToAS(game, new playerBump(game));
-                    game.actionStack.remove(this); 
                 }
+                return;
             }
-            else {
-                if (Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT)) { //check if player should be running
-                    PublicFunctions.insertToAS(game, new playerRunning(game, this.alternate));
-                }
-                else {
-                    PublicFunctions.insertToAS(game, new playerMoving(game, this.alternate));
-                }
-                game.actionStack.remove(this);
+            // Check if player should be running
+            if (Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT)) {
+                PublicFunctions.insertToAS(game, new playerRunning(game, this.alternate));
+                return;
             }
+            PublicFunctions.insertToAS(game, new playerMoving(game, this.alternate));
+            return;
         }
         
-        //draw the sprite corresponding to player direction
-        
-        if (this.isRunning == true) {  //check running
-            game.player.currSprite = new Sprite(game.player.standingSprites.get(game.player.dirFacing+"_running"));
-        }
-        else {
-            game.player.currSprite = new Sprite(game.player.standingSprites.get(game.player.dirFacing));
-        }
-        
+        // If we got to this point, player didn't press any movement key.
         this.alternate = false;
         this.isRunning = false;
-        
     }
 
     public void remoteStep(Game game) {
@@ -858,7 +994,16 @@ class playerStanding extends Action {
             }
         }
 
+        //draw the sprite corresponding to player direction
+        if (this.player.network.isRunning == true) {
+            this.player.currSprite = new Sprite(this.player.standingSprites.get(this.player.dirFacing+"_running"));
+        }
+        else {
+            this.player.currSprite = new Sprite(this.player.standingSprites.get(this.player.dirFacing));
+        }
+
         if (this.player.network.shouldMove) {
+            game.actionStack.remove(this);
             this.player.network.shouldMove = false;
             if(this.player.network.dirFacing.equals("up")) {
                 this.player.dirFacing = "up";
@@ -876,69 +1021,184 @@ class playerStanding extends Action {
                 this.player.dirFacing = "right";
                 newPos = new Vector2(this.player.position.x+16, this.player.position.y);
             }
+            Tile currTile = game.map.tiles.get(this.player.position);
             Tile temp = game.map.tiles.get(newPos);
-            // first check if traveling through interior door
-            if (this.player.dirFacing.equals("down") && game.map.tiles.containsKey(this.player.position) && game.map.tiles.get(this.player.position).name.contains("rug")) {
-                // do leave building anim, then player travels down one space
-                PublicFunctions.insertToAS(game, new EnterBuilding(game, "exit",
-                                                 new playerMoving(game, this.alternate)));
-                game.actionStack.remove(this);
+
+            String oppDir = "";
+            if (this.player.dirFacing.equals("up")) {
+                oppDir = "down";
             }
-            else if (temp == null) { //need this check to avoid attr checks after this if null
-                //no tile here, so just move normally
-                if (this.player.network.isRunning) { //check if player should be running
+            else if (this.player.dirFacing.equals("down")) {
+                oppDir = "up";
+            }
+            else if (this.player.dirFacing.equals("right")) {
+                oppDir = "left";
+            }
+            else if (this.player.dirFacing.equals("left")) {
+                oppDir = "right";
+            }
+            // Check if moving into empty space to avoid temp.attr checks afterwards
+            if (temp == null) { 
+                // No tile here, so just move normally
+                if (this.player.network.isRunning) {
                     PublicFunctions.insertToAS(game, new playerRunning(game, this.player, this.alternate));
                 }
                 else {
                     PublicFunctions.insertToAS(game, new playerMoving(game, this.player, this.alternate));
                 }
-                game.actionStack.remove(this);
+                return;
             }
-            else if (temp.attrs.get("solid") == true) {
-                    PublicFunctions.insertToAS(game, new playerBump(game, this.player));
-                    game.actionStack.remove(this);
+            if (temp.attrs.get("solid")) {
+                PublicFunctions.insertToAS(game, new playerBump(game, this.player));
+                return;
             }
-            else if (temp.attrs.get("ledge") == true) {
-                if (temp.ledgeDir == this.player.dirFacing) {
+            if (this.player.isJumping) {
+                if (temp.attrs.get("ledge")){
+                    if (temp.ledgeDir.equals("up") && !this.player.dirFacing.equals("down")) {
+                        
+                    }
+                    else if (temp.ledgeDir.equals(this.player.dirFacing) || temp.ledgeDir.equals(oppDir)) {
+                        // Jump up the ledge
+                        PublicFunctions.insertToAS(game, new PlayerLedgeJumpFast(game, this.player));
+                        return;
+                    }
+                    else {
+                        //bump into ledge
+                        PublicFunctions.insertToAS(game, new playerBump(game, this.player));
+                        return;
+                    }
+                }
+                // If player is currently on a ledge
+                if (currTile != null && currTile.attrs.get("ledge") && !currTile.ledgeDir.equals("up")) {
+                    if (currTile.ledgeDir.equals(this.player.dirFacing) || currTile.ledgeDir.equals(oppDir)) {
+                        // Jump off the ledge
+                        PublicFunctions.insertToAS(game, new PlayerLedgeJumpFast(game, this.player));
+                        return;
+                    }
+                }
+            }
+            // Handle ledge jump upward case
+            if (currTile.attrs.get("ledge") && currTile.ledgeDir.equals("up") && this.player.dirFacing.equals("up")) {
+                //jump over ledge
+                PublicFunctions.insertToAS(game, new PlayerLedgeJumpFast(game, this.player));
+                return;
+            }
+            if (temp.attrs.get("ledge") && temp.ledgeDir.equals("up") && this.player.dirFacing.equals("down")) {
+                PublicFunctions.insertToAS(game, new playerBump(game, this.player));
+                return;
+            }
+            if (temp.attrs.get("ledge") && !temp.ledgeDir.equals("up")) {
+                if (temp.ledgeDir.equals(this.player.dirFacing)) {
                     //jump over ledge
                     PublicFunctions.insertToAS(game, new playerLedgeJump(game, this.player));
-                    game.actionStack.remove(this);
                 }
                 else {
                     //bump into ledge
                     PublicFunctions.insertToAS(game, new playerBump(game, this.player));
-                    game.actionStack.remove(this); 
                 }
+                return;
+            }
+            // Check if player should be running
+            if (this.player.network.isRunning) {
+                PublicFunctions.insertToAS(game, new playerRunning(game, this.player, this.alternate));
             }
             else {
-                if (this.player.network.isRunning) { //check if player should be running
-                    PublicFunctions.insertToAS(game, new playerRunning(game, this.player, this.alternate));
-                }
-                else {
-                    PublicFunctions.insertToAS(game, new playerMoving(game, this.player, this.alternate));
-                }
-                if (game.type == Game.Type.SERVER) {
-                    // check wild encounter on next position, send back if yes
-                    Pokemon pokemon = checkWildEncounter(game, newPos);
-                    if (pokemon != null) {
-                        // TODO: this may stop player from moving server-side
-                        this.player.canMove = false;
-                        game.server.sendToTCP(this.player.network.connectionId,
-                                              new Network.BattleData(pokemon));
-                        // set up battle server-side, so server can keep track of move outcomes
-                        game.battles.put(this.player.network.id, new Battle());
-                        game.battles.get(this.player.network.id).oppPokemon = pokemon;
-                    }
-                }
-                game.actionStack.remove(this);
+                PublicFunctions.insertToAS(game, new playerMoving(game, this.player, this.alternate));
             }
-        }
-        //draw the sprite corresponding to player direction
-        if (this.player.network.isRunning == true) {  //check running
-            this.player.currSprite = new Sprite(this.player.standingSprites.get(this.player.dirFacing+"_running"));
-        }
-        else {
-            this.player.currSprite = new Sprite(this.player.standingSprites.get(this.player.dirFacing));
+            if (game.type == Game.Type.SERVER) {
+                // check wild encounter on next position, send back if yes
+                Pokemon pokemon = checkWildEncounter(game, newPos);
+                if (pokemon != null) {
+                    // TODO: this may stop player from moving server-side
+                    this.player.canMove = false;
+                    game.server.sendToTCP(this.player.network.connectionId,
+                                          new Network.BattleData(pokemon));
+                    // set up battle server-side, so server can keep track of move outcomes
+                    game.battles.put(this.player.network.id, new Battle());
+                    game.battles.get(this.player.network.id).oppPokemon = pokemon;
+                }
+            }
+            return;
+            
+            // TODO: make sure the above changes work
+//            // first check if traveling through interior door
+//            if (this.player.dirFacing.equals("down") && game.map.tiles.containsKey(this.player.position) && game.map.tiles.get(this.player.position).name.contains("rug")) {
+//                // do leave building anim, then player travels down one space
+//                PublicFunctions.insertToAS(game, new EnterBuilding(game, "exit",
+//                                                 new playerMoving(game, this.alternate)));
+//                game.actionStack.remove(this);
+//            }
+//            else if (temp == null) { //need this check to avoid attr checks after this if null
+//                //no tile here, so just move normally
+//                if (this.player.network.isRunning) { //check if player should be running
+//                    PublicFunctions.insertToAS(game, new playerRunning(game, this.player, this.alternate));
+//                }
+//                else {
+//                    PublicFunctions.insertToAS(game, new playerMoving(game, this.player, this.alternate));
+//                }
+//                game.actionStack.remove(this);
+//            }
+//            // TODO: 'up' ledges not handled correctly.
+//            else if (temp.attrs.get("solid") == true) {
+//                    PublicFunctions.insertToAS(game, new playerBump(game, this.player));
+//                    game.actionStack.remove(this);
+//            }
+//            else if (temp.attrs.get("ledge")) {
+//                String oppDir = "";
+//                if (this.player.dirFacing.equals("up")) {
+//                    oppDir = "down";
+//                }
+//                else if (this.player.dirFacing.equals("down")) {
+//                    oppDir = "up";
+//                }
+//                else if (this.player.dirFacing.equals("right")) {
+//                    oppDir = "left";
+//                }
+//                else if (this.player.dirFacing.equals("left")) {
+//                    oppDir = "right";
+//                }
+//                // Jump up the ledge if player is jumping
+////                System.out.println(this.player.isJumping);
+////                System.out.println(temp.ledgeDir.equals(this.player.dirFacing));
+////                System.out.println(temp.ledgeDir.equals(oppDir));
+////                System.out.println(oppDir);
+//                if (this.player.isJumping && (temp.ledgeDir.equals(this.player.dirFacing) || temp.ledgeDir.equals(oppDir))) {
+//                    PublicFunctions.insertToAS(game, new PlayerLedgeJumpFast(game, this.player));
+//                    game.actionStack.remove(this);
+//                }
+//                else if (temp.ledgeDir == this.player.dirFacing) {
+//                    //jump over ledge
+//                    PublicFunctions.insertToAS(game, new playerLedgeJump(game, this.player));
+//                    game.actionStack.remove(this);
+//                }
+//                else {
+//                    //bump into ledge
+//                    PublicFunctions.insertToAS(game, new playerBump(game, this.player));
+//                    game.actionStack.remove(this); 
+//                }
+//            }
+//            else {
+//                if (this.player.network.isRunning) { //check if player should be running
+//                    PublicFunctions.insertToAS(game, new playerRunning(game, this.player, this.alternate));
+//                }
+//                else {
+//                    PublicFunctions.insertToAS(game, new playerMoving(game, this.player, this.alternate));
+//                }
+//                if (game.type == Game.Type.SERVER) {
+//                    // check wild encounter on next position, send back if yes
+//                    Pokemon pokemon = checkWildEncounter(game, newPos);
+//                    if (pokemon != null) {
+//                        // TODO: this may stop player from moving server-side
+//                        this.player.canMove = false;
+//                        game.server.sendToTCP(this.player.network.connectionId,
+//                                              new Network.BattleData(pokemon));
+//                        // set up battle server-side, so server can keep track of move outcomes
+//                        game.battles.put(this.player.network.id, new Battle());
+//                        game.battles.get(this.player.network.id).oppPokemon = pokemon;
+//                    }
+//                }
+//                game.actionStack.remove(this);
+//            }
         }
 //        this.alternate = false;
         this.player.network.isRunning = false;
@@ -1100,7 +1360,7 @@ class playerMoving extends Action {
         
         //this is needed for batch to draw according to cam
         game.cam.update();
-        game.batch.setProjectionMatrix(game.cam.combined);
+        game.mapBatch.setProjectionMatrix(game.cam.combined);
         
         //if u remove the below check, youll notice that there's a bit of 
          //movement that you don't want
@@ -1143,12 +1403,16 @@ class playerMoving extends Action {
                     else {
                         // load new music
                         // fade music
-                        String nextMusicName = newRoute.getNextMusic(true);
-                        Action nextMusic = new FadeMusic("currMusic", "out", "", .025f,
-                                           new WaitFrames(Game.staticGame, 10,
-                                           new FadeMusic(nextMusicName, "in", "", .2f, true, 1f, game.musicCompletionListener, null)));
-                        PublicFunctions.insertToAS(game, nextMusic);
-                        nextMusic.step(game);
+                        // TODO: this will switch music each time moving to new route
+                        //  didn't really like, although might be necessary for some routes
+                        //  ie, mountains, beach, forest etc.
+//                        String nextMusicName = newRoute.getNextMusic(true);
+//                        Action nextMusic = new FadeMusic("currMusic", "out", "", .025f,
+//                                           new WaitFrames(Game.staticGame, 10,
+//                                           new FadeMusic(nextMusicName, "in", "", .2f, true, 1f, game.musicCompletionListener, null)));
+//                        PublicFunctions.insertToAS(game, nextMusic);
+//                        nextMusic.step(game);
+                        newRoute.music = game.map.currRoute.music;  // TODO: comment this if reverting the above
                         System.out.println("New Route: " + newRoute.name);
                     }
                     game.map.currRoute = newRoute;
@@ -1298,7 +1562,7 @@ class playerRunning extends Action {
         
         //this is needed for batch to draw according to cam
         game.cam.update();
-        game.batch.setProjectionMatrix(game.cam.combined);
+        game.mapBatch.setProjectionMatrix(game.cam.combined);
         
         //if u remove the below check, youll notice that there's a bit of 
          //movement that you don't want
@@ -1339,12 +1603,13 @@ class playerRunning extends Action {
                     else {
                         // load new music
                         // fade music
-                        String nextMusicName = newRoute.getNextMusic(true);
-                        Action nextMusic = new FadeMusic("currMusic", "out", "", .025f,
-                                           new WaitFrames(Game.staticGame, 10,
-                                           new FadeMusic(nextMusicName, "in", "", .2f, true, 1f, game.musicCompletionListener, null)));
-                        PublicFunctions.insertToAS(game, nextMusic);
-                        nextMusic.step(game);
+//                        String nextMusicName = newRoute.getNextMusic(true);
+//                        Action nextMusic = new FadeMusic("currMusic", "out", "", .025f,
+//                                           new WaitFrames(Game.staticGame, 10,
+//                                           new FadeMusic(nextMusicName, "in", "", .2f, true, 1f, game.musicCompletionListener, null)));
+//                        PublicFunctions.insertToAS(game, nextMusic);
+//                        nextMusic.step(game);
+                        newRoute.music = game.map.currRoute.music;  // TODO: comment this if reverting the above
                     }
                     game.map.currRoute = newRoute;
                 }
@@ -1353,7 +1618,7 @@ class playerRunning extends Action {
             game.player.position.set(this.targetPos);
             game.cam.position.set(this.targetPos.x+16, this.targetPos.y,0);
             game.cam.update();                                     //this line fixes jittering bug
-            game.batch.setProjectionMatrix(game.cam.combined);    //same
+            game.mapBatch.setProjectionMatrix(game.cam.combined);    //same
             
             Action standingAction = new playerStanding(game, !this.alternate, true); //pass true to keep running animation going
             PublicFunctions.insertToAS(game, standingAction);
@@ -1620,7 +1885,7 @@ class playerLedgeJump extends Action {
             //this is needed for batch to draw according to cam
              //always call this after updating camera
             game.cam.update();
-            game.batch.setProjectionMatrix(game.cam.combined);
+            game.mapBatch.setProjectionMatrix(game.cam.combined);
             
             //old sprite anim code was here
                 
@@ -1631,7 +1896,7 @@ class playerLedgeJump extends Action {
 
                 
         //draw shadow
-        game.batch.draw(this.shadow, game.cam.position.x-16, game.cam.position.y-4);
+        game.mapBatch.draw(this.shadow, game.cam.position.x-16, game.cam.position.y-4);
         
         if (this.timer1 >= 38) {
             game.player.position.set(this.targetPos);
@@ -1674,7 +1939,7 @@ class playerLedgeJump extends Action {
             this.player.currSprite = this.player.standingSprites.get(this.player.dirFacing);
         }
         //draw shadow
-        game.batch.draw(this.shadow, this.player.position.x-16, this.player.position.y-4);
+        game.mapBatch.draw(this.shadow, this.player.position.x-16, this.player.position.y-4);
         if (this.timer1 >= 38) {
             this.player.position.set(this.targetPos);
 //            Action playerStanding = new playerStanding(game, this.player, true, false);
@@ -1754,6 +2019,226 @@ class playerLedgeJump extends Action {
 
 
 
+class PlayerLedgeJumpFast extends Action {
+
+    public int layer = 131;
+    public int getLayer(){return this.layer;}
+    
+    float xDist, yDist;
+
+    Vector2 initialPos, targetPos;
+    
+    Sprite shadow;
+    
+    int timer1 = 0;
+    
+    ArrayList<Integer> yMovesList = new ArrayList<Integer>();
+    ArrayList<Map<String, Sprite>> spriteAnim = new ArrayList<Map<String, Sprite>>();
+    //Map<String, ArrayList<Sprite>> spritesAnimList = new HashMap<String, ArrayList<Sprite>>();
+    Player player;
+    
+    @Override
+    public void step(Game game) {
+        if (this.player.type == Player.Type.LOCAL) {
+            this.localStep(game);
+        }
+        else if (this.player.type == Player.Type.REMOTE) {
+            this.remoteStep(game);
+        }
+    }
+    
+    public void localStep(Game game) {
+        
+//        if (this.timer1 % 2 == 0 && this.timer1 < 32) {
+//            game.cam.position.y -=2;
+//            game.player.position.y -=2;
+//        }
+        
+        if ( this.timer1 < 16) {
+            
+            if (game.player.dirFacing == "up") {
+                game.player.position.y +=1;
+                game.cam.position.y +=1;
+            }
+            else if (game.player.dirFacing == "down") {
+                game.cam.position.y -=1;
+                game.player.position.y -=1;
+            }
+            else if (game.player.dirFacing == "left") {
+                game.player.position.x -=1;
+                game.cam.position.x -=1;
+            }
+            else if (game.player.dirFacing == "right") {
+                game.player.position.x +=1;
+                game.cam.position.x +=1;
+            }
+            if (this.timer1 % 2 == 1) {
+                game.player.position.y += this.yMovesList.get(0);
+                this.yMovesList.remove(0);
+                
+                //use next sprite in list
+                game.player.currSprite = this.spriteAnim.get(0).get(game.player.dirFacing);
+                this.spriteAnim.remove(0);
+            }
+            
+            //this is needed for batch to draw according to cam
+             //always call this after updating camera
+            game.cam.update();
+            game.mapBatch.setProjectionMatrix(game.cam.combined);
+            
+            //old sprite anim code was here
+                
+        }
+        else {
+            game.player.currSprite = game.player.standingSprites.get(game.player.dirFacing);
+        }
+        // Draw shadow
+        game.mapBatch.draw(this.shadow, game.cam.position.x-16, game.cam.position.y-4);
+        
+        if (this.timer1 >= 19) {
+
+//            Vector2 diff = this.targetPos.cpy().sub(game.player.position);
+//            Tile currTile = game.map.tiles.get(this.targetPos);
+//            Tile temp = game.map.tiles.get(this.targetPos.cpy().add(diff));
+            
+            game.player.position.set(this.targetPos);
+            game.cam.position.set(this.targetPos.x+16, this.targetPos.y, 0);
+            
+//            if (currTile != null && temp != null && currTile.attrs.get("ledge")) {
+//                PublicFunctions.insertToAS(game, new PlayerLedgeJumpFast(game, this.player));
+//            }
+//            else {
+//                Action playerStanding = new playerStanding(game);
+//                PublicFunctions.insertToAS(game, playerStanding);
+//            }
+            Action playerStanding = new playerStanding(game);
+            PublicFunctions.insertToAS(game, playerStanding);
+            game.actionStack.remove(this);
+            
+        }
+        
+        this.timer1++;
+    }
+
+    public void remoteStep(Game game) {
+        this.player.network.syncTimer++;
+        if ( this.timer1 < 16) {
+            if (this.player.dirFacing == "up") {
+                this.player.position.y +=1;
+            }
+            else if (this.player.dirFacing == "down") {
+                this.player.position.y -=1;
+            }
+            else if (this.player.dirFacing == "left") {
+                this.player.position.x -=1;
+            }
+            else if (this.player.dirFacing == "right") {
+                this.player.position.x +=1;
+            }
+            
+            if (this.timer1 % 2 == 1) {
+                this.player.position.y += this.yMovesList.get(0);
+                this.yMovesList.remove(0);
+                //use next sprite in list
+                this.player.currSprite = this.spriteAnim.get(0).get(this.player.dirFacing);
+                this.spriteAnim.remove(0);
+            }
+        }
+        else {
+            this.player.currSprite = this.player.standingSprites.get(this.player.dirFacing);
+        }
+        //draw shadow
+        game.mapBatch.draw(this.shadow, this.player.position.x-16, this.player.position.y-4);
+        if (this.timer1 >= 19) {
+//            Vector2 diff = this.targetPos.cpy().sub(game.player.position);
+//            Tile currTile = game.map.tiles.get(this.targetPos);
+//            Tile temp = game.map.tiles.get(this.targetPos.cpy().add(diff));
+            this.player.position.set(this.targetPos);
+//            if (currTile != null && temp != null && currTile.attrs.get("ledge")) {
+//                PublicFunctions.insertToAS(game, new PlayerLedgeJumpFast(game, this.player));
+//            }
+//            else {
+//                this.player.standingAction.alternate = true;
+//                this.player.standingAction.isRunning = false;
+//                PublicFunctions.insertToAS(game, this.player.standingAction);
+//            }
+            this.player.standingAction.alternate = true;
+            this.player.standingAction.isRunning = false;
+            PublicFunctions.insertToAS(game, this.player.standingAction);
+            game.actionStack.remove(this);
+        }
+        this.timer1++;
+    }
+    
+    public PlayerLedgeJumpFast(Game game) {
+        this(game, game.player);
+    }
+    
+    public PlayerLedgeJumpFast(Game game, Player player) {
+        this.player = player;
+        this.initialPos = new Vector2(this.player.position);
+        if (this.player.dirFacing == "up") {
+            this.targetPos = new Vector2(this.player.position.x, this.player.position.y+16);
+        }
+        else if (this.player.dirFacing == "down") {
+            this.targetPos = new Vector2(this.player.position.x, this.player.position.y-16);
+        }
+        else if (this.player.dirFacing == "left") {
+            this.targetPos = new Vector2(this.player.position.x-16, this.player.position.y);
+        }
+        else if (this.player.dirFacing == "right") {
+            this.targetPos = new Vector2(this.player.position.x+16, this.player.position.y);
+        }
+        
+        //shadow sprite
+        Texture shadowText = new Texture(Gdx.files.internal("shadow1.png"));
+        this.shadow = new Sprite(shadowText, 0, 0, 16, 16);
+        
+        // Play ledge jumping sound
+        PublicFunctions.insertToAS(game, new PlaySound("ledge2", null));
+        
+        //below two lists are used to get exact sprite and 
+         //y movement on every other frame
+        this.yMovesList.add(4);
+//        this.yMovesList.add(2);
+        this.yMovesList.add(2);
+//        this.yMovesList.add(2);
+        this.yMovesList.add(1);
+//        this.yMovesList.add(1);
+        this.yMovesList.add(0);
+//        this.yMovesList.add(0);
+        this.yMovesList.add(-1);
+//        this.yMovesList.add(-1);
+        this.yMovesList.add(-1);
+//        this.yMovesList.add(-1);
+        this.yMovesList.add(-2);
+//        this.yMovesList.add(-3);
+        this.yMovesList.add(-3);
+//        this.yMovesList.add(0);
+        
+        //sprites to use (according to frame-by-frame)
+        this.spriteAnim.add(this.player.standingSprites);
+//        this.spriteAnim.add(this.player.standingSprites);
+        this.spriteAnim.add(this.player.movingSprites);
+//        this.spriteAnim.add(this.player.movingSprites);
+        this.spriteAnim.add(this.player.movingSprites);
+//        this.spriteAnim.add(this.player.movingSprites);
+        this.spriteAnim.add(this.player.standingSprites);
+//        this.spriteAnim.add(this.player.standingSprites);
+        this.spriteAnim.add(this.player.standingSprites);
+//        this.spriteAnim.add(this.player.standingSprites);
+        this.spriteAnim.add(this.player.altMovingSprites);
+//        this.spriteAnim.add(this.player.altMovingSprites);
+        this.spriteAnim.add(this.player.altMovingSprites);
+//        this.spriteAnim.add(this.player.altMovingSprites);
+        this.spriteAnim.add(this.player.standingSprites);
+//        this.spriteAnim.add(this.player.standingSprites);
+    }
+}
+
+
+
+
 class DrawPlayerUpper extends Action {
     
 
@@ -1779,7 +2264,7 @@ class DrawPlayerUpper extends Action {
             if (this.zsTimer >= 128) {
                 this.zsTimer = 0;
             }
-            this.zSprite.draw(game.batch);
+            this.zSprite.draw(game.mapBatch);
             return;
         }
         
@@ -1822,7 +2307,7 @@ class DrawPlayerUpper extends Action {
             if (!requirementsMet) {
                 sprite.setColor(1f, .7f, .7f, .8f);
             }
-            sprite.draw(game.batch);
+            sprite.draw(game.mapBatch);
 //            game.batch.draw(sprite, pos.x, pos.y);
             if (game.player.currBuildTile.overSprite != null) {
 //                game.player.currBuildTile.overSprite.draw(game.batch, .7f);
@@ -1832,7 +2317,7 @@ class DrawPlayerUpper extends Action {
                 if (nextTile != null && nextTile.attrs.get("solid")) {
                     sprite.setColor(1f, .7f, .7f, .8f);
                 }
-                sprite.draw(game.batch);
+                sprite.draw(game.mapBatch);
 //                game.batch.draw(sprite, pos.x, pos.y);
             }
         }
@@ -1845,7 +2330,7 @@ class DrawPlayerUpper extends Action {
         this.spritePart.setRegionY(0);
         this.spritePart.setRegionHeight(8);
         
-        game.batch.draw(this.spritePart, game.player.position.x, game.player.position.y+12);
+        game.mapBatch.draw(this.spritePart, game.player.position.x, game.player.position.y+12);
 
         //this needs to be set to detect collision
         game.player.currSprite.setPosition(game.player.position.x, game.player.position.y);
@@ -1880,7 +2365,7 @@ class DrawPlayerLower extends Action {
         this.spritePart.setRegionHeight(8);
         //this.spritePart.setSize(this.spritePart.getWidth(), 8);
         
-        game.batch.draw(this.spritePart, game.player.position.x, game.player.position.y+4);
+        game.mapBatch.draw(this.spritePart, game.player.position.x, game.player.position.y+4);
     }
             
 
@@ -1908,7 +2393,7 @@ class DrawPokemonCaught extends Action {
 
         int i = 0;
         for (Pokemon pokemon : game.player.pokemon) {
-            game.floatingBatch.draw(pokeball, i*16*3, 144*3-12);
+            game.uiBatch.draw(pokeball, i*16*3, 144*3-12);
             i++;
         }
 //        
@@ -1984,7 +2469,7 @@ class drawGhost extends Action {
             
         //check if it's day or not. if not Night, despawn the ghost
         if (game.map.timeOfDay != "Night") {
-            this.currSprite.draw(game.batch);
+            this.currSprite.draw(game.mapBatch);
             game.actionStack.remove(this);
             PublicFunctions.insertToAS(game, new despawnGhost(this.basePos.cpy()));
             return;
@@ -2009,7 +2494,7 @@ class drawGhost extends Action {
                 continue;
             }
             if (tile.nameUpper.contains("campfire")) {
-                this.currSprite.draw(game.batch);
+                this.currSprite.draw(game.mapBatch);
                 game.actionStack.remove(this);
                 PublicFunctions.insertToAS(game, new despawnGhost(this.basePos.cpy()));
                 game.currMusic.pause();
@@ -2025,7 +2510,7 @@ class drawGhost extends Action {
         //check whether player is in battle or not
         //if not, don't move the ghost at all (subject to change)
         if (game.battle.drawAction != null) { 
-            this.currSprite.draw(game.batch);
+            this.currSprite.draw(game.mapBatch);
             this.inBattle = true;
             this.noEncounterTimer = 0;
             return;
@@ -2036,7 +2521,7 @@ class drawGhost extends Action {
         //wait for a while if you just exited battle
         if (inBattle == true) {
             if (noEncounterTimer % 4 >= 2) {
-                this.currSprite.draw(game.batch);
+                this.currSprite.draw(game.mapBatch);
             }
             this.noEncounterTimer++;
             if (this.noEncounterTimer < 128) {
@@ -2047,7 +2532,7 @@ class drawGhost extends Action {
 
         //pause if player can't move
         if (game.playerCanMove == false) { 
-            this.currSprite.draw(game.batch);
+            this.currSprite.draw(game.mapBatch);
             return;
         }
         
@@ -2109,7 +2594,7 @@ class drawGhost extends Action {
         float shiftPosY = (float)Math.sin(2*sineTimer);
         this.currSprite.setPosition(basePos.x+shiftPosX, basePos.y+shiftPosY);
         
-        this.currSprite.draw(game.batch); 
+        this.currSprite.draw(game.mapBatch); 
         //game.batch.draw(this.currSprite, this.currSprite.getX(), this.currSprite.getY()); //TODO - remove
         
         sineTimer+=.125f;
@@ -2295,7 +2780,7 @@ class spawnGhost extends Action {
         if (part1 > 0) {
             
             if (part1 % 4 >= 2) {
-                this.sprites[0].draw(game.batch);
+                this.sprites[0].draw(game.mapBatch);
             }
             part1--;
             return;
@@ -2310,17 +2795,17 @@ class spawnGhost extends Action {
         
         if (part2 > 0) {
             if (part2 % 8 >= 4) {
-                this.sprites[1].draw(game.batch);
+                this.sprites[1].draw(game.mapBatch);
             }
             else {
-                this.sprites[2].draw(game.batch);
+                this.sprites[2].draw(game.mapBatch);
             }
             part2--;
             return;
         }
         
         if (part3 > 0) {
-            this.sprites[2].draw(game.batch);
+            this.sprites[2].draw(game.mapBatch);
             part3--;
             return;
         }
@@ -2390,7 +2875,7 @@ class despawnGhost extends Action {
         if (part1 > 0) {
             
             if (part1 % 4 >=2) {
-                this.sprite.draw(game.batch);
+                this.sprite.draw(game.mapBatch);
             }
             
             part1--;
@@ -2469,7 +2954,7 @@ class cycleDayNight extends Action {
 
         if (fadeToDay == true) {
             
-            game.batch.setColor(this.fadeToDayAnim.currentThing());
+            game.mapBatch.setColor(this.fadeToDayAnim.currentThing());
             
             animIndex++;
 
@@ -2504,7 +2989,7 @@ class cycleDayNight extends Action {
         
         if (fadeToNight == true) {
             
-            game.batch.setColor(this.animContainer.currentThing());
+            game.mapBatch.setColor(this.animContainer.currentThing());
             
             animIndex++;
 
@@ -2569,7 +3054,7 @@ class cycleDayNight extends Action {
                 this.bgSprite.setPosition(this.bgSprite.getX(), this.bgSprite.getY()+1);
             }
             
-            this.bgSprite.draw(game.floatingBatch);
+            this.bgSprite.draw(game.uiBatch);
             String temp="";
             if (game.map.timeOfDay == "Day") {
                     temp = String.valueOf(this.day);
@@ -2577,7 +3062,7 @@ class cycleDayNight extends Action {
             else {
                     temp = String.valueOf(this.night);
             }
-            game.font.draw(game.floatingBatch, game.map.timeOfDay+": "+temp, 60, this.bgSprite.getY()+134); //Gdx.graphics.getHeight()-
+            game.font.draw(game.uiBatch, game.map.timeOfDay+": "+temp, 60, this.bgSprite.getY()+134); //Gdx.graphics.getHeight()-
         }
         
     }
@@ -2647,8 +3132,8 @@ class itemPickupNotify extends Action {
           else {
               this.bgSprite.setPosition(this.bgSprite.getX(), this.bgSprite.getY()-1);
           }
-          this.bgSprite.draw(game.floatingBatch);
-          game.font.draw(game.floatingBatch, "Picked up "+this.itemName+" x"+this.quantity+".", 42, this.bgSprite.getY()+134);
+          this.bgSprite.draw(game.uiBatch);
+          game.font.draw(game.uiBatch, "Picked up "+this.itemName+" x"+this.quantity+".", 42, this.bgSprite.getY()+134);
       }
   }
   
@@ -2686,9 +3171,9 @@ class requirementNotify extends Action {
           else {
               this.bgSprite.setPosition(this.bgSprite.getX(), this.bgSprite.getY()-1);
           }
-          this.bgSprite.draw(game.floatingBatch);
+          this.bgSprite.draw(game.uiBatch);
           
-          game.font.draw(game.floatingBatch, "Requires: " + this.text, 10, this.bgSprite.getY()+134);
+          game.font.draw(game.uiBatch, "Requires: " + this.text, 10, this.bgSprite.getY()+134);
       }
   }
   
@@ -2723,7 +3208,7 @@ class DrawAndroidControls extends Action {
     @Override
     public void step(Game game) {
 
-        this.leftArrowSprite.draw(game.floatingBatch);
+        this.leftArrowSprite.draw(game.uiBatch);
         
 
         if (Gdx.input.justTouched()) {
@@ -2819,8 +3304,8 @@ class CutTreeAnim extends Action {
                                new Tile(this.tile.name, this.tile.position.cpy(),
                                         true, this.tile.routeBelongsTo));
             
-            game.batch.draw(this.tile.sprite, this.tile.sprite.getX(), this.tile.sprite.getY());
-            game.batch.draw(this.tile.overSprite, this.tile.overSprite.getX(), this.tile.overSprite.getY());
+            game.mapBatch.draw(this.tile.sprite, this.tile.sprite.getX(), this.tile.sprite.getY());
+            game.mapBatch.draw(this.tile.overSprite, this.tile.overSprite.getX(), this.tile.overSprite.getY());
         }
         else if (this.index == 20) {
             // slice overSprite down middle, sep by 4 px
@@ -2830,12 +3315,12 @@ class CutTreeAnim extends Action {
             this.left.setPosition(this.tile.position.x-2-4+4, this.tile.position.y);
             this.right = new Sprite(tempRegion[0][1]);
             this.right.setPosition(this.tile.position.x+2+4+4, this.tile.position.y);
-            game.batch.draw(this.left, this.left.getX(), this.left.getY());
-            game.batch.draw(this.right, this.right.getX(), this.right.getY());
+            game.mapBatch.draw(this.left, this.left.getX(), this.left.getY());
+            game.mapBatch.draw(this.right, this.right.getX(), this.right.getY());
         }
         else if (this.index < 20+17) {
-            game.batch.draw(this.left, this.left.getX(), this.left.getY());
-            game.batch.draw(this.right, this.right.getX(), this.right.getY());
+            game.mapBatch.draw(this.left, this.left.getX(), this.left.getY());
+            game.mapBatch.draw(this.right, this.right.getX(), this.right.getY());
         }
         else if (this.index < 20+17+2) {
             
@@ -2843,12 +3328,12 @@ class CutTreeAnim extends Action {
         else if (this.index == 20+17+2) {
             this.left.translateX(-2);
             this.right.translateX(2);
-            game.batch.draw(this.left, this.left.getX(), this.left.getY());
-            game.batch.draw(this.right, this.right.getX(), this.right.getY());
+            game.mapBatch.draw(this.left, this.left.getX(), this.left.getY());
+            game.mapBatch.draw(this.right, this.right.getX(), this.right.getY());
         }
         else if (this.index < 20+17+2+2) {
-            game.batch.draw(this.left, this.left.getX(), this.left.getY());
-            game.batch.draw(this.right, this.right.getX(), this.right.getY());
+            game.mapBatch.draw(this.left, this.left.getX(), this.left.getY());
+            game.mapBatch.draw(this.right, this.right.getX(), this.right.getY());
         }
         else if (this.index < 20+17+2+2+2) {
             
@@ -2856,12 +3341,12 @@ class CutTreeAnim extends Action {
         else if (this.index == 20+17+2+2+2) {
             this.left.translateX(-2);
             this.right.translateX(2);
-            game.batch.draw(this.left, this.left.getX(), this.left.getY());
-            game.batch.draw(this.right, this.right.getX(), this.right.getY());
+            game.mapBatch.draw(this.left, this.left.getX(), this.left.getY());
+            game.mapBatch.draw(this.right, this.right.getX(), this.right.getY());
         }
         else if (this.index < 20+17+2+2+2+2) {
-            game.batch.draw(this.left, this.left.getX(), this.left.getY());
-            game.batch.draw(this.right, this.right.getX(), this.right.getY());
+            game.mapBatch.draw(this.left, this.left.getX(), this.left.getY());
+            game.mapBatch.draw(this.right, this.right.getX(), this.right.getY());
         }
         else if (this.index < 20+17+2+2+2+2+2) {
             
@@ -2869,8 +3354,8 @@ class CutTreeAnim extends Action {
         else if (this.index == 20+17+2+2+2+2+2) {
             this.left.translateX(-2);
             this.right.translateX(2);
-            game.batch.draw(this.left, this.left.getX(), this.left.getY());
-            game.batch.draw(this.right, this.right.getX(), this.right.getY());
+            game.mapBatch.draw(this.left, this.left.getX(), this.left.getY());
+            game.mapBatch.draw(this.right, this.right.getX(), this.right.getY());
         }
         else if (this.index < 20+17+2+2+2+2+2+2) {
             

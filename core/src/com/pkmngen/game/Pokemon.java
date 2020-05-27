@@ -20,6 +20,7 @@ public class Pokemon {
 
     String name;
     int level;
+    int exp;  // current total exp.
     String dexNumber;
     
     // keep all pkmn textures in an array to be loaded
@@ -33,6 +34,8 @@ public class Pokemon {
     ArrayList<String> hms = new ArrayList<String>();
 
     Map<String, Integer> IVs = new HashMap<String, Integer>();
+    
+    String growthRateGroup = "";
 
     //note - this doesn't go in 'maxStats' map
     //int catchRate; //may put into some other map later
@@ -74,10 +77,10 @@ public class Pokemon {
     public static HashMap<String, Texture> textures = new HashMap<String, Texture>();
     
     // add to this when loading pokemon
-    public static HashMap<String, Map<Integer, String>> gen2Evos = new HashMap<String, Map<Integer, String>>();
+    public static HashMap<String, Map<String, String>> gen2Evos = new HashMap<String, Map<String, String>>();
     public static HashMap<String, Map<Integer, String[]>> gen2Attacks = new HashMap<String, Map<Integer, String[]>>();
 
-    String nameToIndex(String name) {
+    public static String nameToIndex(String name) {
         name = name.toLowerCase();
         if (name.equals("ghost")) {
             return "000";
@@ -133,6 +136,11 @@ public class Pokemon {
                 } else if (lineNum == 6) {
                     String catchRate = line.split("db ")[1].split(" ;")[0];
                     this.baseStats.put("catchRate", Integer.valueOf(catchRate));
+                } else if (lineNum == 7) {
+                    String baseExp = line.split("db ")[1].split(" ;")[0];
+                    this.baseStats.put("baseExp", Integer.valueOf(baseExp));
+                } else if (lineNum == 15) {
+                    this.growthRateGroup = line.split("db ")[1].split(" ;")[0];
                 }
                 // TODO: other stats
                 lineNum++;
@@ -209,7 +217,7 @@ public class Pokemon {
         // load attacks from file
         if (!Pokemon.gen2Attacks.containsKey(name) || !Pokemon.gen2Evos.containsKey(name)) {
             Map<Integer, String[]> attacks = new HashMap<Integer, String[]>();
-            Map<Integer, String> evos = new HashMap<Integer, String>();
+            Map<String, String> evos = new HashMap<String, String>();
             Pokemon.gen2Attacks.put(name, attacks);
             Pokemon.gen2Evos.put(name, evos);
             try {
@@ -234,7 +242,7 @@ public class Pokemon {
                     }
                     if (line.contains("EVOLVE_LEVEL")) {
                         String vals[] = line.split(", ");
-                        evos.put(Integer.valueOf(vals[1]), vals[2]);
+                        evos.put(vals[1], vals[2].toLowerCase());
                     }
                     else if (line.contains("EVOLVE_ITEM") || line.contains("EVOLVE_TRADE")) {
                         // TODO
@@ -294,6 +302,11 @@ public class Pokemon {
                 } else if (lineNum == 3) {
                     String catchRate = line.split("db ")[1].split(" ;")[0];
                     this.baseStats.put("catchRate", Integer.valueOf(catchRate));
+                } else if (lineNum == 4) {
+                    String baseExp = line.split("db ")[1].split(" ;")[0];
+                    this.baseStats.put("baseExp", Integer.valueOf(baseExp));
+                } else if (lineNum == 14) {
+                    this.growthRateGroup = line.split("db ")[1].split(" ;")[0];
                 }
                 // TODO: other stats
                 lineNum++;
@@ -302,7 +315,6 @@ public class Pokemon {
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         }
 
@@ -371,7 +383,7 @@ public class Pokemon {
         // load attacks from file
         if (!Pokemon.gen2Attacks.containsKey(name) || !Pokemon.gen2Evos.containsKey(name)) {
             Map<Integer, String[]> attacks = new HashMap<Integer, String[]>();
-            Map<Integer, String> evos = new HashMap<Integer, String>();
+            Map<String, String> evos = new HashMap<String, String>();
             Pokemon.gen2Attacks.put(name, attacks);
             Pokemon.gen2Evos.put(name, evos);
             try {
@@ -386,12 +398,12 @@ public class Pokemon {
 
                 for (int i=0; i < lines.size(); i++) {
                     line = lines.get(i);
-                    if (!line.toLowerCase().contains("\t")) {
+                    if (!line.contains("db")) {
                         continue;
                     }
                     if (line.contains("EVOLVE_LEVEL")) {
                         String vals[] = line.split(", ");
-                        evos.put(Integer.valueOf(vals[1]), vals[2]);
+                        evos.put(vals[1], vals[2].toLowerCase());
                     }
                     else if (line.contains("EVOLVE_ITEM") || line.contains("EVOLVE_TRADE")) {
                         // TODO
@@ -446,7 +458,7 @@ public class Pokemon {
     }
     
     public Pokemon (String name, int level, Generation generation) {
-        
+        name = name.toLowerCase();
         this.name = name;
         this.level = level;
         this.generation = generation;
@@ -468,7 +480,7 @@ public class Pokemon {
         
         // if generation is crystal, load from file
         if (generation.equals(Generation.CRYSTAL)) {
-            this.dexNumber = this.nameToIndex(name);
+            this.dexNumber = Pokemon.nameToIndex(name);
             // if it is in original 251, load from crystal
             if (Integer.valueOf(this.dexNumber) <= 251 && Integer.valueOf(this.dexNumber) > 0) {
                 this.loadCrystalPokemon(name);
@@ -478,18 +490,36 @@ public class Pokemon {
             }
             
             // Custom attributes - better way to handle this?
-            if (name.toLowerCase().equals("machop")) {
+            if (name.equals("machop")) {
                 this.hms.add("BUILD");
             }
 
             // Custom attributes - better way to handle this?
-            if (name.toLowerCase().equals("sneasel")) {
+            if (name.equals("sneasel")) {
                 this.hms.add("CUT");
             }
 
             // Custom attributes - better way to handle this?
-            if (name.toLowerCase().equals("machop")) {
+            if (name.equals("machop")) {
                 this.hms.add("HEADBUTT");
+            }
+
+            // Custom attributes - better way to handle this?
+            if (name.equals("stantler") ||
+                name.equals("ponyta") ||
+                name.equals("arcanine") ||
+                name.equals("donphan") ||
+                name.equals("girafarig") ||
+                name.equals("houndoom") ||
+                name.equals("rapidash") ||
+                name.equals("tauros") ||
+                name.equals("ninetails") ||
+                name.equals("mamomswine") ||
+                name.equals("luxray")) {
+                // TODO: change to 'RIDE' later. Making it 'JUMP' for now so that it's not confusing.
+                // Later, once there (hopefully) are riding sprites, this can be changed to ride.
+                // My current idea is that RIDE increases movement speed and can perform jumps up ledges.
+                this.hms.add("JUMP");
             }
         }
 
@@ -1023,12 +1053,78 @@ public class Pokemon {
         }
         
         getCurrentAttacks(); //fill this.attacks with what it can currently know
-        
+        this.exp = gen2CalcExpForLevel(this.level);
+
         //stats formulas here
         calcMaxStats();
-        this.currentStats = new HashMap<String, Integer>(this.maxStats); //copy maxStats 
+        this.currentStats = new HashMap<String, Integer>(this.maxStats); //copy maxStats
+    }
+    
+    /*
+     * Compute changes required by evolution.
+     */
+    void Evolve(String targetName) {
+        this.name = targetName;
+        this.dexNumber = Pokemon.nameToIndex(this.name);
+        // Update base stats and various values.
+        // Don't modify attacks, current hp, etc.
+        // TODO: current hp is probably compensated in the real game
+        if (Integer.valueOf(this.dexNumber) <= 251 && Integer.valueOf(this.dexNumber) > 0) {
+            this.loadCrystalPokemon(this.name);
+        }
+        else {
+            this.loadPrismPokemon(this.name);
+        }
+        this.calcMaxStats();
+
+        // TODO: probably move this to function somewhere
+        if (name.equals("machop")) {
+            this.hms.add("BUILD");
+        }
+        else if (name.equals("sneasel")) {
+            this.hms.add("CUT");
+        }
+        else if (name.equals("machop")) {
+            this.hms.add("HEADBUTT");
+        }
+        else if (name.equals("stantler") ||
+            name.equals("ponyta") ||
+            name.equals("arcanine") ||
+            name.equals("donphan") ||
+            name.equals("girafarig") ||
+            name.equals("houndoom") ||
+            name.equals("rapidash") ||
+            name.equals("tauros") ||
+            name.equals("ninetails") ||
+            name.equals("mamomswine") ||
+            name.equals("luxray")) {
+            // TODO: change to 'RIDE' later. Making it 'JUMP' for now so that it's not confusing.
+            // Later, once there (hopefully) are riding sprites, this can be changed to ride.
+            // My current idea is that RIDE increases movement speed and can perform jumps up ledges.
+            this.hms.add("JUMP");
+        }
         
-        
+    }
+
+    /*
+     * Calculate exp based on current level (gen 2 formula).
+     */
+    int gen2CalcExpForLevel(int level) {
+        // Have to use contains() for compatibility with prism pokemon, which omit the 'GROWTH' from the beginning.
+        if (this.growthRateGroup.contains("FAST")) {
+            return (4*(level*level*level))/5;
+        }
+        else if (this.growthRateGroup.contains("MEDIUM_FAST")) {
+            return level*level*level;
+        }
+        else if (this.growthRateGroup.contains("MEDIUM_SLOW")) {
+            return (((6*(level*level*level))/5) - (15*(level*level)) + (100*level) - 140);
+        }
+        else if (this.growthRateGroup.contains("SLOW")) {
+            return (5*(level*level*level))/4;
+        }
+        System.out.println("Error: invalid growth group for " + this.name + ", group: "+String.valueOf(this.growthRateGroup));
+        return 0;
     }
     
     //TODO - this doesn't take IV's or EV's into account.

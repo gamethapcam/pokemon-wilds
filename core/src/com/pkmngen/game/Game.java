@@ -43,31 +43,28 @@ public class Game extends ApplicationAdapter {
     
     Vector3 touchLoc;
     
-    //put alarm-type things in here
-     //see create() for example of action chaining
     public ArrayList<Action> actionStack;
-    
     
     //for debug
     public static String debugString;
     
-    //for non-floating elements
-    public SpriteBatch batch;
+    // For non-floating elements
+    public SpriteBatch mapBatch;
     
-    //for floating ui elements
-    public SpriteBatch floatingBatch;
+    // For floating ui elements
+    public SpriteBatch uiBatch;
     
     public BitmapFont font;
     
     public OrthographicCamera cam;
     public OrthographicCamera cam2;
     
-    public Viewport viewport;
+    // TODO: remove if unused
+//    public Viewport viewport;
     
     //demo code - num objectives finished
     public int numObjectivesFinished = 0;
-    //
-    
+
     boolean playerCanMove;
     Action displayTextAction;
 
@@ -78,8 +75,7 @@ public class Game extends ApplicationAdapter {
     //box2d
     //World world;
     //Box2DDebugRenderer debugRenderer;
-    
-    //global info structures
+
     Player player;
     PkmnMap map;
     Battle battle;
@@ -94,6 +90,7 @@ public class Game extends ApplicationAdapter {
     //char-to-Sprite text dictionary
     Map<Character, Sprite> textDict;
 
+    // Annoying - used for music completion listener
     public static Game staticGame;
 
     // test box2d lights
@@ -122,7 +119,7 @@ public class Game extends ApplicationAdapter {
     @Override
     public void create() {
 
-        //annoying - used for music completion listener
+        // Annoying - used for music completion listener
         this.staticGame = this;
         // Gdx.app.getApplicationListener() <-- ??
 
@@ -133,8 +130,8 @@ public class Game extends ApplicationAdapter {
         this.b2World = new World(new Vector2(0, 0), true);
         this.rayHandler = new RayHandler(this.b2World);
         
-        this.batch = new SpriteBatch();
-        this.floatingBatch = new SpriteBatch();
+        this.mapBatch = new SpriteBatch();
+        this.uiBatch = new SpriteBatch();
             
         //have the map return a camera to use
         //some borrowed camera dimensions
@@ -184,10 +181,17 @@ public class Game extends ApplicationAdapter {
         
         this.textDict = initTextDict();
 
+        this.actionStack  = new ArrayList<Action>();
+        this.insertAction(new DrawSetupMenu(this, null));
+    }
+    
+    public void start() {
+        // TODO: there's a bunch of junk here, need to go through.
+        
         //add start actions
         ArrayList<Action> startActions = new ArrayList<Action>();
         //draw map
-        startActions.add(new drawMap(this));
+        startActions.add(new DrawMap(this));
         //set player
         startActions.add(new playerStanding(this));
         //lower player draw action
@@ -214,23 +218,25 @@ public class Game extends ApplicationAdapter {
         //startActions.add(new GenForest2(this, new Vector2(-64,-64), new Vector2(128,128)));
         
         //initialize action_stack
-        this.actionStack  = new ArrayList<Action>();
         this.actionStack.addAll(startActions);
         
         // TODO: remove if unused
         //start playing music?
-//        this.currMusic = this.map.currRoute.music;
+//                    this.currMusic = this.map.currRoute.music;
         //this.currMusic.setVolume(.0f);
         //this.currMusic.play(); //debug TODO - enable this
 
         this.currMusic = Gdx.audio.newMusic(Gdx.files.internal("music/nature1_render.ogg"));
-//        this.currMusic = Gdx.audio.newMusic(Gdx.files.internal("music/route_42.ogg"));
+//                    this.currMusic = Gdx.audio.newMusic(Gdx.files.internal("music/route_42.ogg"));
         this.map.currRoute.music = this.currMusic;
         this.currMusic.setLooping(false);
         this.currMusic.setVolume(1f);
         this.currMusic.play();
-//        this.currMusic.setPosition(141); // TODO: debug, delete
-//        this.currMusic.setPosition(93); // TODO: debug, delete
+        this.currMusic.pause();
+//                    this.currMusic.setPosition(130f);
+        this.currMusic.play();
+//                    this.currMusic.setPosition(141); // TODO: debug, delete
+//                    this.currMusic.setPosition(93); // TODO: debug, delete
         // this music should 'radio' through a selection of musics for the route
         this.musicCompletionListener = new Music.OnCompletionListener() {
             @Override
@@ -252,26 +258,26 @@ public class Game extends ApplicationAdapter {
         this.playerCanMove = true;
 
         //extra stuff
-//        PublicFunctions.insertToAS(this, new DrawObjectives(this));
-//        PublicFunctions.insertToAS(this, new GenForest1(this, new Vector2(-64,-64), new Vector2(128,128)));
-//        PublicFunctions.insertToAS(this, new GenForest2(this, new Vector2(-64,-48), new Vector2(320,336)));
+//                    PublicFunctions.insertToAS(this, new DrawObjectives(this));
+//                    PublicFunctions.insertToAS(this, new GenForest1(this, new Vector2(-64,-64), new Vector2(128,128)));
+//                    PublicFunctions.insertToAS(this, new GenForest2(this, new Vector2(-64,-48), new Vector2(320,336)));
 
 
         // was using this as default map
-//        PublicFunctions.insertToAS(this, new GenForest2(this, new Vector2(-64,-48), new Vector2(800,800))); //this is the size I want
+//                    PublicFunctions.insertToAS(this, new GenForest2(this, new Vector2(-64,-48), new Vector2(800,800))); //this is the size I want
 
         // gen island map 
         // old size = 16*20
-//        PublicFunctions.insertToAS(this, new GenIsland1(this, new Vector2(0,0), 20*40)); //16*15 //30*40 // 20*40  //16*18 //20*30
+//                    PublicFunctions.insertToAS(this, new GenIsland1(this, new Vector2(0,0), 20*40)); //16*15 //30*40 // 20*40  //16*18 //20*30
         // generates a mountain now.
-        PublicFunctions.insertToAS(this, new GenIsland1(this, new Vector2(0,0), 100*100)); //20*30 //60*100 //100*120
+        this.insertAction(new GenIsland1(this, new Vector2(0,0), 100*100)); //100*100 //20*30 //60*100 //100*120
 
         // TODO - mega gengar battle debug in genforest2, remove that
 
         // this is the special mewtwo debug map
         // comment out the genforest to use this
-//        this.map = new PkmnMap("SpecialMewtwo");
-//        PublicFunctions.insertToAS(this, new DrawSpecialMewtwoBg());
+//                    this.map = new PkmnMap("SpecialMewtwo");
+//                    PublicFunctions.insertToAS(this, new DrawSpecialMewtwoBg());
         
         // debug
         //PublicFunctions.insertToAS(this, new spawnGhost(this, new Vector2(32, 0))); //debug
@@ -328,113 +334,106 @@ public class Game extends ApplicationAdapter {
         //batch.setShader(shader);
         
         
-        PublicFunctions.insertToAS(this, new cycleDayNight(this));
+        this.insertAction(new cycleDayNight(this));
         
         //debug
-        this.player.currPokemon = new Pokemon("Cloyster", 70);
-//        this.player.currPokemon.name = "AA"; //debug
-        this.player.pokemon.add(this.player.currPokemon); 
-//        this.player.currPokemon.currentStats.put("hp", 0); //debug
+//                    this.player.currPokemon = new Pokemon("Cloyster", 70);
+//                    this.player.pokemon.add(this.player.currPokemon); 
 
         //TODO: debug, delete
-//        this.player.currPokemon.currentStats.put("hp", 12);
-        this.player.pokemon.add(new Pokemon("Machop", 50, Pokemon.Generation.CRYSTAL)); 
+//                    this.player.currPokemon.currentStats.put("hp", 12);
+//                    this.player.pokemon.add(new Pokemon("Machop", 50, Pokemon.Generation.CRYSTAL)); 
+//                    this.battle.attacks.get("karate chop").power = 200;  // TODO: debug, remove
+        this.player.pokemon.add(new Pokemon("Cyndaquil", 50, Pokemon.Generation.CRYSTAL)); 
+        this.battle.attacks.get("flamethrower").power = 200;  // TODO: debug, remove
         this.player.pokemon.add(new Pokemon("sneasel", 50, Pokemon.Generation.CRYSTAL)); 
-        this.player.pokemon.get(2).attacks[0] = "Bubblebeam";  // TODO: debug, remove
-//        this.player.pokemon.add(new Pokemon("Zubat", 40)); 
-//        this.player.pokemon.add(new Pokemon("Spinarak", 30)); 
-//        this.player.pokemon.add(new Pokemon("Zubat", 20)); 
-//        this.player.pokemon.add(new Pokemon("Zubat", 10)); 
+        this.player.pokemon.get(1).attacks[0] = "Bubblebeam";  // TODO: debug, remove
+        this.player.pokemon.add(new Pokemon("stantler", 50, Pokemon.Generation.CRYSTAL));
+        this.player.currPokemon = this.player.pokemon.get(0);
 
+        
         // TODO: delete
-//        this.currMusic = this.battle.music;
-//        this.currMusic.stop();
-//        this.currMusic.play();
-//        this.playerCanMove = false;
-//        this.battle.oppPokemon = new Pokemon("mamoswine", 22, Pokemon.Generation.CRYSTAL);
-//        PublicFunctions.insertToAS(this, Battle_Actions.get(this)); 
+//                    this.currMusic = this.battle.music;
+//                    this.currMusic.stop();
+//                    this.currMusic.play();
+//                    this.playerCanMove = false;
+//                    this.battle.oppPokemon = new Pokemon("mamoswine", 22, Pokemon.Generation.CRYSTAL);
+//                    PublicFunctions.insertToAS(this, Battle_Actions.get(this)); 
         
         // Example debug battle
-//        this.currMusic = this.battle.music;
-//        this.currMusic.stop();
-//        this.currMusic.play();
-//        this.playerCanMove = false;
-//        this.battle.oppPokemon = new Pokemon("Cloyster", 40);
-//        PublicFunctions.insertToAS(this, Battle_Actions.get(this)); 
+//                    this.currMusic = this.battle.music;
+//                    this.currMusic.stop();
+//                    this.currMusic.play();
+//                    this.playerCanMove = false;
+//                    this.battle.oppPokemon = new Pokemon("Cloyster", 40);
+//                    PublicFunctions.insertToAS(this, Battle_Actions.get(this)); 
 
         // debug for SpecialMewtwo battle
-//        this.playerCanMove = false;
-//        PublicFunctions.insertToAS(this, new SpecialBattleMewtwo(this));
+//                    this.playerCanMove = false;
+//                    PublicFunctions.insertToAS(this, new SpecialBattleMewtwo(this));
         
         
-//        System.out.println("color r:"+String.valueOf(Color.TEAL.r)); //debug
-//        System.out.println("color b:"+String.valueOf(Color.TEAL.b));
-//        System.out.println("color g:"+String.valueOf(Color.TEAL.g));
+//                    System.out.println("color r:"+String.valueOf(Color.TEAL.r)); //debug
+//                    System.out.println("color b:"+String.valueOf(Color.TEAL.b));
+//                    System.out.println("color g:"+String.valueOf(Color.TEAL.g));
         
         //debug //these below work
-//        String string1 = "AAAA used         SAFARI BALL!";
-//        String string1 = "AAAA threw a      ROCK.";
-//        String string1 = "All right!        PARASECT was      caught!";
-//        String string1 = "All right! PARASECT was caught!";
-//        String string1 = "Hey, what?";
-//        String string1 = "testing long long long long long long long long long long long long long long";
-//        String string1 = "AAAA has ADRENALINE 5!";
-//        PublicFunctions.insertToAS(this, new DisplayText(this, string1, "fanfare1", null, new DoneAction()));
-//        PublicFunctions.insertToAS(this, new DisplayText(this, string1, null, null, new DoneAction()));
+//                    String string1 = "AAAA used         SAFARI BALL!";
+//                    String string1 = "AAAA threw a      ROCK.";
+//                    String string1 = "All right!        PARASECT was      caught!";
+//                    String string1 = "All right! PARASECT was caught!";
+//                    String string1 = "Hey, what?";
+//                    String string1 = "testing long long long long long long long long long long long long long long";
+//                    String string1 = "AAAA has ADRENALINE 5!";
+//                    PublicFunctions.insertToAS(this, new DisplayText(this, string1, "fanfare1", null, new DoneAction()));
+//                    PublicFunctions.insertToAS(this, new DisplayText(this, string1, null, null, new DoneAction()));
         
-//        // trying out gme stuff
-//        //trying the vgmplayer route
-//        int sampleRate = 44100;
-//        VGMPlayer gbsPlayer = new VGMPlayer(sampleRate);
-//        try {
-//            //if url=path for now it won't try to do http get on url
-//            // and instead load file
-//            // dumb I know
-//            gbsPlayer.loadFile("C:/Users/Evan/Desktop/pokemon_gbs/Pokemon Gold zophar/DMG-AAUJ-JPN.gbs",
-//                               "C:/Users/Evan/Desktop/pokemon_gbs/Pokemon Gold zophar/DMG-AAUJ-JPN.gbs");
+//                    // trying out gme stuff
+//                    //trying the vgmplayer route
+//                    int sampleRate = 44100;
+//                    VGMPlayer gbsPlayer = new VGMPlayer(sampleRate);
+//                    try {
+//                        //if url=path for now it won't try to do http get on url
+//                        // and instead load file
+//                        // dumb I know
+//                        gbsPlayer.loadFile("C:/Users/Evan/Desktop/pokemon_gbs/Pokemon Gold zophar/DMG-AAUJ-JPN.gbs",
+//                                           "C:/Users/Evan/Desktop/pokemon_gbs/Pokemon Gold zophar/DMG-AAUJ-JPN.gbs");
 //
-////            gbsPlayer.loadFile("C:/Users/Evan/Desktop/pokemon_gbs/PM_Y_C_Stereo_GBS/Pokemon Crystal (2001)(Game Freak, Nintendo).gbs",
-////                               "C:/Users/Evan/Desktop/pokemon_gbs/PM_Y_C_Stereo_GBS/Pokemon Crystal (2001)(Game Freak, Nintendo).gbs");
-//            //don't trust file number in directory - look inside m3u file for GBS,<track number>
-//            gbsPlayer.startTrack(88, 150);
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
+////                        gbsPlayer.loadFile("C:/Users/Evan/Desktop/pokemon_gbs/PM_Y_C_Stereo_GBS/Pokemon Crystal (2001)(Game Freak, Nintendo).gbs",
+////                                           "C:/Users/Evan/Desktop/pokemon_gbs/PM_Y_C_Stereo_GBS/Pokemon Crystal (2001)(Game Freak, Nintendo).gbs");
+//                        //don't trust file number in directory - look inside m3u file for GBS,<track number>
+//                        gbsPlayer.startTrack(88, 150);
+//                    } catch (Exception e) {
+//                        e.printStackTrace();
+//                    }
 
         // draw android controls if on android device
         // TODO: didnt finish
-//        PublicFunctions.insertToAS(this, new DrawAndroidControls());
-
+//                    PublicFunctions.insertToAS(this, new DrawAndroidControls());
     }
 
     @Override
     public void dispose() {
-        batch.dispose();
-        floatingBatch.dispose();
+        mapBatch.dispose();
+        uiBatch.dispose();
     }
 
     @Override
     public void render() {    
 
-        //TODO 
-         //...
-        
-        
         handleInput();
         
         Gdx.gl.glClearColor(1, 1, 1, 1);
-        //Gdx.gl.glClearColor(0, 0, 0, 1); //black bg
+        // Gdx.gl.glClearColor(0, 0, 0, 1);  // was black bg
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-
-        cam.update();
-        batch.setProjectionMatrix(cam.combined);
+        this.cam.update();
+        this.mapBatch.setProjectionMatrix(cam.combined);
         
-        //iterate twice because batch drawing happens separately
-        
-        batch.begin();
-        //iterate through action stack
-        for (Action action : new ArrayList<Action>(this.actionStack)) { //iterate copy
-            if (action.getCamera() == "map") { //only map actions
+        // Iterate twice, once for this.batch (map objects), once for this.uiBatch (ui objects)
+        this.mapBatch.begin();
+        // Iterate through the action stack and call the step() fn of each Action.
+        for (Action action : new ArrayList<Action>(this.actionStack)) {
+            if (action.getCamera() == "map") {
                 // TODO: debug, remove timeit data
                 if (Gdx.input.isKeyPressed(Input.Keys.P)) {
                     System.out.println(action);
@@ -451,10 +450,11 @@ public class Game extends ApplicationAdapter {
                 }
             }
         }
-        batch.end();
+        this.mapBatch.end();
         
-
-        // TODO: debug box2d lights
+        // TODO: Debug box2d lights
+        // TODO: Didn't end up using this, using shaders for lighting because
+        // it looks more natural to the Gen1/Gen2 graphics.
 //        this.accumulator += Gdx.graphics.getDeltaTime();
 //        while (this.accumulator >= this.timeIncrement) {
 //            this.b2World.step(this.timeIncrement, this.velocityIterations, this.positionIterations);
@@ -465,7 +465,7 @@ public class Game extends ApplicationAdapter {
 //        this.rayHandler.setAmbientLight(new Color(0f, 0f, 0f, 1f));
 //        this.rayHandler.updateAndRender();
 
-        floatingBatch.begin();
+        this.uiBatch.begin();
         //iterate through action stack
         for (Action action : new ArrayList<Action>(this.actionStack)) { //iterate copy
             if (action.getCamera().equals("gui")) { //only gui actions
@@ -476,7 +476,8 @@ public class Game extends ApplicationAdapter {
                 action.step(this);
             }
         }
-        //disabled as per html5
+        // TODO: remove if unused.
+        // Disabled as per html5
         //font.draw(floatingBatch, "Cam zoom: "+String.valueOf(cam.zoom), 130, 40);
 //        font.draw(floatingBatch, "Cam x pos: "+String.valueOf(cam.position.x), 130, 30);
 //        font.draw(floatingBatch, "Cam y pos: "+String.valueOf(cam.position.y), 130, 20); 
@@ -491,18 +492,14 @@ public class Game extends ApplicationAdapter {
 //        font.draw(floatingBatch, "WASD = Move", 130, 40); 
 //        font.draw(floatingBatch, "Q/E = Zoom", 130, 60); 
 //        font.draw(floatingBatch, "FPS... = " + String.valueOf(Gdx.graphics.getFramesPerSecond()), 10, 20); 
-        
-        floatingBatch.end();
+        this.uiBatch.end();
         
         //box2d
         //this.world.step(1/60f, 6, 2);
         //this.debugRenderer.render(world, this.cam.combined);
-        
-        
     }
     
     private void handleInput() {
-        
         
         if(Gdx.input.isKeyPressed(Input.Keys.Q)) {
             cam.zoom += 0.5;
@@ -536,7 +533,9 @@ public class Game extends ApplicationAdapter {
                 System.out.println(String.valueOf(action.getLayer()) + "  " + action.getClass().getName());
             }
             // TODO: debug, remove
-            System.out.println("Musics: " + String.valueOf(this.map.currRoute.musics.size()));
+//            System.out.println("Musics: " + String.valueOf(this.map.currRoute.musics.size()));
+            System.out.println("Test:  ");
+            System.out.println(3 + (3 << 2) + (0 << 4));
         }
         // check network type (reset when pressed)
         if (Gdx.input.isKeyJustPressed(Input.Keys.M)) {
@@ -556,8 +555,9 @@ public class Game extends ApplicationAdapter {
         }
     }
     
-    //used when drawing in-game text boxes
-    //this will load the map from characters to Sprites
+    /*
+     * Used when drawing in-game text boxes. Creates a character->Sprite map.
+     */
     public Map<Character, Sprite> initTextDict() {
         
         //modify spritesheet if there are problems
@@ -611,20 +611,27 @@ public class Game extends ApplicationAdapter {
         //scaling viewport here doesn't affect screen pixel size. 
          //this might be the right way to resize
         //not sure if pixels are right or wrong
-        
-        //below will scale floatingBatch regardless of current screen size
-        int menuWidth = (144*width)/height;  // height/width = 144/menuWidth
-//        System.out.println(menuWidth);
-        int offsetX = (menuWidth-160)/2;  // 144/160 = height/x; x = (height*160)/144
-        System.out.println(offsetX);
-        
-        this.floatingBatch.getProjectionMatrix().setToOrtho2D(-offsetX, 0, menuWidth, 144);
-//        this.floatingBatch.
-        // this might not be technically the best method; works for now.
+
+        if (Gdx.app.getType() == ApplicationType.Android) {
+            // TODO: haven't tested the android resizing yet
+            int menuHeight = (160*height)/width;  // height/width = menuHeight/160
+            int offsetY = (menuHeight-144)/2;
+            this.uiBatch.getProjectionMatrix().setToOrtho2D(0, -offsetY, 160, menuHeight);
+        }
+        else {
+            // below will scale floatingBatch regardless of current screen size
+            int menuWidth = (144*width)/height;  // height/width = 144/menuWidth
+//            System.out.println(menuWidth);
+            int offsetX = (menuWidth-160)/2;
+//            System.out.println(offsetX);
+            
+            this.uiBatch.getProjectionMatrix().setToOrtho2D(-offsetX, 0, menuWidth, 144);
+            // this might not be technically the best method; works for now.
+            this.cam.viewportWidth = width/3;
+            this.cam.viewportHeight = height/3;
+        }
         this.currScreen = new Vector2(width, height);
-        this.cam.viewportWidth = width/3;
-        this.cam.viewportHeight = height/3;
-        //width/3, height/3);;
+        // width/3, height/3);;
 //        System.out.println(width);
 //        System.out.println(height);
 
@@ -784,6 +791,25 @@ public class Game extends ApplicationAdapter {
     // This holds per connection state.
     static class CharacterConnection extends Connection {
         public Vector2 character;
+    }
+    
+    /*
+     * Insert action to Game.ActionStack at the layer defined by Action.getLayer().
+     */
+    public void insertAction(Action actionToInsert) {
+        // handle null entry by skipping
+        if (actionToInsert == null) {
+            return;
+        }
+        for (int i = 0; i < this.actionStack.size(); i++) {
+            //if actionToInsert layer is <=  action layer, insert before element
+            if (actionToInsert.getLayer() >= this.actionStack.get(i).getLayer()) {
+                this.actionStack.add(i, actionToInsert);
+                return;
+            }
+        }
+        //layer is smallest in stack, so add to the end.
+        this.actionStack.add(actionToInsert);
     }
     
     
