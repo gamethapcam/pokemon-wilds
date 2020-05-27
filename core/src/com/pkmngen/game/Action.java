@@ -1,6 +1,5 @@
 package com.pkmngen.game;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -9,18 +8,13 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Sprite;
-import com.badlogic.gdx.graphics.glutils.ShaderProgram;
-import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
-import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.BodyDef;
 import com.badlogic.gdx.physics.box2d.BodyDef.BodyType;
 import com.badlogic.gdx.physics.box2d.CircleShape;
-import com.badlogic.gdx.physics.box2d.Fixture;
 import com.badlogic.gdx.physics.box2d.FixtureDef;
 
 //to change layer, change var, remove from AS, re-insert.
@@ -151,8 +145,8 @@ class SplitAction extends Action {
     @Override
     public void step(Game game) {
         game.actionStack.remove(this);
-        PublicFunctions.insertToAS(game, nextAction2);
-        PublicFunctions.insertToAS(game, nextAction);
+        game.insertAction(nextAction2);
+        game.insertAction(nextAction);
         
         // TODO: test this - didn't seem to have an effect
 //        if (this.camera.equals(this.nextAction1.getCamera())) {
@@ -191,442 +185,17 @@ class SplitAction extends Action {
 //131-140: backgrounds
 
 
-class draw_laser1 extends Action {
 
-    Sprite sprite;
-    
-    int timer = 0;
-    Vector2 velocityXY;
-    
-    float velocity = 500f;
-    
-    public int layer = 121;
-    public int getLayer(){return this.layer;}
-    
-    //what to do at each iteration
-    public void step(Game game) {
-        
-
-        this.sprite.translate(this.velocityXY.x, this.velocityXY.y);
-        
-        this.sprite.draw(game.mapBatch);
-        
-        timer += 1;
-        if (timer >= 100) {
-            game.actionStack.remove(this);
-        }
-    }
-    
-    public draw_laser1(Game game, Vector2 origin, float angle) {
-        
-
-        Texture laser_text = new Texture(Gdx.files.internal("data/laser1.png"));
-        this.sprite = new Sprite(laser_text, 0, 0, 2048, 128);
-        this.sprite.setOrigin(600, this.sprite.getOriginY());
-        this.sprite.setPosition(origin.x - this.sprite.getOriginX(), origin.y - this.sprite.getOriginY());
-        
-        //angle of hypotenuse
-        this.sprite.setRotation(angle);
-        
-        //calc x and y velocity based on angle and this.velocity
-        this.velocityXY = new Vector2(this.velocity * (float)Math.cos(Math.toRadians(angle)), this.velocity * (float)Math.sin(Math.toRadians(angle)));
-        
-        
-    }
-}
         
         
 
-class draw_crosshair extends Action {
-    
-    public Sprite crosshair;
-    
-    public Vector3 mousePos;
-    
-
-    @Override
-    public String getCamera(){return "map";}
-
-    //what to do at each iteration
-    public void step(Game game) {
-        
-        
-
-        this.mousePos = new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
-        game.cam.unproject(this.mousePos);
-        
-        //snap to cursor
-        this.crosshair.setPosition(this.mousePos.x - crosshair.getWidth()/2, this.mousePos.y - crosshair.getHeight()/2);
-        
-        
-        //transform //if using floatingBatch
-        //this.crosshair.setScale(1/game.cam.zoom);
-        
-        //draw
-        this.crosshair.draw(game.mapBatch);
-                
-    }
-    
-
-    public draw_crosshair(Game game) {
-
-        Texture crosshair_text = new Texture(Gdx.files.internal("data/crosshair1.png"));
-        this.crosshair = new Sprite(crosshair_text, 0, 0, 429, 569);
-        
-        //Gdx.input.setCursorCatched(true);
-        //Gdx.input.setCursorPosition(Gdx.graphics.getWidth() / 2, Gdx.graphics.getHeight() / 2);
-        
-        //didn't work
-        //this.crosshair = new Pixmap(Gdx.files.internal("data/crosshair1.png"));
-        //Gdx.input.setCursorImage(this.crosshair, 0, 0);
-        
-    }
-    
-}
-
-//ship1 object draw action
-class control_ship1 extends Action {
 
 
-    public int layer = 120;
-    public int getLayer(){return this.layer;}
-    
-    public ArrayList<Sprite> tiles;
-    //tiles map
-    private HashMap<Sprite, Vector2> tilesVecs = new HashMap<Sprite, Vector2>();
-    
-    Music bgSound = null;
-    
-    public Sprite hullOuter;
-    
-    //box2d
-    //public Body body;
-    
-    int startX = 544;
-    int startY = 300;
-    
-    float velX = 0;
-    float velY = 0;
-    
-    float vel = 0;
-    int maxVel = 120;
-    float velIncreaseAmt = .7f;
-    
-    //0 points to the right
-    float torque = 0;
-    float maxTorque = 2f;
-    float torqueIncreaseAmt = .1f;
-    
-    float angle = 0;
-    float currAngle = 0;
-    float driftAmt = 1f;
-    
-    float driftDecel = .3f;
-    float driftStationary = 20f;
-    
-    public boolean newTouch = true;
-    
-    //what to do at each iteration
-    public void step(Game game) {
-        
-        if (this.bgSound == null) {
-            this.bgSound = Gdx.audio.newMusic(Gdx.files.internal("data/drone1.wav")); //use this
-            this.bgSound.setLooping(true);
-            this.bgSound.play();
-        }
-        
-        boolean keyIsPressed = false;
-        
-        //torque
-            if(Gdx.input.isKeyPressed(Input.Keys.A)) {
-                if (torque < maxTorque)
-                    torque += torqueIncreaseAmt;
-                keyIsPressed = true;
-            }
-            if(Gdx.input.isKeyPressed(Input.Keys.D)) {
-                if (torque > -maxTorque)
-                    torque -= torqueIncreaseAmt;
-                keyIsPressed = true;
-            }
-        //velocity
-        if (!Gdx.input.isKeyPressed(Input.Keys.CONTROL_LEFT)) {
-            if(Gdx.input.isKeyPressed(Input.Keys.W)) {
-                if (vel < maxVel)
-                    vel += velIncreaseAmt;
-                keyIsPressed = true;
-            }
-            if(Gdx.input.isKeyPressed(Input.Keys.S)) {
-                if (vel > -maxVel)
-                    vel -= velIncreaseAmt;
-                keyIsPressed = true;
-            }
-            //slow down if no movement key is pressed
-            if (!Gdx.input.isKeyPressed(Input.Keys.W) && !Gdx.input.isKeyPressed(Input.Keys.S))
-            {
-                if (vel > driftStationary) {
-                    vel -= driftDecel;
-                }
-                else if (vel < -driftStationary) {
-                    vel += driftDecel;
-                }
-                else {
-                    //vel = 0;
-                }
-            }
-        }
-        else {
-            if (vel > driftStationary) {
-                vel -= driftDecel;
-            }
-            else if (vel < -driftStationary) {
-                vel += driftDecel;
-            }
-            else {
-                //vel = 0;
-            }
-        }
-        
-        if (!Gdx.input.isKeyPressed(Input.Keys.A) && !Gdx.input.isKeyPressed(Input.Keys.D))
-        {
-            if (torque > 0.1f) {
-                torque -= torqueIncreaseAmt;
-            }
-            else if (torque < -0.1f) {
-                torque += torqueIncreaseAmt;
-            }
-            else {
-                torque = 0;
-            }
-        }
-        
-        //draw ship hull
-        this.hullOuter.rotate(torque);
-        this.hullOuter.draw(game.mapBatch);
-        
-        //angle of 'where ship _should_ be going'
-        this.angle = this.hullOuter.getRotation(); 
-        //responsible for drift
-        if (!Gdx.input.isKeyPressed(Input.Keys.CONTROL_LEFT)) {
-            
-            // this is having issues
-            if (Math.abs(currAngle - this.angle) > 180) {
-                System.out.println("here");
-                currAngle = this.angle + (currAngle % 360) - (this.angle % 360);
-            }
-//            float drift = this.driftAmt;
-//            if (currAngle > this.angle + 100) {
-//                currAngle = this.angle + 100;
-//            }
-//            if (currAngle < this.angle - 100) {
-//                currAngle = this.angle - 100;
-//            }
-//            
-            //would prefer something that doesn't change vector, but starts 'thrusting' in new direction
-              //when change x vel, add to vel until matches? would be disproportioned diagonally
-            float drift = this.driftAmt;
-            if (currAngle > this.angle + 100 || currAngle < this.angle - 100) {
-                drift *= 6;
-            }
-            
-            if (currAngle > this.angle + 0.1) {
-                currAngle -= drift;
-            }
-            else if (currAngle < this.angle - 0.1) {
-                currAngle += drift;
-            }
-            else {
-                currAngle = this.angle;
-            }
-            
-        }
-        
-        //calc velX and velY based on vel and torque
-        this.velX = (float)Math.cos(Math.toRadians(this.currAngle)) * vel;
-        this.velY = (float)Math.sin(Math.toRadians(this.currAngle)) * vel;
-
-        this.hullOuter.translate(velX, velY);
-        //translate cam 
-        game.cam.translate(velX, velY);
-        
-        
-        //snap each tile
-        //draw each tile
-        for (Sprite tile : this.tiles) {
-            //add velocity
-            //tile.translate(velX, velY);
-            //draw the tile
-            tile.draw(game.mapBatch);
-            
-            Vector2 tileVec = new Vector2(this.tilesVecs.get(tile));
-            
-            tileVec.rotate(this.angle);
-            tile.setRotation(this.angle);
-            float offsetX = this.hullOuter.getX() + this.hullOuter.getOriginX() + tileVec.x;
-            float offsetY = this.hullOuter.getY() + this.hullOuter.getOriginY() + tileVec.y;
-            tile.setPosition(offsetX, offsetY);
-        }
-        
-        
-        //update this box2d body
-        //this.body.setLinearVelocity(velX*100, velY*100);//hitting some sort of max vel
-        
-        
-        
-        if (Gdx.input.isTouched()) {
-            game.touchLoc.set(Gdx.input.getX(), Gdx.graphics.getHeight()-Gdx.input.getY(), 0);
-            
-            if ( this.newTouch == true ) {
-                
-                Vector3 mousePos = new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
-                game.cam.unproject(mousePos);
-
-                Vector2 laserOrigin = new Vector2(this.hullOuter.getX() + this.hullOuter.getOriginX(), this.hullOuter.getY() + this.hullOuter.getOriginY());
-                Vector2 laser1Offset = new Vector2(520, -1600);
-                laser1Offset.rotate(this.hullOuter.getRotation());
-                Vector2 laser2Offset = new Vector2(520, 1600);
-                laser2Offset.rotate(this.hullOuter.getRotation());
-                
-                Vector2 laser1Origin = new Vector2(laserOrigin.x + laser1Offset.x, laserOrigin.y + laser1Offset.y);
-                Vector2 laser2Origin = new Vector2(laserOrigin.x + laser2Offset.x, laserOrigin.y + laser2Offset.y);
-                
-                Vector2 laser1Vec =  new Vector2(mousePos.x - laser1Origin.x, mousePos.y - laser1Origin.y);
-                Vector2 laser2Vec =  new Vector2(mousePos.x - laser2Origin.x, mousePos.y - laser2Origin.y);
-                                
-                PublicFunctions.insertToAS(game, new draw_laser1(game, laser1Origin, laser1Vec.angle()));
-                PublicFunctions.insertToAS(game, new draw_laser1(game, laser2Origin, laser2Vec.angle()));
-                PublicFunctions.insertToAS(game, new PlaySound("laser5", new DoneAction()));
-                
-            }
-            this.newTouch = false;
-        }
-        else {
-            this.newTouch = true;
-        }
-    }
-    
-    public control_ship1(Game game) {
-        
-        Texture tileset = new Texture(Gdx.files.internal("data/sheet1.png"));
-        Sprite tempSprite;
-        
-        //set up ship tiles
-        this.tiles = new ArrayList<Sprite>();
-        
-        tempSprite = new Sprite(tileset, 0, 0, 128, 128);
-        tempSprite.setPosition(startX+0, startY+0);
-        tempSprite.setOrigin(0, 0);
-        tiles.add(tempSprite);
-        tilesVecs.put(tempSprite, new Vector2(0,-128));
-
-        tempSprite = new Sprite(tileset, 128, 0, 128, 128);
-        tempSprite.setPosition(startX+128, startY+0);
-        tempSprite.setOrigin(0, 0);
-        tiles.add(tempSprite);
-        tilesVecs.put(tempSprite, new Vector2(0,128));
-
-        tempSprite = new Sprite(tileset, 256, 0, 128, 128);
-        tempSprite.setPosition(startX+0, startY+128);
-        tempSprite.setOrigin(0, 0);
-        tiles.add(tempSprite);
-        tilesVecs.put(tempSprite, new Vector2(0,256));
-        
-        tempSprite = new Sprite(tileset, 384, 0, 128, 128);
-        tempSprite.setPosition(startX+128, startY+128);
-        tempSprite.setOrigin(0, 0);
-        tiles.add(tempSprite);
-        tilesVecs.put(tempSprite, new Vector2(0,0));
-        
-        
-        //hull sprite
-        Texture hullTexture = new Texture(Gdx.files.internal("data/titan1.png"));
-        this.hullOuter = new Sprite(hullTexture, 0, 0, 2454, 3275);
-        this.hullOuter.setOrigin(this.hullOuter.getWidth()/3, this.hullOuter.getHeight()/2);
-        
-        //temp
-        game.cam.position.set(this.hullOuter.getX() + this.hullOuter.getOriginX(), this.hullOuter.getY() + this.hullOuter.getOriginY(), 0);
-                
-        //box2d vv
-        //create box2d body
-        BodyDef bodyDef = new BodyDef();
-        bodyDef.type = BodyType.KinematicBody;
-        bodyDef.position.set(startX, startY);
-
-        // Create our body in the world using our body definition
-        //this.body = game.world.createBody(bodyDef);
-
-        // Create a circle shape and set its radius to 6
-        CircleShape circle = new CircleShape();
-        circle.setRadius(6f);
-
-        // Create a fixture definition to apply our shape to
-        FixtureDef fixtureDef = new FixtureDef();
-        fixtureDef.shape = circle;
-        fixtureDef.density = 0.5f; 
-        fixtureDef.friction = 0.4f;
-        fixtureDef.restitution = 0.6f; // Make it bounce a little bit
-
-        // Create our fixture and attach it to the body
-        //Fixture fixture = this.body.createFixture(fixtureDef);
-
-        // Remember to dispose of any shapes after you're done with them!
-        // BodyDef and FixtureDef don't need disposing, but shapes do.
-        circle.dispose();
-        
-    }
-}
-
-//tiling background
-class drawAction_map1 extends Action {
-
-    public Texture bgmapText;
-    public Sprite bgmapSprite;
-
-    public int layer = 140;
-    public int getLayer(){return this.layer;}
-    
-    //what to do at each iteration
-    public void step(Game game) {
-
-        
-        //get screen lower left (0,0)
-        //turn into world coords
-        //divide by 600, round down
-        //i is this
-        Vector3 topLeft = new Vector3(0,0,0);
-        game.cam.unproject(topLeft);
-        //maxI is screen.width coord / 600, round up
-        Vector3 bottomRight = new Vector3(Gdx.graphics.getWidth(),Gdx.graphics.getHeight(),0);
-        game.cam.unproject(bottomRight);
-        
-        int min_i = (int)Math.floor((topLeft.x / (bgmapSprite.getWidth()*bgmapSprite.getScaleX())));
-        int min_j = (int)Math.floor((bottomRight.y / (bgmapSprite.getHeight()*bgmapSprite.getScaleY())));
-        
-        int max_i = (int)Math.ceil((bottomRight.x / (bgmapSprite.getWidth()*bgmapSprite.getScaleX())));
-        int max_j = (int)Math.ceil((topLeft.y / (bgmapSprite.getHeight()*bgmapSprite.getScaleY())));
-
-        for (int i=min_i; i <= max_i; i++) {
-            for (int j=min_j; j <= max_j; j++) {
-                this.bgmapSprite.setPosition(i*bgmapSprite.getWidth()*bgmapSprite.getScaleX(), j*bgmapSprite.getHeight()*bgmapSprite.getScaleY());
-                this.bgmapSprite.draw(game.mapBatch);
-            }
-        }
-    }
-    
-    public drawAction_map1() {
-//        this.bgmapText = new Texture(Gdx.files.internal("bg2.png"));
-//        this.bgmapSprite = new Sprite(this.bgmapText, 0, 0, 600, 600);
-
-        this.bgmapText = new Texture(Gdx.files.internal("block1.png"));
-        this.bgmapSprite = new Sprite(this.bgmapText, 0, 0, 16, 16);
-        
-        
-        //this.bgmapSprite.setScale(10);
-    }
-}
 
 
-//demo code - basically the whole switch map mechanic
-//draw objectives
+
+// Demo code - basically the whole switch map mechanic
+// Draw objectives
 class DrawObjectives extends Action {
 
 
@@ -716,7 +285,7 @@ class DrawObjectives extends Action {
                 //warp
                 game.numObjectivesFinished+=1;
                 if (game.numObjectivesFinished < 2) {
-                    PublicFunctions.insertToAS(game, new SplitAction( 
+                    game.insertAction(new SplitAction( 
                             new BattleFadeOut(game,
                                 new GenForest1(game, new Vector2(-64,-64), new Vector2(128,128)) //inserts a drawObjective automatically
                             ),
@@ -727,7 +296,7 @@ class DrawObjectives extends Action {
                 }
                 else {
                     game.map = new PkmnMap("Demo_Legendary1");
-                    PublicFunctions.insertToAS(game, new SplitAction( 
+                    game.insertAction(new SplitAction( 
                             new BattleFadeOut(game, new DoneAction() 
                             ),
                             new PlaySound("harden1", new DoneAction())
@@ -932,7 +501,7 @@ class DisplayText extends Action {
 
             //if at the end of text and need to play sound, do that
             if (this.playSound == true && spritesNotDrawn.isEmpty()) {
-                PublicFunctions.insertToAS(game, this.playSoundAction);
+                game.insertAction(this.playSoundAction);
                 this.playSoundAction.step(game); //avoid latency
                 this.playSound = false;
                 return;
@@ -940,7 +509,7 @@ class DisplayText extends Action {
             
             //if we need to wait on a trigger
             if (this.triggerAction != null || (DisplayText.textPersist && !this.waitInput)) {
-                PublicFunctions.insertToAS(game, this.nextAction);
+                game.insertAction(this.nextAction);
                 this.checkTrigger = true;
                 return;
             }
@@ -960,21 +529,21 @@ class DisplayText extends Action {
             if(Gdx.input.isKeyJustPressed(Input.Keys.Z)) {
                 
                 Action playSound = new PlaySound("click1", new DoneAction());
-                PublicFunctions.insertToAS(game, playSound);
+                game.insertAction(playSound);
                 playSound.step(game); //prevent latency
                 
                 if (spritesNotDrawn.isEmpty()) {
                     if (DisplayText.textPersist) {
-                        PublicFunctions.insertToAS(game, this.nextAction);
+                        game.insertAction(this.nextAction);
                         this.checkTrigger = true;
                         return;
                     }
-                    PublicFunctions.insertToAS(game, this.nextAction);
+                    game.insertAction(this.nextAction);
                     game.actionStack.remove(this);
                 }
                 else {
                     this.scrollUpAction = new DisplayText.ScrollTextUp(game, this.spritesBeingDrawn, this.spritesNotDrawn);
-                    PublicFunctions.insertToAS(game, this.scrollUpAction);
+                    game.insertAction(this.scrollUpAction);
                 }
             }
             return;
@@ -1202,7 +771,7 @@ class DisplayText extends Action {
         public void step(Game game) {
             DisplayText.textPersist = false;
             game.actionStack.remove(this);
-            PublicFunctions.insertToAS(game, this.nextAction);
+            game.insertAction(this.nextAction);
         }
         
         public Clear(Game game, Action nextAction) {
@@ -1262,7 +831,7 @@ class DisplayText extends Action {
                 //game.battle.music.setVolume(.3f);
                 game.currMusic.setVolume(this.initialVolume);
                 game.actionStack.remove(this);
-                PublicFunctions.insertToAS(game, this.nextAction);
+                game.insertAction(this.nextAction);
             }
         }
     }
@@ -1278,7 +847,7 @@ class RemoveDisplayText extends Action {
         game.actionStack.remove(game.displayTextAction);
         game.displayTextAction = null;
         game.actionStack.remove(this);
-        PublicFunctions.insertToAS(game, this.nextAction);
+        game.insertAction(this.nextAction);
     }
     
     public RemoveDisplayText(Action nextAction) {
@@ -1298,7 +867,7 @@ class WaitFrames extends Action {
     public void step(Game game) {
         this.length--;
         if (this.length <= 0) {
-            PublicFunctions.insertToAS(game, this.nextAction);
+            game.insertAction(this.nextAction);
             game.actionStack.remove(this);
         }
     }
@@ -1310,31 +879,8 @@ class WaitFrames extends Action {
 }
 
 /*
- * TODO: migrate references of this to call game.insertAction() instead.
+ * Pulled from wizard-duels code.
  */
-class PublicFunctions {
-    //this is for inserting into the AS at proper layer
-    public static void insertToAS(Game game, Action actionToInsert) {
-//        // handle null entry by skipping
-//        if (actionToInsert == null) {
-//            return;
-//        }
-//        //for item in as
-//        for (int i = 0; i < game.actionStack.size(); i++) {
-//            //if actionToInsert layer is <=  action layer, insert before element
-//            if (actionToInsert.getLayer() >= game.actionStack.get(i).getLayer()) {
-//                game.actionStack.add(i, actionToInsert);
-//                return;
-//            }
-//        }
-//        //layer is smallest in stack, add to end
-//        game.actionStack.add(actionToInsert);
-        game.insertAction(actionToInsert);
-    }
-}
-
-
-// pulled from wizard-duels code
 class DisplayTextIntro extends Action {
 
     ArrayList<Sprite> spritesNotDrawn;
@@ -1453,7 +999,7 @@ class DisplayTextIntro extends Action {
             
             //if at the end of text and need to play sound, do that
             if (this.playSound == true && spritesNotDrawn.isEmpty()) {
-                PublicFunctions.insertToAS(game, this.playSoundAction);
+                game.insertAction(this.playSoundAction);
                 this.playSoundAction.step(game); //avoid latency
                 this.playSound = false;
                 return;
@@ -1461,7 +1007,7 @@ class DisplayTextIntro extends Action {
             
             //if we need to wait on a trigger
             if (this.triggerAction != null) {
-                PublicFunctions.insertToAS(game, this.nextAction);
+                game.insertAction(this.nextAction);
                 this.checkTrigger = true;
                 return;
             }
@@ -1483,7 +1029,7 @@ class DisplayTextIntro extends Action {
 //            if(Gdx.input.isKeyJustPressed(Input.Keys.Z)) {
 
                 if (spritesNotDrawn.isEmpty()) {
-                    PublicFunctions.insertToAS(game, this.nextAction);
+                    game.insertAction(this.nextAction);
                     
                     if (this.exitWhenDone == true) {
                         game.actionStack.remove(this);
@@ -1494,7 +1040,7 @@ class DisplayTextIntro extends Action {
                 }
                 else {
                     this.scrollUpAction = new DisplayTextIntro.ScrollTextUp(game, this.spritesBeingDrawn, this.spritesNotDrawn);
-                    PublicFunctions.insertToAS(game, this.scrollUpAction);
+                    game.insertAction(this.scrollUpAction);
                 }
             
             return;
@@ -1738,7 +1284,7 @@ class DisplayTextIntro extends Action {
 //                game.currMusic.setVolume(this.initialVolume);
                 game.actionStack.remove(this);
                 
-                PublicFunctions.insertToAS(game, this.nextAction);
+                game.insertAction(this.nextAction);
             }
         }
     }
@@ -2054,13 +1600,13 @@ class PlaySound extends Action {
             game.currMusic = game.loadedMusic.get("mgengar_battle1");
 //            game.currMusic.play();
 //            game.actionStack.remove(this);
-//            PublicFunctions.insertToAS(game, this.nextAction);
+//            game.insertAction(this.nextAction);
             return;
         }
         
         if (this.music == null) {
             game.actionStack.remove(this);
-            PublicFunctions.insertToAS(game, this.nextAction);
+            game.insertAction(this.nextAction);
             return;
         }
         //play the sound
@@ -2072,7 +1618,7 @@ class PlaySound extends Action {
         if (!this.music.isPlaying()) {
             this.music.dispose();
             game.actionStack.remove(this);
-            PublicFunctions.insertToAS(game, this.nextAction);
+            game.insertAction(this.nextAction);
         }
     }
 }
@@ -2168,7 +1714,7 @@ class FadeMusic extends Action {
             //shouldn't ever be the case, occasionally is in testing tho.
             if (this.music == null) {
                 game.actionStack.remove(this);
-                PublicFunctions.insertToAS(game, this.nextAction);
+                game.insertAction(this.nextAction);
                 return;
             }
             
@@ -2198,7 +1744,7 @@ class FadeMusic extends Action {
                     
                 }
                 game.actionStack.remove(this);
-                PublicFunctions.insertToAS(game, this.nextAction);
+                game.insertAction(this.nextAction);
             }
         }
         else { 
@@ -2206,7 +1752,7 @@ class FadeMusic extends Action {
 
                 this.music.setVolume(this.maxVol);
                 game.actionStack.remove(this);
-                PublicFunctions.insertToAS(game, this.nextAction);
+                game.insertAction(this.nextAction);
             }
         }
         
@@ -2522,7 +2068,7 @@ class DrawSetupMenu extends Action {
         //      //button interaction is below drawing b/c I want to be able to return here
         //      //if press a, draw use/toss for item
         //      if(Gdx.input.isKeyJustPressed(Input.Keys.Z)) { //using isKeyJustPressed rather than isKeyPressed
-        //          PublicFunctions.insertToAS(game, new PlaySound("click1", new DoneAction()));
+        //          game.insertAction(new PlaySound("click1", new DoneAction()));
         //          
         //          
         //
@@ -2530,7 +2076,7 @@ class DrawSetupMenu extends Action {
         //          this.drawArrowWhite = true;
         //          //once player hits b in selected menu, avatar anim starts over
         //          Pokemon currPokemon = game.player.pokemon.get(DrawPokemonMenu.currIndex);
-        //          PublicFunctions.insertToAS(game, new DrawPokemonMenu.SelectedMenu(this, currPokemon));
+        //          game.insertAction(new DrawPokemonMenu.SelectedMenu(this, currPokemon));
         //          game.actionStack.remove(this);
         //          return;
         //      }

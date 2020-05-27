@@ -38,7 +38,7 @@ class GenForest1 extends Action {
 			}
 			Action currAction = this.doActions.get(0);
 			this.doActions.remove(0);
-			PublicFunctions.insertToAS(game, currAction);
+			game.insertAction(currAction);
 			game.actionStack.remove(this);
 			return;
 		}
@@ -163,7 +163,7 @@ class GenForest1 extends Action {
 		 //important note - remove will use implementation of .equals() method
 		this.allowedPositions.remove(new Vector2(0,0));
 		Tile newTile = new Tile("warp1_greyed", new Vector2(0,0));
-		PublicFunctions.insertToAS(game, new DrawObjectives(game, newTile));
+		game.insertAction(new DrawObjectives(game, newTile));
 		this.tilesToAdd.add(newTile);
 
 		this.doActions = new ArrayList<Action>();
@@ -340,7 +340,7 @@ class GenForest1 extends Action {
 			
 			
 
-			PublicFunctions.insertToAS(game, this.nextAction);
+			game.insertAction(this.nextAction);
 			game.actionStack.remove(this);
 			return;
 			
@@ -502,7 +502,7 @@ class GenForest1 extends Action {
 			
 			
 
-			PublicFunctions.insertToAS(game, this.nextAction);
+			game.insertAction(this.nextAction);
 			game.actionStack.remove(this);
 			return;
 		}
@@ -762,7 +762,7 @@ class GenForest1 extends Action {
 			
 			
 
-			PublicFunctions.insertToAS(game, this.nextAction);
+			game.insertAction(this.nextAction);
 			game.actionStack.remove(this);
 			return; 
 			
@@ -1036,7 +1036,7 @@ class GenForest1 extends Action {
 			*/
 			
 
-			PublicFunctions.insertToAS(game, this.nextAction);
+			game.insertAction(this.nextAction);
 			game.actionStack.remove(this);
 			return; 
 			
@@ -1092,7 +1092,7 @@ class GenForest1 extends Action {
 				this.allowedPositions.remove(position);
 			}
 
-			PublicFunctions.insertToAS(game, this.nextAction);
+			game.insertAction(this.nextAction);
 			game.actionStack.remove(this);
 			return; 
 			

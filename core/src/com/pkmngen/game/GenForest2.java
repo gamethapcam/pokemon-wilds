@@ -54,9 +54,12 @@ class GenIsland1 extends Action {
 				game.actionStack.remove(this);
 
 	            // TODO: probably needs to be handled outside of this action
+				for (Tile edgeTile : this.edges) {
+	                game.map.edges.add(edgeTile.position.cpy());
+				}
 	            Vector2 startLoc = this.edges.get(game.map.rand.nextInt(this.edges.size())).position;
-	            System.out.println("startLoc");
-	            System.out.println(startLoc);
+//	            System.out.println("startLoc");
+//	            System.out.println(startLoc);
 	            game.player.position.set(startLoc);
 	            game.cam.position.set(startLoc.x+16, startLoc.y, 0);
 				
@@ -64,7 +67,7 @@ class GenIsland1 extends Action {
 			}
 			Action currAction = this.doActions.get(0);
 			this.doActions.remove(0);
-			PublicFunctions.insertToAS(game, currAction);
+			game.insertAction(currAction);
 			game.actionStack.remove(this);
 			
 			return;
@@ -1142,7 +1145,7 @@ public class GenForest2 extends Action {
 			}
 			Action currAction = this.doActions.get(0);
 			this.doActions.remove(0);
-			PublicFunctions.insertToAS(game, currAction);
+			game.insertAction(currAction);
 			game.actionStack.remove(this);
 			return;
 		}
@@ -1956,7 +1959,7 @@ public class GenForest2 extends Action {
 			
 			//if couldn't find anything, return
 			if (platformGoesHere.isEmpty()) {
-				PublicFunctions.insertToAS(game, this.nextAction);
+				game.insertAction(this.nextAction);
 				game.actionStack.remove(this);
 				return;
 			}
@@ -2051,7 +2054,7 @@ public class GenForest2 extends Action {
 			}
 				
 			//put nextAction on stack, remove this.
-			PublicFunctions.insertToAS(game, this.nextAction);
+			game.insertAction(this.nextAction);
 			game.actionStack.remove(this);
 			
 		}

@@ -1,8 +1,5 @@
 package com.pkmngen.game;
 
-import java.awt.AWTException;
-import java.awt.Robot;
-import java.awt.event.KeyEvent;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -15,26 +12,16 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.TextureData;
-import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.math.Vector3;
 
 
 //includes player global structure (the class)
  //as well as all actions associated with player class
 
-//no problems with just snapping camera to player for now
- //might have issues later
-
-//not using deltatime
- //would be nice if libgdx let me throttle the game somehow, i don't think it will tho
-
-//code in playerStanding class needs to be made easier to read
-
-//player sprite needs to be moved up a little
+// TODO: check if player sprite needs to be moved up a little
 
 public class Player {
 
@@ -133,6 +120,7 @@ public class Player {
         this.network = new Network(this.position.cpy());  // re-initialize loading zone boundaries based off of current position.
         this.network.id = playerData.id;
         this.network.number = playerData.number;
+        this.setColor(playerData.color);  // TODO: when server re-loads player, doesn't seem like this is being rendered.
     }
     
     public Player() {
@@ -465,7 +453,7 @@ class playerStanding extends Action {
                 //game.actionStack.remove(this); //now using playerCanMove flag
                 
                 game.playerCanMove = false;
-                PublicFunctions.insertToAS(game, Battle_Actions.get(game)); 
+                game.insertAction(Battle_Actions.get(game)); 
                 game.currMusic.pause();
                 game.currMusic = game.battle.music;
                 game.currMusic.stop();
@@ -477,7 +465,7 @@ class playerStanding extends Action {
             
             // TODO: idk where the right place for this is.
             if (game.map.tiles.get(game.player.position) != null && game.map.tiles.get(game.player.position).nameUpper.contains("door")) {
-                PublicFunctions.insertToAS(game, new EnterBuilding(game, new DoneAction()));
+                game.insertAction(new EnterBuilding(game, new DoneAction()));
             }
             
             this.checkWildEncounter = false;
@@ -490,7 +478,7 @@ class playerStanding extends Action {
                                                  pokemonData.level,
                                                  pokemonData.generation);
             game.battle.oppPokemon.currentStats.put("hp", pokemonData.hp);
-            PublicFunctions.insertToAS(game, Battle_Actions.get(game)); 
+            game.insertAction(Battle_Actions.get(game)); 
             game.currMusic.pause();
             game.currMusic = game.battle.music;
             game.currMusic.stop();
@@ -500,14 +488,13 @@ class playerStanding extends Action {
             return;
         }
         
-        //check if player wants to access the menu
+        // Check if player wants to access the menu
         if(Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
-            PublicFunctions.insertToAS(game,
-                                       new DrawPlayerMenu.Intro(game,
-                                       new DrawPlayerMenu(game,
-                                       new WaitFrames(game, 1,
-                                       new PlayerCanMove(game,
-                                       new DoneAction())))));
+            game.insertAction(new DrawPlayerMenu.Intro(game,
+                              new DrawPlayerMenu(game,
+                              new WaitFrames(game, 1,
+                              new PlayerCanMove(game,
+                              new DoneAction())))));
             //game.actionStack.remove(this); 
             game.playerCanMove = false;
             return;
@@ -544,7 +531,7 @@ class playerStanding extends Action {
                 game.player.buildTileIndex = game.player.buildTiles.size() - 1;
             }
             game.player.currBuildTile = game.player.buildTiles.get(game.player.buildTileIndex);
-            PublicFunctions.insertToAS(game, new requirementNotify(game, game.player.currBuildTile.name));
+            game.insertAction(new requirementNotify(game, game.player.currBuildTile.name));
         }
         if(Gdx.input.isKeyJustPressed(Input.Keys.V) && game.player.isBuilding) {
             game.player.buildTileIndex += 1;
@@ -552,7 +539,7 @@ class playerStanding extends Action {
                 game.player.buildTileIndex = 0;
             }
             game.player.currBuildTile = game.player.buildTiles.get(game.player.buildTileIndex);
-            PublicFunctions.insertToAS(game, new requirementNotify(game, game.player.currBuildTile.name));
+            game.insertAction(new requirementNotify(game, game.player.currBuildTile.name));
         }
         
         if(Gdx.input.isKeyJustPressed(Input.Keys.X)) {
@@ -642,10 +629,10 @@ class playerStanding extends Action {
                         // Don't update locally yet, server will send back TileData if it succeeds.
                         game.client.sendTCP(new Network.TileData(newTile));
                     }
-                    PublicFunctions.insertToAS(game, new PlaySound("strength1",
+                    game.insertAction(new PlaySound("strength1",
                                                      new DoneAction()));
                     game.playerCanMove = false;
-                    PublicFunctions.insertToAS(game, new WaitFrames(game, 30,
+                    game.insertAction(new WaitFrames(game, 30,
                                                      new PlayerCanMove(game,
                                                      new DoneAction())));
                     this.detectIsHouseBuilt(game, currTile);
@@ -681,21 +668,21 @@ class playerStanding extends Action {
                         // TODO: need to be static per-tree somehow.
                         game.playerCanMove = false;
                         game.battle.oppPokemon = currTile.routeBelongsTo.pokemon.get(0);
-//                        PublicFunctions.insertToAS(game, Battle_Actions.get(game)); 
+//                        game.insertAction(Battle_Actions.get(game)); 
                         // new DisplayText(game, "A wild pokémon attacked!", null, null,
                         nextAction = new WaitFrames(game, 16, new BattleIntroMusic(Battle_Actions.get(game)));
                         this.checkWildEncounter = false;
                         shouldMove = false;  // for safety
                         
                     }
-                    PublicFunctions.insertToAS(game, new HeadbuttTreeAnim(game, game.map.tiles.get(pos),
+                    game.insertAction(new HeadbuttTreeAnim(game, game.map.tiles.get(pos),
                                                      nextAction));
                     game.playerCanMove = false;
                 }
             }
             else if (game.player.isCutting) {
                 if (currTile.attrs.containsKey("cuttable") && currTile.attrs.get("cuttable")) {
-                    PublicFunctions.insertToAS(game, new CutTreeAnim(game, game.map.tiles.get(pos),
+                    game.insertAction(new CutTreeAnim(game, game.map.tiles.get(pos),
                                                      new DoneAction()));
                     // place black tile at location
                     // TODO: if there are ever interior objects, how do you preserve those?
@@ -706,7 +693,7 @@ class playerStanding extends Action {
                     // get items from tile
                     if (!currTile.items.isEmpty()) {
                         for (String item : currTile.items.keySet()) {
-                            PublicFunctions.insertToAS(game, new itemPickupNotify(game, item, currTile.items.get(item)));
+                            game.insertAction(new itemPickupNotify(game, item, currTile.items.get(item)));
                             if (game.player.itemsDict.containsKey(item)) {
                                 int currQuantity = game.player.itemsDict.get(item);
                                 game.player.itemsDict.put(item, currQuantity+currTile.items.get(item));
@@ -764,7 +751,7 @@ class playerStanding extends Action {
             // Check if traveling through interior door.
             if (game.player.dirFacing.equals("down") && currTile.name.contains("rug")) {
                 // do leave building anim, then player travels down one space
-                PublicFunctions.insertToAS(game, new EnterBuilding(game, "exit",
+                game.insertAction(new EnterBuilding(game, "exit",
                                                  new playerMoving(game, this.alternate)));
                 return;
             }
@@ -773,15 +760,15 @@ class playerStanding extends Action {
             if (temp == null || Gdx.input.isKeyPressed(Input.Keys.SPACE)) { 
                 // No tile here, so just move normally
                 if (Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT)) { //check if player should be running
-                    PublicFunctions.insertToAS(game, new playerRunning(game, this.alternate));
+                    game.insertAction(new playerRunning(game, this.alternate));
                 }
                 else {
-                    PublicFunctions.insertToAS(game, new playerMoving(game, this.alternate));
+                    game.insertAction(new playerMoving(game, this.alternate));
                 }
                 return;
             }
             if (temp.attrs.get("solid")) {
-                PublicFunctions.insertToAS(game, new playerBump(game));
+                game.insertAction(new playerBump(game));
                 return;
             }
             if (game.player.isJumping) {
@@ -791,12 +778,12 @@ class playerStanding extends Action {
                     }
                     else if (temp.ledgeDir.equals(game.player.dirFacing) || temp.ledgeDir.equals(oppDir)) {
                         // Jump up the ledge
-                        PublicFunctions.insertToAS(game, new PlayerLedgeJumpFast(game));
+                        game.insertAction(new PlayerLedgeJumpFast(game));
                         return;
                     }
                     else {
                         //bump into ledge
-                        PublicFunctions.insertToAS(game, new playerBump(game));
+                        game.insertAction(new playerBump(game));
                         return;
                     }
                 }
@@ -804,7 +791,7 @@ class playerStanding extends Action {
                 if (currTile != null && currTile.attrs.get("ledge") && !currTile.ledgeDir.equals("up")) {
                     if (currTile.ledgeDir.equals(game.player.dirFacing) || currTile.ledgeDir.equals(oppDir)) {
                         // Jump off the ledge
-                        PublicFunctions.insertToAS(game, new PlayerLedgeJumpFast(game));
+                        game.insertAction(new PlayerLedgeJumpFast(game));
                         return;
                     }
                 }
@@ -812,11 +799,11 @@ class playerStanding extends Action {
             // Handle ledge jump upward case
             if (currTile.attrs.get("ledge") && currTile.ledgeDir.equals("up") && game.player.dirFacing.equals("up")) {
                 //jump over ledge
-                PublicFunctions.insertToAS(game, new PlayerLedgeJumpFast(game));
+                game.insertAction(new PlayerLedgeJumpFast(game));
                 return;
             }
             if (temp.attrs.get("ledge") && temp.ledgeDir.equals("up") && game.player.dirFacing.equals("down")) {
-                PublicFunctions.insertToAS(game, new playerBump(game));
+                game.insertAction(new playerBump(game));
                 return;
             }
             if (temp.attrs.get("ledge") && !temp.ledgeDir.equals("up")) {
@@ -825,20 +812,20 @@ class playerStanding extends Action {
                 Tile fartherOutTile = game.map.tiles.get(newPos.cpy().add(diff));
                 if (temp.ledgeDir.equals(game.player.dirFacing) && (fartherOutTile == null || (!fartherOutTile.attrs.get("solid") && !fartherOutTile.attrs.get("ledge")))) {
                     //jump over ledge
-                    PublicFunctions.insertToAS(game, new playerLedgeJump(game));
+                    game.insertAction(new playerLedgeJump(game));
                 }
                 else {
                     //bump into ledge
-                    PublicFunctions.insertToAS(game, new playerBump(game));
+                    game.insertAction(new playerBump(game));
                 }
                 return;
             }
             // Check if player should be running
             if (Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT)) {
-                PublicFunctions.insertToAS(game, new playerRunning(game, this.alternate));
+                game.insertAction(new playerRunning(game, this.alternate));
                 return;
             }
-            PublicFunctions.insertToAS(game, new playerMoving(game, this.alternate));
+            game.insertAction(new playerMoving(game, this.alternate));
             return;
         }
         
@@ -871,7 +858,7 @@ class playerStanding extends Action {
 //        if (this.checkWildEncounter == true) {
 //            if (checkWildEncounter(game) == true) {
 //                this.player.canMove = false;
-//                PublicFunctions.insertToAS(game, Battle_Actions.get(game)); 
+//                game.insertAction(Battle_Actions.get(game)); 
 //                game.currMusic.pause();
 //                game.currMusic = game.battle.music;
 //                game.currMusic.stop();
@@ -883,7 +870,7 @@ class playerStanding extends Action {
 //            
 //            // TODO: idk where the right place for this is.
 //            if (game.map.tiles.get(game.player.position) != null && game.map.tiles.get(game.player.position).name.contains("door")) {
-//                PublicFunctions.insertToAS(game, new EnterBuilding(game, new DoneAction()));
+//                game.insertAction(new EnterBuilding(game, new DoneAction()));
 //            }
 //            this.checkWildEncounter = false;
 //        }
@@ -1041,15 +1028,15 @@ class playerStanding extends Action {
             if (temp == null) { 
                 // No tile here, so just move normally
                 if (this.player.network.isRunning) {
-                    PublicFunctions.insertToAS(game, new playerRunning(game, this.player, this.alternate));
+                    game.insertAction(new playerRunning(game, this.player, this.alternate));
                 }
                 else {
-                    PublicFunctions.insertToAS(game, new playerMoving(game, this.player, this.alternate));
+                    game.insertAction(new playerMoving(game, this.player, this.alternate));
                 }
                 return;
             }
             if (temp.attrs.get("solid")) {
-                PublicFunctions.insertToAS(game, new playerBump(game, this.player));
+                game.insertAction(new playerBump(game, this.player));
                 return;
             }
             if (this.player.isJumping) {
@@ -1059,12 +1046,12 @@ class playerStanding extends Action {
                     }
                     else if (temp.ledgeDir.equals(this.player.dirFacing) || temp.ledgeDir.equals(oppDir)) {
                         // Jump up the ledge
-                        PublicFunctions.insertToAS(game, new PlayerLedgeJumpFast(game, this.player));
+                        game.insertAction(new PlayerLedgeJumpFast(game, this.player));
                         return;
                     }
                     else {
                         //bump into ledge
-                        PublicFunctions.insertToAS(game, new playerBump(game, this.player));
+                        game.insertAction(new playerBump(game, this.player));
                         return;
                     }
                 }
@@ -1072,7 +1059,7 @@ class playerStanding extends Action {
                 if (currTile != null && currTile.attrs.get("ledge") && !currTile.ledgeDir.equals("up")) {
                     if (currTile.ledgeDir.equals(this.player.dirFacing) || currTile.ledgeDir.equals(oppDir)) {
                         // Jump off the ledge
-                        PublicFunctions.insertToAS(game, new PlayerLedgeJumpFast(game, this.player));
+                        game.insertAction(new PlayerLedgeJumpFast(game, this.player));
                         return;
                     }
                 }
@@ -1080,30 +1067,30 @@ class playerStanding extends Action {
             // Handle ledge jump upward case
             if (currTile.attrs.get("ledge") && currTile.ledgeDir.equals("up") && this.player.dirFacing.equals("up")) {
                 //jump over ledge
-                PublicFunctions.insertToAS(game, new PlayerLedgeJumpFast(game, this.player));
+                game.insertAction(new PlayerLedgeJumpFast(game, this.player));
                 return;
             }
             if (temp.attrs.get("ledge") && temp.ledgeDir.equals("up") && this.player.dirFacing.equals("down")) {
-                PublicFunctions.insertToAS(game, new playerBump(game, this.player));
+                game.insertAction(new playerBump(game, this.player));
                 return;
             }
             if (temp.attrs.get("ledge") && !temp.ledgeDir.equals("up")) {
                 if (temp.ledgeDir.equals(this.player.dirFacing)) {
                     //jump over ledge
-                    PublicFunctions.insertToAS(game, new playerLedgeJump(game, this.player));
+                    game.insertAction(new playerLedgeJump(game, this.player));
                 }
                 else {
                     //bump into ledge
-                    PublicFunctions.insertToAS(game, new playerBump(game, this.player));
+                    game.insertAction(new playerBump(game, this.player));
                 }
                 return;
             }
             // Check if player should be running
             if (this.player.network.isRunning) {
-                PublicFunctions.insertToAS(game, new playerRunning(game, this.player, this.alternate));
+                game.insertAction(new playerRunning(game, this.player, this.alternate));
             }
             else {
-                PublicFunctions.insertToAS(game, new playerMoving(game, this.player, this.alternate));
+                game.insertAction(new playerMoving(game, this.player, this.alternate));
             }
             if (game.type == Game.Type.SERVER) {
                 // check wild encounter on next position, send back if yes
@@ -1124,23 +1111,23 @@ class playerStanding extends Action {
 //            // first check if traveling through interior door
 //            if (this.player.dirFacing.equals("down") && game.map.tiles.containsKey(this.player.position) && game.map.tiles.get(this.player.position).name.contains("rug")) {
 //                // do leave building anim, then player travels down one space
-//                PublicFunctions.insertToAS(game, new EnterBuilding(game, "exit",
+//                game.insertAction(new EnterBuilding(game, "exit",
 //                                                 new playerMoving(game, this.alternate)));
 //                game.actionStack.remove(this);
 //            }
 //            else if (temp == null) { //need this check to avoid attr checks after this if null
 //                //no tile here, so just move normally
 //                if (this.player.network.isRunning) { //check if player should be running
-//                    PublicFunctions.insertToAS(game, new playerRunning(game, this.player, this.alternate));
+//                    game.insertAction(new playerRunning(game, this.player, this.alternate));
 //                }
 //                else {
-//                    PublicFunctions.insertToAS(game, new playerMoving(game, this.player, this.alternate));
+//                    game.insertAction(new playerMoving(game, this.player, this.alternate));
 //                }
 //                game.actionStack.remove(this);
 //            }
 //            // TODO: 'up' ledges not handled correctly.
 //            else if (temp.attrs.get("solid") == true) {
-//                    PublicFunctions.insertToAS(game, new playerBump(game, this.player));
+//                    game.insertAction(new playerBump(game, this.player));
 //                    game.actionStack.remove(this);
 //            }
 //            else if (temp.attrs.get("ledge")) {
@@ -1163,26 +1150,26 @@ class playerStanding extends Action {
 ////                System.out.println(temp.ledgeDir.equals(oppDir));
 ////                System.out.println(oppDir);
 //                if (this.player.isJumping && (temp.ledgeDir.equals(this.player.dirFacing) || temp.ledgeDir.equals(oppDir))) {
-//                    PublicFunctions.insertToAS(game, new PlayerLedgeJumpFast(game, this.player));
+//                    game.insertAction(new PlayerLedgeJumpFast(game, this.player));
 //                    game.actionStack.remove(this);
 //                }
 //                else if (temp.ledgeDir == this.player.dirFacing) {
 //                    //jump over ledge
-//                    PublicFunctions.insertToAS(game, new playerLedgeJump(game, this.player));
+//                    game.insertAction(new playerLedgeJump(game, this.player));
 //                    game.actionStack.remove(this);
 //                }
 //                else {
 //                    //bump into ledge
-//                    PublicFunctions.insertToAS(game, new playerBump(game, this.player));
+//                    game.insertAction(new playerBump(game, this.player));
 //                    game.actionStack.remove(this); 
 //                }
 //            }
 //            else {
 //                if (this.player.network.isRunning) { //check if player should be running
-//                    PublicFunctions.insertToAS(game, new playerRunning(game, this.player, this.alternate));
+//                    game.insertAction(new playerRunning(game, this.player, this.alternate));
 //                }
 //                else {
-//                    PublicFunctions.insertToAS(game, new playerMoving(game, this.player, this.alternate));
+//                    game.insertAction(new playerMoving(game, this.player, this.alternate));
 //                }
 //                if (game.type == Game.Type.SERVER) {
 //                    // check wild encounter on next position, send back if yes
@@ -1410,7 +1397,7 @@ class playerMoving extends Action {
 //                        Action nextMusic = new FadeMusic("currMusic", "out", "", .025f,
 //                                           new WaitFrames(Game.staticGame, 10,
 //                                           new FadeMusic(nextMusicName, "in", "", .2f, true, 1f, game.musicCompletionListener, null)));
-//                        PublicFunctions.insertToAS(game, nextMusic);
+//                        game.insertAction(nextMusic);
 //                        nextMusic.step(game);
                         newRoute.music = game.map.currRoute.music;  // TODO: comment this if reverting the above
                         System.out.println("New Route: " + newRoute.name);
@@ -1423,7 +1410,7 @@ class playerMoving extends Action {
             game.cam.position.set(this.targetPos.x+16, this.targetPos.y,0);
             
             Action standingAction = new playerStanding(game, !this.alternate);
-            PublicFunctions.insertToAS(game, standingAction);
+            game.insertAction(standingAction);
             standingAction.step(game); //decide where to move //doesn't actually seem to do much
             game.actionStack.remove(this);
         }
@@ -1465,7 +1452,7 @@ class playerMoving extends Action {
 //            Action standingAction = new playerStanding(game, this.player, !this.alternate, false);
             this.player.standingAction.alternate = !this.alternate;
             this.player.standingAction.isRunning = false;
-            PublicFunctions.insertToAS(game, this.player.standingAction);
+            game.insertAction(this.player.standingAction);
             this.player.standingAction.step(game);
             game.actionStack.remove(this);
         }
@@ -1607,7 +1594,7 @@ class playerRunning extends Action {
 //                        Action nextMusic = new FadeMusic("currMusic", "out", "", .025f,
 //                                           new WaitFrames(Game.staticGame, 10,
 //                                           new FadeMusic(nextMusicName, "in", "", .2f, true, 1f, game.musicCompletionListener, null)));
-//                        PublicFunctions.insertToAS(game, nextMusic);
+//                        game.insertAction(nextMusic);
 //                        nextMusic.step(game);
                         newRoute.music = game.map.currRoute.music;  // TODO: comment this if reverting the above
                     }
@@ -1621,7 +1608,7 @@ class playerRunning extends Action {
             game.mapBatch.setProjectionMatrix(game.cam.combined);    //same
             
             Action standingAction = new playerStanding(game, !this.alternate, true); //pass true to keep running animation going
-            PublicFunctions.insertToAS(game, standingAction);
+            game.insertAction(standingAction);
             standingAction.step(game); //decide where to move //doesn't actually seem to do much
             game.actionStack.remove(this);
             
@@ -1670,7 +1657,7 @@ class playerRunning extends Action {
 //            Action standingAction = new playerStanding(game, this.player, !this.alternate, true); //pass true to keep running animation going
             this.player.standingAction.alternate = !this.alternate;
             this.player.standingAction.isRunning = true;
-            PublicFunctions.insertToAS(game, this.player.standingAction);
+            game.insertAction(this.player.standingAction);
             this.player.standingAction.step(game); //decide where to move //doesn't actually seem to do much
             game.actionStack.remove(this);
         }
@@ -1731,7 +1718,7 @@ class playerBump extends Action {
         if (this.timer >= 2*maxTime ) {
             this.alternate = !this.alternate;
             this.timer = 0;
-            PublicFunctions.insertToAS(game, new PlaySound("bump2", new DoneAction()));
+            game.insertAction(new PlaySound("bump2", new DoneAction()));
         }
         
         if (this.timer < maxTime) {
@@ -1753,19 +1740,19 @@ class playerBump extends Action {
 
 
         if(!Gdx.input.isKeyPressed(Input.Keys.UP) && game.player.dirFacing == "up") {
-            PublicFunctions.insertToAS(game, new playerStanding(game));
+            game.insertAction(new playerStanding(game));
             game.actionStack.remove(this);
         }
         else if(!Gdx.input.isKeyPressed(Input.Keys.DOWN) && game.player.dirFacing == "down") {
-            PublicFunctions.insertToAS(game, new playerStanding(game));
+            game.insertAction(new playerStanding(game));
             game.actionStack.remove(this);
         }
         else if(!Gdx.input.isKeyPressed(Input.Keys.LEFT) && game.player.dirFacing == "left") {
-            PublicFunctions.insertToAS(game, new playerStanding(game));
+            game.insertAction(new playerStanding(game));
             game.actionStack.remove(this);
         }
         else if(!Gdx.input.isKeyPressed(Input.Keys.RIGHT) && game.player.dirFacing == "right") {
-            PublicFunctions.insertToAS(game, new playerStanding(game));
+            game.insertAction(new playerStanding(game));
             game.actionStack.remove(this);
         }
     }
@@ -1777,7 +1764,7 @@ class playerBump extends Action {
         if (this.timer >= 2*maxTime ) {
             this.alternate = !this.alternate;
             this.timer = 0;
-            PublicFunctions.insertToAS(game, new PlaySound("bump2", new DoneAction()));
+            game.insertAction(new PlaySound("bump2", new DoneAction()));
         }
         
         if (this.timer < maxTime) {
@@ -1794,10 +1781,10 @@ class playerBump extends Action {
         
         //when facingDir key is released, go to playerStanding
         if(!this.player.network.shouldMove) {
-//            PublicFunctions.insertToAS(game, new playerStanding(game, this.player, true, false));
+//            game.insertAction(new playerStanding(game, this.player, true, false));
             this.player.standingAction.alternate = true;
             this.player.standingAction.isRunning = false;
-            PublicFunctions.insertToAS(game, this.player.standingAction);
+            game.insertAction(this.player.standingAction);
             game.actionStack.remove(this);
         }
     }
@@ -1808,7 +1795,7 @@ class playerBump extends Action {
     
     public playerBump(Game game, Player player) {
         this.player = player;
-        PublicFunctions.insertToAS(game, new PlaySound("bump2", new DoneAction()));
+        game.insertAction(new PlaySound("bump2", new DoneAction()));
     }
 }
 
@@ -1903,7 +1890,7 @@ class playerLedgeJump extends Action {
             game.cam.position.set(this.targetPos.x+16, this.targetPos.y,0);
 
             Action playerStanding = new playerStanding(game);
-            PublicFunctions.insertToAS(game, playerStanding);
+            game.insertAction(playerStanding);
             //playerStanding.step(game); //step to detect movement right away
             game.actionStack.remove(this);
         }
@@ -1945,7 +1932,7 @@ class playerLedgeJump extends Action {
 //            Action playerStanding = new playerStanding(game, this.player, true, false);
             this.player.standingAction.alternate = true;
             this.player.standingAction.isRunning = false;
-            PublicFunctions.insertToAS(game, this.player.standingAction);
+            game.insertAction(this.player.standingAction);
             game.actionStack.remove(this);
         }
         this.timer1++;
@@ -1976,7 +1963,7 @@ class playerLedgeJump extends Action {
         this.shadow = new Sprite(shadowText, 0, 0, 16, 16);
         
         //play sound
-        PublicFunctions.insertToAS(game, new PlaySound("ledge1", new DoneAction()));
+        game.insertAction(new PlaySound("ledge1", new DoneAction()));
         
         //below two lists are used to get exact sprite and 
          //y movement on every other frame
@@ -2105,14 +2092,14 @@ class PlayerLedgeJumpFast extends Action {
             game.cam.position.set(this.targetPos.x+16, this.targetPos.y, 0);
             
 //            if (currTile != null && temp != null && currTile.attrs.get("ledge")) {
-//                PublicFunctions.insertToAS(game, new PlayerLedgeJumpFast(game, this.player));
+//                game.insertAction(new PlayerLedgeJumpFast(game, this.player));
 //            }
 //            else {
 //                Action playerStanding = new playerStanding(game);
-//                PublicFunctions.insertToAS(game, playerStanding);
+//                game.insertAction(playerStanding);
 //            }
             Action playerStanding = new playerStanding(game);
-            PublicFunctions.insertToAS(game, playerStanding);
+            game.insertAction(playerStanding);
             game.actionStack.remove(this);
             
         }
@@ -2155,16 +2142,16 @@ class PlayerLedgeJumpFast extends Action {
 //            Tile temp = game.map.tiles.get(this.targetPos.cpy().add(diff));
             this.player.position.set(this.targetPos);
 //            if (currTile != null && temp != null && currTile.attrs.get("ledge")) {
-//                PublicFunctions.insertToAS(game, new PlayerLedgeJumpFast(game, this.player));
+//                game.insertAction(new PlayerLedgeJumpFast(game, this.player));
 //            }
 //            else {
 //                this.player.standingAction.alternate = true;
 //                this.player.standingAction.isRunning = false;
-//                PublicFunctions.insertToAS(game, this.player.standingAction);
+//                game.insertAction(this.player.standingAction);
 //            }
             this.player.standingAction.alternate = true;
             this.player.standingAction.isRunning = false;
-            PublicFunctions.insertToAS(game, this.player.standingAction);
+            game.insertAction(this.player.standingAction);
             game.actionStack.remove(this);
         }
         this.timer1++;
@@ -2195,7 +2182,7 @@ class PlayerLedgeJumpFast extends Action {
         this.shadow = new Sprite(shadowText, 0, 0, 16, 16);
         
         // Play ledge jumping sound
-        PublicFunctions.insertToAS(game, new PlaySound("ledge2", null));
+        game.insertAction(new PlaySound("ledge2", null));
         
         //below two lists are used to get exact sprite and 
          //y movement on every other frame
@@ -2391,10 +2378,8 @@ class DrawPokemonCaught extends Action {
     @Override
     public void step(Game game) {
 
-        int i = 0;
-        for (Pokemon pokemon : game.player.pokemon) {
+        for (int i=0; i < game.player.pokemon.size(); i++) {
             game.uiBatch.draw(pokeball, i*16*3, 144*3-12);
-            i++;
         }
 //        
 //        this.pokeball.setPosition(0*16*3+12, 144*3-12*3);
@@ -2422,7 +2407,7 @@ class PlayerCanMove extends Action {
 
         game.playerCanMove = true;
         
-        PublicFunctions.insertToAS(game, this.nextAction);
+        game.insertAction(this.nextAction);
         game.actionStack.remove(this);
     }
     
@@ -2471,7 +2456,7 @@ class drawGhost extends Action {
         if (game.map.timeOfDay != "Night") {
             this.currSprite.draw(game.mapBatch);
             game.actionStack.remove(this);
-            PublicFunctions.insertToAS(game, new despawnGhost(this.basePos.cpy()));
+            game.insertAction(new despawnGhost(this.basePos.cpy()));
             return;
         }
 
@@ -2496,7 +2481,7 @@ class drawGhost extends Action {
             if (tile.nameUpper.contains("campfire")) {
                 this.currSprite.draw(game.mapBatch);
                 game.actionStack.remove(this);
-                PublicFunctions.insertToAS(game, new despawnGhost(this.basePos.cpy()));
+                game.insertAction(new despawnGhost(this.basePos.cpy()));
                 game.currMusic.pause();
                 game.currMusic = game.map.currRoute.music;
                 game.currMusic.play();
@@ -2627,7 +2612,7 @@ class drawGhost extends Action {
             game.battle.oppPokemon = this.pokemon;
             game.playerCanMove = false; 
             //todo - remove
-//            PublicFunctions.insertToAS(game, new SplitAction(
+//            game.insertAction(new SplitAction(
 //                                                new BattleIntro(
 //                                                    new BattleIntro_anim1(
 //                                                        new SplitAction(
@@ -2658,7 +2643,7 @@ class drawGhost extends Action {
 //                                                new DoneAction()
 //                                            )
 //                                        );
-            PublicFunctions.insertToAS(game, Battle_Actions.get(game)); 
+            game.insertAction(Battle_Actions.get(game)); 
         }
     }
             
@@ -2787,10 +2772,10 @@ class spawnGhost extends Action {
         }
         
         if (part2 == 40) {
-            PublicFunctions.insertToAS(game, new PlaySound("ghost1", new DoneAction()));
+            game.insertAction(new PlaySound("ghost1", new DoneAction()));
         }
         if (part2 == 32) {
-            PublicFunctions.insertToAS(game, new PlaySound("ghost1", new DoneAction()));
+            game.insertAction(new PlaySound("ghost1", new DoneAction()));
         }
         
         if (part2 > 0) {
@@ -2822,7 +2807,7 @@ class spawnGhost extends Action {
         
         game.playerCanMove = true;
         game.actionStack.remove(this);
-        PublicFunctions.insertToAS(game, new drawGhost(game, this.position));
+        game.insertAction(new drawGhost(game, this.position));
         
     }
     
@@ -2903,7 +2888,7 @@ class despawnGhost extends Action {
 
 //for keeping track of day night
  //pops up cycle change notif, changes shader, etc
-class cycleDayNight extends Action {
+class CycleDayNight extends Action {
     
 
     public int layer = 114;
@@ -3033,7 +3018,7 @@ class cycleDayNight extends Action {
             
             if (countDownToGhost == 0) {
                 Vector2 randPos = game.player.position.cpy().add(this.rand.nextInt(5)*16 - 48, this.rand.nextInt(5)*16 - 48);
-                PublicFunctions.insertToAS(game, new spawnGhost(game, new Vector2(randPos)) );
+                game.insertAction(new spawnGhost(game, new Vector2(randPos)) );
                 this.countDownToGhost = this.rand.nextInt(4000) + 1000; // debug: 1000;
             }
             
@@ -3067,7 +3052,7 @@ class cycleDayNight extends Action {
         
     }
     
-    public cycleDayNight(Game game) {
+    public CycleDayNight(Game game) {
         
         this.day = 1;
         this.night = 0;
@@ -3093,7 +3078,7 @@ class cycleDayNight extends Action {
         this.animIndex = 0;
         
         this.rand = new Random();
-        this.dayTimer = 10000; //100; //- debug // 10000;
+        CycleDayNight.dayTimer = 10000; //100; //- debug // 10000;
         
 
         Texture text = new Texture(Gdx.files.internal("text2.png"));
@@ -3189,57 +3174,57 @@ class requirementNotify extends Action {
 }
 
 
-
-// Robot package not available on android
-// would need to restructure the PlayerStanding/Moving classes
-// maybe they could also check some global booleans?
- // hmm, that might work
-class DrawAndroidControls extends Action {
-    
-    public int layer = 101;  // hopefully above most things?
-    public int getLayer(){return this.layer;}
-    
-    public String getCamera() {return "gui";};
-    
-    Sprite leftArrowSprite;
-    Sprite rightArrowSprite;
-//    Robot robot;
-
-    @Override
-    public void step(Game game) {
-
-        this.leftArrowSprite.draw(game.uiBatch);
-        
-
-        if (Gdx.input.justTouched()) {
-
-            Vector3 touchPos = new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
-            game.cam.unproject(touchPos);
-            
-            if (this.leftArrowSprite.getBoundingRectangle().contains(touchPos.x, touchPos.y)) {
-                int keyCode = KeyEvent.VK_LEFT; // left arrow
-//                this.robot.keyPress(keyCode);
-            }
-        }
-        
-        
-    }
-
-    public DrawAndroidControls() {
-        
-        Texture text = new Texture(Gdx.files.internal("battle/player_back1.png"));
-        this.leftArrowSprite = new Sprite(text, 0, 0, 28, 28);
-        this.leftArrowSprite.setPosition(0,0);
-        this.rightArrowSprite = new Sprite(text, 0, 0, 28, 28);
-        
-//        try {
-//            this.robot = new Robot();
-//        } catch (AWTException e) {
-//            // TODO Auto-generated catch block
-//            e.printStackTrace();
+// TODO: remove
+//// Robot package not available on android
+//// would need to restructure the PlayerStanding/Moving classes
+//// maybe they could also check some global booleans?
+// // hmm, that might work
+//class DrawAndroidControls extends Action {
+//    
+//    public int layer = 101;  // hopefully above most things?
+//    public int getLayer(){return this.layer;}
+//    
+//    public String getCamera() {return "gui";};
+//    
+//    Sprite leftArrowSprite;
+//    Sprite rightArrowSprite;
+////    Robot robot;
+//
+//    @Override
+//    public void step(Game game) {
+//
+//        this.leftArrowSprite.draw(game.uiBatch);
+//        
+//
+//        if (Gdx.input.justTouched()) {
+//
+//            Vector3 touchPos = new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
+//            game.cam.unproject(touchPos);
+//            
+//            if (this.leftArrowSprite.getBoundingRectangle().contains(touchPos.x, touchPos.y)) {
+//                int keyCode = KeyEvent.VK_LEFT; // left arrow
+////                this.robot.keyPress(keyCode);
+//            }
 //        }
-    }
-}    
+//        
+//        
+//    }
+//
+//    public DrawAndroidControls() {
+//        
+//        Texture text = new Texture(Gdx.files.internal("battle/player_back1.png"));
+//        this.leftArrowSprite = new Sprite(text, 0, 0, 28, 28);
+//        this.leftArrowSprite.setPosition(0,0);
+//        this.rightArrowSprite = new Sprite(text, 0, 0, 28, 28);
+//        
+////        try {
+////            this.robot = new Robot();
+////        } catch (AWTException e) {
+////            // TODO Auto-generated catch block
+////            e.printStackTrace();
+////        }
+//    }
+//}    
 
 
 
@@ -3287,7 +3272,7 @@ class CutTreeAnim extends Action {
         if (this.index < 13) {
         }
         else if (this.index == 13) {
-            PublicFunctions.insertToAS(game, new PlaySound("cut1", new DoneAction()));
+            game.insertAction(new PlaySound("cut1", new DoneAction()));
         }
         else if (this.index < 19) {
             
@@ -3364,7 +3349,7 @@ class CutTreeAnim extends Action {
 //            game.map.tiles.put(this.tile.position.cpy(), this.tile);
             game.playerCanMove = true;
             game.actionStack.remove(this);
-            PublicFunctions.insertToAS(game, this.nextAction);
+            game.insertAction(this.nextAction);
         }
         this.index++;
     }
@@ -3438,7 +3423,7 @@ class HeadbuttTreeAnim extends Action {
             this.leftSprite.setPosition((int)this.originalSprite.getX()-4, this.originalSprite.getY());
         }
         else if (this.index == 14) {
-            PublicFunctions.insertToAS(game, new PlaySound("headbutt1", new DoneAction()));
+            game.insertAction(new PlaySound("headbutt1", new DoneAction()));
         }
         else if (this.index == 18+3) {
             this.tile.overSprite = this.rightSprite;
@@ -3474,7 +3459,7 @@ class HeadbuttTreeAnim extends Action {
 //            game.map.tiles.put(this.tile.position.cpy(), this.tile);
 //            game.playerCanMove = true; // TODO: remove
             game.actionStack.remove(this);
-            PublicFunctions.insertToAS(game, this.nextAction);
+            game.insertAction(this.nextAction);
         }
         this.index++;
     }
@@ -3552,7 +3537,7 @@ class HeadbuttTreeAnim extends Action {
             this.targetPos = new Vector2(game.player.position.x+16, game.player.position.y);
         }
         else {
-            PublicFunctions.insertToAS(game, new playerStanding(game));
+            game.insertAction(new playerStanding(game));
             game.actionStack.remove(this);
         }
         
@@ -3560,7 +3545,7 @@ class HeadbuttTreeAnim extends Action {
         Tile temp = game.map.tiles.get(this.targetPos);
         if (temp != null) {
             if (temp.attrs.get("solid") == true) {
-                PublicFunctions.insertToAS(game, new playerBump(game));
+                game.insertAction(new playerBump(game));
                 game.actionStack.remove(this);
             }
         }
@@ -3589,7 +3574,7 @@ class HeadbuttTreeAnim extends Action {
                         //game.battle.currPokemon = game.map.currRoute.pokemon.get(index);
                         
                         //start battle anim
-                        //PublicFunctions.insertToAS(game, new battleIntro(game));
+                        //game.insertAction(new battleIntro(game));
                         
                         System.out.println("Wild encounter.");
                         

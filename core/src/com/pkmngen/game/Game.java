@@ -1,9 +1,5 @@
 package com.pkmngen.game;
 
-// import gme_debug.VGMPlayer;
-
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -16,7 +12,6 @@ import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.audio.Music;
-import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
@@ -27,14 +22,9 @@ import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator.FreeTypeFontParameter;
-import com.badlogic.gdx.graphics.glutils.ShaderProgram;
-import com.badlogic.gdx.math.Matrix4;
-import com.badlogic.gdx.math.Quaternion;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.physics.box2d.World;
-import com.badlogic.gdx.utils.viewport.FitViewport;
-import com.badlogic.gdx.utils.viewport.Viewport;
 import com.esotericsoftware.kryonet.Client;
 import com.esotericsoftware.kryonet.Connection;
 import com.esotericsoftware.kryonet.Server;
@@ -120,7 +110,7 @@ public class Game extends ApplicationAdapter {
     public void create() {
 
         // Annoying - used for music completion listener
-        this.staticGame = this;
+        Game.staticGame = this;
         // Gdx.app.getApplicationListener() <-- ??
 
         //map handles unit positions
@@ -249,7 +239,7 @@ public class Game extends ApplicationAdapter {
                                    // pokemon while waiting frames, the next music will start anyway
                                    new WaitFrames(Game.staticGame, 360,
                                    new FadeMusic(nextMusicName, "in", "", .2f, true, 1f, this, new DoneAction())));
-                PublicFunctions.insertToAS(Game.staticGame, nextMusic);
+                Game.staticGame.insertAction(nextMusic);
                 nextMusic.step(Game.staticGame);
             }
         };
@@ -287,54 +277,54 @@ public class Game extends ApplicationAdapter {
         //batch.enableBlending();
         //batch.setColor(new Color(0.01f, 0.01f, 0.2f, 1.0f));
         //batch.setBlendFunction(Gdx.gl.GL_MAX_TEXTURE_UNITS, Gdx.gl.GL_FUNC_ADD);
-        String vertexShader = "attribute vec4 a_position;\n"
-                    + "attribute vec4 a_color;\n"
-                    + "attribute vec2 a_texCoord;\n"
-                    + "attribute vec2 a_texCoord0;\n"
-                        
-                    + "uniform mat4 u_projTrans;\n"
-                                            
-                    + "varying vec4 v_color;\n"
-                    + "varying vec2 v_texCoords;\n"
-                                            
-                    + "void main()\n"
-                    + "{\n"
-                    + "    v_color = a_color;\n"
-                    + "    v_texCoords = a_texCoord0;\n"
-                    + "    gl_Position =  u_projTrans * a_position;\n"
-                    + "}\n";
-        String fragmentShader = "precision mediump float;\n"
-
-                    + "varying vec4 v_color;\n"
-                    + "varying vec2 v_texCoords;\n"
-                    + "uniform sampler2D u_texture;\n"
-                    + "uniform mat4 u_projTrans;\n"
-                    
-                    + "bool equals(float a, float b) {\n"
-                    + "    return abs(a-b) < 0.0001;\n"
-                    + "}\n"
-                    
-                    + "bool isWhiteShade(vec4 color) {\n"
-                    + "    return equals(color.r, color.g) && equals(color.r, color.b);\n"
-                    + "}\n"
-                    
-                    + "void main() {\n"
-                    + "    vec4 color = texture2D (u_texture, v_texCoords) * v_color;\n"
-                    + "    //if(isWhiteShade(color)) {\n"
-                    + "    if(color.r == 1 && color.g == 1 && color.b == 1) {\n"
-                    + "color *= vec4(0, 0, 1, 1);\n"
-                    + "    }\n"
-                    + "    else {\n"
-                    + "        color *= vec4(0, 0, 0, 1);\n"
-                    + "    }\n"
-                    + "    gl_FragColor = color;\n"
-                    + "}\n";
-        
-        ShaderProgram shader = new ShaderProgram(vertexShader, fragmentShader);
+//        String vertexShader = "attribute vec4 a_position;\n"
+//                    + "attribute vec4 a_color;\n"
+//                    + "attribute vec2 a_texCoord;\n"
+//                    + "attribute vec2 a_texCoord0;\n"
+//                        
+//                    + "uniform mat4 u_projTrans;\n"
+//                                            
+//                    + "varying vec4 v_color;\n"
+//                    + "varying vec2 v_texCoords;\n"
+//                                            
+//                    + "void main()\n"
+//                    + "{\n"
+//                    + "    v_color = a_color;\n"
+//                    + "    v_texCoords = a_texCoord0;\n"
+//                    + "    gl_Position =  u_projTrans * a_position;\n"
+//                    + "}\n";
+//        String fragmentShader = "precision mediump float;\n"
+//
+//                    + "varying vec4 v_color;\n"
+//                    + "varying vec2 v_texCoords;\n"
+//                    + "uniform sampler2D u_texture;\n"
+//                    + "uniform mat4 u_projTrans;\n"
+//                    
+//                    + "bool equals(float a, float b) {\n"
+//                    + "    return abs(a-b) < 0.0001;\n"
+//                    + "}\n"
+//                    
+//                    + "bool isWhiteShade(vec4 color) {\n"
+//                    + "    return equals(color.r, color.g) && equals(color.r, color.b);\n"
+//                    + "}\n"
+//                    
+//                    + "void main() {\n"
+//                    + "    vec4 color = texture2D (u_texture, v_texCoords) * v_color;\n"
+//                    + "    //if(isWhiteShade(color)) {\n"
+//                    + "    if(color.r == 1 && color.g == 1 && color.b == 1) {\n"
+//                    + "color *= vec4(0, 0, 1, 1);\n"
+//                    + "    }\n"
+//                    + "    else {\n"
+//                    + "        color *= vec4(0, 0, 0, 1);\n"
+//                    + "    }\n"
+//                    + "    gl_FragColor = color;\n"
+//                    + "}\n";
+//        
+//        ShaderProgram shader = new ShaderProgram(vertexShader, fragmentShader);
         //batch.setShader(shader);
         
         
-        this.insertAction(new cycleDayNight(this));
+        this.insertAction(new CycleDayNight(this));
         
         //debug
 //                    this.player.currPokemon = new Pokemon("Cloyster", 70);
@@ -714,8 +704,8 @@ public class Game extends ApplicationAdapter {
         // add action that will continually update client of positions
         
         this.map.loadFromFile(this);  // load map if it exists already
-        PublicFunctions.insertToAS(this, new ServerBroadcast(this));
-        PublicFunctions.insertToAS(this, new PkmnMap.PeriodicSave(this));
+        this.insertAction(new ServerBroadcast(this));
+        this.insertAction(new PkmnMap.PeriodicSave(this));
     }
 
     public void initClient(String ip) throws IOException {
@@ -784,13 +774,14 @@ public class Game extends ApplicationAdapter {
             this.player.network.id = this.player.name;
         }
         this.player.type = Player.Type.LOCAL;
-        this.client.sendTCP(new Network.Login(this.player.network.id));
+        this.client.sendTCP(new Network.Login(this.player.network.id,
+                                              this.player.color));  // Specify which color player chose during setup.
 
         // server won't say when to clear tiles, so do it now.
         this.map.tiles.clear();
 //        this.map.trees.clear(); // TODO: needs to be handled differently
         
-        PublicFunctions.insertToAS(this, new ClientBroadcast(this));
+        this.insertAction(new ClientBroadcast(this));
     }
 
     // TODO - keep? remove?

@@ -620,7 +620,7 @@ class SpecialMewtwoTile extends Tile {
     @Override
     public void onPressA(Game game) {
         game.playerCanMove = false;
-        PublicFunctions.insertToAS(game, new SpecialBattleMewtwo(game));
+        game.insertAction(new SpecialBattleMewtwo(game));
     }
 }
 
@@ -636,7 +636,7 @@ class MegaGengarTile extends Tile {
     public void onPressA(Game game) {
         game.playerCanMove = false;
 
-        PublicFunctions.insertToAS(game, new SpecialBattleMegaGengar(game));
+        game.insertAction(new SpecialBattleMegaGengar(game));
 
     }
 }
@@ -726,7 +726,7 @@ class Suicune_Tile extends Tile {
                 new WaitFrames(game, 10, new BattleIntroMusic(new WaitFrames(
                         game, 100, new DoneWithDemo(game)))));
 
-        PublicFunctions.insertToAS(game, new DisplayText(game, "GROWL!!",
+        game.insertAction(new DisplayText(game, "GROWL!!",
                 "Suicune", null,
                 // new PlayerCanMove(game,
                 encounterAction));
@@ -816,7 +816,7 @@ class Raikou_Tile extends Tile {
                 new WaitFrames(game, 10, new BattleIntroMusic(new WaitFrames(
                         game, 100, new DoneWithDemo(game)))));
 
-        PublicFunctions.insertToAS(game, new DisplayText(game, "GROWL!!",
+        game.insertAction(new DisplayText(game, "GROWL!!",
                 "Raikou", null,
                 // new PlayerCanMove(game,
                 encounterAction));
@@ -906,7 +906,7 @@ class Entei_Tile extends Tile {
                 new WaitFrames(game, 10, new BattleIntroMusic(new WaitFrames(
                         game, 100, new DoneWithDemo(game)))));
 
-        PublicFunctions.insertToAS(game, new DisplayText(game, "GROWL!!",
+        game.insertAction(new DisplayText(game, "GROWL!!",
                 "Entei", null,
                 // new PlayerCanMove(game,
                 encounterAction));
@@ -1254,6 +1254,9 @@ public class PkmnMap {
     // use this to drop the tops of trees over the player
     //  hopefully makes drawing take less time
 //    Map<Vector2, Tile> trees = new HashMap<Vector2, Tile>();
+
+    // Used to know where to spawn new players
+    ArrayList<Vector2> edges = new ArrayList<Vector2>();
     
     // routes on map
     ArrayList<Route> routes;
@@ -1477,7 +1480,8 @@ public class PkmnMap {
             }
             // load time of day
             game.map.timeOfDay = mapTiles.timeOfDay;
-            cycleDayNight.dayTimer = mapTiles.dayTimer;
+            CycleDayNight.dayTimer = mapTiles.dayTimer;
+            game.map.edges = mapTiles.edges;
             
             // load players
             inputStream = new InflaterInputStream(new FileInputStream(this.id + ".players.sav"));
@@ -1537,8 +1541,9 @@ public class PkmnMap {
                     }
                     mapTiles.tiles.add(new Network.TileData(tile));
                 }
+                mapTiles.edges = game.map.edges;
                 mapTiles.timeOfDay = game.map.timeOfDay;
-                mapTiles.dayTimer = cycleDayNight.dayTimer;
+                mapTiles.dayTimer = CycleDayNight.dayTimer;
                 game.server.getKryo().writeObject(this.output, mapTiles);
                 this.output.close();
                 
@@ -2198,7 +2203,7 @@ class detectWildEncounter extends Action {
                     // game.map.currRoute.pokemon.get(index);
 
                     // start battle anim
-                    // PublicFunctions.insertToAS(game, new battleIntro(game));
+                    // game.insertAction(new battleIntro(game));
 
                     System.out.println("Wild encounter.");
                 }
@@ -2376,7 +2381,7 @@ class EnterBuilding extends Action {
       
       if (this.timer < 2*slow) {
           if (this.timer == 0 && this.action.equals("enter") || this.action.equals("exit")) {
-              PublicFunctions.insertToAS(game, new PlaySound(this.action+"1", new DoneAction()));
+              game.insertAction(new PlaySound(this.action+"1", new DoneAction()));
           }
       }
       else if (this.timer < 4*slow) {
@@ -2407,7 +2412,7 @@ class EnterBuilding extends Action {
       }
       else {
           game.actionStack.remove(this);
-          PublicFunctions.insertToAS(game, this.nextAction);
+          game.insertAction(this.nextAction);
       }
           
       this.timer++;

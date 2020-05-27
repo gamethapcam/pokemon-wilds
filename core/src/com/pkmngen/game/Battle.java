@@ -601,7 +601,7 @@ public class Battle {
         public void firstStep(Game game) {
             DisplayText.textPersist = false;  // Clear any displayed text
             this.text = new DisplayText(game, "Waiting for server...", null, true, false, null);
-            PublicFunctions.insertToAS(game, text);
+            game.insertAction(text);
             this.text.step(game);
         }
         
@@ -624,7 +624,7 @@ public class Battle {
             game.actionStack.remove(this.text);  // this line.
             DisplayText.textPersist = false;  // Clear any displayed text
             game.actionStack.remove(this);
-            PublicFunctions.insertToAS(game, this.nextAction);
+            game.insertAction(this.nextAction);
         }
         
         public WaitTurnData(Game game, Action nextAction) {
@@ -671,13 +671,13 @@ public class Battle {
                     game.player.numFlees = 0;
                     game.battle.oppPokemon.inBattle = false;
                     game.actionStack.remove(this);
-                    PublicFunctions.insertToAS(game, new WaitFrames(game, 18, 
+                    game.insertAction(new WaitFrames(game, 18, 
                                                      new DisplayText(game, "Got away safely!", null, null,
                                                      new SplitAction(new BattleFadeOut(game,
                                                                      null),
                                                      new BattleFadeOutMusic(game,
                                                      null)))));
-                    PublicFunctions.insertToAS(game, new PlaySound("run1",
+                    game.insertAction(new PlaySound("run1",
                                                      null));
                     game.battle.network.turnData = null;
                     return;
@@ -837,7 +837,7 @@ public class Battle {
                                 new WaitFrames(game, 3,
                                 this.nextAction)));
             game.actionStack.remove(this);
-            PublicFunctions.insertToAS(game, doTurn);
+            game.insertAction(doTurn);
             game.battle.network.turnData = null;
             return;
         }
@@ -904,7 +904,7 @@ public class Battle {
                     Battle.this.oppPokemon.trappedBy = null;
                 }
             }
-            PublicFunctions.insertToAS(Game.staticGame, this.nextAction);
+            Game.staticGame.insertAction(this.nextAction);
         }
 
         public CheckTrapped(Game game, Action nextAction) {
@@ -947,7 +947,7 @@ class BattleIntro extends Action {
 
         //if done with anim, do nextAction
         if (frames.isEmpty()) {
-            PublicFunctions.insertToAS(game, this.nextAction);
+            game.insertAction(this.nextAction);
             game.actionStack.remove(this);
 //            if (this.nextAction.getLayer() >= this.getLayer()) {
 //                this.nextAction.step(game);  //don't skip a frame
@@ -1030,7 +1030,7 @@ class BattleIntroMusic extends Action {
         game.currMusic = game.battle.music;
         game.currMusic.play();
         
-        PublicFunctions.insertToAS(game, this.nextAction);
+        game.insertAction(this.nextAction);
         game.actionStack.remove(this);
         
     }
@@ -1060,7 +1060,7 @@ class BattleIntro_anim1 extends Action {
         
         //if done with anim, do nextAction
         if (frames.isEmpty()) {
-            PublicFunctions.insertToAS(game, this.nextAction);
+            game.insertAction(this.nextAction);
             game.actionStack.remove(this);
             //avoid lag
             nextAction.step(game);
@@ -1123,7 +1123,7 @@ class BattleAnim_positionPlayers extends Action {
         
         //if done with anim, do nextAction
         if (moves_relative.isEmpty()) {
-            PublicFunctions.insertToAS(game, this.nextAction);
+            game.insertAction(this.nextAction);
             game.actionStack.remove(this);
             return;
         }
@@ -1189,7 +1189,7 @@ class MovePlayerOffScreen extends Action {
         
         //if done with anim, do nextAction
         if (positions.isEmpty() || repeats.isEmpty()) {
-            PublicFunctions.insertToAS(game, this.nextAction);
+            game.insertAction(this.nextAction);
             game.actionStack.remove(this);
             return;
         }
@@ -1296,7 +1296,7 @@ class EnemyFaint extends Action {
             game.actionStack.remove(game.battle.drawAction.drawEnemyHealthAction);
             game.battle.drawAction.drawEnemyHealthAction = null;
             
-            PublicFunctions.insertToAS(game, this.nextAction);
+            game.insertAction(this.nextAction);
             game.actionStack.remove(this);
             return;
         }
@@ -1444,7 +1444,7 @@ class FriendlyFaint extends Action {
         //if done with anim, do nextAction
         if (positions.isEmpty() || repeats.isEmpty()) {
             
-            //PublicFunctions.insertToAS(game, this.nextAction); //doing after sound is played instead; remove this
+            //game.insertAction(this.nextAction); //doing after sound is played instead; remove this
             game.actionStack.remove(this);
             return;
         }
@@ -1479,8 +1479,8 @@ class FriendlyFaint extends Action {
 //                game.currMusic.stop();
 //                game.currMusic.play();
                 //TODO - right timing?
-//                PublicFunctions.insertToAS(game, new PlaySound(game.player.currPokemon.name, this.nextAction));
-                PublicFunctions.insertToAS(game, new PlaySound(game.player.currPokemon, this.nextAction));
+//                game.insertAction(new PlaySound(game.player.currPokemon.name, this.nextAction));
+                game.insertAction(new PlaySound(game.player.currPokemon, this.nextAction));
             }
             
             positions.remove(0);
@@ -1682,7 +1682,7 @@ class DrawBattleMenu1 extends Action {
              //for now this is 'rock', I am going to draw the safari menu later
             if (curr.equals("tl")) {
                 //throw a rock, then resume battle menu
-                PublicFunctions.insertToAS(game, new ThrowRock(game, this));
+                game.insertAction(new ThrowRock(game, this));
                 game.actionStack.remove(this);
             }
             
@@ -1690,13 +1690,13 @@ class DrawBattleMenu1 extends Action {
             if (curr.equals("br")) {
                  //also need a 'stop playing music' thing here
                  //also need 'stop drawing battle' here
-                PublicFunctions.insertToAS(game, new BattleFadeOut(game,
+                game.insertAction(new BattleFadeOut(game,
                                                  new WaitFrames(game, 18, 
                                                  new DisplayText(game, "Got away safely!", null, null,
                                                  new DoneAction()//new playerStanding(game)
                                                  ))));
-                PublicFunctions.insertToAS(game, new BattleFadeOutMusic(game, new DoneAction()));
-                PublicFunctions.insertToAS(game, new PlaySound("click1", new PlaySound("run1", new DoneAction())));
+                game.insertAction(new BattleFadeOutMusic(game, new DoneAction()));
+                game.insertAction(new PlaySound("click1", new PlaySound("run1", new DoneAction())));
                 game.actionStack.remove(this);
                 game.actionStack.remove(game.battle.drawAction); //stop drawing the battle
                 game.battle.drawAction = null;
@@ -1799,19 +1799,19 @@ class DrawBattleMenu_SafariZone extends Action {
                 String textString = game.player.name+" used SAFARI BALL!";
                 //demo code
                 if (game.player.adrenaline < 5) {
-                    PublicFunctions.insertToAS(game, new DisplayText(game, textString, null, catchAction,
+                    game.insertAction(new DisplayText(game, textString, null, catchAction,
                             new ThrowPokeball(game, catchAction)
                         )
                     );
                 }
                 else if (game.player.adrenaline < 15){
-                    PublicFunctions.insertToAS(game, new DisplayText(game, textString, null, catchAction,
+                    game.insertAction(new DisplayText(game, textString, null, catchAction,
                             new ThrowFastPokeball(game, catchAction)
                         )
                     );
                 }
                 else {
-                    PublicFunctions.insertToAS(game, new DisplayText(game, textString, null, catchAction,
+                    game.insertAction(new DisplayText(game, textString, null, catchAction,
                             new ThrowHyperPokeball(game, catchAction)
                         )
                     );
@@ -1819,7 +1819,7 @@ class DrawBattleMenu_SafariZone extends Action {
                 
                 
                 //throw a pokeball, then resume battle menu (maybe)
-                //PublicFunctions.insertToAS(game, new ThrowPokeball(game, this));
+                //game.insertAction(new ThrowPokeball(game, this));
                 game.actionStack.remove(this);
             }
             
@@ -1830,13 +1830,13 @@ class DrawBattleMenu_SafariZone extends Action {
                 
                 Action throwRockAction = new ThrowRock(game, new PrintAngryEating(game, new ChanceToRun(game, this) ) );
                 String textString = game.player.name+" threw a ROCK.";
-                PublicFunctions.insertToAS(game, new DisplayText(game, textString, null, throwRockAction,
+                game.insertAction(new DisplayText(game, textString, null, throwRockAction,
                         throwRockAction
                     )
                 );
                 
                 
-                //PublicFunctions.insertToAS(game, new ThrowRock(game, this));
+                //game.insertAction(new ThrowRock(game, this));
                 game.actionStack.remove(this);
             }
             
@@ -1845,7 +1845,7 @@ class DrawBattleMenu_SafariZone extends Action {
                 
                 Action throwBaitAction = new ThrowBait(game, new PrintAngryEating(game, new ChanceToRun(game, this) ) );
                 String textString = game.player.name+" threw some BAIT.";
-                PublicFunctions.insertToAS(game, new DisplayText(game, textString, null, throwBaitAction,
+                game.insertAction(new DisplayText(game, textString, null, throwBaitAction,
                         throwBaitAction
                     )
                 );
@@ -1855,9 +1855,11 @@ class DrawBattleMenu_SafariZone extends Action {
             
             //user selected 'run'
             else if (curr.equals("br")) {
+                // TODO: network code
+                
                  //also need a 'stop playing music' thing here
                  //also need 'stop drawing battle' here
-                PublicFunctions.insertToAS(game, new WaitFrames(game, 18, 
+                game.insertAction(new WaitFrames(game, 18, 
                                                  new DisplayText(game, "Got away safely!", null, null,
                                                  new SplitAction(
                                                          new BattleFadeOut(game,
@@ -1865,7 +1867,7 @@ class DrawBattleMenu_SafariZone extends Action {
                                                  new BattleFadeOutMusic(game,
                                                  new DoneAction())))));
 
-                PublicFunctions.insertToAS(game, new PlaySound("click1",
+                game.insertAction(new PlaySound("click1",
                                                  new PlaySound("run1",
                                                  new DoneAction())));
                 game.actionStack.remove(this);
@@ -1999,7 +2001,7 @@ class DrawBattleMenu_SafariZone extends Action {
 
 
 //draw menu buttons (fight, run, etc)
-class DrawBattleMenu_Normal extends MenuAction {
+class DrawBattleMenuNormal extends MenuAction {
 
     Sprite arrow;
     Sprite textBox;
@@ -2062,10 +2064,10 @@ class DrawBattleMenu_Normal extends MenuAction {
             if (curr.equals("tl")) {
 
                 //play select sound
-                PublicFunctions.insertToAS(game, new PlaySound("click1", new DoneAction()));
+                game.insertAction(new PlaySound("click1", new DoneAction()));
                 
                 //remove this action, new menu that selects between pokemon attacks
-                PublicFunctions.insertToAS(game, new WaitFrames(game, 4, new DrawAttacksMenu(new WaitFrames(game, 4, this))));
+                game.insertAction(new WaitFrames(game, 4, new DrawAttacksMenu(new WaitFrames(game, 4, this))));
                 
                 //attacks stored in String[4] in pkmn    
                 game.actionStack.remove(this);
@@ -2075,9 +2077,9 @@ class DrawBattleMenu_Normal extends MenuAction {
             else if (curr.equals("bl")) {
                 this.disabled = true;
                 // play select sound
-                PublicFunctions.insertToAS(game, new PlaySound("click1", new DoneAction()));
+                game.insertAction(new PlaySound("click1", new DoneAction()));
                 // new menu that selects between pokemon attacks
-                PublicFunctions.insertToAS(game, new DrawItemMenu.Intro(this, 1,
+                game.insertAction(new DrawItemMenu.Intro(this, 1,
                                                  new DrawItemMenu(game, this)));
                 // remove this action,
                 game.actionStack.remove(this);
@@ -2088,7 +2090,7 @@ class DrawBattleMenu_Normal extends MenuAction {
                 
                 Action throwBaitAction = new ThrowBait(game, new PrintAngryEating(game, new ChanceToRun(game, this) ) );
                 String textString = game.player.name+" threw some BAIT.";
-                PublicFunctions.insertToAS(game, new DisplayText(game, textString, null, throwBaitAction,
+                game.insertAction(new DisplayText(game, textString, null, throwBaitAction,
                         throwBaitAction
                     )
                 );
@@ -2104,8 +2106,8 @@ class DrawBattleMenu_Normal extends MenuAction {
 //                    game.client.sendTCP(new com.pkmngen.game.Network.DoBattleAction(game.player.network.id, Battle.DoTurn.Type.RUN, ""));
 //                }
 //                game.actionStack.remove(this);
-//                PublicFunctions.insertToAS(game, new PlaySound("click1", null));
-//                PublicFunctions.insertToAS(game, runAction);
+//                game.insertAction(new PlaySound("click1", null));
+//                game.insertAction(runAction);
                 Action runAction = new SplitAction(new PlaySound("click1", null), null);
                 if (game.type == Game.Type.CLIENT) {
                     runAction.appendAction(new Battle.WaitTurnData(game, null));
@@ -2113,7 +2115,7 @@ class DrawBattleMenu_Normal extends MenuAction {
                 }
                 runAction.appendAction(new Battle.DoTurn(game, Battle.DoTurn.Type.RUN, this));
                 game.actionStack.remove(this);
-                PublicFunctions.insertToAS(game, runAction);
+                game.insertAction(runAction);
             }
         }
 
@@ -2130,7 +2132,7 @@ class DrawBattleMenu_Normal extends MenuAction {
         this.arrow.draw(game.uiBatch);
     }
     
-    public DrawBattleMenu_Normal(Game game, Action nextAction) {
+    public DrawBattleMenuNormal(Game game, Action nextAction) {
 
         this.nextAction = nextAction;
         
@@ -2180,13 +2182,13 @@ class DrawBattleMenu_Normal extends MenuAction {
 //            if (runSuccessful) {
 //                game.player.numFlees = 0;
 //                game.battle.oppPokemon.inBattle = false;
-//                PublicFunctions.insertToAS(game, new WaitFrames(game, 18, 
+//                game.insertAction(new WaitFrames(game, 18, 
 //                                                 new DisplayText(game, "Got away safely!", null, null,
 //                                                 new SplitAction(new BattleFadeOut(game,
 //                                                                 null),
 //                                                 new BattleFadeOutMusic(game,
 //                                                 null)))));
-//                PublicFunctions.insertToAS(game, new PlaySound("run1",
+//                game.insertAction(new PlaySound("run1",
 //                                                 null));
 //            }
 //            else {
@@ -2194,7 +2196,7 @@ class DrawBattleMenu_Normal extends MenuAction {
 //                // TODO: needs to go to attack here
 //                // TODO: something is off about the text.
 //                // TODO: timing is off too.
-//                PublicFunctions.insertToAS(game, new WaitFrames(game, 18, 
+//                game.insertAction(new WaitFrames(game, 18, 
 //                                                 new DisplayText(game, "Canì Escape!", null, null,
 //                                                 this.nextAction)));
 //            }
@@ -2272,13 +2274,13 @@ class DrawAttacksMenu extends Action {
             // is a client, so DoTurn will act accordingly once we get that from the server.
             attack.appendAction(new Battle.DoTurn(game, Battle.DoTurn.Type.ATTACK, this.nextAction));
             game.actionStack.remove(this);
-            PublicFunctions.insertToAS(game, attack);
+            game.insertAction(attack);
             return;
         }
         // player presses b, ie wants to go back
         else if(Gdx.input.isKeyJustPressed(Input.Keys.X)) { 
             game.actionStack.remove(this);
-            PublicFunctions.insertToAS(game, this.nextAction);
+            game.insertAction(this.nextAction);
         }
 
         //System.out.println("curr: " + curr);
@@ -2442,17 +2444,17 @@ class DrawPlayerMenu extends MenuAction {
         //if press a, do attack
         if(Gdx.input.isKeyJustPressed(Input.Keys.Z)) { //using isKeyJustPressed rather than isKeyPressed
             
-            PublicFunctions.insertToAS(game, new PlaySound("click1", new DoneAction()));
+            game.insertAction(new PlaySound("click1", new DoneAction()));
             
             String currEntry = this.entries[this.currIndex];
             
             //we also need to create an 'action' that each of these items goes to
             if (currEntry.equals("POKéMON")) {
-                PublicFunctions.insertToAS(game, new DrawPokemonMenu.Intro(
+                game.insertAction(new DrawPokemonMenu.Intro(
                                                  new DrawPokemonMenu(game, this)));
             }
             else if (currEntry.equals("ITEM")) {
-                PublicFunctions.insertToAS(game, new DrawItemMenu.Intro(this, 9,
+                game.insertAction(new DrawItemMenu.Intro(this, 9,
                                                  new DrawItemMenu(game, this)));
             }
             
@@ -2464,8 +2466,8 @@ class DrawPlayerMenu extends MenuAction {
         else if(Gdx.input.isKeyJustPressed(Input.Keys.X) || Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) { 
             DrawPlayerMenu.lastIndex = this.currIndex;
             game.actionStack.remove(this);
-            PublicFunctions.insertToAS(game, this.nextAction); 
-            PublicFunctions.insertToAS(game, new PlaySound("click1", new DoneAction()));
+            game.insertAction(this.nextAction); 
+            game.insertAction(new PlaySound("click1", new DoneAction()));
         }
 
         //draw arrow
@@ -2577,9 +2579,9 @@ class DrawPlayerMenu extends MenuAction {
             //if done with anim, do nextAction
             if (this.repeats.isEmpty()) {
 
-                PublicFunctions.insertToAS(game, new PlaySound("menu_open1", new DoneAction()));
+                game.insertAction(new PlaySound("menu_open1", new DoneAction()));
                 
-                PublicFunctions.insertToAS(game, this.nextAction);
+                game.insertAction(this.nextAction);
                 game.actionStack.remove(this);
                 return;
             }
@@ -2596,7 +2598,7 @@ class DrawPlayerMenu extends MenuAction {
             //get next sound, play it
             this.sound = this.sounds.get(0);
             if (this.sound != null) {
-                PublicFunctions.insertToAS(game, new PlaySound("menu_open1", new DoneAction()));
+                game.insertAction(new PlaySound("menu_open1", new DoneAction()));
                 this.sounds.set(0, null); //don't play same sound over again
             }
             
@@ -2758,21 +2760,21 @@ class DrawItemMenu extends MenuAction {
         //if press a, draw use/toss for item
         if(Gdx.input.isKeyJustPressed(Input.Keys.Z)) { //using isKeyJustPressed rather than isKeyPressed
 
-            PublicFunctions.insertToAS(game, new PlaySound("click1", new DoneAction()));
+            game.insertAction(new PlaySound("click1", new DoneAction()));
 
             //if name == 'cancel', go back. else, get action for selected name
             String name = this.itemsList.get(currIndex + cursorPos);
 
             if ("Cancel".equals(name)) {
                 this.prevMenu.disabled = false;
-                PublicFunctions.insertToAS(game, this.prevMenu); 
+                game.insertAction(this.prevMenu); 
                 game.actionStack.remove(this);
                 return;
             }
             else {
                 this.disabled = true;
                 System.out.println(String.valueOf(this.prevMenu));
-                PublicFunctions.insertToAS(game, new DrawUseTossMenu(game, this, name)); 
+                game.insertAction(new DrawUseTossMenu(game, this, name)); 
                 game.actionStack.remove(this);
                 return;
             }
@@ -2786,8 +2788,8 @@ class DrawItemMenu extends MenuAction {
             DrawItemMenu.lastCursorPos = this.cursorPos; 
             this.prevMenu.disabled = false;
             game.actionStack.remove(this);
-            PublicFunctions.insertToAS(game, this.prevMenu); 
-            PublicFunctions.insertToAS(game, new PlaySound("click1", new DoneAction()));
+            game.insertAction(this.prevMenu); 
+            game.insertAction(new PlaySound("click1", new DoneAction()));
             return;
         }
         
@@ -2908,7 +2910,7 @@ class DrawItemMenu extends MenuAction {
             }
             this.length--;
             if (this.length <= 0) {
-                PublicFunctions.insertToAS(game, this.nextAction);
+                game.insertAction(this.nextAction);
                 game.actionStack.remove(this);
             }
                     
@@ -3013,7 +3015,7 @@ class DrawUseTossMenu extends MenuAction {
         else if(Gdx.input.isKeyJustPressed(Input.Keys.X)) { 
             this.prevMenu.disabled = false;
             game.actionStack.remove(this);
-            PublicFunctions.insertToAS(game, this.prevMenu);
+            game.insertAction(this.prevMenu);
             return;
         }
         
@@ -3062,7 +3064,7 @@ class DrawUseTossMenu extends MenuAction {
             Action catchAction = Battle_Actions.calcIfCaught(game, this.prevMenu.prevMenu);
             // display text, throw animation, catch or not
             String textString = game.player.name+" used "+itemName.toUpperCase()+"!";
-            PublicFunctions.insertToAS(game, new DisplayText(game, textString, null, catchAction,
+            game.insertAction(new DisplayText(game, textString, null, catchAction,
                                              new ThrowPokeball(game, catchAction
                                              )));
         }
@@ -3234,7 +3236,7 @@ class DrawPokemonMenu extends MenuAction {
         //button interaction is below drawing b/c I want to be able to return here
         //if press a, draw use/toss for item
         if(Gdx.input.isKeyJustPressed(Input.Keys.Z)) { //using isKeyJustPressed rather than isKeyPressed
-            PublicFunctions.insertToAS(game, new PlaySound("click1", new DoneAction()));
+            game.insertAction(new PlaySound("click1", new DoneAction()));
             
             // This was done from battle screen, so just send out pokemon.
             if (this.prevMenu == null) {
@@ -3250,7 +3252,7 @@ class DrawPokemonMenu extends MenuAction {
                                   new DisplayText.Clear(game,
                                   new WaitFrames(game, 3,
                                   new WaitFrames(game, 15,
-                                  new DrawBattleMenu_Normal(game,
+                                  new DrawBattleMenuNormal(game,
                                   null)))))))))));
                 return;
             }
@@ -3260,7 +3262,7 @@ class DrawPokemonMenu extends MenuAction {
             this.drawArrowWhite = true;
             //once player hits b in selected menu, avatar anim starts over
             Pokemon currPokemon = game.player.pokemon.get(DrawPokemonMenu.currIndex);
-            PublicFunctions.insertToAS(game, new DrawPokemonMenu.SelectedMenu(this, currPokemon));
+            game.insertAction(new DrawPokemonMenu.SelectedMenu(this, currPokemon));
             game.actionStack.remove(this);
             return;
         }
@@ -3268,7 +3270,7 @@ class DrawPokemonMenu extends MenuAction {
         if(Gdx.input.isKeyJustPressed(Input.Keys.X)) {
             DrawPokemonMenu.lastIndex = this.currIndex;
             game.actionStack.remove(this);
-            PublicFunctions.insertToAS(game, new DrawPokemonMenu.Outro(
+            game.insertAction(new DrawPokemonMenu.Outro(
                                              this.prevMenu));
             return;
         }
@@ -3334,7 +3336,7 @@ class DrawPokemonMenu extends MenuAction {
             this.duration--;
             
             if (this.duration <= 0) {
-                PublicFunctions.insertToAS(game, this.nextAction);
+                game.insertAction(this.nextAction);
                 game.actionStack.remove(this);
             }    
         }
@@ -3383,7 +3385,7 @@ class DrawPokemonMenu extends MenuAction {
 
             if (this.duration <= 0) {
                 if (this.prevMenu != null) {
-                    PublicFunctions.insertToAS(game, this.prevMenu);
+                    game.insertAction(this.prevMenu);
                     this.prevMenu.disabled = false;
                     this.prevMenu.drawArrowWhite = false;
                 }
@@ -3447,7 +3449,7 @@ class DrawPokemonMenu extends MenuAction {
                 //  
                 // TODO: can't return this as a new action, so just inserting here
                 // 
-//                PublicFunctions.insertToAS(game, this.prevMenu);  // keep drawing but don't enable
+//                game.insertAction(this.prevMenu);  // keep drawing but don't enable
 //                DrawPokemonMenu.lastIndex = prevMenu.currIndex;
                 game.player.isBuilding = true;  // tile to build appears in front of player
                 game.player.isCutting = false;
@@ -3551,28 +3553,28 @@ class DrawPokemonMenu extends MenuAction {
                 String word = this.words.get(this.curr);
                 if ("CANCEL".equals(word)) {
                     DrawPokemonMenu.avatarAnimCounter = 12;
-                    PublicFunctions.insertToAS(game, new PlaySound("click1", new DoneAction()));
+                    game.insertAction(new PlaySound("click1", new DoneAction()));
 
                     game.actionStack.remove(this);
-                    PublicFunctions.insertToAS(game, new DrawPokemonMenu.Outro(
+                    game.insertAction(new DrawPokemonMenu.Outro(
                                                      this.prevMenu.prevMenu));
                     return;
                 }
                 else {
                     Action action = getAction(game, word, this.prevMenu);
                     game.actionStack.remove(this);
-                    PublicFunctions.insertToAS(game, action);
+                    game.insertAction(action);
                     return;
                 }
                 
             }
             //player presses b, ie wants to go back
             else if(Gdx.input.isKeyJustPressed(Input.Keys.X)) {
-                PublicFunctions.insertToAS(game, new PlaySound("click1", new DoneAction()));
+                game.insertAction(new PlaySound("click1", new DoneAction()));
                 //reset avatar anim
                 DrawPokemonMenu.avatarAnimCounter = 12;
                 game.actionStack.remove(this);
-                PublicFunctions.insertToAS(game, new SelectedMenu.Outro(this.prevMenu));
+                game.insertAction(new SelectedMenu.Outro(this.prevMenu));
                 return;
             }
         }
@@ -3654,7 +3656,7 @@ class DrawPokemonMenu extends MenuAction {
                     DrawPokemonMenu.drawChoosePokemonText = true;
                 }    
                 else if (this.duration <= 0) {
-                    PublicFunctions.insertToAS(game, this.prevMenu);
+                    game.insertAction(this.prevMenu);
                     this.prevMenu.disabled = false;
                     game.actionStack.remove(this);
                 }    
@@ -3675,7 +3677,7 @@ class DrawPokemonMenu extends MenuAction {
             @Override
             public void step(Game game) {
                 if (this.firstStep) {
-                    PublicFunctions.insertToAS(game, this.nextAction);
+                    game.insertAction(this.nextAction);
                     this.firstStep = false;
                 }
                 //if there is a previous menu, step through it to display text
@@ -3695,9 +3697,9 @@ class DrawPokemonMenu extends MenuAction {
                     DrawPokemonMenu.lastIndex = prevMenu.currIndex;
                     DrawPokemonMenu.lastIndex = prevMenu.currIndex;
                     game.actionStack.remove(this);
-                    PublicFunctions.insertToAS(game, new DrawPokemonMenu.Outro(null));
+                    game.insertAction(new DrawPokemonMenu.Outro(null));
 //                    game.playerCanMove = true;
-                    PublicFunctions.insertToAS(game, new WaitFrames(game, 30,
+                    game.insertAction(new WaitFrames(game, 30,
                                                      new PlayerCanMove(game,
                                                      new DoneAction())));
                     return;
@@ -3815,22 +3817,22 @@ class DrawPokemonMenu extends MenuAction {
                         }
                         
                         this.disabled = true;
-                        PublicFunctions.insertToAS(game, new PlaySound("click1", new DoneAction()));
+                        game.insertAction(new PlaySound("click1", new DoneAction()));
                         //reset avatar anim
                         DrawPokemonMenu.avatarAnimCounter = 12;
                         game.actionStack.remove(this);
-                        PublicFunctions.insertToAS(game, new Switch.Outro(this));
+                        game.insertAction(new Switch.Outro(this));
                         return;
                     }
                     //player presses b, ie wants to go back
                     else if (Gdx.input.isKeyJustPressed(Input.Keys.X)) {
 
                         this.disabled = true;
-                        PublicFunctions.insertToAS(game, new PlaySound("click1", new DoneAction()));
+                        game.insertAction(new PlaySound("click1", new DoneAction()));
                         //reset avatar anim
                         DrawPokemonMenu.avatarAnimCounter = 12;
                         game.actionStack.remove(this);
-                        PublicFunctions.insertToAS(game, new Switch.Outro(this));
+                        game.insertAction(new Switch.Outro(this));
                         return;
                     }
                 }
@@ -3887,7 +3889,7 @@ class DrawPokemonMenu extends MenuAction {
                     else if (this.timer >= 7) {
                         DrawPokemonMenu.avatarAnimCounter = 13; //one extra avatar frame
                         game.actionStack.remove(this);
-                        PublicFunctions.insertToAS(game, this.prevMenu);
+                        game.insertAction(this.prevMenu);
                         this.prevMenu.disabled = false;
                     }
                 }
@@ -3925,7 +3927,7 @@ class BattleFadeOut extends Action {
         
         //if done with anim, do nextAction
         if (frames.isEmpty()) {
-            PublicFunctions.insertToAS(game, this.nextAction);
+            game.insertAction(this.nextAction);
             game.actionStack.remove(this);
             game.playerCanMove = true;
             DrawBattle.shouldDrawOppPokemon = true;
@@ -3997,7 +3999,7 @@ class BattleFadeOutMusic extends Action {
 
         if (this.isNight == true) {
             game.actionStack.remove(this);
-            PublicFunctions.insertToAS(game, this.nextAction);
+            game.insertAction(this.nextAction);
             return;
         }
         
@@ -4009,7 +4011,7 @@ class BattleFadeOutMusic extends Action {
 
         //if done with anim, do nextAction
         if (frames.isEmpty()) {
-            PublicFunctions.insertToAS(game, this.nextAction);
+            game.insertAction(this.nextAction);
             game.actionStack.remove(this);
             this.music.stop();
             this.music.setVolume(this.originalVolume);
@@ -4520,7 +4522,7 @@ class DrawFriendlyHealth extends Action {
         }
         
         if (this.nextAction != null) {
-            PublicFunctions.insertToAS(game, this.nextAction);
+            game.insertAction(this.nextAction);
             this.nextAction = null;
         }
         if (DrawFriendlyHealth.shouldDraw) {
@@ -4687,11 +4689,11 @@ class DepleteEnemyHealth extends Action {
                                             null), 
                                         new BattleFadeOutMusic(game,
                                         null)));
-                PublicFunctions.insertToAS(game, nextAction);
+                game.insertAction(nextAction);
             }
             //else, insert nextAction
             else {
-                PublicFunctions.insertToAS(game, this.nextAction);
+                game.insertAction(this.nextAction);
             }
         }
         
@@ -4777,7 +4779,7 @@ class DepleteFriendlyHealth extends Action {
         if (size <= targetSize) {
             game.actionStack.remove(this);
             if (this.pokemon.currentStats.get("hp") <= 0) {
-                PublicFunctions.insertToAS(game, new FriendlyFaint(game,  
+                game.insertAction(new FriendlyFaint(game,  
                                                  new RemoveDisplayText(
                                                  new WaitFrames(game, 3, 
                                                  new DisplayText(game, this.pokemon.name.toUpperCase()+" fainted!",
@@ -4788,7 +4790,7 @@ class DepleteFriendlyHealth extends Action {
             }
             //else, insert nextAction
             else {
-                PublicFunctions.insertToAS(game, this.nextAction);
+                game.insertAction(this.nextAction);
             }
         }
         
@@ -4825,14 +4827,14 @@ class AfterFriendlyFaint extends Action {
         }
         // TODO: network code for this doesn't work yet.
         if (hasAlivePokemon) {
-            PublicFunctions.insertToAS(game, new DisplayText.Clear(game,
+            game.insertAction(new DisplayText.Clear(game,
                                              new WaitFrames(game, 3,
                                              new DrawPokemonMenu.Intro(
                                              new DrawPokemonMenu(game,
                                              null)))));
             return;
         }
-        PublicFunctions.insertToAS(game, new DisplayText(game, ""+game.player.name.toUpperCase()+" is out of useable POKéMON!", null, null, 
+        game.insertAction(new DisplayText(game, ""+game.player.name.toUpperCase()+" is out of useable POKéMON!", null, null, 
                                          new DisplayText(game, ""+game.player.name.toUpperCase()+" whited out!", null, null, 
                                          new SplitAction(
                                              new BattleFadeOut(game,
@@ -4907,7 +4909,7 @@ class ThrowRock extends Action {
             
             //wait 3 frames before menu draw
              //allows text box to be blank for 3 frames (drawText is already blank 1 frame by default)
-            PublicFunctions.insertToAS(game, new WaitFrames(game, 2, this.nextAction));
+            game.insertAction(new WaitFrames(game, 2, this.nextAction));
             game.actionStack.remove(this);
             return;
         }
@@ -4915,7 +4917,7 @@ class ThrowRock extends Action {
         //get next sound, play it
         this.sound = this.sounds.get(0);
         if (this.sound != null) {
-            PublicFunctions.insertToAS(game, new PlaySound(this.sound, new DoneAction()));
+            game.insertAction(new PlaySound(this.sound, new DoneAction()));
             this.sounds.set(0, null); //don't play same sound over again
         }
         
@@ -5001,7 +5003,7 @@ class ThrowRock extends Action {
         //this.helperSprite.setScale(3); //post scaling change
         
         
-        //PublicFunctions.insertToAS(game, new PlaySound("throw_rock1", new DoneAction()));
+        //game.insertAction(new PlaySound("throw_rock1", new DoneAction()));
         //sounds to play
         this.sounds = new ArrayList<String>();
         this.sounds.add("throw_rock1");
@@ -5065,7 +5067,7 @@ class ThrowBait extends Action {
             
             //wait 3 frames before menu draw
              //allows text box to be blank for 3 frames (drawText is already blank 1 frame by default)
-            PublicFunctions.insertToAS(game, new WaitFrames(game, 2, this.nextAction));
+            game.insertAction(new WaitFrames(game, 2, this.nextAction));
             game.actionStack.remove(this);
             return;
         }
@@ -5073,7 +5075,7 @@ class ThrowBait extends Action {
         //get next sound, play it
         this.sound = this.sounds.get(0);
         if (this.sound != null) {
-            PublicFunctions.insertToAS(game, new PlaySound(this.sound, new DoneAction()));
+            game.insertAction(new PlaySound(this.sound, new DoneAction()));
             this.sounds.set(0, null); //don't play same sound over again
         }
         
@@ -5154,7 +5156,7 @@ class ThrowBait extends Action {
         //this.helperSprite.setScale(3); //post scaling change
         
         
-        //PublicFunctions.insertToAS(game, new PlaySound("throw_rock1", new DoneAction()));
+        //game.insertAction(new PlaySound("throw_rock1", new DoneAction()));
         //sounds to play
         this.sounds = new ArrayList<String>();
         this.sounds.add("throw_rock1");
@@ -5201,9 +5203,9 @@ class ThrowPokeball extends Action {
         if (positions.isEmpty() || sprites.isEmpty()) {
             //note - it's possible that calling Action could take care of the below instead
              //nextAction is likely a menu draw Action, ie safariMenuDraw
-            //PublicFunctions.insertToAS(game, new catchPokemon_wigglesThenCatch(game, this.nextAction)); //before passed from menu
-            //PublicFunctions.insertToAS(game, new catchPkmn_oneWiggle(this.nextAction)); //later
-            PublicFunctions.insertToAS(game, this.nextAction);
+            //game.insertAction(new catchPokemon_wigglesThenCatch(game, this.nextAction)); //before passed from menu
+            //game.insertAction(new catchPkmn_oneWiggle(this.nextAction)); //later
+            game.insertAction(this.nextAction);
             game.actionStack.remove(this);
             return;
         }
@@ -5211,7 +5213,7 @@ class ThrowPokeball extends Action {
         //get next sound, play it
         this.sound = this.sounds.get(0);
         if (this.sound != null) {
-            PublicFunctions.insertToAS(game, new PlaySound(this.sound, new DoneAction()));
+            game.insertAction(new PlaySound(this.sound, new DoneAction()));
             this.sounds.set(0, null); //don't play same sound over again
         }
         
@@ -5327,7 +5329,7 @@ class ThrowPokeball extends Action {
         //this.helperSprite.setScale(3); //post scaling change
 
         //play 'throw pokeball' sound
-        //PublicFunctions.insertToAS(game, new PlaySound("throw_pokeball1", new DoneAction()));
+        //game.insertAction(new PlaySound("throw_pokeball1", new DoneAction()));
         
         
     }
@@ -5364,9 +5366,9 @@ class ThrowFastPokeball extends Action {
         if (positions.isEmpty() || sprites.isEmpty()) {
             //note - it's possible that calling Action could take care of the below instead
              //nextAction is likely a menu draw Action, ie safariMenuDraw
-            //PublicFunctions.insertToAS(game, new catchPokemon_wigglesThenCatch(game, this.nextAction)); //before passed from menu
-            //PublicFunctions.insertToAS(game, new catchPkmn_oneWiggle(this.nextAction)); //later
-            PublicFunctions.insertToAS(game, this.nextAction);
+            //game.insertAction(new catchPokemon_wigglesThenCatch(game, this.nextAction)); //before passed from menu
+            //game.insertAction(new catchPkmn_oneWiggle(this.nextAction)); //later
+            game.insertAction(this.nextAction);
             game.actionStack.remove(this);
             return;
         }
@@ -5374,7 +5376,7 @@ class ThrowFastPokeball extends Action {
         //get next sound, play it
         this.sound = this.sounds.get(0);
         if (this.sound != null) {
-            PublicFunctions.insertToAS(game, new PlaySound(this.sound, new DoneAction()));
+            game.insertAction(new PlaySound(this.sound, new DoneAction()));
             this.sounds.set(0, null); //don't play same sound over again
         }
         
@@ -5514,7 +5516,7 @@ class ThrowFastPokeball extends Action {
         //this.helperSprite.setScale(3); //post scaling change
 
         //play 'throw pokeball' sound
-        //PublicFunctions.insertToAS(game, new PlaySound("throw_pokeball1", new DoneAction()));
+        //game.insertAction(new PlaySound("throw_pokeball1", new DoneAction()));
         
         
     }
@@ -5551,9 +5553,9 @@ class ThrowHyperPokeball extends Action {
         if (positions.isEmpty() || sprites.isEmpty()) {
             //note - it's possible that calling Action could take care of the below instead
              //nextAction is likely a menu draw Action, ie safariMenuDraw
-            //PublicFunctions.insertToAS(game, new catchPokemon_wigglesThenCatch(game, this.nextAction)); //before passed from menu
-            //PublicFunctions.insertToAS(game, new catchPkmn_oneWiggle(this.nextAction)); //later
-            PublicFunctions.insertToAS(game, this.nextAction);
+            //game.insertAction(new catchPokemon_wigglesThenCatch(game, this.nextAction)); //before passed from menu
+            //game.insertAction(new catchPkmn_oneWiggle(this.nextAction)); //later
+            game.insertAction(this.nextAction);
             game.actionStack.remove(this);
             return;
         }
@@ -5561,7 +5563,7 @@ class ThrowHyperPokeball extends Action {
         //get next sound, play it
         this.sound = this.sounds.get(0);
         if (this.sound != null) {
-            PublicFunctions.insertToAS(game, new PlaySound(this.sound, new DoneAction()));
+            game.insertAction(new PlaySound(this.sound, new DoneAction()));
             this.sounds.set(0, null); //don't play same sound over again
         }
         
@@ -5678,7 +5680,7 @@ class ThrowHyperPokeball extends Action {
 //        this.helperSprite = new Sprite(text, 0, 0, 160, 144);
 
         //play 'throw pokeball' sound
-        //PublicFunctions.insertToAS(game, new PlaySound("throw_pokeball1", new DoneAction()));
+        //game.insertAction(new PlaySound("throw_pokeball1", new DoneAction()));
         
         
     }
@@ -5738,11 +5740,11 @@ class catchPokemon_wigglesThenCatch extends Action {
                                     )
                                 );
                                         
-            PublicFunctions.insertToAS(game, newAction);
+            game.insertAction(newAction);
             newAction.step(game);//need to draw the pokeball
             
-            //PublicFunctions.insertToAS(game, new BattleFadeOut(game, new playerStanding(game)));
-            //PublicFunctions.insertToAS(game, new BattleFadeOutMusic(game, new DoneAction()));
+            //game.insertAction(new BattleFadeOut(game, new playerStanding(game)));
+            //game.insertAction(new BattleFadeOutMusic(game, new DoneAction()));
             
             //since pkmn was caught, add to players pokemon
             game.player.pokemon.add(game.battle.oppPokemon);
@@ -5779,7 +5781,7 @@ class catchPokemon_wigglesThenCatch extends Action {
         //get next sound, play it
         this.sound = this.sounds.get(0);
         if (this.sound != null) {
-            PublicFunctions.insertToAS(game, new PlaySound(this.sound, new DoneAction()));
+            game.insertAction(new PlaySound(this.sound, new DoneAction()));
             this.sounds.set(0, null); //don't play same sound over again
         }
         
@@ -5920,7 +5922,7 @@ class catchPokemon_miss extends Action {
         // - 3 frames nothing, then text appears
         
         String textString = "You missed the POKéMON!"; 
-        PublicFunctions.insertToAS(game, new WaitFrames(game, 3,
+        game.insertAction(new WaitFrames(game, 3,
                                                 new DisplayText(game, textString, null, null, this.nextAction)
                                             )
                                         );
@@ -5977,7 +5979,7 @@ class catchPokemon_wiggles1Time extends Action {
                 
             String textString = "Darn! The POKéMON broke free!";
             //nextAction will be a battle menu draw action here
-            PublicFunctions.insertToAS(game, new DisplayText(game, textString, null, null, this.nextAction));
+            game.insertAction(new DisplayText(game, textString, null, null, this.nextAction));
             //newAction.step(game);//need to draw the pokeball
             
             game.actionStack.remove(this);
@@ -5991,7 +5993,7 @@ class catchPokemon_wiggles1Time extends Action {
         //get next sound, play it
         this.sound = this.sounds.get(0);
         if (this.sound != null) {
-            PublicFunctions.insertToAS(game, new PlaySound(this.sound, new DoneAction()));
+            game.insertAction(new PlaySound(this.sound, new DoneAction()));
             this.sounds.set(0, null); //don't play same sound over again
         }
         
@@ -6149,7 +6151,7 @@ class catchPokemon_wiggles2Times extends Action {
                 
             String textString = "Aww! It appeared to be caught!";
             //nextAction will be a battle menu draw action here
-            PublicFunctions.insertToAS(game, new DisplayText(game, textString, null, null, this.nextAction));
+            game.insertAction(new DisplayText(game, textString, null, null, this.nextAction));
             //newAction.step(game);//need to draw the pokeball
             
             game.actionStack.remove(this);
@@ -6163,7 +6165,7 @@ class catchPokemon_wiggles2Times extends Action {
         //get next sound, play it
         this.sound = this.sounds.get(0);
         if (this.sound != null) {
-            PublicFunctions.insertToAS(game, new PlaySound(this.sound, new DoneAction()));
+            game.insertAction(new PlaySound(this.sound, new DoneAction()));
             this.sounds.set(0, null); //don't play same sound over again
         }
         
@@ -6354,7 +6356,7 @@ class catchPokemon_wiggles3Times extends Action {
             //String textString = "Darn! The POKeMON broke free!";
             String textString = "Shoot! It was so close, too!";
             //nextAction will be a battle menu draw action here
-            PublicFunctions.insertToAS(game, new DisplayText(game, textString, null, null, this.nextAction));
+            game.insertAction(new DisplayText(game, textString, null, null, this.nextAction));
             //newAction.step(game);//need to draw the pokeball
 
             //since pkmn was caught, add to players pokemon
@@ -6371,7 +6373,7 @@ class catchPokemon_wiggles3Times extends Action {
         //get next sound, play it
         this.sound = this.sounds.get(0);
         if (this.sound != null) {
-            PublicFunctions.insertToAS(game, new PlaySound(this.sound, new DoneAction()));
+            game.insertAction(new PlaySound(this.sound, new DoneAction()));
             this.sounds.set(0, null); //don't play same sound over again
         }
         
@@ -6544,7 +6546,7 @@ class PrintAngryEating extends Action {
         
         if (game.battle.oppPokemon.angry > 0) {
             String textString = "Wild " + game.battle.oppPokemon.name.toUpperCase() + " is angry!";
-            PublicFunctions.insertToAS(game, new DisplayText(game, textString, null, null, this.nextAction));
+            game.insertAction(new DisplayText(game, textString, null, null, this.nextAction));
             game.actionStack.remove(this);
             
             game.battle.oppPokemon.angry--;
@@ -6559,7 +6561,7 @@ class PrintAngryEating extends Action {
         }
         else if (game.battle.oppPokemon.eating > 0) {
             String textString = "Wild " + game.battle.oppPokemon.name.toUpperCase() + " is eating!";
-            PublicFunctions.insertToAS(game, new DisplayText(game, textString, null, null, this.nextAction));
+            game.insertAction(new DisplayText(game, textString, null, null, this.nextAction));
             game.actionStack.remove(this);
             
             game.battle.oppPokemon.eating--;
@@ -6567,7 +6569,7 @@ class PrintAngryEating extends Action {
         }
 
         //made it here, so not eating or angry
-        PublicFunctions.insertToAS(game, this.nextAction);
+        game.insertAction(this.nextAction);
         game.actionStack.remove(this);
         return;
     }
@@ -6608,7 +6610,7 @@ class ChanceToRun extends Action {
         if (x > 255) {
             //pokemon runs
             String textString = "Wild " + game.battle.oppPokemon.name.toUpperCase() + " ran!";
-            PublicFunctions.insertToAS(game, new DisplayText(game, textString, null, null,
+            game.insertAction(new DisplayText(game, textString, null, null,
                                              new SplitAction(new OppPokemonFlee(game, 
                                                              new SplitAction(new BattleFadeOut(game,
                                                                              new DoneAction()), //new playerStanding(game)),
@@ -6635,7 +6637,7 @@ class ChanceToRun extends Action {
         if (r < x) {
             //pokemon runs
             String textString = "Wild " + game.battle.oppPokemon.name.toUpperCase() + " ran!";
-            PublicFunctions.insertToAS(game, new DisplayText(game, textString, null, null,
+            game.insertAction(new DisplayText(game, textString, null, null,
                                              new SplitAction(new OppPokemonFlee(game, 
                                                              new SplitAction(new BattleFadeOut(game,
                                                                              new DoneAction()), //new playerStanding(game)),
@@ -6647,14 +6649,14 @@ class ChanceToRun extends Action {
             //demo code - reset adrenaline
             game.player.adrenaline = 0;
             //
-            //PublicFunctions.insertToAS(game, new PlaySound("click1", new PlaySound("run1", new DoneAction())));
+            //game.insertAction(new PlaySound("click1", new PlaySound("run1", new DoneAction())));
             game.actionStack.remove(this);
             return;
         }
                 
         //pokemon doesn't run
         //insert nextAction to actionstack
-        PublicFunctions.insertToAS(game, this.nextAction); //usually menu draw action
+        game.insertAction(this.nextAction); //usually menu draw action
         game.actionStack.remove(this);
         
     }
@@ -6670,7 +6672,7 @@ class ChanceToRun extends Action {
         //experiment - add angry/eating print to AS?
         //automatically adds 'print angry/eating to AS'
         /*
-        PublicFunctions.insertToAS(game, new PrintAngryEating(game, this)); //usually menu draw action
+        game.insertAction(new PrintAngryEating(game, this)); //usually menu draw action
         game.actionStack.remove(this);
         */ //didn't do b/c confusing. can use this in place of series' tho
         
@@ -6708,7 +6710,7 @@ class OppPokemonFlee extends Action {
         //if done with anim, do nextAction
         if (positions.isEmpty()) {
                 
-            PublicFunctions.insertToAS(game, this.nextAction);            
+            game.insertAction(this.nextAction);            
             game.actionStack.remove(this);
             return;
         }
@@ -6716,7 +6718,7 @@ class OppPokemonFlee extends Action {
         //get next sound, play it
         this.sound = this.sounds.get(0);
         if (this.sound != null) {
-            PublicFunctions.insertToAS(game, new PlaySound(this.sound, new DoneAction()));
+            game.insertAction(new PlaySound(this.sound, new DoneAction()));
             this.sounds.set(0, null); //don't play same sound over again
         }
         
@@ -6828,7 +6830,7 @@ class PokemonCaught_Events extends Action {
             //set oppPokemon alpha back to normal
             game.battle.oppPokemon.sprite.setAlpha(1);
             
-            PublicFunctions.insertToAS(game, this.nextAction);
+            game.insertAction(this.nextAction);
             game.actionStack.remove(this);
             //stop drawing the battle
             game.actionStack.remove(game.battle.drawAction); //stop drawing the battle
@@ -6855,7 +6857,7 @@ class PokemonCaught_Events extends Action {
         this.displayTextAction  = new DisplayText(game, string2,  null, null, new DoneAction());
         Action firstTextAction = new DisplayText(game, string1, "fanfare1", null, this.displayTextAction); //trigger
                 
-        PublicFunctions.insertToAS(game, firstTextAction);
+        game.insertAction(firstTextAction);
         //
         
         //
@@ -6930,7 +6932,7 @@ class ThrowOutPokemon extends Action {
 //            }
             
             if (!this.doneYet) {
-                PublicFunctions.insertToAS(game, this.nextAction);
+                game.insertAction(this.nextAction);
 
                 //set real sprite to correct position
                 game.player.currPokemon.backSprite.setPosition(position.x, position.y);
@@ -6945,7 +6947,7 @@ class ThrowOutPokemon extends Action {
                 // modify layer of this action
                 this.layer = 114;
                 game.actionStack.remove(this);
-                PublicFunctions.insertToAS(game, this);
+                game.insertAction(this);
             }
             
             // No performance different here either way
@@ -6987,7 +6989,7 @@ class ThrowOutPokemon extends Action {
         //get next sound, play it
         this.sound = this.sounds.get(0);
         if (this.sound != null) {
-            PublicFunctions.insertToAS(game, new PlaySound(this.sound, new DoneAction()));
+            game.insertAction(new PlaySound(this.sound, new DoneAction()));
             this.sounds.set(0, null); //don't play same sound over again
         }
         
@@ -7147,7 +7149,7 @@ class ThrowOutPokemon extends Action {
         //this.helperSprite.setScale(3); //post scaling change
 
         //play 'throw pokeball' sound
-        //PublicFunctions.insertToAS(game, new PlaySound("throw_pokeball1", new DoneAction()));
+        //game.insertAction(new PlaySound("throw_pokeball1", new DoneAction()));
         
         
     }
@@ -7210,7 +7212,7 @@ class ThrowOutPokemonCrystal extends Action {
 //          }
 
           if (!this.doneYet) {
-              PublicFunctions.insertToAS(game, this.nextAction);
+              game.insertAction(this.nextAction);
 
               //set real sprite to correct position
               game.player.currPokemon.backSprite.setPosition(position.x, position.y);
@@ -7230,7 +7232,7 @@ class ThrowOutPokemonCrystal extends Action {
               // modify layer of this action
               this.layer = 114;
               game.actionStack.remove(this);
-              PublicFunctions.insertToAS(game, this);
+              game.insertAction(this);
           }
 
           // No performance difference here either way
@@ -7276,7 +7278,7 @@ class ThrowOutPokemonCrystal extends Action {
       //get next sound, play it
       this.sound = this.sounds.get(0);
       if (this.sound != null) {
-          PublicFunctions.insertToAS(game, new PlaySound(this.sound, new DoneAction()));
+          game.insertAction(new PlaySound(this.sound, new DoneAction()));
           this.sounds.set(0, null); //don't play same sound over again
       }
 
@@ -7478,7 +7480,7 @@ class SpecialBattleMewtwo extends Action {
             // remove the text box
             game.actionStack.remove(game.displayTextAction);
             game.displayTextAction = null;
-            PublicFunctions.insertToAS(game, new DisplayTextIntro(game, "...",
+            game.insertAction(new DisplayTextIntro(game, "...",
                                                                   null, null, false, new DoneAction()));
         }
         else if (this.timer == 100) {
@@ -7486,7 +7488,7 @@ class SpecialBattleMewtwo extends Action {
             // remove the text box
             game.actionStack.remove(game.displayTextAction);
             game.displayTextAction = null;
-            PublicFunctions.insertToAS(game, new DisplayTextIntro(game, "Humans...",
+            game.insertAction(new DisplayTextIntro(game, "Humans...",
                                                                   null, null, false, new DoneAction()));
         }
         else if (this.timer == 300 -20) {
@@ -7494,7 +7496,7 @@ class SpecialBattleMewtwo extends Action {
             // remove the text box
             game.actionStack.remove(game.displayTextAction);
             game.displayTextAction = null;
-            PublicFunctions.insertToAS(game, new DisplayTextIntro(game, "These humans cared nothing for me...",
+            game.insertAction(new DisplayTextIntro(game, "These humans cared nothing for me...",
                                                                   null, null, false, new DoneAction()));
         }
         else if (this.timer == 600 -20 -20) {
@@ -7502,7 +7504,7 @@ class SpecialBattleMewtwo extends Action {
             // remove the text box
             game.actionStack.remove(game.displayTextAction);
             game.displayTextAction = null;
-            PublicFunctions.insertToAS(game, new DisplayTextIntro(game, "From the moment I first opened my eyes, humans have sought to control me.",
+            game.insertAction(new DisplayTextIntro(game, "From the moment I first opened my eyes, humans have sought to control me.",
                                                                   null, null, false, new DoneAction()));
         }
         else if (this.timer == 1000 -20 -20) {
@@ -7510,7 +7512,7 @@ class SpecialBattleMewtwo extends Action {
             // remove the text box
             game.actionStack.remove(game.displayTextAction);
             game.displayTextAction = null;
-            PublicFunctions.insertToAS(game, new DisplayTextIntro(game, "But no more.",
+            game.insertAction(new DisplayTextIntro(game, "But no more.",
                                                                   null, null, false, new DoneAction()));
         }
         else if (this.timer == 1200 -20 -20) {
@@ -7518,7 +7520,7 @@ class SpecialBattleMewtwo extends Action {
             // remove the text box
             game.actionStack.remove(game.displayTextAction);
             game.displayTextAction = null;
-            PublicFunctions.insertToAS(game, new DisplayTextIntro(game, "Why are you here?",
+            game.insertAction(new DisplayTextIntro(game, "Why are you here?",
                                                                   null, null, false, new DoneAction()));
         }
         else if (this.timer == 1350 -20 -20) {
@@ -7526,7 +7528,7 @@ class SpecialBattleMewtwo extends Action {
             // remove the text box
             game.actionStack.remove(game.displayTextAction);
             game.displayTextAction = null;
-            PublicFunctions.insertToAS(game, new DisplayTextIntro(game, "You desire to control me, just like the others.",
+            game.insertAction(new DisplayTextIntro(game, "You desire to control me, just like the others.",
                                                                   null, null, false, new DoneAction()));
         }
         else if (this.timer == 1580) {
@@ -7534,7 +7536,7 @@ class SpecialBattleMewtwo extends Action {
             // remove the text box
             game.actionStack.remove(game.displayTextAction);
             game.displayTextAction = null;
-            PublicFunctions.insertToAS(game, new DisplayTextIntro(game, "...",
+            game.insertAction(new DisplayTextIntro(game, "...",
                                                                   null, null, false, new DoneAction()));
         }
         
@@ -7548,7 +7550,7 @@ class SpecialBattleMewtwo extends Action {
             
             Action triggerAction = new PlaySound(game.player.currPokemon.name, 
                                    new WaitFrames(game, 6,
-                                   new DrawBattleMenu_Normal(game, new DoneAction())
+                                   new DrawBattleMenuNormal(game, new DoneAction())
                                    ));
 
             
@@ -7581,7 +7583,7 @@ class SpecialBattleMewtwo extends Action {
                                  triggerAction
                                  ))))))))))))))));
             game.actionStack.remove(this);
-            PublicFunctions.insertToAS(game, nextAction);
+            game.insertAction(nextAction);
         }
         this.timer++;
     }
@@ -7680,7 +7682,7 @@ class SpecialBattleMewtwo extends Action {
                 moves_relative.remove(0);
                 
                 if (moves_relative.isEmpty()) {
-                    PublicFunctions.insertToAS(game, new DisplayTextIntro(game, "An oppressive force surrounds you...",
+                    game.insertAction(new DisplayTextIntro(game, "An oppressive force surrounds you...",
                                                                           null, null, false, new DoneAction()));
                 }
             }
@@ -7689,7 +7691,7 @@ class SpecialBattleMewtwo extends Action {
                 // remove the text box
                 game.actionStack.remove(game.displayTextAction);
                 game.displayTextAction = null;
-                PublicFunctions.insertToAS(game, new DisplayTextIntro(game, "MEWTWO unleashes its full power!",
+                game.insertAction(new DisplayTextIntro(game, "MEWTWO unleashes its full power!",
                                                                       null, null, false, new DoneAction()));
             }
             
@@ -7769,7 +7771,7 @@ class SpecialBattleMewtwo extends Action {
             if (this.timer >= 640) {
                 
                 game.actionStack.remove(this);
-                PublicFunctions.insertToAS(game, this.nextAction);
+                game.insertAction(this.nextAction);
             }
             this.timer++;
         }
@@ -7882,7 +7884,7 @@ class SpecialBattleMewtwo extends Action {
             
             //if done with anim, do nextAction
             if (frames.isEmpty()) {
-                PublicFunctions.insertToAS(game, this.nextAction);
+                game.insertAction(this.nextAction);
                 game.actionStack.remove(this);
                 //avoid lag
                 nextAction.step(game);
@@ -8414,7 +8416,7 @@ class SpecialBattleMegaGengar extends Action {
             
             Action triggerAction = new PlaySound(game.player.currPokemon.name, 
                                    new WaitFrames(game, 6,
-                                   new DrawBattleMenu_Normal(game, new DoneAction())
+                                   new DrawBattleMenuNormal(game, new DoneAction())
                                    ));
 
 //            Action nextAction =  new WaitFrames(game, 15, 
@@ -8440,7 +8442,7 @@ class SpecialBattleMegaGengar extends Action {
                                  triggerAction
                                  )))))))))));
 
-            PublicFunctions.insertToAS(game, nextAction);
+            game.insertAction(nextAction);
         }
         // TODO: remove
 //        else if (this.timer >= 771) {
@@ -8576,7 +8578,7 @@ class SpecialBattleMegaGengar extends Action {
                 
                 // TODO: remove
 //                if (moves_relative.isEmpty()) {
-////                    PublicFunctions.insertToAS(game, new DisplayTextIntro(game, "An oppressive force fills the air...",
+////                    game.insertAction(new DisplayTextIntro(game, "An oppressive force fills the air...",
 ////                                                                          null, null, false, new DoneAction()));
 //
 //                }
@@ -8597,7 +8599,7 @@ class SpecialBattleMegaGengar extends Action {
             // start next action (pokemon cry) but continue animation
             if (this.timer == 30) {
                 // mega gengar cry
-                PublicFunctions.insertToAS(game, new PlaySound(game.battle.oppPokemon.name,
+                game.insertAction(new PlaySound(game.battle.oppPokemon.name,
                                                  new DoneAction()));
             }
 
@@ -8606,7 +8608,7 @@ class SpecialBattleMegaGengar extends Action {
 //                // remove the text box
 //                game.actionStack.remove(game.displayTextAction);
 //                game.displayTextAction = null;
-//                PublicFunctions.insertToAS(game, new DisplayTextIntro(game, "MEWTWO unleashes its full power!",
+//                game.insertAction(new DisplayTextIntro(game, "MEWTWO unleashes its full power!",
 //                                                                      null, null, false, new DoneAction()));
 //            }
 
@@ -8681,13 +8683,13 @@ class SpecialBattleMegaGengar extends Action {
 
             // battle text
             if (this.timer == 20) {
-                PublicFunctions.insertToAS(game, new DisplayTextIntro(game, "MEGA GENGAR attacked!",
+                game.insertAction(new DisplayTextIntro(game, "MEGA GENGAR attacked!",
                                                                       null, null, false, new DoneAction()));
             }
 
             //start of switch to pokemon
             if (this.timer == 120 + 24*4) {
-                PublicFunctions.insertToAS(game, this.nextAction);
+                game.insertAction(this.nextAction);
             }
 
             if (this.timer >= 150 + 24*4) {
@@ -8822,7 +8824,7 @@ class SpecialBattleMegaGengar extends Action {
             
             //if done with anim, do nextAction
             if (frames.isEmpty()) {
-                PublicFunctions.insertToAS(game, this.nextAction);
+                game.insertAction(this.nextAction);
                 game.actionStack.remove(this);
                 //avoid lag
                 this.nextAction.step(game);
@@ -8898,7 +8900,7 @@ class PokemonIntroAnim extends Action {
         if (this.currFrame >= game.battle.oppPokemon.introAnim.size()) {
             game.battle.oppPokemon.sprite = this.originalSprite;
             game.actionStack.remove(this);
-            PublicFunctions.insertToAS(game, this.nextAction);
+            game.insertAction(this.nextAction);
             return;
         }
         // play intro anim frame by frame
@@ -8926,7 +8928,7 @@ class AttackAnim extends Action {
     public void step(Game game) {
         // TODO: move the Battle_Actions.getAttackAction code here
         game.actionStack.remove(this);
-        PublicFunctions.insertToAS(game, Battle_Actions.getAttackAction(game, attack, isFriendly, nextAction));
+        game.insertAction(Battle_Actions.getAttackAction(game, attack, isFriendly, nextAction));
     }
     
     public AttackAnim(Game game, Attack attack, boolean isFriendly, Action nextAction) {
@@ -9246,17 +9248,17 @@ class Battle_Actions extends Action {
 
     public static Action get(Game game) {
         
-        //if player has no pokemon, encounter is safari zone style
+        // If player has no pokemon, encounter is safari zone style
         if (game.player.pokemon.isEmpty()) {
 
             return new SplitAction(new BattleIntro(
                                    new BattleIntro_anim1(
                                    new SplitAction(new DrawBattle(game),
                                                    new BattleAnim_positionPlayers(game, 
-                                                   new PlaySound(game.battle.oppPokemon.name, 
+                                                   new PlaySound(game.battle.oppPokemon, 
                                                    new DisplayText(game, "Wild "+game.battle.oppPokemon.name.toUpperCase()+" appeared!", null, null, 
                                                    new WaitFrames(game, 39,
-                                                   //demo code - wildly confusing, but i don't want to write another if statement
+                                                   //demo code - wildly confusing, but I don't want to write another if statement
                                                     game.player.adrenaline > 0 ? new DisplayText(game, ""+game.player.name+" has ADRENALINE "+Integer.toString(game.player.adrenaline)+"!", null, null,
                                                         new PrintAngryEating(game, //for demo mode, normally left out
                                                                 new DrawBattleMenu_SafariZone(game, new DoneAction())
@@ -9264,24 +9266,25 @@ class Battle_Actions extends Action {
                                                         )
                                                     : 
                                                    new PrintAngryEating(game, //for demo mode, normally left out
-                                                   new DrawBattleMenu_SafariZone(game, new DoneAction())    
+                                                   new DrawBattleMenu_SafariZone(game,
+                                                   null)    
                                    )))))))),
-                   new DoneAction()
+                   null
                    );
         }
-        //throw out first pokemon in player.pokemon
-        // play intro anim if pokemon crystal
+        // Play Pokemon's intro anim if pokemon crystal
+        // TODO: refactor to use appendAction 
         else if (game.battle.oppPokemon.generation == Pokemon.Generation.CRYSTAL) {
             Action triggerAction;
             if (game.player.currPokemon.generation == Pokemon.Generation.RED) {
                 triggerAction = new PlaySound(game.player.currPokemon.name, 
                                 new WaitFrames(game, 6,
-                                new DrawBattleMenu_Normal(game, new DoneAction())
+                                new DrawBattleMenuNormal(game, new DoneAction())
                                 ));
             }
             else {
                 Action afterTrigger = new WaitFrames(game, 15,
-                                      new DrawBattleMenu_Normal(game,
+                                      new DrawBattleMenuNormal(game,
                                       new DoneAction()
                                       ));
                 triggerAction = new PlaySound(game.player.currPokemon, 
@@ -9315,12 +9318,12 @@ class Battle_Actions extends Action {
                        )
                    ))))))))))));
         }
-        // below is red/blue intro anim
+        // Below is red/blue intro anim
         // TODO: what if opp pokemon is crystal, and yours is red? or vice-versa
         else {
             Action triggerAction = new PlaySound(game.player.currPokemon.name, 
                                    new WaitFrames(game, 6,
-                                   new DrawBattleMenu_Normal(game, new DoneAction())
+                                   new DrawBattleMenuNormal(game, new DoneAction())
                                    ));
             return new BattleIntro(
                    new BattleIntro_anim1(
@@ -9411,7 +9414,7 @@ class Battle_Actions extends Action {
                     this.target.currentStats.put("hp", finalHealth);
 
                     game.actionStack.remove(this);
-                    PublicFunctions.insertToAS(game, this.nextAction);
+                    game.insertAction(this.nextAction);
                 }
                 return;
             }
@@ -9419,7 +9422,7 @@ class Battle_Actions extends Action {
             //get next sound, play it
             this.sound = this.sounds.get(0);
             if (this.sound != null) {
-                PublicFunctions.insertToAS(game, new PlaySound(this.sound, new DoneAction()));
+                game.insertAction(new PlaySound(this.sound, new DoneAction()));
                 this.sounds.set(0, null); //don't play same sound over again
             }
 
@@ -9594,7 +9597,7 @@ class Battle_Actions extends Action {
                     this.target.currentStats.put("hp", finalHealth);
 
                     game.actionStack.remove(this);
-                    PublicFunctions.insertToAS(game, this.nextAction);
+                    game.insertAction(this.nextAction);
                 }
                 return;
             }
@@ -9602,7 +9605,7 @@ class Battle_Actions extends Action {
             //get next sound, play it
             this.sound = this.sounds.get(0);
             if (this.sound != null) {
-                PublicFunctions.insertToAS(game, new PlaySound(this.sound, new DoneAction()));
+                game.insertAction(new PlaySound(this.sound, new DoneAction()));
                 this.sounds.set(0, null); //don't play same sound over again
             }
 
@@ -9787,7 +9790,7 @@ class Battle_Actions extends Action {
                     this.target.currentStats.put("hp", finalHealth);
 
                     game.actionStack.remove(this);
-                    PublicFunctions.insertToAS(game, this.nextAction);
+                    game.insertAction(this.nextAction);
                 }
                 return;
             }
@@ -9795,7 +9798,7 @@ class Battle_Actions extends Action {
             //get next sound, play it
             this.sound = this.sounds.get(0);
             if (this.sound != null) {
-                PublicFunctions.insertToAS(game, new PlaySound(this.sound, new DoneAction()));
+                game.insertAction(new PlaySound(this.sound, new DoneAction()));
                 this.sounds.set(0, null); //don't play same sound over again
             }
 
@@ -10011,10 +10014,10 @@ class Battle_Actions extends Action {
 
             if (this.firstStep) {
                 if (this.isNightShade) {
-                    PublicFunctions.insertToAS(game, new PlaySound("night_shade1", new DoneAction()));
+                    game.insertAction(new PlaySound("night_shade1", new DoneAction()));
                 }
                 else {
-                    PublicFunctions.insertToAS(game, new PlaySound("psychic1", new DoneAction()));
+                    game.insertAction(new PlaySound("psychic1", new DoneAction()));
                 }
                 this.firstStep = false;
             }
@@ -10049,7 +10052,7 @@ class Battle_Actions extends Action {
             else if (!this.positions.isEmpty()) {
                 if (this.hitSound) {
                     // play hit sound
-                    PublicFunctions.insertToAS(game, new PlaySound("hit_normal1", new DoneAction()));
+                    game.insertAction(new PlaySound("hit_normal1", new DoneAction()));
                     this.hitSound = false;
                 }
                 this.currPosition = this.positions.get(0);
@@ -10074,7 +10077,7 @@ class Battle_Actions extends Action {
                 this.target.currentStats.put("hp", finalHealth);
                 
                 game.actionStack.remove(this);
-                PublicFunctions.insertToAS(game, this.nextAction);
+                game.insertAction(this.nextAction);
             }
             
         }
@@ -10406,7 +10409,7 @@ class Battle_Actions extends Action {
                 
             }
             else if (this.timer == 60) {
-                PublicFunctions.insertToAS(game, new PlaySound("Mewtwo_Special1", new DoneAction()));
+                game.insertAction(new PlaySound("Mewtwo_Special1", new DoneAction()));
                 SpecialBattleMewtwo.RocksEffect1.velocityX = -8;
                 SpecialBattleMewtwo.RocksEffect2.velocityX = -2;  // TODO: is this doing anything?
                 this.currShader = new ShaderProgram(this.vertexShader, this.getShader(.6f));
@@ -10540,7 +10543,7 @@ class Battle_Actions extends Action {
                 this.target.currentStats.put("hp", finalHealth);
                   
                 game.actionStack.remove(this);
-                PublicFunctions.insertToAS(game, this.nextAction);
+                game.insertAction(this.nextAction);
             }
             this.timer++;
 
@@ -10574,7 +10577,7 @@ class Battle_Actions extends Action {
 //            else if (!this.positions.isEmpty()) {
 //                if (this.hitSound) {
 //                    // play hit sound
-//                    PublicFunctions.insertToAS(game, new PlaySound("hit_normal1", new DoneAction()));
+//                    game.insertAction(new PlaySound("hit_normal1", new DoneAction()));
 //                    this.hitSound = false;
 //                }
 //                this.currPosition = this.positions.get(0);
@@ -10599,7 +10602,7 @@ class Battle_Actions extends Action {
 //                this.target.currentStats.put("hp", finalHealth);
 //                
 //                game.actionStack.remove(this);
-//                PublicFunctions.insertToAS(game, this.nextAction);
+//                game.insertAction(this.nextAction);
 //            }
             
         }
@@ -10824,14 +10827,14 @@ class Battle_Actions extends Action {
             FileHandle filehandle = Gdx.files.internal("attacks/" + this.name + "/output/frame-" + String.format("%03d", this.frameNum) + ".png"); 
             if (!filehandle.exists()) {
                 game.actionStack.remove(this);
-                PublicFunctions.insertToAS(game, this.nextAction);
+                game.insertAction(this.nextAction);
                 
                 // TODO: need new actions not v effective, super eff, etc
 //                if (this.target == game.player.currPokemon) {
-//                    PublicFunctions.insertToAS(game, new DefaultEnemyAttack(game.battle.oppPokemon, game.player.currPokemon, this.power, this.accuracy, this.nextAction));
+//                    game.insertAction(new DefaultEnemyAttack(game.battle.oppPokemon, game.player.currPokemon, this.power, this.accuracy, this.nextAction));
 //                }
 //                else {
-//                    PublicFunctions.insertToAS(game, new DefaultAttack(game, this.power, this.accuracy, this.nextAction));
+//                    game.insertAction(new DefaultAttack(game, this.power, this.accuracy, this.nextAction));
 //                }
                 return;
             }
@@ -11028,7 +11031,7 @@ class DefaultAttack extends Action {
             
             
             
-            PublicFunctions.insertToAS(game, this.nextAction);
+            game.insertAction(this.nextAction);
             game.actionStack.remove(this);
             return;
         }
@@ -11063,7 +11066,7 @@ class DefaultAttack extends Action {
         //get next sound, play it
         this.sound = this.sounds.get(0);
         if (this.sound != null) {
-            PublicFunctions.insertToAS(game, new PlaySound(this.sound, new DoneAction()));
+            game.insertAction(new PlaySound(this.sound, new DoneAction()));
             this.sounds.set(0, null); //don't play same sound over again
         }
 
@@ -11195,7 +11198,7 @@ class DefaultEnemyAttack extends Action {
             if (finalHealth < 0) {finalHealth = 0;} //make sure finalHealth isn't negative
             this.oppPokemon.currentStats.put("hp", finalHealth);
                         
-            PublicFunctions.insertToAS(game, this.nextAction);
+            game.insertAction(this.nextAction);
             game.actionStack.remove(this);
             return;
         }
@@ -11225,7 +11228,7 @@ class DefaultEnemyAttack extends Action {
         //get next sound, play it
         this.sound = this.sounds.get(0);
         if (this.sound != null) {
-            PublicFunctions.insertToAS(game, new PlaySound(this.sound, new DoneAction()));
+            game.insertAction(new PlaySound(this.sound, new DoneAction()));
             this.sounds.set(0, null); //don't play same sound over again
         }
         
@@ -11329,7 +11332,7 @@ String textString = "Wild "+game.battle.oppPokemon.name+" is angry!";
 Action catchAction = new ThrowRock(game, new DisplayText(game, textString, null, null,
         this ));
 textString = game.player.name+" threw a rock.";
-PublicFunctions.insertToAS(game, new DisplayText(game, textString, null, catchAction,
+game.insertAction(new DisplayText(game, textString, null, catchAction,
         catchAction
     )
 );
