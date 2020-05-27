@@ -989,65 +989,66 @@ public class Pokemon {
 
             this.types.add("Electric");
         }
-        else if (name == "Machop") { // todo: stats are wrong
-            this.baseStats.put("hp",45);
-            this.baseStats.put("attack",65);
-            this.baseStats.put("defense",34);
-            this.baseStats.put("specialAtk",40);
-            this.baseStats.put("specialDef",34);
-            this.baseStats.put("speed",45);
-            this.baseStats.put("catchRate", 235);
-            //sprite
-            Texture pokemonText = new Texture(Gdx.files.internal("crystal_pokemon/machop_front2.png"));
-            this.sprite = new Sprite(pokemonText, 0, 0, 56, 56);
-//            this.sprite.flip(true, false); 
-
-            this.types.add("Fighting");
-
-            this.introAnim = new ArrayList<Sprite>();
-            // 23 frames do nothing
-            Sprite sprite = new Sprite(pokemonText, 56*0, 0, 56, 56);
-//            sprite.flip(true, false);
-            for (int i=0; i < 24; i++) {
-                this.introAnim.add(sprite);
-            }
-            // 22 frames mouth open
-            sprite = new Sprite(pokemonText, 56*2, 0, 56, 56);
-//            sprite.flip(true, false);
-            for (int i=0; i < 23; i++) {
-                this.introAnim.add(sprite);
-            }
-            // 13 frames normal
-            sprite = new Sprite(pokemonText, 56*0, 0, 56, 56);
-//            sprite.flip(true, false);
-            for (int i=0; i < 14; i++) {
-                this.introAnim.add(sprite);
-            }
-            // 12 frames fists up
-            sprite = new Sprite(pokemonText, 56*1, 0, 56, 56);
-//            sprite.flip(true, false);
-            for (int i=0; i < 13; i++) {
-                this.introAnim.add(sprite);
-            }
-            // 13 frames normal
-            sprite = new Sprite(pokemonText, 56*0, 0, 56, 56);
-//            sprite.flip(true, false);
-            for (int i=0; i < 14; i++) {
-                this.introAnim.add(sprite);
-            }
-            // 13 frames fists up
-            sprite = new Sprite(pokemonText, 56*1, 0, 56, 56);
-//            sprite.flip(true, false);
-            for (int i=0; i < 14; i++) {
-                this.introAnim.add(sprite);
-            }
-            // 11 frames normal
-            sprite = new Sprite(pokemonText, 56*0, 0, 56, 56);
-//            sprite.flip(true, false);
-            for (int i=0; i < 14; i++) {
-                this.introAnim.add(sprite);
-            }
-        }
+        // TODO: remove
+//        else if (name == "Machop") { // todo: stats are wrong
+//            this.baseStats.put("hp",45);
+//            this.baseStats.put("attack",65);
+//            this.baseStats.put("defense",34);
+//            this.baseStats.put("specialAtk",40);
+//            this.baseStats.put("specialDef",34);
+//            this.baseStats.put("speed",45);
+//            this.baseStats.put("catchRate", 235);
+//            //sprite
+//            Texture pokemonText = new Texture(Gdx.files.internal("crystal_pokemon/machop_front2.png"));
+//            this.sprite = new Sprite(pokemonText, 0, 0, 56, 56);
+////            this.sprite.flip(true, false); 
+//
+//            this.types.add("Fighting");
+//
+//            this.introAnim = new ArrayList<Sprite>();
+//            // 23 frames do nothing
+//            Sprite sprite = new Sprite(pokemonText, 56*0, 0, 56, 56);
+////            sprite.flip(true, false);
+//            for (int i=0; i < 24; i++) {
+//                this.introAnim.add(sprite);
+//            }
+//            // 22 frames mouth open
+//            sprite = new Sprite(pokemonText, 56*2, 0, 56, 56);
+////            sprite.flip(true, false);
+//            for (int i=0; i < 23; i++) {
+//                this.introAnim.add(sprite);
+//            }
+//            // 13 frames normal
+//            sprite = new Sprite(pokemonText, 56*0, 0, 56, 56);
+////            sprite.flip(true, false);
+//            for (int i=0; i < 14; i++) {
+//                this.introAnim.add(sprite);
+//            }
+//            // 12 frames fists up
+//            sprite = new Sprite(pokemonText, 56*1, 0, 56, 56);
+////            sprite.flip(true, false);
+//            for (int i=0; i < 13; i++) {
+//                this.introAnim.add(sprite);
+//            }
+//            // 13 frames normal
+//            sprite = new Sprite(pokemonText, 56*0, 0, 56, 56);
+////            sprite.flip(true, false);
+//            for (int i=0; i < 14; i++) {
+//                this.introAnim.add(sprite);
+//            }
+//            // 13 frames fists up
+//            sprite = new Sprite(pokemonText, 56*1, 0, 56, 56);
+////            sprite.flip(true, false);
+//            for (int i=0; i < 14; i++) {
+//                this.introAnim.add(sprite);
+//            }
+//            // 11 frames normal
+//            sprite = new Sprite(pokemonText, 56*0, 0, 56, 56);
+////            sprite.flip(true, false);
+//            for (int i=0; i < 14; i++) {
+//                this.introAnim.add(sprite);
+//            }
+//        }
         else {
             return;
         }

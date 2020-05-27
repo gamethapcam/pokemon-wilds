@@ -1,5 +1,6 @@
 package com.pkmngen.game;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -1112,10 +1113,10 @@ class DisplayText extends Action {
         this.arrowSprite.setPosition(147-2-1,12-1-1); //post scaling change
         //this.arrowSprite.setScale(3); //post scaling change
         
-        text = new Texture(Gdx.files.internal("text_helper1.png")); //battle_bg1
+//        text = new Texture(Gdx.files.internal("text_helper1.png")); //battle_bg1
         //text = new Texture(Gdx.files.internal("battle/battle_bg1.png"));
         //Texture text = new Texture(Gdx.files.internal("throw_rock_anim/helper12.png"));
-        this.helperSprite = new Sprite(text, 0, 0, 160, 144);
+//        this.helperSprite = new Sprite(text, 0, 0, 160, 144);
         //this.helperSprite.setPosition(16*10,16*9);
         //this.helperSprite.setScale(3);
         this.timer = 0;
@@ -1609,10 +1610,10 @@ class DisplayTextIntro extends Action {
         this.arrowSprite.setPosition(147-2-1,12-1-1); //post scaling change
         //this.arrowSprite.setScale(3); //post scaling change
         
-        text = new Texture(Gdx.files.internal("text_helper1.png")); //battle_bg1
+//        text = new Texture(Gdx.files.internal("text_helper1.png")); //battle_bg1
         //text = new Texture(Gdx.files.internal("battle/battle_bg1.png"));
         //Texture text = new Texture(Gdx.files.internal("throw_rock_anim/helper12.png"));
-        this.helperSprite = new Sprite(text, 0, 0, 160, 144);
+//        this.helperSprite = new Sprite(text, 0, 0, 160, 144);
         //this.helperSprite.setPosition(16*10,16*9);
         //this.helperSprite.setScale(3);
         this.timer = 0;
@@ -2453,6 +2454,40 @@ class DrawSetupMenu extends Action {
                     if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
                         game.actionStack.remove(this);
                         game.start();
+
+                        // Set player name
+                        String name = "";
+                        for (int i=0; i < this.name.size(); i++) {
+                            name += this.name.get(i).toString();
+                        }
+                        game.player.name = name;
+
+                        // Set ip addr
+                        String ipAddr = "";
+                        for (int i=0; i < this.serverIp.size(); i++) {
+                            ipAddr += this.serverIp.get(i).toString();
+                        }
+//                        if (ipAddr.equals("")) {
+//                            try {
+//                                game.initServer();
+//                            } catch (IOException e) { 
+//                                e.printStackTrace();
+//                            }  
+//                        }
+//                        else {
+//                            try {
+//                                game.initClient(ipAddr);
+//                            } catch (IOException e) { 
+//                                e.printStackTrace();
+//                            }  
+//                        }
+                        
+                        EnterBuilding enterBuilding = new EnterBuilding(game, "", null);
+                        enterBuilding.slow = 8;
+                        game.insertAction(enterBuilding);
+                        for (int i=0; i < 12*enterBuilding.slow; i++) {
+                            enterBuilding.step(game);
+                        }
                     }
                 }
             }

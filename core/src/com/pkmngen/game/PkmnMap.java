@@ -2369,23 +2369,24 @@ class EnterBuilding extends Action {
   public String getCamera() {return "gui";};
 
   int timer = 0;
+  int slow = 1;  // TODO: remove, use some sort of into anim
   
   @Override
   public void step(Game game) {
       
-      if (this.timer < 2) {
+      if (this.timer < 2*slow) {
           if (this.timer == 0 && this.action.equals("enter") || this.action.equals("exit")) {
               PublicFunctions.insertToAS(game, new PlaySound(this.action+"1", new DoneAction()));
           }
       }
-      else if (this.timer < 4) {
+      else if (this.timer < 4*slow) {
           this.sprite.draw(game.uiBatch, .25f);
       }
-      else if (this.timer < 6) {
+      else if (this.timer < 6*slow) {
           this.sprite.draw(game.uiBatch, .50f);
       }
-      else if (this.timer < 12) {
-          if (this.timer == 6) {
+      else if (this.timer < 12*slow) {
+          if (this.timer == 6*slow) {
               if (this.action.equals("enter")) {
                   game.map.tiles = game.map.interiorTiles.get(game.map.interiorTilesIndex);
               }
@@ -2395,13 +2396,13 @@ class EnterBuilding extends Action {
           }
           this.sprite.draw(game.uiBatch, 1f);
       }
-      else if (this.timer < 14) {
+      else if (this.timer < 14*slow) {
           this.sprite.draw(game.uiBatch, .75f);
       }
-      else if (this.timer < 16) {
+      else if (this.timer < 16*slow) {
           this.sprite.draw(game.uiBatch, .50f);
       }
-      else if (this.timer < 18) {
+      else if (this.timer < 18*slow) {
           this.sprite.draw(game.uiBatch, .25f);
       }
       else {

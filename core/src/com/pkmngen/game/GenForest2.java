@@ -37,42 +37,60 @@ class GenIsland1 extends Action {
 	Vector2 origin;
 	int radius;
 
+	// Edges where players can spawn
+    ArrayList<Tile> edges = new ArrayList<Tile>();
+
 	Random rand;
 	
 	@Override
 	public void step(Game game) {
 
+	    // TODO: remove if you want to stagger adding the tiles.
+	    game.map.tiles.putAll(this.tilesToAdd);
+	    this.tilesToAdd.clear();
+	    
 		if (this.tilesToAdd.isEmpty()) {
 			if (this.doActions.isEmpty()) {
 				game.actionStack.remove(this);
+
+	            // TODO: probably needs to be handled outside of this action
+	            Vector2 startLoc = this.edges.get(game.map.rand.nextInt(this.edges.size())).position;
+	            System.out.println("startLoc");
+	            System.out.println(startLoc);
+	            game.player.position.set(startLoc);
+	            game.cam.position.set(startLoc.x+16, startLoc.y, 0);
+				
 	            return;
 			}
 			Action currAction = this.doActions.get(0);
 			this.doActions.remove(0);
 			PublicFunctions.insertToAS(game, currAction);
 			game.actionStack.remove(this);
+			
 			return;
 		}
 
-		Tile currTile = this.tilesToAdd.values().iterator().next();
-		game.map.tiles.put(currTile.position.cpy(), currTile);
-		this.tilesToAdd.remove(currTile.position.cpy());
-
-		//do i  more times (to speed up)
-		for (int i=0; i < 1000; i++) {
-			if (!this.tilesToAdd.isEmpty()) {
-				currTile = this.tilesToAdd.values().iterator().next();
-				game.map.tiles.put(currTile.position.cpy(), currTile);
-//				// TODO: handle this better?
-//				if (currTile.attrs.get("tree")) {
-//					game.map.trees.put(currTile.position.cpy(), currTile);
-//				}
-				this.tilesToAdd.remove(currTile.position.cpy());
-			}
-			else {
-				break;
-			}
-		}
+		// TODO: this causes bugs when player tries to move
+		// may revisit
+//		Tile currTile = this.tilesToAdd.values().iterator().next();
+//		game.map.tiles.put(currTile.position.cpy(), currTile);
+//		this.tilesToAdd.remove(currTile.position.cpy());
+//
+//		//do i  more times (to speed up)
+//		for (int i=0; i < 1000; i++) {
+//			if (!this.tilesToAdd.isEmpty()) {
+//				currTile = this.tilesToAdd.values().iterator().next();
+//				game.map.tiles.put(currTile.position.cpy(), currTile);
+////				// TODO: handle this better?
+////				if (currTile.attrs.get("tree")) {
+////					game.map.trees.put(currTile.position.cpy(), currTile);
+////				}
+//				this.tilesToAdd.remove(currTile.position.cpy());
+//			}
+//			else {
+//				break;
+//			}
+//		}
 	}  
 	
 	public void AddMtnLayer(HashMap<Vector2, Tile> levelTiles,
@@ -935,9 +953,12 @@ class GenIsland1 extends Action {
         for (int i=0; i<1; i++) {
             for (Tile tile : new ArrayList<Tile>(tilesToAdd.values())) {
                 if (tile.name.equals("tree_large1")) {
-                    if (!this.tilesToAdd.get(tile.position.cpy().add(16,0)).name.equals("tree_large1_noSprite") ||
-                        !this.tilesToAdd.get(tile.position.cpy().add(0,16)).name.equals("tree_large1_noSprite") ||
-                        !this.tilesToAdd.get(tile.position.cpy().add(16,16)).name.equals("tree_large1_noSprite")) {
+                    Vector2 tl = tile.position.cpy().add(16,0);
+                    Vector2 br = tile.position.cpy().add(0,16);
+                    Vector2 tr = tile.position.cpy().add(16,16);
+                    if ((this.tilesToAdd.containsKey(tl) && !this.tilesToAdd.get(tl).name.equals("tree_large1_noSprite")) ||
+                        (this.tilesToAdd.containsKey(br) && !this.tilesToAdd.get(br).name.equals("tree_large1_noSprite")) ||
+                        (this.tilesToAdd.containsKey(tr) && !this.tilesToAdd.get(tr).name.equals("tree_large1_noSprite"))) {
                         this.tilesToAdd.put(tile.position, new Tile("bush1", tile.position.cpy(), true, tile.routeBelongsTo));
                     }
                     if ((this.tilesToAdd.containsKey(tile.position.cpy().add(-16,16)) && this.tilesToAdd.get(tile.position.cpy().add(-16,16)).name.equals("tree_large1")) ||
@@ -947,19 +968,26 @@ class GenIsland1 extends Action {
                         this.tilesToAdd.put(tile.position, new Tile("bush1", tile.position.cpy(), true, tile.routeBelongsTo));
                     }
                 }
-                else if (tile.name.equals("tree_large1_noSprite")) {
-                    if ((this.tilesToAdd.containsKey(tile.position.cpy().add(16,-16)) && !this.tilesToAdd.get(tile.position.cpy().add(16,0)).name.equals("tree_large1_noSprite") ||
-                         !this.tilesToAdd.get(tile.position.cpy().add(0,-16)).name.equals("tree_large1") ||
-                         !this.tilesToAdd.get(tile.position.cpy().add(16,-16)).name.equals("tree_large1_noSprite")) &&
-                        (this.tilesToAdd.containsKey(tile.position.cpy().add(-16,-16)) && !this.tilesToAdd.get(tile.position.cpy().add(-16,0)).name.equals("tree_large1_noSprite") ||
-                         !this.tilesToAdd.get(tile.position.cpy().add(-16,-16)).name.equals("tree_large1") ||
-                         !this.tilesToAdd.get(tile.position.cpy().add(0,-16)).name.equals("tree_large1_noSprite")) &&
-                        (this.tilesToAdd.containsKey(tile.position.cpy().add(-16,16)) && !this.tilesToAdd.get(tile.position.cpy().add(-16,16)).name.equals("tree_large1_noSprite") ||
-                         !this.tilesToAdd.get(tile.position.cpy().add(-16,0)).name.equals("tree_large1") ||
-                         !this.tilesToAdd.get(tile.position.cpy().add(0,16)).name.equals("tree_large1_noSprite"))) {
-                        this.tilesToAdd.put(tile.position, new Tile("bush1", tile.position.cpy(), true, tile.routeBelongsTo));
-                    }
-                }
+                // TODO: this isn't working, lots of tile == null
+//                else if (tile.name.equals("tree_large1_noSprite")) {
+//
+//                    Vector2 tl = tile.position.cpy().add(16,0);
+//                    Vector2 tr = tile.position.cpy().add(16,16);
+//                    Vector2 br = tile.position.cpy().add(0,16);
+//                    Vector2 bl = tile.position.cpy().add(16,-16);
+//                    
+//                    if ((this.tilesToAdd.containsKey(tile.position.cpy().add(16,-16)) && !this.tilesToAdd.get(tile.position.cpy().add(16,0)).name.equals("tree_large1_noSprite") ||
+//                         !this.tilesToAdd.get(tile.position.cpy().add(0,-16)).name.equals("tree_large1") ||
+//                         !this.tilesToAdd.get(tile.position.cpy().add(16,-16)).name.equals("tree_large1_noSprite")) &&
+//                        (this.tilesToAdd.containsKey(tile.position.cpy().add(-16,-16)) && !this.tilesToAdd.get(tile.position.cpy().add(-16,0)).name.equals("tree_large1_noSprite") ||
+//                         !this.tilesToAdd.get(tile.position.cpy().add(-16,-16)).name.equals("tree_large1") ||
+//                         !this.tilesToAdd.get(tile.position.cpy().add(0,-16)).name.equals("tree_large1_noSprite")) &&
+//                        (this.tilesToAdd.containsKey(tile.position.cpy().add(-16,16)) && !this.tilesToAdd.get(tile.position.cpy().add(-16,16)).name.equals("tree_large1_noSprite") ||
+//                         !this.tilesToAdd.get(tile.position.cpy().add(-16,0)).name.equals("tree_large1") ||
+//                         !this.tilesToAdd.get(tile.position.cpy().add(0,16)).name.equals("tree_large1_noSprite"))) {
+//                        this.tilesToAdd.put(tile.position, new Tile("bush1", tile.position.cpy(), true, tile.routeBelongsTo));
+//                    }
+//                }
             }
         }
 		
@@ -993,6 +1021,38 @@ class GenIsland1 extends Action {
                 // add black tiles to interior
                 game.map.interiorTiles.get(game.map.interiorTilesIndex).put(pos.cpy(), new Tile("black1", pos.cpy()));
 			}
+		}
+		
+		// Post-processing - find all outer water tiles. Any adjacent land is an edge.
+		// TODO: if any water on land isn't in this group, make into a puddle. (not ponds tho...)
+		ArrayList<Tile> currTiles = new ArrayList<Tile>();
+        ArrayList<Tile> waterTiles = new ArrayList<Tile>();
+		Tile currTile = this.tilesToAdd.get(minPos);
+		currTiles.add(currTile);
+		while (currTiles.size() > 0) {
+            Vector2 currPos = currTiles.get(0).position.cpy();
+            Vector2 newPos;
+		    for (int i=-1; i < 2; i++){
+		        if (i == 0) {
+		            continue;
+		        }
+	            for (int j=-1; j < 2; j++){
+	                if (j == 0) {
+	                    continue;
+	                }
+	                newPos = currPos.cpy().add(i*16, j*16);
+	                if (this.tilesToAdd.containsKey(newPos) && !waterTiles.contains(this.tilesToAdd.get(newPos))) {
+	                    if (this.tilesToAdd.get(newPos).name.contains("water")) {
+	                        waterTiles.add(this.tilesToAdd.get(newPos));
+	                        currTiles.add(this.tilesToAdd.get(newPos));
+	                    }
+	                    else {
+                            this.edges.add(this.tilesToAdd.get(newPos));
+	                    }
+	                }
+	            }
+		    }
+		    currTiles.remove(0);
 		}
 
 		// TODO: remove if not using

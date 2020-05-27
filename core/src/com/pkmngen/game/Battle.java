@@ -1396,8 +1396,8 @@ class EnemyFaint extends Action {
         
         this.sprite = new Sprite(game.battle.oppPokemon.sprite);
 
-        Texture text = new Texture(Gdx.files.internal("attack_menu/helper5.png"));
-        this.helperSprite = new Sprite(text, 0,0, 16*10, 16*9);
+//        Texture text = new Texture(Gdx.files.internal("attack_menu/helper5.png"));
+//        this.helperSprite = new Sprite(text, 0,0, 16*10, 16*9);
     }
     
 }
@@ -1544,8 +1544,8 @@ class FriendlyFaint extends Action {
         
         this.sprite = new Sprite(game.player.currPokemon.backSprite);
         
-        Texture text = new Texture(Gdx.files.internal("attack_menu/helper5.png"));
-        this.helperSprite = new Sprite(text, 0,0, 16*10, 16*9);
+//        Texture text = new Texture(Gdx.files.internal("attack_menu/helper5.png"));
+//        this.helperSprite = new Sprite(text, 0,0, 16*10, 16*9);
     }
     
 }
@@ -2154,8 +2154,8 @@ class DrawBattleMenu_Normal extends MenuAction {
         
         
         //helper sprite
-        text = new Texture(Gdx.files.internal("attack_menu/helper4.png"));
-        this.helperSprite = new Sprite(text, 0,0, 16*10, 16*9);
+//        text = new Texture(Gdx.files.internal("attack_menu/helper4.png"));
+//        this.helperSprite = new Sprite(text, 0,0, 16*10, 16*9);
     }
     
     // TODO: remove if unused
@@ -2367,8 +2367,8 @@ class DrawAttacksMenu extends Action {
         }
 
         //helper sprite
-        text = new Texture(Gdx.files.internal("attack_menu/helper2.png"));
-        this.helperSprite = new Sprite(text, 0,0, 16*10, 16*9);
+//        text = new Texture(Gdx.files.internal("attack_menu/helper2.png"));
+//        this.helperSprite = new Sprite(text, 0,0, 16*10, 16*9);
     }
 }
 
@@ -2542,8 +2542,8 @@ class DrawPlayerMenu extends MenuAction {
         }
         
         //helper sprite
-        text = new Texture(Gdx.files.internal("attack_menu/helper6.png"));
-        this.helperSprite = new Sprite(text, 0,0, 16*10, 16*9);
+//        text = new Texture(Gdx.files.internal("attack_menu/helper6.png"));
+//        this.helperSprite = new Sprite(text, 0,0, 16*10, 16*9);
     }
     
     
@@ -2628,8 +2628,8 @@ class DrawPlayerMenu extends MenuAction {
             this.sounds = new ArrayList<String>();
             this.sounds.add(null);
             
-            text = new Texture(Gdx.files.internal("attack_menu/helper3.png"));
-            this.helperSprite = new Sprite(text, 0, 0, 160, 144);
+//            text = new Texture(Gdx.files.internal("attack_menu/helper3.png"));
+//            this.helperSprite = new Sprite(text, 0, 0, 160, 144);
         }
     }
     
@@ -2882,8 +2882,8 @@ class DrawItemMenu extends MenuAction {
         
         //helper sprite
 //        text = new Texture(Gdx.files.internal("attack_menu/helper7.png"));
-        text = new Texture(Gdx.files.internal("attack_menu/helper9.png"));
-        this.helperSprite = new Sprite(text, 0,0, 16*10, 16*9);
+//        text = new Texture(Gdx.files.internal("attack_menu/helper9.png"));
+//        this.helperSprite = new Sprite(text, 0,0, 16*10, 16*9);
     }
     
     
@@ -3050,8 +3050,8 @@ class DrawUseTossMenu extends MenuAction {
         //if you want to customize menu text, add to this.spritesToDraw here
         
         //helper sprite
-        text = new Texture(Gdx.files.internal("attack_menu/helper8.png"));
-        this.helperSprite = new Sprite(text, 0,0, 16*10, 16*9);
+//        text = new Texture(Gdx.files.internal("attack_menu/helper8.png"));
+//        this.helperSprite = new Sprite(text, 0,0, 16*10, 16*9);
     }
     
     public void useItem(Game game, String itemName) {
@@ -3618,8 +3618,8 @@ class DrawPokemonMenu extends MenuAction {
             //if you want to customize menu text, add to this.spritesToDraw here
 
             //helper sprite
-            text = new Texture(Gdx.files.internal("pokemon_menu/helper3.png"));
-            this.helperSprite = new Sprite(text, 0,0, 16*10, 16*9);
+//            text = new Texture(Gdx.files.internal("pokemon_menu/helper3.png"));
+//            this.helperSprite = new Sprite(text, 0,0, 16*10, 16*9);
         }
 
         static class Outro extends Action {
@@ -4586,8 +4586,8 @@ class DrawFriendlyHealth extends Action {
         //this.bgSprite.setPosition(0,4); ;//debug
         
 
-        text = new Texture(Gdx.files.internal("attack_menu/helper3.png"));
-        this.helperSprite = new Sprite(text, 0, 0, 160, 144);
+//        text = new Texture(Gdx.files.internal("attack_menu/helper3.png"));
+//        this.helperSprite = new Sprite(text, 0, 0, 160, 144);
         
         //fill sprite array according to enemy health
          //healthbar is 48 pixels long
@@ -4995,8 +4995,8 @@ class ThrowRock extends Action {
         this.frames.add(72-1); //72 frames of nothing at end
         //13 events total
 
-        text = new Texture(Gdx.files.internal("throw_rock_anim/helper12.png"));
-        this.helperSprite = new Sprite(text, 0, 0, 160, 144);
+//        text = new Texture(Gdx.files.internal("throw_rock_anim/helper12.png"));
+//        this.helperSprite = new Sprite(text, 0, 0, 160, 144);
         //this.helperSprite.setPosition(16*10,16*9); //post scaling change
         //this.helperSprite.setScale(3); //post scaling change
         
@@ -5321,8 +5321,8 @@ class ThrowPokeball extends Action {
             this.sounds.add(null);
         }
         
-        text = new Texture(Gdx.files.internal("throw_pokeball_anim/helper13.png"));
-        this.helperSprite = new Sprite(text, 0, 0, 160, 144);
+//        text = new Texture(Gdx.files.internal("throw_pokeball_anim/helper13.png"));
+//        this.helperSprite = new Sprite(text, 0, 0, 160, 144);
         //this.helperSprite.setPosition(16*10,16*9); //post scaling change
         //this.helperSprite.setScale(3); //post scaling change
 
@@ -5508,8 +5508,8 @@ class ThrowFastPokeball extends Action {
         }
         //
         
-        text = new Texture(Gdx.files.internal("throw_pokeball_anim/helper13.png"));
-        this.helperSprite = new Sprite(text, 0, 0, 160, 144);
+//        text = new Texture(Gdx.files.internal("throw_pokeball_anim/helper13.png"));
+//        this.helperSprite = new Sprite(text, 0, 0, 160, 144);
         //this.helperSprite.setPosition(16*10,16*9); //post scaling change
         //this.helperSprite.setScale(3); //post scaling change
 
@@ -5674,8 +5674,8 @@ class ThrowHyperPokeball extends Action {
         //13 total events
         
         //text = new Texture(Gdx.files.internal("hyper_beam_anim/helper1.png"));
-        text = new Texture(Gdx.files.internal("throw_pokeball_anim/helper13.png"));
-        this.helperSprite = new Sprite(text, 0, 0, 160, 144);
+//        text = new Texture(Gdx.files.internal("throw_pokeball_anim/helper13.png"));
+//        this.helperSprite = new Sprite(text, 0, 0, 160, 144);
 
         //play 'throw pokeball' sound
         //PublicFunctions.insertToAS(game, new PlaySound("throw_pokeball1", new DoneAction()));
@@ -5890,8 +5890,8 @@ class catchPokemon_wigglesThenCatch extends Action {
 //            this.sounds.add(null); 
 //        }
         
-        text = new Texture(Gdx.files.internal("throw_pokeball_anim/helper18.png"));
-        this.helperSprite = new Sprite(text, 0, 0, 160, 144);
+//        text = new Texture(Gdx.files.internal("throw_pokeball_anim/helper18.png"));
+//        this.helperSprite = new Sprite(text, 0, 0, 160, 144);
         //this.helperSprite.setPosition(16*10,16*9); //post scaling change
         //this.helperSprite.setScale(3); //post scaling change
         
@@ -5940,8 +5940,8 @@ class catchPokemon_miss extends Action {
         }
         //3 total events
         */
-        Texture text = new Texture(Gdx.files.internal("throw_pokeball_anim/helper13.png"));
-        this.helperSprite = new Sprite(text, 0, 0, 160, 144);
+//        Texture text = new Texture(Gdx.files.internal("throw_pokeball_anim/helper13.png"));
+//        this.helperSprite = new Sprite(text, 0, 0, 160, 144);
         
     }
 }
@@ -6105,8 +6105,8 @@ class catchPokemon_wiggles1Time extends Action {
         this.alphas.add(1f); 
         //11 total events
         
-        text = new Texture(Gdx.files.internal("throw_pokeball_anim/helper13.png"));
-        this.helperSprite = new Sprite(text, 0, 0, 160, 144);
+//        text = new Texture(Gdx.files.internal("throw_pokeball_anim/helper13.png"));
+//        this.helperSprite = new Sprite(text, 0, 0, 160, 144);
         //this.helperSprite.setPosition(16*10,16*9); //post scaling change
         //this.helperSprite.setScale(3);
         
@@ -6294,8 +6294,8 @@ class catchPokemon_wiggles2Times extends Action {
         this.alphas.add(1f); 
         //15 total events
         
-        text = new Texture(Gdx.files.internal("throw_pokeball_anim/helper13.png"));
-        this.helperSprite = new Sprite(text, 0, 0, 160, 144);
+//        text = new Texture(Gdx.files.internal("throw_pokeball_anim/helper13.png"));
+//        this.helperSprite = new Sprite(text, 0, 0, 160, 144);
         //this.helperSprite.setPosition(16*10,16*9); //post scaling change
         //this.helperSprite.setScale(3);
         
@@ -6518,8 +6518,8 @@ class catchPokemon_wiggles3Times extends Action {
         this.alphas.add(1f); 
         //19 total events
         
-        text = new Texture(Gdx.files.internal("throw_pokeball_anim/helper13.png"));
-        this.helperSprite = new Sprite(text, 0, 0, 160, 144);
+//        text = new Texture(Gdx.files.internal("throw_pokeball_anim/helper13.png"));
+//        this.helperSprite = new Sprite(text, 0, 0, 160, 144);
         //this.helperSprite.setPosition(16*10,16*9); //post scaling change
         //this.helperSprite.setScale(3);
         
@@ -11146,8 +11146,8 @@ class DefaultAttack extends Action {
         }
         
         
-        Texture text = new Texture(Gdx.files.internal("attack_menu/helper3.png"));
-        this.helperSprite = new Sprite(text, 0, 0, 160, 144);
+//        Texture text = new Texture(Gdx.files.internal("attack_menu/helper3.png"));
+//        this.helperSprite = new Sprite(text, 0, 0, 160, 144);
     }
 }
 

@@ -548,7 +548,7 @@ public class Game extends ApplicationAdapter {
         } else if (Gdx.input.isKeyJustPressed(Input.Keys.N)) {
             // set up networking
             try {
-                initClient();
+                initClient("127.0.0.1");
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -668,7 +668,7 @@ public class Game extends ApplicationAdapter {
         //resize window
 //          this.viewport.setScreenBounds(0,0, 144, 160); // Gdx.graphics.getWidth()/2, Gdx.graphics.getHeight());
 //          this.viewport.apply(); //provides more control. same as update
-        
+
         this.server = new Server() {
             protected Connection newConnection() {
                 // By providing our own connection implementation, we can
@@ -718,7 +718,7 @@ public class Game extends ApplicationAdapter {
         PublicFunctions.insertToAS(this, new PkmnMap.PeriodicSave(this));
     }
 
-    public void initClient() throws IOException {
+    public void initClient(String ip) throws IOException {
         if (this.client != null) {
             this.client.close();
         }
@@ -730,7 +730,7 @@ public class Game extends ApplicationAdapter {
         this.client.start();
         
         try {
-            this.client.connect(5000, "127.0.0.1", Network.port);
+            this.client.connect(5000, ip, Network.port);
 //            this.client.connect(5000, "25.10.89.3", Network.port);  // hamachi?
 //              this.client.connect(5000, "192.168.101", Network.port); 
             // Server communication after connection can go here, or in
@@ -776,7 +776,13 @@ public class Game extends ApplicationAdapter {
         //request ghosts from server
 //        this.client.sendTCP(new Network.AllGhosts());
 
-        this.player.network.id = "dummy_id4";
+        // TODO: handle login differently.
+        if (this.player.name == "") {
+            this.player.network.id = "dummy_id";
+        }
+        else {
+            this.player.network.id = this.player.name;
+        }
         this.player.type = Player.Type.LOCAL;
         this.client.sendTCP(new Network.Login(this.player.network.id));
 
