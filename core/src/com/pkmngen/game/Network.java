@@ -29,14 +29,14 @@ public class Network {
         kryo.register(UpdateGhostData.class);
         kryo.register(AllGhosts.class);
         kryo.register(UpdateScore.class);
-        
+
         kryo.register(com.badlogic.gdx.math.Vector2.class);
         kryo.register(com.badlogic.gdx.physics.box2d.Filter.class);
         kryo.register(java.util.ArrayList.class);
         kryo.register(java.util.HashMap.class);
         kryo.register(String[].class);
         kryo.register(Color.class);
-        
+
         //
         kryo.register(MapTiles.class);
         kryo.register(TileData.class);
@@ -55,15 +55,15 @@ public class Network {
         kryo.register(RouteData.class);
         kryo.register(UseHM.class);
     }
-    
+
 
     static public class UpdatePlayer {
         public String dirFacing;
         public Vector2 position;
-        
+
         public int health;
 //      public boolean isDead; //TODO - remove
-        
+
         public int damageCooldown;
         public int swordSwingCooldown;
         public Vector2 swordPos;
@@ -73,13 +73,13 @@ public class Network {
     static public class UpdateFireball {
         public Vector2 position;
     }
-    
+
     static public class UpdateGhostData {
         public Vector2 position;
         public String dirFacing;
         public int id;
         public int target;
-        
+
         public int damageCooldown;
         public int isDying;
         public int attackingCooldown;
@@ -90,14 +90,14 @@ public class Network {
         public int player;
         public int score;
     }
-    
+
     static public class AllGhosts {
         public ArrayList<UpdateGhostData> ghosts;
     }
-    
 
 
-    
+
+
     static public class PokemonData {
         String name;
         int level;
@@ -119,10 +119,10 @@ public class Network {
             // TODO: psn, para etc status
         }
     }
-    
+
     /*
      * Data associated with the Player to be sent over the network.
-     * 
+     *
      * Used to initialize a Player instance.
      */
     static public class PlayerData {
@@ -134,9 +134,9 @@ public class Network {
         String id;
         String number;
         Color color;
-        
+
         public PlayerData(){}
-        
+
         public PlayerData(Player player) {
             this.position = player.position.cpy();
             this.position.x = this.position.x - (this.position.x % 16);
@@ -155,13 +155,13 @@ public class Network {
             this.color = player.color;
         }
     }
-    
+
     static public class ServerPlayerData {
         public Vector2 position;
         public String name;
         String number;
         Color color;
-        
+
         public ServerPlayerData(){}
 
         public ServerPlayerData(Player player) {
@@ -183,7 +183,7 @@ public class Network {
             this.color = color;
         }
     }
-    
+
     static public class TileData {
         public Vector2 pos;
         public String tileName;
@@ -201,9 +201,9 @@ public class Network {
             }
         }
     }
-    
+
     static public class RouteData {
-        
+
         String classId;
         String name;
         int level;
@@ -226,7 +226,7 @@ public class Network {
             }
         }
     }
-    
+
     static public class UseHM {
         String playerId;
         int pokemonIndex;
@@ -246,14 +246,14 @@ public class Network {
         // store routes as classId->Route
         public HashMap<String, RouteData> routes = new HashMap<String, RouteData>();
         public ArrayList<Vector2> edges = new ArrayList<Vector2>();
-        
+
         // used to sync time with server
         String timeOfDay;
         int dayTimer;
-        
+
         public MapTiles(){}
     }
-    
+
     static public class MovePlayer {
         String playerId;
         public String dirFacing;
@@ -267,7 +267,7 @@ public class Network {
             this.isRunning = isRunning;
         }
     }
-    
+
     /*
      * Sent by server, tells client to move player to given location
      */
@@ -280,7 +280,7 @@ public class Network {
             this.position = position.cpy();
         }
     }
-    
+
     static public class BattleData {
         PokemonData pokemonData;
 
@@ -290,7 +290,7 @@ public class Network {
             this.pokemonData = new PokemonData(pokemon);
         }
     }
-    
+
     static public class DoBattleAction {
         String playerId;
         String attack;
@@ -304,7 +304,7 @@ public class Network {
             this.attack = attack;
         }
     }
-    
+
     static public class BattleTurnData {
         boolean oppFirst;
         Attack playerAttack;
@@ -313,7 +313,7 @@ public class Network {
         Attack enemyAttack;
         String enemyTrappedBy = null;
         int enemyTrapCounter = 0;
-        
+
         boolean runSuccessful;
 
         public BattleTurnData(){}
@@ -325,7 +325,7 @@ class ClientBroadcast extends Action {
 
 //    HeroPlayer player;
     int playerIndex;
-    
+
     int timeStep = 0;
 
     public int layer = 1;
@@ -334,9 +334,9 @@ class ClientBroadcast extends Action {
     public ClientBroadcast(final Game game) {
 //        this.player = game.players[1];
         this.playerIndex = 1;
-        
+
         //game has final keyword because registering listeners below requires it
-        
+
         //register listeners - trigger whenever client receives message from server
 //      this.client.addListener(new ThreadedListener(new Listener() {
         game.client.addListener(new Listener() {
@@ -367,13 +367,13 @@ class ClientBroadcast extends Action {
                                 game.player = new Player(playerData);
                                 game.cam.position.set(game.player.position.x+16, game.player.position.y, 0);
                             }
-                            
+
                             if (object instanceof Network.RelocatePlayer) {
                                 Network.RelocatePlayer relocatePlayer = (Network.RelocatePlayer) object;
                                 game.player.position = relocatePlayer.position.cpy();
                                 game.cam.position.set(relocatePlayer.position.cpy().add(16,0), 0f);
                             }
-    
+
                             if (object instanceof Network.MapTiles) {
                                 Network.MapTiles mapTiles = (Network.MapTiles) object;
                                 for (Network.TileData tileData : mapTiles.tiles) {
@@ -385,7 +385,7 @@ class ClientBroadcast extends Action {
                                     game.map.timeOfDay = mapTiles.timeOfDay;
                                 }
                             }
-    
+
                             if (object instanceof Network.ServerPlayerData) {
                                 Network.ServerPlayerData serverPlayerData = (Network.ServerPlayerData) object;
                                 Player player = new Player();
@@ -397,7 +397,7 @@ class ClientBroadcast extends Action {
                                 game.players.put(serverPlayerData.number, player);
                                 game.insertAction(new playerStanding(game, player, false, true));
                             }
-    
+
                             // server is notifying client that a player has moved
                             if (object instanceof Network.MovePlayer) {
                                 Network.MovePlayer movePlayer = (Network.MovePlayer) object;
@@ -410,20 +410,20 @@ class ClientBroadcast extends Action {
                                 player.network.dirFacing = movePlayer.dirFacing;
                                 player.network.isRunning = movePlayer.isRunning;
                             }
-    
+
                             // server is notifying client that the local player has entered a battle
                             if (object instanceof Network.BattleData) {
                                 Network.BattleData battleData = (Network.BattleData) object;
                                 game.player.network.doEncounter = battleData;
                             }
-                            
+
                             // server is updating client with the result of a battle turn
                             if (object instanceof Network.BattleTurnData) {
                                 Network.BattleTurnData turnData = (Network.BattleTurnData) object;
                                 game.battle.network.turnData = turnData;
                                 System.out.println("Recieved turn data.");
                             }
-    
+
                             // A server is changing a tile (ie player built or cut something within this player's loading zone)
                             if (object instanceof Network.TileData) {
                                 Network.TileData tileData = (Network.TileData) object;
@@ -452,7 +452,7 @@ class ClientBroadcast extends Action {
             }
         });
     }
-    
+
     @Override
     public void step(Game game) {
 
@@ -461,23 +461,23 @@ class ClientBroadcast extends Action {
          //in future will need to pass the player index as well
 
         this.timeStep++;
-        
+
         //TODO - timestep of 1 will not work - why? some sort of interference?
-        
-        if (this.timeStep >= 1) { 
+
+        if (this.timeStep >= 1) {
 
             Network.UpdatePlayer updatePlayer = new Network.UpdatePlayer();
-            
+
 //            updatePlayer.position = this.player.physics.getPosition();
 //            updatePlayer.dirFacing = this.player.dirFacing;
-//            
+//
 //            updatePlayer.health = this.player.health;
 //            updatePlayer.swordSwingCooldown = this.player.swordSwingCooldown;
 //            updatePlayer.damageCooldown = this.player.damageCooldown;
-//            
+//
 //            updatePlayer.swordPos = this.player.sword.physics.getPosition();
 //            updatePlayer.swordFilter = this.player.sword.physics.fixture.getFilterData();
-            
+
 //            game.client.sendTCP(updatePlayer);
             this.timeStep = 0;
         }
@@ -507,7 +507,7 @@ class ServerBroadcast extends Action {
 //                    // TODO Auto-generated catch block
 //                    e.printStackTrace();
 //                }
-                
+
                 // We know all connections for this server are actually
                 // CharacterConnections.
                 final CharacterConnection connection = (CharacterConnection) c;
@@ -518,13 +518,13 @@ class ServerBroadcast extends Action {
                 Runnable runnable = new Runnable() {
                     public void run() {
                         try {
-                            
+
                             // client is notifying server that it wants to load map tiles
                             if (object instanceof Network.Login) {
-    
+
                                 Network.Login login = (Network.Login) object;
                                 Network.MapTiles mapTiles = new Network.MapTiles();
-    
+
                                 // If player doesn't exist, add them to game.players
                                 // TODO: obviously need diff handling, need to require password
                                 if (!game.players.containsKey(login.playerId)) {
@@ -557,7 +557,7 @@ class ServerBroadcast extends Action {
                                 // send over player data
                                 Network.PlayerData playerData = new Network.PlayerData(player);
                                 connection.sendTCP(playerData);
-    
+
                                 // Add standing action to actionStack
                                 if (player.standingAction == null) {
                                     player.standingAction = new playerStanding(game, player, false, true);
@@ -565,7 +565,7 @@ class ServerBroadcast extends Action {
                                 if (!game.actionStack.contains(player.standingAction)) {
                                     game.insertAction(player.standingAction);
                                 }
-    
+
                                 // get map.tiles in square around player and send them back
                                 for (Vector2 position = player.network.loadingZoneBL.cpy();
                                      position.y < player.network.loadingZoneTR.y; position.add(16, 0)) {
@@ -603,12 +603,12 @@ class ServerBroadcast extends Action {
                                         connection.sendTCP(serverPlayerData);
                                         serverPlayerData = new Network.ServerPlayerData(player);
                                         game.server.sendToTCP(otherPlayer.network.connectionId, serverPlayerData);
-    
+
                                         System.out.println("Sent FROMSERVER player: " + serverPlayerData.number);
                                     }
                                 }
                             }
-    
+
                             // Client is notifying server that player has moved
                             if (object instanceof Network.MovePlayer) {
                                 Network.MovePlayer movePlayer = (Network.MovePlayer) object;
@@ -636,7 +636,7 @@ class ServerBroadcast extends Action {
                                     }
                                 }
                             }
-    
+
                             // client is notifying server that it's doing a battle action (fight, run, item, switch)
                             if (object instanceof Network.DoBattleAction) {
                                 Network.DoBattleAction battleAction = (Network.DoBattleAction) object;
@@ -650,9 +650,9 @@ class ServerBroadcast extends Action {
                                     throw new Exception();
                                 }
                                 Battle battle = game.battles.get(battleAction.playerId);
-                                
+
                                 // TODO: don't determine player attack outcome if run, item, or switch.
-                                
+
                                 // apply the effects of the attack, and send back to client
                                 // TODO: calculations here for hit/miss, crit, effect hit, etc.
                                 Network.BattleTurnData turnData = new Network.BattleTurnData();
@@ -683,7 +683,7 @@ class ServerBroadcast extends Action {
                                         throw new Exception();
                                     }
                                     turnData.playerAttack = battle.attacks.get(battleAction.attack.toLowerCase());
-    
+
                                     // TODO: fix
                                     int yourSpeed = player.currPokemon.currentStats.get("speed");
                                     int oppSpeed = battle.oppPokemon.currentStats.get("speed");
@@ -698,14 +698,14 @@ class ServerBroadcast extends Action {
                                             turnData.oppFirst = true;
                                         }
                                     }
-                                    
+
                                 }
                                 // decide enemy attack choice
                                 String attackChoice = battle.oppPokemon.attacks[game.map.rand.nextInt(battle.oppPokemon.attacks.length)];
                                 if (attackChoice.equals("-")) {
                                     attackChoice = "Struggle";
                                 }
-    
+
                                 // update enemy pokemon locally
                                 turnData.enemyAttack = battle.attacks.get(attackChoice.toLowerCase());
                                 if (!turnData.oppFirst) {
@@ -801,7 +801,7 @@ class ServerBroadcast extends Action {
                                 if (game.map.tiles.get(tileData.pos).attrs.containsKey("solid") && game.map.tiles.get(tileData.pos).attrs.get("solid")) {
                                     throw new Exception();  // may be trying to build on a tile that was just built on.
                                 }
-                                for (Player player : game.players.values()) { 
+                                for (Player player : game.players.values()) {
                                     if (player.position.equals(tileData.pos)) {
                                         throw new Exception();
                                     }
@@ -813,7 +813,7 @@ class ServerBroadcast extends Action {
                                                             tileData.pos.cpy(), true, oldTile.routeBelongsTo));
                                 // Send the change to clients (including the one that requested the change.)
                                 // Only send to clients that have this tile in their loading zone
-    
+
                                 // TODO: may have to use a HashMap<Vector2, Player> for performance
                                 for (Player player : game.players.values()) {
                                     if (tileData.pos.x <= player.network.loadingZoneTR.x &&
@@ -907,11 +907,11 @@ class ServerBroadcast extends Action {
 
             //          updatePlayer.position = game.player.physics.getPosition();
             //          updatePlayer.dirFacing = game.player.dirFacing;
-            //          
+            //
             //          updatePlayer.health = game.player.health;
             //          updatePlayer.swordSwingCooldown = game.player.swordSwingCooldown;
             //          updatePlayer.damageCooldown = game.player.damageCooldown;
-            //          
+            //
             //          updatePlayer.swordPos = game.player.sword.physics.getPosition();
             //          updatePlayer.swordFilter = game.player.sword.physics.fixture.getFilterData();
 
@@ -941,9 +941,9 @@ class ServerBroadcast extends Action {
             //              updateGhost.damageBoxCooldown = ghost.damageBoxCooldown;
             //
             //              updateGhost.target = ghost.targetIndex;
-            //              
+            //
             //              game.server.sendToAllTCP(updateGhost);
-            //              
+            //
             //              i++; //unused
             //          }
 
@@ -955,7 +955,7 @@ class ServerBroadcast extends Action {
             //              updateScore.player = 0;
             //              updateScore.score = game.map.player1Score;
             //              game.server.sendToAllTCP(updateScore);
-            //              
+            //
             //              game.map.network.prevPlayer1Score = game.map.player1Score;
             ////            System.out.println("server - sent player 1 score: " + String.valueOf(updateScore.score)); //debug
             //          }
@@ -966,7 +966,7 @@ class ServerBroadcast extends Action {
             //              updateScore.player = 1;
             //              updateScore.score = game.map.player2Score;
             //              game.server.sendToAllTCP(updateScore);
-            //              
+            //
             //              game.map.network.prevPlayer2Score = game.map.player2Score;
             //          }
             //        System.out.println("Num ghosts:  "+String.valueOf(i));

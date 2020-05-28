@@ -22,7 +22,7 @@ public class Pokemon {
     int level;
     int exp;  // current total exp.
     String dexNumber;
-    
+
     // keep all pkmn textures in an array to be loaded
     // that way whenever a pkmn is created, it doesn't re-load the texture
     // takes up a lot of memory
@@ -34,7 +34,7 @@ public class Pokemon {
     ArrayList<String> hms = new ArrayList<String>();
 
     Map<String, Integer> IVs = new HashMap<String, Integer>();
-    
+
     String growthRateGroup = "";
 
     //note - this doesn't go in 'maxStats' map
@@ -42,9 +42,9 @@ public class Pokemon {
 
     Sprite sprite;
     Sprite backSprite;
-    ArrayList<Sprite> avatarSprites; 
+    ArrayList<Sprite> avatarSprites;
 
-    // need to be able to manipulate this for 
+    // need to be able to manipulate this for
     // normal pkmn don't use this - so far only specialmewtwo and mega gengar
     Sprite breathingSprite = null;
 
@@ -57,13 +57,13 @@ public class Pokemon {
     //this reference is used when needing to stop drawing pokemon in battle screen
      //could also just be oppPokemonDrawAction in battle, I think
     //Action drawAction; //doesn't work. also, using sprite alpha for now
-    
+
     String[] attacks;
     String trappedBy = null;  // whirlpool, wrap, bind, etc
     int trapCounter = 0;  // number turns remaining for trap
     Map<Integer, String[]> learnSet;
     boolean inBattle = false;
-    
+
     // specific, ie GOLD, RED, CRYSTAL
     // sprites, stats, attacks etc differ depending
     public enum Generation {
@@ -72,10 +72,10 @@ public class Pokemon {
     }
     Generation generation;
     ArrayList<Sprite> introAnim;
-    
+
     // contains all loaded pkmn textures, so that only one is used for each pkmn. ie don't load duplicate textures.
     public static HashMap<String, Texture> textures = new HashMap<String, Texture>();
-    
+
     // add to this when loading pokemon
     public static HashMap<String, Map<String, String>> gen2Evos = new HashMap<String, Map<String, String>>();
     public static HashMap<String, Map<Integer, String[]>> gen2Attacks = new HashMap<String, Map<Integer, String[]>>();
@@ -105,7 +105,7 @@ public class Pokemon {
         }
         return String.format("%03d", lineNum);
     }
-    
+
     void loadCrystalPokemon(String name) {
         name = name.toLowerCase();
 
@@ -120,7 +120,7 @@ public class Pokemon {
                 // TODO: using table to look up number now
 //                if (lineNum == 0) {
 //                    this.dexNumber = line.split(" ; ")[1];
-//                } else 
+//                } else
                 if (lineNum == 2) {
                     String stats[] = line.split("db")[1].split(",");
                     this.baseStats.put("hp", Integer.valueOf((stats[0].replace(" ", ""))));
@@ -166,11 +166,11 @@ public class Pokemon {
         if (!Pokemon.textures.containsKey(name+"_back")) {
             Pokemon.textures.put(name+"_back", new Texture(Gdx.files.internal("crystal_pokemon/pokemon/" + name + "/back.png")));
         }
-//      pokemonText = new Texture(Gdx.files.internal("crystal_pokemon/pokemon/" + name + "/back.png"));  
+//      pokemonText = new Texture(Gdx.files.internal("crystal_pokemon/pokemon/" + name + "/back.png"));
         pokemonText = Pokemon.textures.get(name+"_back");
-//        height = pokemonText.getWidth();  
+//        height = pokemonText.getWidth();
         this.backSprite = new Sprite(pokemonText, 0, 0, 48, 48);
-        
+
         // load animation from file
         this.introAnim = new ArrayList<Sprite>();
         try {
@@ -275,7 +275,7 @@ public class Pokemon {
         }
         this.learnSet = Pokemon.gen2Attacks.get(name);
     }
-    
+
     void loadPrismPokemon(String name) {
         name = name.toLowerCase();
 
@@ -333,9 +333,9 @@ public class Pokemon {
         }
 //        pokemonText = new Texture(Gdx.files.internal("crystal_pokemon/prism/pics/" + name + "/back.png"));  // TODO: remove
         pokemonText = Pokemon.textures.get(name+"_back");
-//        height = pokemonText.getWidth();   
+//        height = pokemonText.getWidth();
         this.backSprite = new Sprite(pokemonText, 0, 0, 48, 48);
-        
+
         // load animation from file
         this.introAnim = new ArrayList<Sprite>();
         try {
@@ -413,7 +413,7 @@ public class Pokemon {
                         String attack = vals[1].toLowerCase().replace('_', ' ');
                         // TODO: there are a bunch of prism attacks that can't be handled by the engine,
                         //  so check if the attack exists currently.
-                        // Ie, attacks with different typings (SOUND, FAIRY etc). 
+                        // Ie, attacks with different typings (SOUND, FAIRY etc).
                         // Would be ideal to update the prism pokemon from later generations to use
                         //  valid types and attacks (I'm undecided tho as to what exactly is the best
                         //  solution).
@@ -442,12 +442,12 @@ public class Pokemon {
         }
         this.learnSet = Pokemon.gen2Attacks.get(name);
     }
-    
+
     public Pokemon (String name, int level) {
         // generation defaults to RED
         this(name, level, Generation.RED);
     }
-    
+
     public Pokemon (Network.PokemonData pokemonData) {
         this(pokemonData.name, pokemonData.level, pokemonData.generation);
         this.currentStats.put("hp", pokemonData.hp);
@@ -456,7 +456,7 @@ public class Pokemon {
         this.attacks[2] = pokemonData.attacks[2];
         this.attacks[3] = pokemonData.attacks[3];
     }
-    
+
     public Pokemon (String name, int level, Generation generation) {
         name = name.toLowerCase();
         this.name = name;
@@ -471,13 +471,13 @@ public class Pokemon {
 
         this.attacks = new String[]{"-","-","-","-"};
         this.learnSet = new HashMap<Integer, String[]>();
-        
+
         //TODO: individual avatars
         Texture avatarText = new Texture(Gdx.files.internal("pokemon_menu/avatars1.png"));
         this.avatarSprites = new ArrayList<Sprite>();
         this.avatarSprites.add(new Sprite(avatarText, 16*0, 16*0, 16, 16));
         this.avatarSprites.add(new Sprite(avatarText, 16*1, 16*0, 16, 16));
-        
+
         // if generation is crystal, load from file
         if (generation.equals(Generation.CRYSTAL)) {
             this.dexNumber = Pokemon.nameToIndex(name);
@@ -488,7 +488,7 @@ public class Pokemon {
             } else {
                 this.loadPrismPokemon(name);
             }
-            
+
             // Custom attributes - better way to handle this?
             if (name.equals("machop")) {
                 this.hms.add("BUILD");
@@ -575,7 +575,7 @@ public class Pokemon {
 //            pokemonText = new Texture(Gdx.files.internal("pokemon/back_sheet1.png")); //debug - change to charmander sprite
 //            this.backSprite = new Sprite(pokemonText, 30*3+1, 29*0+1, 28, 28); //
 //            this.backSprite.setScale(2);
-            
+
             //moves that cloyster can learn
             // TODO: was this, removed for demo
 //            learnSet.put(1, new String[]{"Aurora Beam", "Clamp", "Supersonic", "Withdraw"});
@@ -609,7 +609,7 @@ public class Pokemon {
             Texture pokemonText = new Texture(Gdx.files.internal("pokemon/spinarak.png"));
             this.sprite = new Sprite(pokemonText, 0, 0, 56, 56);
             this.sprite.flip(true, false); //my sprites are backwards
-            
+
             this.types.add("Bug");
             this.types.add("Poison");
         }
@@ -625,7 +625,7 @@ public class Pokemon {
             Texture pokemonText = new Texture(Gdx.files.internal("pokemon/oddish.png"));
             this.sprite = new Sprite(pokemonText, 0, 0, 56, 56);
             this.sprite.flip(true, false); //my sprites are backwards
-            
+
             this.types.add("Grass");
             this.types.add("Poison");
         }
@@ -641,7 +641,7 @@ public class Pokemon {
             Texture pokemonText = new Texture(Gdx.files.internal("pokemon/gloom.png"));
             this.sprite = new Sprite(pokemonText, 0, 0, 56, 56);
             this.sprite.flip(true, false); //my sprites are backwards
-            
+
             this.types.add("Grass");
             this.types.add("Poison");
         }
@@ -657,7 +657,7 @@ public class Pokemon {
             Texture pokemonText = new Texture(Gdx.files.internal("pokemon/electabuzz.png"));
             this.sprite = new Sprite(pokemonText, 0, 0, 56, 56);
             this.sprite.flip(true, false); //my sprites are backwards
-            
+
             this.types.add("Electric");
         }
 
@@ -704,7 +704,7 @@ public class Pokemon {
             //sprite
             Texture pokemonText = new Texture(Gdx.files.internal("pokemon/mareep.png"));
             this.sprite = new Sprite(pokemonText, 0, 0, 56, 56);
-            this.sprite.flip(true, false); 
+            this.sprite.flip(true, false);
 
             this.types.add("Electric");
         }
@@ -720,7 +720,7 @@ public class Pokemon {
             Texture pokemonText = new Texture(Gdx.files.internal("pokemon/flaaffy.png"));
             this.sprite = new Sprite(pokemonText, 0, 0, 56, 56);
             this.sprite.flip(true, false); //my sprites are backwards
-            
+
             this.types.add("Electric");
         }
 
@@ -751,7 +751,7 @@ public class Pokemon {
             //sprite
             Texture pokemonText = new Texture(Gdx.files.internal("pokemon/sneasel.png"));
             this.sprite = new Sprite(pokemonText, 0, 0, 56, 56);
-            this.sprite.flip(true, false); 
+            this.sprite.flip(true, false);
 
             this.types.add("Dark");
             this.types.add("Ice");
@@ -813,7 +813,7 @@ public class Pokemon {
             //sprite
             Texture pokemonText = new Texture(Gdx.files.internal("pokemon/wurmple.png"));
             this.sprite = new Sprite(pokemonText, 0, 0, 56, 56);
-            this.sprite.flip(true, false); 
+            this.sprite.flip(true, false);
 
             this.types.add("Bug");
         }
@@ -832,7 +832,7 @@ public class Pokemon {
 
             this.types.add("Fighting");
         }
-        
+
         else if (name == "Hariyama") { //gen I properties
             this.baseStats.put("hp",144);
             this.baseStats.put("attack",120);
@@ -923,7 +923,7 @@ public class Pokemon {
             //sprite
             Texture pokemonText = new Texture(Gdx.files.internal("pokemon/lairon.png"));
             this.sprite = new Sprite(pokemonText, 0, 0, 56, 56);
-            this.sprite.flip(true, false); 
+            this.sprite.flip(true, false);
 
             this.types.add("Steel");
             this.types.add("Rock");
@@ -969,7 +969,7 @@ public class Pokemon {
             //sprite
             Texture pokemonText = new Texture(Gdx.files.internal("pokemon/starly.png"));
             this.sprite = new Sprite(pokemonText, 0, 0, 56, 56);
-            this.sprite.flip(true, false); 
+            this.sprite.flip(true, false);
 
             this.types.add("Normal");
             this.types.add("Flying");
@@ -985,7 +985,7 @@ public class Pokemon {
             //sprite
             Texture pokemonText = new Texture(Gdx.files.internal("pokemon/shinx.png"));
             this.sprite = new Sprite(pokemonText, 0, 0, 56, 56);
-            this.sprite.flip(true, false); 
+            this.sprite.flip(true, false);
 
             this.types.add("Electric");
         }
@@ -1001,7 +1001,7 @@ public class Pokemon {
 //            //sprite
 //            Texture pokemonText = new Texture(Gdx.files.internal("crystal_pokemon/machop_front2.png"));
 //            this.sprite = new Sprite(pokemonText, 0, 0, 56, 56);
-////            this.sprite.flip(true, false); 
+////            this.sprite.flip(true, false);
 //
 //            this.types.add("Fighting");
 //
@@ -1052,7 +1052,7 @@ public class Pokemon {
         else {
             return;
         }
-        
+
         getCurrentAttacks(); //fill this.attacks with what it can currently know
         this.exp = gen2CalcExpForLevel(this.level);
 
@@ -1060,7 +1060,7 @@ public class Pokemon {
         calcMaxStats();
         this.currentStats = new HashMap<String, Integer>(this.maxStats); //copy maxStats
     }
-    
+
     /*
      * Compute changes required by evolution.
      */
@@ -1104,7 +1104,7 @@ public class Pokemon {
             // My current idea is that RIDE increases movement speed and can perform jumps up ledges.
             this.hms.add("JUMP");
         }
-        
+
     }
 
     /*
@@ -1127,7 +1127,7 @@ public class Pokemon {
         System.out.println("Error: invalid growth group for " + this.name + ", group: "+String.valueOf(this.growthRateGroup));
         return 0;
     }
-    
+
     //TODO - this doesn't take IV's or EV's into account.
      //for EV's - I think they only get factored in on pokemon level up. So only call calcMaxStats on level up.
      //if you ever need to reset currentStats, just make a copy of maxStats - like after battle, mist attack, etc
@@ -1139,7 +1139,7 @@ public class Pokemon {
         this.maxStats.put("specialAtk", (((this.baseStats.get("specialAtk")) * this.level) / 50) + 10);
         this.maxStats.put("specialDef", (((this.baseStats.get("specialDef")) * this.level) / 50) + 10);
         this.maxStats.put("speed", (((this.baseStats.get("speed")) * this.level) / 50) + 10);
-        
+
         //catchRate for the sake of including everything
         this.maxStats.put("catchRate", this.baseStats.get("catchRate"));
 
@@ -1150,9 +1150,9 @@ public class Pokemon {
     //when generating a pokemon, this will select which attacks it knows
      //by default
     void getCurrentAttacks() {
-        
+
         int i = 0;
-        
+
         for (Integer level : this.learnSet.keySet()) {
             for (String attack : this.learnSet.get(level)) {
                 if (level < this.level) {
@@ -1165,7 +1165,7 @@ public class Pokemon {
                 }
             }
         }
-        
+
     }
 }
 
@@ -1174,7 +1174,7 @@ class SpecialMewtwo1 extends Pokemon {
     Sprite breathingSprite;
 
     public SpecialMewtwo1(int level) {
-        
+
         // initialize variables
         super("Mewtwo", level);
 
@@ -1186,11 +1186,11 @@ class SpecialMewtwo1 extends Pokemon {
         this.baseStats.put("specialDef", 154);
         this.baseStats.put("speed", 130);
         this.baseStats.put("catchRate", 3);
-        
+
         //sprite
         Texture pokemonText = new Texture(Gdx.files.internal("pokemon/mewtwo_special1.png"));
         this.sprite = new Sprite(pokemonText, 0, 0, 56, 56);
-        
+
         pokemonText = new Texture(Gdx.files.internal("pokemon/mewtwo_special2.png"));
         this.breathingSprite = new Sprite(pokemonText, 0, 0, 56, 56);
 
@@ -1199,10 +1199,10 @@ class SpecialMewtwo1 extends Pokemon {
         this.types.add("Psychic");
 
         getCurrentAttacks(); //fill this.attacks with what it can currently know
-        
+
         //stats formulas here
         calcMaxStats();
-        this.currentStats = new HashMap<String, Integer>(this.maxStats); //copy maxStats 
+        this.currentStats = new HashMap<String, Integer>(this.maxStats); //copy maxStats
     }
 }
 
@@ -1213,7 +1213,7 @@ class SpecialMegaGengar1 extends Pokemon {
 //    Sprite breathingSprite;
 
     public SpecialMegaGengar1(int level) {
-        
+
         // initialize variables
         super("Mega Gengar", level);
 
@@ -1228,11 +1228,11 @@ class SpecialMegaGengar1 extends Pokemon {
         // mega gengar doesn't have a catch rate, so leaving at 3
         // same as mewtwo
         this.baseStats.put("catchRate", 3);
-        
+
         //sprite
         Texture pokemonText = new Texture(Gdx.files.internal("pokemon/mgengar_base1.png"));
         this.breathingSprite = new Sprite(pokemonText, 0, 0, 56, 56);
-        
+
         pokemonText = new Texture(Gdx.files.internal("pokemon/mgengar_over1.png"));
         this.sprite = new Sprite(pokemonText, 0, 0, 56, 56);
 
@@ -1244,9 +1244,9 @@ class SpecialMegaGengar1 extends Pokemon {
         this.types.add("Poison");
 
         getCurrentAttacks(); //fill this.attacks with what it can currently know
-        
+
         //stats formulas here
         calcMaxStats();
-        this.currentStats = new HashMap<String, Integer>(this.maxStats); //copy maxStats 
+        this.currentStats = new HashMap<String, Integer>(this.maxStats); //copy maxStats
     }
 }

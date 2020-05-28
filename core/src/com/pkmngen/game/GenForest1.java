@@ -112,8 +112,8 @@ class GenForest1 extends Action {
 			if (i == startLoc.y && startLoc.x == topLeft.x) {
 				//continue;
 			}
-			this.tilesToAdd.add(new Tile("tree_large1", new Vector2(this.topLeft.x, i))); 
-			this.tilesToAdd.add(new Tile("tree_large1_noSprite", new Vector2(this.topLeft.x, i+16))); 
+			this.tilesToAdd.add(new Tile("tree_large1", new Vector2(this.topLeft.x, i)));
+			this.tilesToAdd.add(new Tile("tree_large1_noSprite", new Vector2(this.topLeft.x, i+16)));
 			this.tilesToAdd.add(new Tile("tree_large1_noSprite", new Vector2(this.topLeft.x+16, i)));
 			this.tilesToAdd.add(new Tile("tree_large1_noSprite", new Vector2(this.topLeft.x+16, i+16)));
 		}
@@ -122,8 +122,8 @@ class GenForest1 extends Action {
 			if (i == startLoc.x && startLoc.y == bottomRight.y) {
 				//continue;
 			}
-			this.tilesToAdd.add(new Tile("tree_large1", new Vector2(i, bottomRight.y))); 
-			this.tilesToAdd.add(new Tile("tree_large1_noSprite", new Vector2(i+16, bottomRight.y))); 
+			this.tilesToAdd.add(new Tile("tree_large1", new Vector2(i, bottomRight.y)));
+			this.tilesToAdd.add(new Tile("tree_large1_noSprite", new Vector2(i+16, bottomRight.y)));
 			this.tilesToAdd.add(new Tile("tree_large1_noSprite", new Vector2(i, bottomRight.y+16)));
 			this.tilesToAdd.add(new Tile("tree_large1_noSprite", new Vector2(i+16, bottomRight.y+16)));
 		}
@@ -132,8 +132,8 @@ class GenForest1 extends Action {
 			if (i == endLoc.y && endLoc.x == bottomRight.x) {
 				//continue;
 			}
-			this.tilesToAdd.add(new Tile("tree_large1", new Vector2(this.bottomRight.x, i))); 
-			this.tilesToAdd.add(new Tile("tree_large1_noSprite", new Vector2(this.bottomRight.x, i+16))); 
+			this.tilesToAdd.add(new Tile("tree_large1", new Vector2(this.bottomRight.x, i)));
+			this.tilesToAdd.add(new Tile("tree_large1_noSprite", new Vector2(this.bottomRight.x, i+16)));
 			this.tilesToAdd.add(new Tile("tree_large1_noSprite", new Vector2(this.bottomRight.x+16, i)));
 			this.tilesToAdd.add(new Tile("tree_large1_noSprite", new Vector2(this.bottomRight.x+16, i+16)));
 		}
@@ -142,8 +142,8 @@ class GenForest1 extends Action {
 			if (i == endLoc.x && endLoc.y == topLeft.y) {
 				//continue;
 			}
-			this.tilesToAdd.add(new Tile("tree_large1", new Vector2(i, topLeft.y))); 
-			this.tilesToAdd.add(new Tile("tree_large1_noSprite", new Vector2(i+16, topLeft.y))); 
+			this.tilesToAdd.add(new Tile("tree_large1", new Vector2(i, topLeft.y)));
+			this.tilesToAdd.add(new Tile("tree_large1_noSprite", new Vector2(i+16, topLeft.y)));
 			this.tilesToAdd.add(new Tile("tree_large1_noSprite", new Vector2(i, topLeft.y+16)));
 			this.tilesToAdd.add(new Tile("tree_large1_noSprite", new Vector2(i+16, topLeft.y+16)));
 		}
@@ -180,11 +180,11 @@ class GenForest1 extends Action {
 		
 		//plant large tree randomly
 		//scale based on map size
-		 //need 3 trees for 192 height, 416 width 
+		 //need 3 trees for 192 height, 416 width
 		 //3 - 352.0 height, 192 width
 		 //2 - width: 192.0 height: 352.0
 		int numTrees = (int)((this.topLeft.y-this.bottomRight.y)*(this.bottomRight.x-this.topLeft.x)/(192*192));
-		//System.out.println("trees: "+String.valueOf(numTrees)); //debug 
+		//System.out.println("trees: "+String.valueOf(numTrees)); //debug
 		for (int i=0; i < numTrees; i++ ) {
 			this.doActions.add(new PlantTreesLarge(game, this.allowedPositions, this.tilesToAdd, null, this));
 		}
@@ -193,8 +193,8 @@ class GenForest1 extends Action {
 		//create pond
 		this.doActions.add(new AddPond(game, this.allowedPositions, this.tilesToAdd, null, this));
 		
-		System.out.println("width: "+String.valueOf(this.bottomRight.x-this.topLeft.x)); //debug 
-		System.out.println("height: "+String.valueOf(this.topLeft.y-this.bottomRight.y)); //debug 
+		System.out.println("width: "+String.valueOf(this.bottomRight.x-this.topLeft.x)); //debug
+		System.out.println("height: "+String.valueOf(this.topLeft.y-this.bottomRight.y)); //debug
 		
 		//create platform
 		this.doActions.add(new AddPlatform(game, this.allowedPositions, this.tilesToAdd, null, this));
@@ -244,7 +244,7 @@ class GenForest1 extends Action {
 				
 			}
 			
-			//if no start position specified, 
+			//if no start position specified,
 			 //get random position to plant tree
 			if (this.startPosition == null) {
 				//needs to be divisible by 32?
@@ -268,7 +268,7 @@ class GenForest1 extends Action {
 			
 			
 			this.tilesToAdd.add(new Tile("grass1", this.startPosition.cpy()));
-			this.tilesToAdd.add(new Tile("grass1", this.startPosition.cpy().add(16,0))); 
+			this.tilesToAdd.add(new Tile("grass1", this.startPosition.cpy().add(16,0)));
 			this.tilesToAdd.add(new Tile("grass1", this.startPosition.cpy().add(0,16)));
 			this.tilesToAdd.add(new Tile("grass1", this.startPosition.cpy().add(16,16)));
 			
@@ -283,8 +283,8 @@ class GenForest1 extends Action {
 			
 			int randomNum = game.map.rand.nextInt(this.maxNumPatches-this.minNumPatches) + this.minNumPatches; //1 - 4
 
-			System.out.println("new grass: "+String.valueOf(startPosition.x)+", "+String.valueOf(startPosition.y)); //debug 
-			System.out.println("rand: "+String.valueOf(randomNum)); //debug 
+			System.out.println("new grass: "+String.valueOf(startPosition.x)+", "+String.valueOf(startPosition.y)); //debug
+			System.out.println("rand: "+String.valueOf(randomNum)); //debug
 			
 			for (int i=0; i < randomNum; i++) {
 				
@@ -325,7 +325,7 @@ class GenForest1 extends Action {
 				Vector2 newPos = nextPositions.get(randomIndex);
 				//put it in tilesToAdd
 				this.tilesToAdd.add(new Tile("grass1", newPos.cpy()));
-				this.tilesToAdd.add(new Tile("grass1", newPos.cpy().add(16,0))); 
+				this.tilesToAdd.add(new Tile("grass1", newPos.cpy().add(16,0)));
 				this.tilesToAdd.add(new Tile("grass1", newPos.cpy().add(0,16)));
 				this.tilesToAdd.add(new Tile("grass1", newPos.cpy().add(16,16)));
 				
@@ -386,7 +386,7 @@ class GenForest1 extends Action {
 		@Override
 		public void step(Game game) {
 			
-			//if no start position specified, 
+			//if no start position specified,
 			 //get random position to plant tree
 			if (this.startPosition == null) {
 				//needs to be divisible by 32?
@@ -406,7 +406,7 @@ class GenForest1 extends Action {
 			int randomNum = game.map.rand.nextInt(this.maxNumTrees-this.minNumTrees) + this.minNumTrees; //1 - 4
 			
 			this.tilesToAdd.add(new Tile("tree_large1", this.startPosition.cpy()));
-			this.tilesToAdd.add(new Tile("tree_large1_noSprite", this.startPosition.cpy().add(16,0))); 
+			this.tilesToAdd.add(new Tile("tree_large1_noSprite", this.startPosition.cpy().add(16,0)));
 			this.tilesToAdd.add(new Tile("tree_large1_noSprite", this.startPosition.cpy().add(0,16)));
 			this.tilesToAdd.add(new Tile("tree_large1_noSprite", this.startPosition.cpy().add(16,16)));
 			
@@ -471,7 +471,7 @@ class GenForest1 extends Action {
 				Vector2 newPos = nextPositions.get(randomIndex);
 				//put it in tilesToAdd
 				this.tilesToAdd.add(new Tile("tree_large1", newPos.cpy()));
-				this.tilesToAdd.add(new Tile("tree_large1_noSprite", newPos.cpy().add(16,0))); 
+				this.tilesToAdd.add(new Tile("tree_large1_noSprite", newPos.cpy().add(16,0)));
 				this.tilesToAdd.add(new Tile("tree_large1_noSprite", newPos.cpy().add(0,16)));
 				this.tilesToAdd.add(new Tile("tree_large1_noSprite", newPos.cpy().add(16,16)));
 				
@@ -541,7 +541,7 @@ class GenForest1 extends Action {
 		
 		Action nextAction;
 		
-		int numLevels; 
+		int numLevels;
 		//which sprite to use, ie two level mtn or 1 level
 		 //can potentially trace inside of raised area later
 		
@@ -555,7 +555,7 @@ class GenForest1 extends Action {
 			int randomWidth = (game.map.rand.nextInt(this.maxWidth-this.minWidth+1) + this.minWidth)*16; //3 - 7
 			int randomHeight = (game.map.rand.nextInt(this.maxHeight-this.minHeight+1) + this.minHeight)*16; //3 - 7
 
-			//if no start position specified, 
+			//if no start position specified,
 			 //get random top left corner
 			if (this.startPosition == null) {
 				int randomIndex;
@@ -607,7 +607,7 @@ class GenForest1 extends Action {
 				if (rightOfEmpty == false) {
 					i = top;
 					left+=16;
-					randomWidth-=16; 
+					randomWidth-=16;
 					if (randomWidth <=2*16) {
 						break;
 					}
@@ -626,7 +626,7 @@ class GenForest1 extends Action {
 				if (belowEmpty == false) {
 					i = left-16;
 					top-=16;
-					randomHeight-=16; 
+					randomHeight-=16;
 					if (randomHeight <=2*16) {
 						break;
 					}
@@ -674,7 +674,7 @@ class GenForest1 extends Action {
 					continue;
 				}
 				if (i == left) {
-					this.tilesToAdd.add(new Tile("ledge1_corner_bl", currPos.cpy()));  
+					this.tilesToAdd.add(new Tile("ledge1_corner_bl", currPos.cpy()));
 				}
 				else {
 					//chance to add entrance
@@ -682,16 +682,16 @@ class GenForest1 extends Action {
 						int randNum = game.map.rand.nextInt(maxRand);
 						if (randNum == 0) {
 							//add ramp tile
-							this.tilesToAdd.add(new Tile("ledge_grass_ramp", currPos.cpy())); 
+							this.tilesToAdd.add(new Tile("ledge_grass_ramp", currPos.cpy()));
 							maxRand = 0;
 						}
 						else {
-							this.tilesToAdd.add(new Tile("ledge_grass_down", currPos.cpy())); 
+							this.tilesToAdd.add(new Tile("ledge_grass_down", currPos.cpy()));
 							maxRand--;
 						}
 					}
 					else {
-						this.tilesToAdd.add(new Tile("ledge_grass_down", currPos.cpy()));  
+						this.tilesToAdd.add(new Tile("ledge_grass_down", currPos.cpy()));
 					}
 				}
 				this.allowedPositions.remove(currPos);
@@ -710,10 +710,10 @@ class GenForest1 extends Action {
 					continue;
 				}
 				if (i == top) {
-					this.tilesToAdd.add(new Tile("ledge2_corner_tl", currPos.cpy()));  
+					this.tilesToAdd.add(new Tile("ledge2_corner_tl", currPos.cpy()));
 				}
 				else {
-					this.tilesToAdd.add(new Tile("ledge_grass_left", currPos.cpy()));  
+					this.tilesToAdd.add(new Tile("ledge_grass_left", currPos.cpy()));
 				}
 				this.allowedPositions.remove(currPos);
 			}
@@ -731,10 +731,10 @@ class GenForest1 extends Action {
 					continue;
 				}
 				if (i == right) {
-					this.tilesToAdd.add(new Tile("ledge2_corner_tr", currPos.cpy()));  
+					this.tilesToAdd.add(new Tile("ledge2_corner_tr", currPos.cpy()));
 				}
 				else {
-					this.tilesToAdd.add(new Tile("ledge_grass_safari_up", currPos.cpy()));  
+					this.tilesToAdd.add(new Tile("ledge_grass_safari_up", currPos.cpy()));
 				}
 				this.allowedPositions.remove(currPos);
 			}
@@ -752,10 +752,10 @@ class GenForest1 extends Action {
 					continue;
 				}
 				if (i == bottom) {
-					this.tilesToAdd.add(new Tile("ledge1_corner_br", currPos.cpy()));  
+					this.tilesToAdd.add(new Tile("ledge1_corner_br", currPos.cpy()));
 				}
 				else {
-					this.tilesToAdd.add(new Tile("ledge_grass_right", currPos.cpy()));  
+					this.tilesToAdd.add(new Tile("ledge_grass_right", currPos.cpy()));
 				}
 				this.allowedPositions.remove(currPos);
 			}
@@ -764,13 +764,13 @@ class GenForest1 extends Action {
 
 			game.insertAction(this.nextAction);
 			game.actionStack.remove(this);
-			return; 
+			return;
 			
 		}
 
 		public AddPlatform(Game game, ArrayList<Vector2> allowedPositions, ArrayList<Tile> tilesToAdd, Vector2 startPosition, Action nextAction) {
 					
-			//TODO - make sure all sides are at least 1 away from trees or in trees (not next to). 
+			//TODO - make sure all sides are at least 1 away from trees or in trees (not next to).
 			 //solves getting stuck problem, ledge jump problem, door problem
 			
 			//allowed tiles isn't up to date at this point, so don't use it.
@@ -801,7 +801,7 @@ class GenForest1 extends Action {
 		
 		Action nextAction;
 		
-		int numLevels; 
+		int numLevels;
 		//which sprite to use, ie two level mtn or 1 level
 		 //can potentially trace inside of raised area later
 		
@@ -815,7 +815,7 @@ class GenForest1 extends Action {
 			int randomWidth = (game.map.rand.nextInt(this.maxWidth-this.minWidth+1) + this.minWidth)*16; //3 - 7
 			int randomHeight = (game.map.rand.nextInt(this.maxHeight-this.minHeight+1) + this.minHeight)*16; //3 - 7
 
-			//if no start position specified, 
+			//if no start position specified,
 			 //get random top left corner
 			if (this.startPosition == null) {
 				int randomIndex;
@@ -867,7 +867,7 @@ class GenForest1 extends Action {
 				if (rightOfEmpty == false) {
 					i = top;
 					left+=16;
-					randomWidth-=16; 
+					randomWidth-=16;
 					if (randomWidth <=2*16) {
 						break;
 					}
@@ -886,7 +886,7 @@ class GenForest1 extends Action {
 				if (belowEmpty == false) {
 					i = left-16;
 					top-=16;
-					randomHeight-=16; 
+					randomHeight-=16;
 					if (randomHeight <=2*16) {
 						break;
 					}
@@ -930,25 +930,25 @@ class GenForest1 extends Action {
 					}
 					//corners
 					if (i == left && j == top) {
-						this.tilesToAdd.add(new Tile("water1_ledge1_tl", currPos)); 
+						this.tilesToAdd.add(new Tile("water1_ledge1_tl", currPos));
 					}
 					else if (i == right && j == top) {
-						this.tilesToAdd.add(new Tile("water1_ledge1_tr", currPos)); 
+						this.tilesToAdd.add(new Tile("water1_ledge1_tr", currPos));
 					}
 					//top
 					else if (j == top) {
-						this.tilesToAdd.add(new Tile("water1_ledge1_top", currPos)); 
+						this.tilesToAdd.add(new Tile("water1_ledge1_top", currPos));
 					}
 					//left side
 					else if (i == left) {
-						this.tilesToAdd.add(new Tile("water1_ledge1_left", currPos));  
+						this.tilesToAdd.add(new Tile("water1_ledge1_left", currPos));
 					}
 					//right side
 					else if (i == right) {
-						this.tilesToAdd.add(new Tile("water1_ledge1_right", currPos)); 
+						this.tilesToAdd.add(new Tile("water1_ledge1_right", currPos));
 					}
 					else {
-						this.tilesToAdd.add(new Tile("water1", currPos));  
+						this.tilesToAdd.add(new Tile("water1", currPos));
 					}
 					this.allowedPositions.remove(currPos);
 				}
@@ -970,7 +970,7 @@ class GenForest1 extends Action {
 					continue;
 				}
 				//no corner for bottom
-				this.tilesToAdd.add(new Tile("water1", currPos.cpy()));  
+				this.tilesToAdd.add(new Tile("water1", currPos.cpy()));
 					
 				this.allowedPositions.remove(currPos);
 			}
@@ -988,10 +988,10 @@ class GenForest1 extends Action {
 					continue;
 				}
 				if (i == top) {
-					this.tilesToAdd.add(new Tile("water1_ledge1_tl", currPos.cpy()));  
+					this.tilesToAdd.add(new Tile("water1_ledge1_tl", currPos.cpy()));
 				}
 				else {
-					this.tilesToAdd.add(new Tile("water1_ledge1_left", currPos.cpy()));  
+					this.tilesToAdd.add(new Tile("water1_ledge1_left", currPos.cpy()));
 				}
 				this.allowedPositions.remove(currPos);
 			}
@@ -1009,10 +1009,10 @@ class GenForest1 extends Action {
 					continue;
 				}
 				if (i == right) {
-					this.tilesToAdd.add(new Tile("water1_ledge1_tr", currPos.cpy()));  
+					this.tilesToAdd.add(new Tile("water1_ledge1_tr", currPos.cpy()));
 				}
 				else {
-					this.tilesToAdd.add(new Tile("water1_ledge1_top", currPos.cpy()));  
+					this.tilesToAdd.add(new Tile("water1_ledge1_top", currPos.cpy()));
 				}
 				this.allowedPositions.remove(currPos);
 			}
@@ -1030,7 +1030,7 @@ class GenForest1 extends Action {
 					continue;
 				}
 				
-				this.tilesToAdd.add(new Tile("water1_ledge1_top", currPos.cpy()));  
+				this.tilesToAdd.add(new Tile("water1_ledge1_top", currPos.cpy()));
 				this.allowedPositions.remove(currPos);
 			}
 			*/
@@ -1038,7 +1038,7 @@ class GenForest1 extends Action {
 
 			game.insertAction(this.nextAction);
 			game.actionStack.remove(this);
-			return; 
+			return;
 			
 		}
 
@@ -1084,17 +1084,17 @@ class GenForest1 extends Action {
 				//add a grass tile
 				randomNum = game.map.rand.nextInt(4); //0 - 3
 				if (randomNum == 0) {
-					tilesToAdd.add(new Tile("grass_short3", position.cpy())); 
+					tilesToAdd.add(new Tile("grass_short3", position.cpy()));
 				}
 				else {
-					tilesToAdd.add(new Tile(tileName, position.cpy())); 
+					tilesToAdd.add(new Tile(tileName, position.cpy()));
 				}
 				this.allowedPositions.remove(position);
 			}
 
 			game.insertAction(this.nextAction);
 			game.actionStack.remove(this);
-			return; 
+			return;
 			
 		}
 

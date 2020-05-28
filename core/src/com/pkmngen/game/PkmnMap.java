@@ -27,7 +27,7 @@ import com.pkmngen.game.Network.PokemonData;
 
 import box2dLight.PointLight;
 
-//grass - 
+//grass -
 //part of player's head is above grass,
 //part is beneath
 //just use two draw actions
@@ -64,7 +64,7 @@ class Tile {
     // Needed to store which object is above the 'terrain'. Like a tree, rock, house piece, etc.
     // This must be stored because it needs to be sent over the network, and saved locally.
     String nameUpper = "";
-    
+
     // for when you collect items from this tile
     HashMap<String, Integer> items = new HashMap<String, Integer>();
 
@@ -157,7 +157,7 @@ class Tile {
             Texture playerText = TextureCache.get(
                     Gdx.files.internal("tiles/ground3.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
-        
+
         } else if (tileName.equals("mountain1")) {
             Texture playerText = TextureCache.get(Gdx.files.internal("tiles/mountain1.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
@@ -577,9 +577,9 @@ class Tile {
         //  - just load file based on tile name. Names can probably contain slashes.
         //  - remove references above to setting overSprite, and just have whatever calls Tile() pass in nameUpper.
         //  - remove attrs, just do booleans isCuttable, isLedge, etc.
-        // TODO: it would be even better if this.name was just in the format "lower:upper". 
+        // TODO: it would be even better if this.name was just in the format "lower:upper".
         //  - that way code can just check tile.name once without checking both. Also keeps backwards compatibility.
-        
+
         // if there is an 'upper' (above terrain' object, load it and set oversprite to it.
         if (!this.nameUpper.equals("")){
             // load from image file based on the name
@@ -595,13 +595,13 @@ class Tile {
                 this.attrs.put("solid", true);
             }
             if (!this.nameUpper.contains("floor")) {
-                this.attrs.put("cuttable", true); 
+                this.attrs.put("cuttable", true);
             }
             if (this.nameUpper.equals("bush2_color")) {
                 this.attrs.put("headbuttable", true);
             }
         }
-        
+
         this.sprite.setPosition(pos.x, pos.y);
         if (this.overSprite != null) {
             this.overSprite.setPosition(pos.x, pos.y);
@@ -1131,7 +1131,7 @@ class Route {
 //            this.music.setVolume(.3f);
         }
         genPokemon(256);
-        
+
         // TODO: possibly different per-route
         this.musics.add("nature1_render");
 //        this.musics.add("overw2");
@@ -1142,10 +1142,10 @@ class Route {
         this.musics.add("route_1");
         this.musics.add("route_idk1");
         // TODO: victory road theme thing
-        
+
         // TODO: mountain musics
         //  - ruins of alps theme?
-        
+
         // TODO: debug, delete
 //        this.pokemon.clear();
 //        Pokemon debug = new Pokemon("Rhydon", 70, Pokemon.Generation.CRYSTAL);  // 22
@@ -1161,7 +1161,7 @@ class Route {
          * this.pokemon.add(new Pokemon(pokemonName, this.level+randomNum)); }
          */
     }
-    
+
     // get next music. if random == true, get random one that isn't same as current
     public String getNextMusic(boolean random) {
         // for now, do nature sounds between each song
@@ -1186,7 +1186,7 @@ class Route {
 
     /*
      * This will bring the route pkmn count back to 4.
-     * 
+     *
      * TODO: probably should have more than 4 pokemon.
      */
     public void genPokemon(int maxCatchRate) {
@@ -1200,7 +1200,7 @@ class Route {
             }
             return;
         }
-        
+
         int randomNum;
         int randomLevel;
         String pokemonName;
@@ -1257,7 +1257,7 @@ public class PkmnMap {
 
     // Used to know where to spawn new players
     ArrayList<Vector2> edges = new ArrayList<Vector2>();
-    
+
     // routes on map
     ArrayList<Route> routes;
     // debating whether I should just make tiles have references
@@ -1268,7 +1268,7 @@ public class PkmnMap {
     Random rand;
 
     String timeOfDay = "Day";  // used by cycleDayNight
-    
+
     String id;  // needed for saving to file
 
     public PkmnMap(String mapName) {
@@ -1276,7 +1276,7 @@ public class PkmnMap {
         this.id = mapName;
         Vector2 pos;
         this.rand = new Random();
-        
+
         // init interior tiles
         // I couldn't figure out how to make this a normal array
         // higher numbers == higher layers in y direction
@@ -1288,27 +1288,27 @@ public class PkmnMap {
         if (mapName == "default") {
 
             /*
-             * 
+             *
              * //for now, just load this manually for (int i = 0; i < 10; i++) {
              * for (int j = 0; j < 10; j++) { pos = new Vector2(i*16, j*16);
              * this.tiles.put(pos, new Tile("ground1", pos)); } }
-             * 
+             *
              * for (int i = 0; i < 10; i++) { pos = new Vector2(i*16, 10*16);
              * this.tiles.put(pos, new Tile("block1", pos));
-             * 
+             *
              * pos = new Vector2(i*16, -1*16); this.tiles.put(pos, new
              * Tile("block1", pos)); }
-             * 
+             *
              * for (int j = 0; j < 8; j++) { pos = new Vector2(-1*16, j*16);
              * this.tiles.put(pos, new Tile("block1", pos));
-             * 
+             *
              * pos = new Vector2(16*16, j*16); this.tiles.put(pos, new
              * Tile("block1", pos)); }
-             * 
+             *
              * //grass in middle for (int i = 4; i < 6; i++) { for (int j = 4; j
              * < 6; j++) { //hopefully will overwrite? pos = new Vector2(i*16,
              * j*16); this.tiles.put(pos, new Tile("grass1", pos)); } }
-             * 
+             *
              * //ledge pos = new Vector2(4*16, 2*16); this.tiles.put(pos, new
              * Tile("ledge1_down", pos)); //ledge pos = new Vector2(3*16, 3*16);
              * this.tiles.put(pos, new Tile("ledge1_right", pos)); //ledge pos =
@@ -1452,7 +1452,7 @@ public class PkmnMap {
             this.currRoute = new Route("Route 1", 20);
         }
     }
-    
+
     public void loadFromFile(Game game) {
         // If map exists as file, load it
         try {
@@ -1482,7 +1482,7 @@ public class PkmnMap {
             game.map.timeOfDay = mapTiles.timeOfDay;
             CycleDayNight.dayTimer = mapTiles.dayTimer;
             game.map.edges = mapTiles.edges;
-            
+
             // load players
             inputStream = new InflaterInputStream(new FileInputStream(this.id + ".players.sav"));
             input = new com.esotericsoftware.kryo.io.Input(inputStream);
@@ -1492,15 +1492,15 @@ public class PkmnMap {
                 player.type = Player.Type.REMOTE;  // TODO: store in playerData?
                 game.players.put(playerData.id, player);
             }
-            
-            
+
+
         } catch (FileNotFoundException e) {
             System.out.println("No save file found for map: " + this.id);
         }
     }
-    
+
     /*
-     * TODO: for large maps, will likely need to split into multiple files corresponding to 
+     * TODO: for large maps, will likely need to split into multiple files corresponding to
      * different map regions. Then save regions periodically. Ideally only when cpu cycles
      * are available.
      */
@@ -1508,11 +1508,11 @@ public class PkmnMap {
 
         float timeDelta = 60;
         float saveInterval = 10; //TODO: debug, was 60  // Every minute for now
-        
+
         // TODO: map id's?
         OutputStream outputStream;
         Output output;
-        
+
         public int getLayer() { return 500;}
 
         @Override
@@ -1546,7 +1546,7 @@ public class PkmnMap {
                 mapTiles.dayTimer = CycleDayNight.dayTimer;
                 game.server.getKryo().writeObject(this.output, mapTiles);
                 this.output.close();
-                
+
                 // Save players to separate file
                 System.out.println("Saving players to file...");
                 try {
@@ -1564,7 +1564,7 @@ public class PkmnMap {
                 System.out.println("Done.");
             }
         }
-        
+
         public PeriodicSave(Game game) {
             // Ends up under ...\pokemon_world_gen\Workspace\desktop\<game.map.id>.sav
             // DeflaterOutputStream <- output compression.
@@ -1576,30 +1576,30 @@ public class PkmnMap {
 
 // debug for drawing lab floor 1 bg
 class DrawSpecialMewtwoBg extends Action {
-    
+
 
     public int layer = 141;
 
     public int getLayer() {
         return this.layer;
     }
-    
+
     Sprite bgSprite;
 
     @Override
     public void step(Game game) {
-        
+
         this.bgSprite.draw(game.mapBatch);
-        
+
     }
-    
+
     public DrawSpecialMewtwoBg() {
         Texture text = TextureCache.get(Gdx.files.internal("lab1_fl1.png"));
         this.bgSprite = new Sprite(text, 0, 0, 479, 448);
-        
+
         this.bgSprite.setPosition(-80 +1, -242 +1 +16*4);
     }
-    
+
 }
 
 // TODO - bug where grass tiles move out of sync with normal
@@ -1631,7 +1631,7 @@ class DrawMap extends Action { // /
 
         if (Gdx.input.isKeyPressed(Input.Keys.P)) {
             System.out.println("Camera unproject");
-            System.out.println(java.time.LocalTime.now());  
+            System.out.println(java.time.LocalTime.now());
         }
 //        System.out.println(game.currScreen.x);
 //        System.out.println(game.currScreen.y);
@@ -1650,14 +1650,14 @@ class DrawMap extends Action { // /
 //        System.out.println(game.viewport.getScreenHeight());
         this.startPos = worldCoordsTL; //new Vector3(worldCoordsTL.x, worldCoordsTL.y, 0f);
         this.endPos = worldCoordsBR; // new Vector3(worldCoordsBR.x, worldCoordsBR.y, 0f);
-        
+
         // debug, remove
         int numTiles = 0;
         if (Gdx.input.isKeyPressed(Input.Keys.P)) {
             System.out.println("Start draw tiles");
-            System.out.println(java.time.LocalTime.now());  
+            System.out.println(java.time.LocalTime.now());
         }
-        
+
         for (Vector2 currPos = new Vector2(startPos.x, startPos.y); currPos.y > endPos.y;) {
             tile = game.map.tiles.get(currPos);
             currPos.x += 16;
@@ -1679,12 +1679,12 @@ class DrawMap extends Action { // /
                     !game.cam.frustum.pointInFrustum(tile.position.x, tile.position.y+tile.sprite.getHeight(), game.cam.position.z)) {
                continue;
             }
-            
+
             // TODO: this attempted to create one bg sprite out of map tiles, couldn't get pixmap resizing to work (ie it just
             // remained 16x16 at all times
             // removing from map tiles removed collision data
             // if I were to do this in the future, just put this login in the Tile() constructor
-            // draw to game.map.bgsprite on construction. 
+            // draw to game.map.bgsprite on construction.
 //            Texture text = tile.sprite.getTexture();
 //            if (!text.getTextureData().isPrepared()) {
 //                text.getTextureData().prepare();
@@ -1718,7 +1718,7 @@ class DrawMap extends Action { // /
                 // tile.overSprite.draw(game.batch); //doesn't allow
                 // coloring via batch //TODO - remove
             }
-            
+
             /*
              * I regret everything, shouldn't have tried to do this at all.
              * TODO: remove if unused.
@@ -1740,7 +1740,7 @@ class DrawMap extends Action { // /
 //                if (tile.nameUpper.contains("sleeping_bag")) {
 //                    tile.overSprite.draw(game.batch);
 //                }
-//                
+//
 //                // draw player upper
 //                if (game.player.isSleeping) {
 //                    if (this.zsTimer < 64) {
@@ -1759,7 +1759,7 @@ class DrawMap extends Action { // /
 //                    // TODO: this is broken
 //                    // draw building tile if building
 //                    if (game.player.isBuilding) {
-//                        // get direction facing 
+//                        // get direction facing
 //                        Vector2 pos = new Vector2(0,0);
 //                        if (game.player.dirFacing == "right") {
 //                            pos = new Vector2(game.player.position.cpy().add(16,0));
@@ -1827,7 +1827,7 @@ class DrawMap extends Action { // /
         if (Gdx.input.isKeyPressed(Input.Keys.P)) {
             System.out.println("Drew tiles");
             System.out.println(numTiles);
-            System.out.println(java.time.LocalTime.now());  
+            System.out.println(java.time.LocalTime.now());
         }
 //        game.batch.draw(this.texture, 5, 5);
     }
@@ -1964,7 +1964,7 @@ class MoveWater extends Action {
                     tile.overSprite.draw(game.mapBatch);
                     game.mapBatch.setColor(tempColor);
                 }
-                
+
             }
         }
         if (this.campfireTimer < 79) {
@@ -1996,12 +1996,12 @@ class MoveWater extends Action {
         this.campfireSprites[2] = new Sprite(text, 0,  0, 160, 144);
         text = TextureCache.get(Gdx.files.internal("fire_mask2.png"));
         this.campfireSprites[3] = new Sprite(text, 0, 0, 160, 144);
-        
+
 //        this.pointLight = new PointLight(game.rayHandler, 20, new Color(.3f,.2f,.1f,1), 2, -0, 0);
 //        this.pointLight = new PointLight(game.rayHandler, 8, new Color(1f, .9f, .7f, 1), 5f, -0, 0);
 //        this.pointLight = new PointLight(game.rayHandler, 16, new Color(.8f, .7f, .6f, 1), 5f, -0, 0);
 //        this.pointLight.setPosition(0f, 0f);
-        
+
     }
 
     public void resetVars() {
@@ -2032,7 +2032,7 @@ class DrawMapGrass extends Action {
     public int getLayer() {
         return this.layer;
     }
-    
+
     Sprite blankSprite;
     Pixmap pixels;
     Texture texture;
@@ -2053,7 +2053,7 @@ class DrawMapGrass extends Action {
         worldCoordsBR.y = (int)worldCoordsBR.y - (int)worldCoordsBR.y % 16;
         this.startPos = worldCoordsTL; //new Vector3(worldCoordsTL.x, worldCoordsTL.y, 0f);
         this.endPos = worldCoordsBR; // new Vector3(worldCoordsBR.x, worldCoordsBR.y, 0f);
-        
+
         // TODO - bug i can't fix where grass sprites lag when moving
 
         // game.cam.update(); //doesn't work
@@ -2101,7 +2101,7 @@ class DrawMapGrass extends Action {
 
 /*
  * Draw tops of some trees over the player.
- * 
+ *
  * TODO: this isn't working for some reason.
  */
 class DrawMapTrees extends Action {
@@ -2114,7 +2114,7 @@ class DrawMapTrees extends Action {
     Vector3 worldCoordsTL;
     Vector3 worldCoordsBR;
     Tile tile;
-    
+
     @Override
     public void step(Game game) {
         if (game.map.tiles != game.map.overworldTiles) {
@@ -2145,7 +2145,7 @@ class DrawMapTrees extends Action {
                 !game.cam.frustum.pointInFrustum(tile.position.x, tile.position.y+tile.sprite.getHeight(), game.cam.position.z)) {
                 continue;
             }
-            // If this tree is supposed to be behind the player, don't re-draw it. 
+            // If this tree is supposed to be behind the player, don't re-draw it.
             if (tile.position.y > game.player.position.y) {
                 continue;
             }
@@ -2363,7 +2363,7 @@ class genMountain_1 extends Action {
 
 // TODO: shader method
 class EnterBuilding extends Action {
-  
+
   Sprite sprite;
   String action;
   Action nextAction;
@@ -2375,10 +2375,10 @@ class EnterBuilding extends Action {
 
   int timer = 0;
   int slow = 1;  // TODO: remove, use some sort of into anim
-  
+
   @Override
   public void step(Game game) {
-      
+
       if (this.timer < 2*slow) {
           if (this.timer == 0 && this.action.equals("enter") || this.action.equals("exit")) {
               game.insertAction(new PlaySound(this.action+"1", new DoneAction()));
@@ -2414,15 +2414,15 @@ class EnterBuilding extends Action {
           game.actionStack.remove(this);
           game.insertAction(this.nextAction);
       }
-          
+
       this.timer++;
 
   }
-  
+
   public EnterBuilding(Game game, Action nextAction) {
       this(game, "enter", nextAction);
   }
-  
+
   public EnterBuilding(Game game, String action, Action nextAction) {
       this.nextAction = nextAction;
       this.action = action;
@@ -2438,7 +2438,7 @@ class EnterBuilding extends Action {
 
 /*
  * Unused code
- * 
+ *
  * //will potentially highlight batch (couldn't get to work)
  * game.batch.setBlendFunction(GL20.GL_ONE, GL20.GL_ONE);
  * game.batch.setColor(0.4f, 0.4f, 0.4f, 1f);

@@ -27,41 +27,41 @@ public class Player {
 
     //current player direction
     public String dirFacing = "down";
-    
+
     //movement sprites
     Map<String, Sprite> standingSprites = new HashMap<String, Sprite>();
     Map<String, Sprite> movingSprites = new HashMap<String, Sprite>();
     Map<String, Sprite> altMovingSprites = new HashMap<String, Sprite>();
-    
+
     Vector2 position;
-    
+
     Sprite currSprite = new Sprite();
-    
+
     Sprite battleSprite;
-    
+
     String name;  // Player display name
     Color color;  // Used to colorize the player sprite
-    
+
     //players pokemon
      //functions as pokemon storage in demo
-    ArrayList<Pokemon> pokemon; 
+    ArrayList<Pokemon> pokemon;
     Pokemon currPokemon; //needed for displaying current pokemon
-    
+
     //items that player currently possesses
     ArrayList<String> itemsList;
     Map<String, Integer> itemsDict; //had idea to make this an array of 'ItemActions' instead; would have .name attribute for printing name in menus
      //each action would perform action; would still need to initialize the action when adding tho
      //decided this way was less intuitive.
-    
+
     int adrenaline;  //was 'streak'
     //demo mechanic - catching in a row without oppPokemon fleeing builds streak
      //displayed as 'adrenaline'
      //based off of catch rate
-    
+
     //this would be if doing android
      //action would set these
     //Map<String, Integer> buttonPressed = new HashMap<String, Integer>();
-    
+
     String currState; //need for ghost spawn
     boolean isBuilding = false; // player has building tile in front of them
     boolean isCutting = false; // player will try to cut tree on A press
@@ -81,7 +81,7 @@ public class Player {
         REMOTE;  // being synced from remote machine
     }
     public Type type;
-    
+
     class Network {
         Vector2 loadingZoneBL = new Vector2();
         Vector2 loadingZoneTR = new Vector2();
@@ -94,14 +94,14 @@ public class Player {
         com.pkmngen.game.Network.BattleData doEncounter;  // acts as flag that battle has been entered
 
         int syncTimer = 0;  // used to know when to re-send player location to client
-        
+
         public Network(Vector2 position) {
             loadingZoneBL = position.cpy().add(-128*2, -128*2);
             loadingZoneTR = position.cpy().add(128*2, 128*2);
         }
     }
     Network network;
-    
+
     /*
      * Constructor to load from serialized class (ie data sent over network or loaded from file).
      */
@@ -122,13 +122,13 @@ public class Player {
         this.network.number = playerData.number;
         this.setColor(playerData.color);  // TODO: when server re-loads player, doesn't seem like this is being rendered.
     }
-    
+
     public Player() {
-        
+
         //set player standing/moving sprites
 //        Texture playerText = new Texture(Gdx.files.internal("player1_sheet1.png"));
         Texture playerText = new Texture(Gdx.files.internal("player1_sheet1_color.png"));
-        
+
         this.standingSprites.put("down", new Sprite(playerText, 0, 0, 16, 16));
         this.standingSprites.put("up", new Sprite(playerText, 16, 0, 16, 16));
         this.standingSprites.put("left", new Sprite(playerText, 32, 0, 16, 16));
@@ -143,7 +143,7 @@ public class Player {
         this.altMovingSprites.get("up").flip(true, false);
         this.altMovingSprites.put("left", new Sprite(playerText, 96, 0, 16, 16));
         this.altMovingSprites.put("right", new Sprite(playerText, 112, 0, 16, 16));
-        
+
         //running sprites
 //        playerText = new Texture(Gdx.files.internal("player1_sheet2.png"));
         playerText = new Texture(Gdx.files.internal("player1_sheet2_color.png"));
@@ -161,25 +161,25 @@ public class Player {
         this.altMovingSprites.get("up_running").flip(true, false);
         this.altMovingSprites.put("left_running", new Sprite(playerText, 96, 0, 16, 16));
         this.altMovingSprites.put("right_running", new Sprite(playerText, 112, 0, 16, 16));
-        
-        
+
+
         //battle portrait sprite
         Texture text = new Texture(Gdx.files.internal("battle/player_back1.png"));
         this.battleSprite = new Sprite(text, 0, 0, 28, 28);
-        
+
         //set initial position
         this.position = new Vector2(0,0);
 
         this.currSprite = new Sprite(this.standingSprites.get(this.dirFacing));
         //currSprite.setPosition(0, 0);
-        
+
         //default name - change later
         this.name = "AAAA";
         this.pokemon = new ArrayList<Pokemon>();
-        
+
         this.adrenaline = 0;
         this.currState = "";
-        
+
         // TODO: remove unused
         // currBuildTile
 //        this.buildTiles.add(new Tile("house1_middle1", new Vector2(0,0)));
@@ -214,7 +214,7 @@ public class Player {
         this.buildTiles.add(new Tile("campfire1", new Vector2(0,0)));
         this.buildTiles.add(new Tile("sleeping_bag1", new Vector2(0,0)));
         this.currBuildTile = this.buildTiles.get(this.buildTileIndex);
-        
+
         // for now, everything requires same amt
         for (Tile tile : this.buildTiles) {
             if (tile.nameUpper.equals("sleeping_bag1")) {
@@ -227,7 +227,7 @@ public class Player {
         // can pick up sleeping bag and put back in inventory
         this.buildTileRequirements.put("sleeping_bag1", new HashMap<String, Integer>());
         this.buildTileRequirements.get("sleeping_bag1").put("Sleeping Bag", 1);
-        
+
         // debug - initialize items list
         // TODO: not using itemsList anymore, using itemsDict
         this.itemsList = new ArrayList<String>();
@@ -242,11 +242,11 @@ public class Player {
 //        this.itemsDict.put("Safari Ball", 99);
         this.itemsDict.put("Ultra Ball", 99);
         this.itemsDict.put("Sleeping Bag", 1);
-        
+
         this.network = new Network(this.position);
         this.type = Type.LOCAL;
     }
-    
+
     public void setColor(Color newColor) {
         this.color = newColor;
 
@@ -271,7 +271,7 @@ public class Player {
 //                System.out.println(color.g);
 //                System.out.println(color.b);
                 coloredPixmap.drawPixel(i, j, Color.rgba8888(color));
-                
+
             }
         }
         playerText = new Texture(coloredPixmap);
@@ -289,7 +289,7 @@ public class Player {
         this.altMovingSprites.get("up").flip(true, false);
         this.altMovingSprites.put("left", new Sprite(playerText, 96, 0, 16, 16));
         this.altMovingSprites.put("right", new Sprite(playerText, 112, 0, 16, 16));
-        
+
         //running sprites
 //        playerText = new Texture(Gdx.files.internal("player1_sheet2.png"));
         playerText = new Texture(Gdx.files.internal("player1_sheet2_color.png"));
@@ -309,7 +309,7 @@ public class Player {
                     color = this.color;
                 }
                 coloredPixmap.drawPixel(i, j, Color.rgba8888(color));
-                
+
             }
         }
         playerText = new Texture(coloredPixmap);
@@ -336,21 +336,21 @@ public class Player {
 //  need to build in 'button press delay'
 
 // this action is basically the decision-maker for
-//  what to do next when a player presses a button 
+//  what to do next when a player presses a button
 //  all moving states come back to here
 class playerStanding extends Action {
 
     public int layer = 130;
     public int getLayer(){return this.layer;}
-    
+
     public float initialWait; //might use this to wait before moving
-    
+
     boolean alternate;
-    
+
     boolean checkWildEncounter = true; //TODO - remove when playWait is implemented
-    
+
     boolean isRunning;
-    
+
     Player player;
 
     public void detectIsHouseBuilt(Game game, Tile currTile) {
@@ -418,7 +418,7 @@ class playerStanding extends Action {
             }
         }
     }
-    
+
     @Override
     public void step(Game game) {
         if (this.player.type == Player.Type.LOCAL) {
@@ -428,7 +428,7 @@ class playerStanding extends Action {
             this.remoteStep(game);
         }
     }
-    
+
     public void localStep(Game game) {
 
         if (game.playerCanMove == false || game.player.isSleeping) {
@@ -445,15 +445,15 @@ class playerStanding extends Action {
 
         boolean shouldMove = false;
         Vector2 newPos = new Vector2();
-        
+
         //check wild encounter
          //TODO - in future, this action will jump to a waiting action after one iteration
         if (this.checkWildEncounter == true && game.type != Game.Type.CLIENT) {
             if (checkWildEncounter(game) == true) {
                 //game.actionStack.remove(this); //now using playerCanMove flag
-                
+
                 game.playerCanMove = false;
-                game.insertAction(Battle_Actions.get(game)); 
+                game.insertAction(Battle_Actions.get(game));
                 game.currMusic.pause();
                 game.currMusic = game.battle.music;
                 game.currMusic.stop();
@@ -462,12 +462,12 @@ class playerStanding extends Action {
                 this.checkWildEncounter = false;
                 return;
             }
-            
+
             // TODO: idk where the right place for this is.
             if (game.map.tiles.get(game.player.position) != null && game.map.tiles.get(game.player.position).nameUpper.contains("door")) {
                 game.insertAction(new EnterBuilding(game, new DoneAction()));
             }
-            
+
             this.checkWildEncounter = false;
         }
         // else, check if the server sent an encounter
@@ -478,7 +478,7 @@ class playerStanding extends Action {
                                                  pokemonData.level,
                                                  pokemonData.generation);
             game.battle.oppPokemon.currentStats.put("hp", pokemonData.hp);
-            game.insertAction(Battle_Actions.get(game)); 
+            game.insertAction(Battle_Actions.get(game));
             game.currMusic.pause();
             game.currMusic = game.battle.music;
             game.currMusic.stop();
@@ -487,7 +487,7 @@ class playerStanding extends Action {
             this.player.network.doEncounter = null;
             return;
         }
-        
+
         // Check if player wants to access the menu
         if(Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
             game.insertAction(new DrawPlayerMenu.Intro(game,
@@ -495,7 +495,7 @@ class playerStanding extends Action {
                               new WaitFrames(game, 1,
                               new PlayerCanMove(game,
                               new DoneAction())))));
-            //game.actionStack.remove(this); 
+            //game.actionStack.remove(this);
             game.playerCanMove = false;
             return;
         }
@@ -523,7 +523,7 @@ class playerStanding extends Action {
             newPos = new Vector2(game.player.position.x+16, game.player.position.y);
             shouldMove = true;
         }
-        
+
         //check if input pressed
         if(Gdx.input.isKeyJustPressed(Input.Keys.C) && game.player.isBuilding) {
             game.player.buildTileIndex -= 1;
@@ -541,7 +541,7 @@ class playerStanding extends Action {
             game.player.currBuildTile = game.player.buildTiles.get(game.player.buildTileIndex);
             game.insertAction(new requirementNotify(game, game.player.currBuildTile.name));
         }
-        
+
         if(Gdx.input.isKeyJustPressed(Input.Keys.X)) {
             // TODO: this is broken, no idea what's going on.
             if (game.type == Game.Type.CLIENT && (game.player.isBuilding || game.player.isCutting || game.player.isHeadbutting || game.player.isJumping)) {
@@ -566,7 +566,7 @@ class playerStanding extends Action {
                 game.player.isJumping = false;
             }
         }
-        
+
         if(Gdx.input.isKeyJustPressed(Input.Keys.Z)) {
             // place the built tile
             Vector2 pos = new Vector2(0,0);
@@ -616,7 +616,7 @@ class playerStanding extends Action {
 //                    currTile.overSprite = new Sprite(game.player.currBuildTile.sprite);
 //                    currTile.name = game.player.currBuildTile.name;
 //                    currTile.overSprite.setPosition(pos.x, pos.y);
-//                    currTile.attrs.put("cuttable", true); // test this 
+//                    currTile.attrs.put("cuttable", true); // test this
 //                    currTile.attrs.put("solid", true);
                     Tile newTile = new Tile(currTile.name, game.player.currBuildTile.name,
                                             currTile.position.cpy(), true, currTile.routeBelongsTo);
@@ -647,7 +647,7 @@ class playerStanding extends Action {
                         }
                         game.map.interiorTiles.get(game.map.interiorTilesIndex).put(currTile.position.cpy(), interiorTile);
                     }
-                    
+
                     //deduct required materials
                     for (String name : game.player.buildTileRequirements.get(game.player.currBuildTile.name).keySet()) {
                         int value = game.player.buildTileRequirements.get(game.player.currBuildTile.name).get(name);
@@ -668,12 +668,12 @@ class playerStanding extends Action {
                         // TODO: need to be static per-tree somehow.
                         game.playerCanMove = false;
                         game.battle.oppPokemon = currTile.routeBelongsTo.pokemon.get(0);
-//                        game.insertAction(Battle_Actions.get(game)); 
+//                        game.insertAction(Battle_Actions.get(game));
                         // new DisplayText(game, "A wild pokémon attacked!", null, null,
                         nextAction = new WaitFrames(game, 16, new BattleIntroMusic(Battle_Actions.get(game)));
                         this.checkWildEncounter = false;
                         shouldMove = false;  // for safety
-                        
+
                     }
                     game.insertAction(new HeadbuttTreeAnim(game, game.map.tiles.get(pos),
                                                      nextAction));
@@ -689,7 +689,7 @@ class playerStanding extends Action {
                     Tile interiorTile = new Tile("black1", currTile.position.cpy());
                     game.map.interiorTiles.get(game.map.interiorTilesIndex).put(currTile.position.cpy(), interiorTile);
                     game.playerCanMove = false;
-                    
+
                     // get items from tile
                     if (!currTile.items.isEmpty()) {
                         for (String item : currTile.items.keySet()) {
@@ -724,7 +724,7 @@ class playerStanding extends Action {
         else {
             game.player.currSprite = new Sprite(game.player.standingSprites.get(game.player.dirFacing));
         }
-        
+
         if (shouldMove) {
             game.actionStack.remove(this);
             // If client, send move command to server
@@ -757,7 +757,7 @@ class playerStanding extends Action {
             }
             // Check if moving into empty space to avoid temp.attr checks afterwards
             // If player is pressing space key (debug mode), just move through the object.
-            if (temp == null || Gdx.input.isKeyPressed(Input.Keys.SPACE)) { 
+            if (temp == null || Gdx.input.isKeyPressed(Input.Keys.SPACE)) {
                 // No tile here, so just move normally
                 if (Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT)) { //check if player should be running
                     game.insertAction(new playerRunning(game, this.alternate));
@@ -774,7 +774,7 @@ class playerStanding extends Action {
             if (game.player.isJumping) {
                 if (temp.attrs.get("ledge")){
                     if (temp.ledgeDir.equals("up") && !game.player.dirFacing.equals("down")) {
-                        
+
                     }
                     else if (temp.ledgeDir.equals(game.player.dirFacing) || temp.ledgeDir.equals(oppDir)) {
                         // Jump up the ledge
@@ -828,7 +828,7 @@ class playerStanding extends Action {
             game.insertAction(new playerMoving(game, this.alternate));
             return;
         }
-        
+
         // If we got to this point, player didn't press any movement key.
         this.alternate = false;
         this.isRunning = false;
@@ -852,13 +852,13 @@ class playerStanding extends Action {
 //        }
 
         Vector2 newPos = new Vector2();
-        
+
         //check wild encounter
          //TODO - in future, this action will jump to a waiting action after one iteration
 //        if (this.checkWildEncounter == true) {
 //            if (checkWildEncounter(game) == true) {
 //                this.player.canMove = false;
-//                game.insertAction(Battle_Actions.get(game)); 
+//                game.insertAction(Battle_Actions.get(game));
 //                game.currMusic.pause();
 //                game.currMusic = game.battle.music;
 //                game.currMusic.stop();
@@ -867,14 +867,14 @@ class playerStanding extends Action {
 //                this.checkWildEncounter = false;
 //                return;
 //            }
-//            
+//
 //            // TODO: idk where the right place for this is.
 //            if (game.map.tiles.get(game.player.position) != null && game.map.tiles.get(game.player.position).name.contains("door")) {
 //                game.insertAction(new EnterBuilding(game, new DoneAction()));
 //            }
 //            this.checkWildEncounter = false;
 //        }
-        
+
         if (game.type == Game.Type.SERVER) {
             // timer to re-sync client-side position
             // only re-sync once, then leave it alone until the player moves.
@@ -904,7 +904,7 @@ class playerStanding extends Action {
                         position.add(0, 16);
                         position.x = player.network.loadingZoneBL.x;
                     }
-                    // the larger the number, the more the client hangs when receiving. 
+                    // the larger the number, the more the client hangs when receiving.
                     // 16 seemed to cause little hangup.
                     if (mapTiles.tiles.size() >= 16) {
                         game.server.sendToTCP(this.player.network.connectionId, mapTiles);
@@ -1025,7 +1025,7 @@ class playerStanding extends Action {
                 oppDir = "right";
             }
             // Check if moving into empty space to avoid temp.attr checks afterwards
-            if (temp == null) { 
+            if (temp == null) {
                 // No tile here, so just move normally
                 if (this.player.network.isRunning) {
                     game.insertAction(new playerRunning(game, this.player, this.alternate));
@@ -1042,7 +1042,7 @@ class playerStanding extends Action {
             if (this.player.isJumping) {
                 if (temp.attrs.get("ledge")){
                     if (temp.ledgeDir.equals("up") && !this.player.dirFacing.equals("down")) {
-                        
+
                     }
                     else if (temp.ledgeDir.equals(this.player.dirFacing) || temp.ledgeDir.equals(oppDir)) {
                         // Jump up the ledge
@@ -1106,7 +1106,7 @@ class playerStanding extends Action {
                 }
             }
             return;
-            
+
             // TODO: make sure the above changes work
 //            // first check if traveling through interior door
 //            if (this.player.dirFacing.equals("down") && game.map.tiles.containsKey(this.player.position) && game.map.tiles.get(this.player.position).name.contains("rug")) {
@@ -1161,7 +1161,7 @@ class playerStanding extends Action {
 //                else {
 //                    //bump into ledge
 //                    game.insertAction(new playerBump(game, this.player));
-//                    game.actionStack.remove(this); 
+//                    game.actionStack.remove(this);
 //                }
 //            }
 //            else {
@@ -1190,12 +1190,12 @@ class playerStanding extends Action {
 //        this.alternate = false;
         this.player.network.isRunning = false;
     }
-    
+
     /*
      * TODO: correct constructors, ie this one should call this(game, something); instead.
      */
     public playerStanding(Game game) {
-        
+
         //could snap cam, and have playerMoving come here after 15 pixels. saves a little code
          //problems - timer before moving, alternating sprites
         this.alternate = true;
@@ -1225,7 +1225,7 @@ class playerStanding extends Action {
         this.checkWildEncounter = false;
         this.player = player;
     }
-    
+
     boolean checkWildEncounter(Game game) {
         Pokemon pokemon = this.checkWildEncounter(game, game.player.position);
         if (pokemon != null) {
@@ -1233,29 +1233,29 @@ class playerStanding extends Action {
         }
         return pokemon != null;
     }
-    
+
     //when moving to tile, no chance of encounter unless continuing to move
      //i think the real game uses an encounter table or something
     Pokemon checkWildEncounter(Game game, Vector2 position) {
-        
+
         // no encounters at night (subject to change)
         // TODO: need to enable this. shaders shouldn't be active on floatingbatch so should be fine. not sure abt ghost
         // timer though.
         if (game.map.timeOfDay == "Night") {
             return null;
         }
-        
+
         Tile currTile = game.map.tiles.get(position);
-        
+
         if (currTile != null && currTile.routeBelongsTo != null) {
             // if currently on grass
             if (currTile.attrs.get("grass") == true) {
                 //chance wild encounter
                 int randomNum = game.map.rand.nextInt(100) + 1; //rate determine by player? //1 - 100
                 if (randomNum < 20) { //encounterRate //was <= 50
-                    //disable player movement 
+                    //disable player movement
                     //game.actionStack.remove(this); //using flag now, delete this
-                    
+
                     // get list of pokemon not in battle
                     ArrayList<Pokemon> notInBattle = new ArrayList<Pokemon>();
 //                    for (Pokemon pokemon : game.map.currRoute.pokemon) {  // TODO: remove
@@ -1292,13 +1292,13 @@ class playerMoving extends Action {
     //alternative is to call cam.update(blah) each draw thingy, but
     //i think that's less optimal. this action needs to happen before everything else
     public int getLayer(){return this.layer;}
-    
+
     Vector2 initialPos; //track distance of movement
-    Vector2 targetPos; 
-    
+    Vector2 targetPos;
+
     float xDist, yDist;
     //float speed = 50.0f;
-    
+
     boolean alternate = false;
     Player player;
 
@@ -1321,10 +1321,10 @@ class playerMoving extends Action {
         //can consider doing skipping here if I need to slow down animation
         //bug - have to add 1 to cam position at beginning of each iteration.
          //probably related to occasionaly shakiness, which is probably related to floats
-        
-        //while you haven't moved 16 pixels, 
+
+        //while you haven't moved 16 pixels,
          //move in facing direction
-        
+
         if (game.player.dirFacing == "up") {
             game.player.position.y +=1;
             game.cam.position.y +=1;
@@ -1344,12 +1344,12 @@ class playerMoving extends Action {
 
         this.xDist = Math.abs(this.initialPos.x - game.player.position.x);
         this.yDist = Math.abs(this.initialPos.y - game.player.position.y);
-        
+
         //this is needed for batch to draw according to cam
         game.cam.update();
         game.mapBatch.setProjectionMatrix(game.cam.combined);
-        
-        //if u remove the below check, youll notice that there's a bit of 
+
+        //if u remove the below check, youll notice that there's a bit of
          //movement that you don't want
         if(    (this.yDist < 13 && this.yDist > 2)
             || (this.xDist < 13 && this.xDist > 2)) {
@@ -1366,9 +1366,9 @@ class playerMoving extends Action {
             //game.batch.draw(game.player.standingSprites.get(game.player.dirFacing), game.player.position.x, game.player.position.y);
             game.player.currSprite = game.player.standingSprites.get(game.player.dirFacing);
         }
-        
+
         //System.out.println("Debug: " + String.valueOf(game.player.position.y));
-        
+
         //when we've moved 16 pixels
         //if button pressed, change dir and move that direction
         //else, stand still again
@@ -1405,10 +1405,10 @@ class playerMoving extends Action {
                     game.map.currRoute = newRoute;
                 }
             }
-            
+
             game.player.position.set(this.targetPos);
             game.cam.position.set(this.targetPos.x+16, this.targetPos.y,0);
-            
+
             Action standingAction = new playerStanding(game, !this.alternate);
             game.insertAction(standingAction);
             standingAction.step(game); //decide where to move //doesn't actually seem to do much
@@ -1433,7 +1433,7 @@ class playerMoving extends Action {
         }
         this.xDist = Math.abs(this.initialPos.x - this.player.position.x);
         this.yDist = Math.abs(this.initialPos.y - this.player.position.y);
-        //if u remove the below check, youll notice that there's a bit of 
+        //if u remove the below check, youll notice that there's a bit of
          //movement that you don't want
         if(    (this.yDist < 13 && this.yDist > 2)
             || (this.xDist < 13 && this.xDist > 2)) {
@@ -1457,7 +1457,7 @@ class playerMoving extends Action {
             game.actionStack.remove(this);
         }
     }
-    
+
     public playerMoving(Game game, boolean alternate) {
         this(game, game.player, alternate);
     }
@@ -1482,26 +1482,26 @@ class playerMoving extends Action {
 }
 
 
-//note - this action is nearly identical to playerMoving. Keeping separate though, 
+//note - this action is nearly identical to playerMoving. Keeping separate though,
  //for simplicity
  //differences are - player sprites, movement speed
 class playerRunning extends Action {
-    
+
     public int layer = 150;
     //changed, was 130
     //alternative is to call cam.update(blah) each draw thingy, but
     //i think that's less optimal. this action needs to happen before everything else
     public int getLayer(){return this.layer;}
-    
+
     Vector2 initialPos; //track distance of movement
-    Vector2 targetPos; 
-    
+    Vector2 targetPos;
+
     float xDist, yDist;
     //float speed = 50.0f;
-    
+
     boolean alternate = false;
     Player player;
-    
+
     @Override
     public void step(Game game) {
         if (this.player.type == Player.Type.LOCAL) {
@@ -1511,9 +1511,9 @@ class playerRunning extends Action {
             this.remoteStep(game);
         }
     }
-    
+
     public void localStep(Game game) {
-        
+
         //allows game to pause in middle of run
         if (game.playerCanMove == false) {
             return;
@@ -1521,12 +1521,12 @@ class playerRunning extends Action {
         //can consider doing skipping here if I need to slow down animation
         //bug - have to add 1 to cam position at beginning of each iteration.
          //probably related to occasionaly shakiness, which is probably related to floats
-        
-        //while you haven't moved 16 pixels, 
+
+        //while you haven't moved 16 pixels,
          //move in facing direction
-        
+
         float speed = 1.6f; //this needs to add up to 16 for smoothness?
-        
+
         if (game.player.dirFacing == "up") {
             this.player.position.y +=speed;
             game.cam.position.y +=speed;
@@ -1546,12 +1546,12 @@ class playerRunning extends Action {
 
         this.xDist = Math.abs(this.initialPos.x - game.player.position.x);
         this.yDist = Math.abs(this.initialPos.y - game.player.position.y);
-        
+
         //this is needed for batch to draw according to cam
         game.cam.update();
         game.mapBatch.setProjectionMatrix(game.cam.combined);
-        
-        //if u remove the below check, youll notice that there's a bit of 
+
+        //if u remove the below check, youll notice that there's a bit of
          //movement that you don't want
         String spriteString = String.valueOf(game.player.dirFacing+"_running");
         //System.out.println("spriteString: " + String.valueOf(spriteString)); //debug
@@ -1570,9 +1570,9 @@ class playerRunning extends Action {
             //game.batch.draw(game.player.standingSprites.get(game.player.dirFacing), game.player.position.x, game.player.position.y);
             game.player.currSprite = game.player.standingSprites.get(spriteString);
         }
-        
+
         //System.out.println("Debug: " + String.valueOf(game.player.position.y));
-        
+
         //when we've moved 16 pixels
         //if button pressed, change dir and move that direction
         //else, stand still again
@@ -1601,25 +1601,25 @@ class playerRunning extends Action {
                     game.map.currRoute = newRoute;
                 }
             }
-            
+
             game.player.position.set(this.targetPos);
             game.cam.position.set(this.targetPos.x+16, this.targetPos.y,0);
             game.cam.update();                                     //this line fixes jittering bug
             game.mapBatch.setProjectionMatrix(game.cam.combined);    //same
-            
+
             Action standingAction = new playerStanding(game, !this.alternate, true); //pass true to keep running animation going
             game.insertAction(standingAction);
             standingAction.step(game); //decide where to move //doesn't actually seem to do much
             game.actionStack.remove(this);
-            
+
         }
     }
-    
+
     public void remoteStep(Game game) {
         this.player.network.syncTimer++;
         //allows player to pause in middle of run
         float speed = 1.6f; //this needs to add up to 16 for smoothness?
-        
+
         if (this.player.dirFacing.equals("up")) {
             this.player.position.y += speed;
         }
@@ -1635,8 +1635,8 @@ class playerRunning extends Action {
 
         this.xDist = Math.abs(this.initialPos.x - this.player.position.x);
         this.yDist = Math.abs(this.initialPos.y - this.player.position.y);
-        
-        //if u remove the below check, you'll notice that there's a bit of 
+
+        //if u remove the below check, you'll notice that there's a bit of
          //movement that you don't want
         String spriteString = String.valueOf(this.player.dirFacing+"_running");
         //System.out.println("spriteString: " + String.valueOf(spriteString)); //debug
@@ -1662,16 +1662,16 @@ class playerRunning extends Action {
             game.actionStack.remove(this);
         }
     }
-    
+
     public playerRunning(Game game, boolean alternate) {
         this(game, game.player, alternate);
     }
-    
+
     public playerRunning(Game game, Player player, boolean alternate) {
 
         this.alternate = alternate;
         this.player = player;
-        
+
         this.initialPos = new Vector2(this.player.position);
         if (this.player.dirFacing == "up") {
             this.targetPos = new Vector2(this.player.position.x, this.player.position.y+16);
@@ -1694,14 +1694,14 @@ class playerBump extends Action {
 
     public int layer = 130;
     public int getLayer(){return this.layer;}
-    
-    
+
+
     int timer = 0;
     int maxTime = 10; //20 reminded me of gold version I think
-    
+
     boolean alternate = false;
     Player player;
-    
+
     @Override
     public void step(Game game) {
         if (this.player.type == Player.Type.LOCAL) {
@@ -1714,13 +1714,13 @@ class playerBump extends Action {
 
     public void localStep(Game game) {
         timer++;
-        
+
         if (this.timer >= 2*maxTime ) {
             this.alternate = !this.alternate;
             this.timer = 0;
             game.insertAction(new PlaySound("bump2", new DoneAction()));
         }
-        
+
         if (this.timer < maxTime) {
             if (this.alternate == true) {
                 //game.batch.draw(game.player.altMovingSprites.get(game.player.dirFacing), game.player.position.x, game.player.position.y);
@@ -1735,7 +1735,7 @@ class playerBump extends Action {
             //game.batch.draw(game.player.standingSprites.get(game.player.dirFacing), game.player.position.x, game.player.position.y);
             game.player.currSprite = game.player.standingSprites.get(game.player.dirFacing);
         }
-        
+
         //when facingDir key is released, go to playerStanding
 
 
@@ -1760,13 +1760,13 @@ class playerBump extends Action {
     public void remoteStep(Game game) {
         this.player.network.syncTimer++;
         timer++;
-        
+
         if (this.timer >= 2*maxTime ) {
             this.alternate = !this.alternate;
             this.timer = 0;
             game.insertAction(new PlaySound("bump2", new DoneAction()));
         }
-        
+
         if (this.timer < maxTime) {
             if (this.alternate) {
                 this.player.currSprite = this.player.altMovingSprites.get(this.player.dirFacing);
@@ -1778,7 +1778,7 @@ class playerBump extends Action {
         else {
             this.player.currSprite = this.player.standingSprites.get(this.player.dirFacing);
         }
-        
+
         //when facingDir key is released, go to playerStanding
         if(!this.player.network.shouldMove) {
 //            game.insertAction(new playerStanding(game, this.player, true, false));
@@ -1792,7 +1792,7 @@ class playerBump extends Action {
     public playerBump(Game game) {
         this(game, game.player);
     }
-    
+
     public playerBump(Game game, Player player) {
         this.player = player;
         game.insertAction(new PlaySound("bump2", new DoneAction()));
@@ -1808,20 +1808,20 @@ class playerLedgeJump extends Action {
 
     public int layer = 131;
     public int getLayer(){return this.layer;}
-    
+
     float xDist, yDist;
 
     Vector2 initialPos, targetPos;
-    
+
     Sprite shadow;
-    
+
     int timer1 = 0;
-    
+
     ArrayList<Integer> yMovesList = new ArrayList<Integer>();
     ArrayList<Map<String, Sprite>> spriteAnim = new ArrayList<Map<String, Sprite>>();
     //Map<String, ArrayList<Sprite>> spritesAnimList = new HashMap<String, ArrayList<Sprite>>();
     Player player;
-    
+
     @Override
     public void step(Game game) {
         if (this.player.type == Player.Type.LOCAL) {
@@ -1831,18 +1831,18 @@ class playerLedgeJump extends Action {
             this.remoteStep(game);
         }
     }
-    
+
     public void localStep(Game game) {
         //gb does a weird anim here
          //looked at frame-by-frame (ledge_anim_notes.txt text file)
-        
+
 //        if (this.timer1 % 2 == 0 && this.timer1 < 32) {
 //            game.cam.position.y -=2;
 //            game.player.position.y -=2;
 //        }
-        
+
         if ( this.timer1 < 32) {
-            
+
             if (game.player.dirFacing == "up") {
                 game.player.position.y +=1;
                 game.cam.position.y +=1;
@@ -1859,32 +1859,32 @@ class playerLedgeJump extends Action {
                 game.player.position.x +=1;
                 game.cam.position.x +=1;
             }
-            
+
             if (this.timer1 % 2 == 1) {
                 game.player.position.y += this.yMovesList.get(0);
                 this.yMovesList.remove(0);
-                
+
                 //use next sprite in list
                 game.player.currSprite = this.spriteAnim.get(0).get(game.player.dirFacing);
                 this.spriteAnim.remove(0);
             }
-            
+
             //this is needed for batch to draw according to cam
              //always call this after updating camera
             game.cam.update();
             game.mapBatch.setProjectionMatrix(game.cam.combined);
-            
+
             //old sprite anim code was here
-                
+
         }
         else {
             game.player.currSprite = game.player.standingSprites.get(game.player.dirFacing);
         }
 
-                
+
         //draw shadow
         game.mapBatch.draw(this.shadow, game.cam.position.x-16, game.cam.position.y-4);
-        
+
         if (this.timer1 >= 38) {
             game.player.position.set(this.targetPos);
             game.cam.position.set(this.targetPos.x+16, this.targetPos.y,0);
@@ -1894,7 +1894,7 @@ class playerLedgeJump extends Action {
             //playerStanding.step(game); //step to detect movement right away
             game.actionStack.remove(this);
         }
-        
+
         this.timer1++;
     }
 
@@ -1913,7 +1913,7 @@ class playerLedgeJump extends Action {
             else if (this.player.dirFacing == "right") {
                 this.player.position.x +=1;
             }
-            
+
             if (this.timer1 % 2 == 1) {
                 this.player.position.y += this.yMovesList.get(0);
                 this.yMovesList.remove(0);
@@ -1937,11 +1937,11 @@ class playerLedgeJump extends Action {
         }
         this.timer1++;
     }
-    
+
     public playerLedgeJump(Game game) {
         this(game, game.player);
     }
-    
+
     public playerLedgeJump(Game game, Player player) {
         this.player = player;
         this.initialPos = new Vector2(this.player.position);
@@ -1957,15 +1957,15 @@ class playerLedgeJump extends Action {
         else if (this.player.dirFacing == "right") {
             this.targetPos = new Vector2(this.player.position.x+32, this.player.position.y);
         }
-        
+
         //shadow sprite
         Texture shadowText = new Texture(Gdx.files.internal("shadow1.png"));
         this.shadow = new Sprite(shadowText, 0, 0, 16, 16);
-        
+
         //play sound
         game.insertAction(new PlaySound("ledge1", new DoneAction()));
-        
-        //below two lists are used to get exact sprite and 
+
+        //below two lists are used to get exact sprite and
          //y movement on every other frame
         this.yMovesList.add(4);
         this.yMovesList.add(2);
@@ -1983,7 +1983,7 @@ class playerLedgeJump extends Action {
         this.yMovesList.add(-3);
         this.yMovesList.add(-3);
         this.yMovesList.add(0);
-        
+
         //sprites to use (according to frame-by-frame)
         this.spriteAnim.add(this.player.standingSprites);
         this.spriteAnim.add(this.player.standingSprites);
@@ -2010,20 +2010,20 @@ class PlayerLedgeJumpFast extends Action {
 
     public int layer = 131;
     public int getLayer(){return this.layer;}
-    
+
     float xDist, yDist;
 
     Vector2 initialPos, targetPos;
-    
+
     Sprite shadow;
-    
+
     int timer1 = 0;
-    
+
     ArrayList<Integer> yMovesList = new ArrayList<Integer>();
     ArrayList<Map<String, Sprite>> spriteAnim = new ArrayList<Map<String, Sprite>>();
     //Map<String, ArrayList<Sprite>> spritesAnimList = new HashMap<String, ArrayList<Sprite>>();
     Player player;
-    
+
     @Override
     public void step(Game game) {
         if (this.player.type == Player.Type.LOCAL) {
@@ -2033,16 +2033,16 @@ class PlayerLedgeJumpFast extends Action {
             this.remoteStep(game);
         }
     }
-    
+
     public void localStep(Game game) {
-        
+
 //        if (this.timer1 % 2 == 0 && this.timer1 < 32) {
 //            game.cam.position.y -=2;
 //            game.player.position.y -=2;
 //        }
-        
+
         if ( this.timer1 < 16) {
-            
+
             if (game.player.dirFacing == "up") {
                 game.player.position.y +=1;
                 game.cam.position.y +=1;
@@ -2062,35 +2062,35 @@ class PlayerLedgeJumpFast extends Action {
             if (this.timer1 % 2 == 1) {
                 game.player.position.y += this.yMovesList.get(0);
                 this.yMovesList.remove(0);
-                
+
                 //use next sprite in list
                 game.player.currSprite = this.spriteAnim.get(0).get(game.player.dirFacing);
                 this.spriteAnim.remove(0);
             }
-            
+
             //this is needed for batch to draw according to cam
              //always call this after updating camera
             game.cam.update();
             game.mapBatch.setProjectionMatrix(game.cam.combined);
-            
+
             //old sprite anim code was here
-                
+
         }
         else {
             game.player.currSprite = game.player.standingSprites.get(game.player.dirFacing);
         }
         // Draw shadow
         game.mapBatch.draw(this.shadow, game.cam.position.x-16, game.cam.position.y-4);
-        
+
         if (this.timer1 >= 19) {
 
 //            Vector2 diff = this.targetPos.cpy().sub(game.player.position);
 //            Tile currTile = game.map.tiles.get(this.targetPos);
 //            Tile temp = game.map.tiles.get(this.targetPos.cpy().add(diff));
-            
+
             game.player.position.set(this.targetPos);
             game.cam.position.set(this.targetPos.x+16, this.targetPos.y, 0);
-            
+
 //            if (currTile != null && temp != null && currTile.attrs.get("ledge")) {
 //                game.insertAction(new PlayerLedgeJumpFast(game, this.player));
 //            }
@@ -2101,9 +2101,9 @@ class PlayerLedgeJumpFast extends Action {
             Action playerStanding = new playerStanding(game);
             game.insertAction(playerStanding);
             game.actionStack.remove(this);
-            
+
         }
-        
+
         this.timer1++;
     }
 
@@ -2122,7 +2122,7 @@ class PlayerLedgeJumpFast extends Action {
             else if (this.player.dirFacing == "right") {
                 this.player.position.x +=1;
             }
-            
+
             if (this.timer1 % 2 == 1) {
                 this.player.position.y += this.yMovesList.get(0);
                 this.yMovesList.remove(0);
@@ -2156,11 +2156,11 @@ class PlayerLedgeJumpFast extends Action {
         }
         this.timer1++;
     }
-    
+
     public PlayerLedgeJumpFast(Game game) {
         this(game, game.player);
     }
-    
+
     public PlayerLedgeJumpFast(Game game, Player player) {
         this.player = player;
         this.initialPos = new Vector2(this.player.position);
@@ -2176,15 +2176,15 @@ class PlayerLedgeJumpFast extends Action {
         else if (this.player.dirFacing == "right") {
             this.targetPos = new Vector2(this.player.position.x+16, this.player.position.y);
         }
-        
+
         //shadow sprite
         Texture shadowText = new Texture(Gdx.files.internal("shadow1.png"));
         this.shadow = new Sprite(shadowText, 0, 0, 16, 16);
-        
+
         // Play ledge jumping sound
         game.insertAction(new PlaySound("ledge2", null));
-        
-        //below two lists are used to get exact sprite and 
+
+        //below two lists are used to get exact sprite and
          //y movement on every other frame
         this.yMovesList.add(4);
 //        this.yMovesList.add(2);
@@ -2202,7 +2202,7 @@ class PlayerLedgeJumpFast extends Action {
 //        this.yMovesList.add(-3);
         this.yMovesList.add(-3);
 //        this.yMovesList.add(0);
-        
+
         //sprites to use (according to frame-by-frame)
         this.spriteAnim.add(this.player.standingSprites);
 //        this.spriteAnim.add(this.player.standingSprites);
@@ -2227,13 +2227,13 @@ class PlayerLedgeJumpFast extends Action {
 
 
 class DrawPlayerUpper extends Action {
-    
+
 
     public int layer = 115;
     public int getLayer(){return this.layer;}
-    
+
     Sprite spritePart;
-    
+
     Sprite zSprite;
     int zsTimer = 0;
 
@@ -2254,10 +2254,10 @@ class DrawPlayerUpper extends Action {
             this.zSprite.draw(game.mapBatch);
             return;
         }
-        
+
         // draw building tile if building
         if (game.player.isBuilding) {
-            // get direction facing 
+            // get direction facing
             Vector2 pos = new Vector2(0,0);
             if (game.player.dirFacing == "right") {
                 pos = new Vector2(game.player.position.cpy().add(16,0));
@@ -2316,13 +2316,13 @@ class DrawPlayerUpper extends Action {
         //this.spritePart.setSize(this.spritePart.getWidth(), 4);
         this.spritePart.setRegionY(0);
         this.spritePart.setRegionHeight(8);
-        
+
         game.mapBatch.draw(this.spritePart, game.player.position.x, game.player.position.y+12);
 
         //this needs to be set to detect collision
         game.player.currSprite.setPosition(game.player.position.x, game.player.position.y);
     }
-            
+
 
     public DrawPlayerUpper(Game game) {
         Texture text = new Texture(Gdx.files.internal("tiles/zs1.png"));
@@ -2331,30 +2331,30 @@ class DrawPlayerUpper extends Action {
 }
 
 class DrawPlayerLower extends Action {
-    
+
 
     public int layer = 130;
     public int getLayer(){return this.layer;}
-    
+
     Sprite spritePart;
 
     @Override
     public void step(Game game) {
-        
+
         if (game.player.isSleeping) {
             return;
         }
-        
+
         this.spritePart = new Sprite(game.player.currSprite);
 
         //this.spritePart.setRegion(0,8,16,8);
         this.spritePart.setRegionY(8);
         this.spritePart.setRegionHeight(8);
         //this.spritePart.setSize(this.spritePart.getWidth(), 8);
-        
+
         game.mapBatch.draw(this.spritePart, game.player.position.x, game.player.position.y+4);
     }
-            
+
 
     public DrawPlayerLower(Game game) {
 
@@ -2366,13 +2366,13 @@ class DrawPlayerLower extends Action {
 
 //demo of drawing sprites for ea pokemon caught
 class DrawPokemonCaught extends Action {
-    
+
 
     public int layer = 110;
     public int getLayer(){return this.layer;}
 
     public String getCamera() {return "gui";};
-    
+
     Sprite pokeball;
 
     @Override
@@ -2381,12 +2381,12 @@ class DrawPokemonCaught extends Action {
         for (int i=0; i < game.player.pokemon.size(); i++) {
             game.uiBatch.draw(pokeball, i*16*3, 144*3-12);
         }
-//        
+//
 //        this.pokeball.setPosition(0*16*3+12, 144*3-12*3);
 //        this.pokeball.draw(game.floatingBatch);
-        
+
     }
-            
+
 
     public DrawPokemonCaught(Game game) {
 
@@ -2406,12 +2406,12 @@ class PlayerCanMove extends Action {
     public void step(Game game) {
 
         game.playerCanMove = true;
-        
+
         game.insertAction(this.nextAction);
         game.actionStack.remove(this);
     }
-    
-    
+
+
     public PlayerCanMove(Game game, Action nextAction) {
         this.nextAction = nextAction;
     }
@@ -2421,37 +2421,37 @@ class PlayerCanMove extends Action {
 
 //for drawing the ghost that chases the player
 class drawGhost extends Action {
-    
+
 
     public int layer = 114;
     public int getLayer(){return this.layer;}
-    
+
     Sprite currSprite;
     Vector2 basePos; //need this to make ghost 'float'
 
-    float velX; 
-    float velY; 
+    float velX;
+    float velY;
     float maxVel;
-    
+
     float sineTimer;
     String dirFacing;
-    
+
     Map<String, Sprite[]> sprites;
-    
+
     int animIndex;
     int animFrame;
-    
+
     Pokemon pokemon;
-    
+
     boolean inBattle = false;
     int noEncounterTimer = 0;
-    
+
     Vector2 startPos;
     Vector2 endPos;
-    
+
     @Override
     public void step(Game game) {
-            
+
         //check if it's day or not. if not Night, despawn the ghost
         if (game.map.timeOfDay != "Night") {
             this.currSprite.draw(game.mapBatch);
@@ -2488,21 +2488,21 @@ class drawGhost extends Action {
                 return;
             }
         }
-        
+
         //check if ghost pokemon is dead. if yes, remove this from AS
-        
-        
+
+
         //check whether player is in battle or not
         //if not, don't move the ghost at all (subject to change)
-        if (game.battle.drawAction != null) { 
+        if (game.battle.drawAction != null) {
             this.currSprite.draw(game.mapBatch);
             this.inBattle = true;
             this.noEncounterTimer = 0;
             return;
         }
-        
 
-        
+
+
         //wait for a while if you just exited battle
         if (inBattle == true) {
             if (noEncounterTimer % 4 >= 2) {
@@ -2516,11 +2516,11 @@ class drawGhost extends Action {
         }
 
         //pause if player can't move
-        if (game.playerCanMove == false) { 
+        if (game.playerCanMove == false) {
             this.currSprite.draw(game.mapBatch);
             return;
         }
-        
+
         //calculate direction to player, face that direction
         float dx = this.basePos.x - game.player.position.x;
         float dy = this.basePos.y - game.player.position.y;
@@ -2540,12 +2540,12 @@ class drawGhost extends Action {
                 this.dirFacing = "up";
             }
         }
-        
+
         //set ghost sprite to dirFacing
         this.currSprite = this.sprites.get(this.dirFacing)[this.animIndex];
-        
+
         //game.player.position.x < this.basePos.x
-        
+
         //modify base pos to chase player (accelerate in player direction)
         if (this.dirFacing == "left") {
             if (velX > -maxVel) {
@@ -2573,20 +2573,20 @@ class drawGhost extends Action {
         }
         //apply position
         this.basePos.add(velX, velY);
-        
+
         //x and y are sine function
         float shiftPosX = (float)Math.sin(sineTimer);
         float shiftPosY = (float)Math.sin(2*sineTimer);
         this.currSprite.setPosition(basePos.x+shiftPosX, basePos.y+shiftPosY);
-        
-        this.currSprite.draw(game.mapBatch); 
+
+        this.currSprite.draw(game.mapBatch);
         //game.batch.draw(this.currSprite, this.currSprite.getX(), this.currSprite.getY()); //TODO - remove
-        
+
         sineTimer+=.125f;
         if (sineTimer >= 3.14*2f) {
             sineTimer = 0.0f;
         }
-        
+
         //run ghost animation
         animFrame++;
         if (animFrame > 10) {
@@ -2596,41 +2596,41 @@ class drawGhost extends Action {
         if (animIndex >= this.sprites.get(this.dirFacing).length ) {
             animIndex = 0;
         }
-        
+
         //need to make ghost rectangle bounds smaller
-        Rectangle rect = this.currSprite.getBoundingRectangle(); 
+        Rectangle rect = this.currSprite.getBoundingRectangle();
         rect.x +=16;
         rect.y +=16;
         rect.width -=2*16;
         rect.height -=2*16;
-        
+
         //check collision. if collision, start battle with pokemon
         if (rect.overlaps(game.player.currSprite.getBoundingRectangle())) {
             //System.out.println("collision x: " + String.valueOf(this.currSprite.getBoundingRectangle().x)); //debug
             //System.out.println("collision x: " + String.valueOf(game.player.currSprite.getBoundingRectangle().x)); //debug
 
             game.battle.oppPokemon = this.pokemon;
-            game.playerCanMove = false; 
+            game.playerCanMove = false;
             //todo - remove
 //            game.insertAction(new SplitAction(
 //                                                new BattleIntro(
 //                                                    new BattleIntro_anim1(
 //                                                        new SplitAction(
 //                                                            new DrawBattle(game),
-//                                                            new BattleAnim_positionPlayers(game, 
-//                                                                new PlaySound(game.battle.oppPokemon.name, 
-//                                                                    new DisplayText(game, "A Ghost appeared!", null, null, 
+//                                                            new BattleAnim_positionPlayers(game,
+//                                                                new PlaySound(game.battle.oppPokemon.name,
+//                                                                    new DisplayText(game, "A Ghost appeared!", null, null,
 //                                                                        new WaitFrames(game, 39,
 //                                                                            //demo code - wildly confusing, but i don't want to write another if statement
-//                                                                                game.player.adrenaline > 0 ? 
+//                                                                                game.player.adrenaline > 0 ?
 //                                                                                new DisplayText(game, ""+game.player.name+" has ADRENALINE "+Integer.toString(game.player.adrenaline)+"!", null, null,
 //                                                                                    new PrintAngryEating(game, //for demo mode, normally left out
 //                                                                                            new DrawBattleMenu_SafariZone(game, new DoneAction())
 //                                                                                        )
 //                                                                                    )
-//                                                                                : 
+//                                                                                :
 //                                                                                new PrintAngryEating(game, //for demo mode, normally left out
-//                                                                                        new DrawBattleMenu_SafariZone(game, new DoneAction())    
+//                                                                                        new DrawBattleMenu_SafariZone(game, new DoneAction())
 //                                                                            )
 //                                                                            //
 //                                                                        )
@@ -2643,10 +2643,10 @@ class drawGhost extends Action {
 //                                                new DoneAction()
 //                                            )
 //                                        );
-            game.insertAction(Battle_Actions.get(game)); 
+            game.insertAction(Battle_Actions.get(game));
         }
     }
-            
+
 
     public drawGhost(Game game, Vector2 position) {
 
@@ -2657,12 +2657,12 @@ class drawGhost extends Action {
         this.animIndex = 0;
         this.animFrame = 0;
         this.maxVel = 1.2f; //can scale to make ghost harder
-        
+
         //need to store which pokemon this actually will be (i think)
 //        this.pokemon = new Pokemon("Sableye", 21);
 //        this.pokemon = new Pokemon("Sableye", 21, Pokemon.Generation.CRYSTAL);
         this.pokemon = new Pokemon("Ghost", 21, Pokemon.Generation.CRYSTAL);
-        
+
         Texture ghostTexture = new Texture(Gdx.files.internal("ghost_sheet1.png"));
         this.sprites.put("down", new Sprite[]{
                                     new Sprite(ghostTexture, 32*0, 0, 32, 32),
@@ -2673,7 +2673,7 @@ class drawGhost extends Action {
                                     new Sprite(ghostTexture, 32*1, 0, 32, 32),
                                     new Sprite(ghostTexture, 32*2, 0, 32, 32),
                                     new Sprite(ghostTexture, 32*3, 0, 32, 32)} );
-        
+
         this.sprites.put("left", new Sprite[]{new Sprite(ghostTexture, 32*4, 0, 32, 32),
                                                 new Sprite(ghostTexture, 32*5, 0, 32, 32),
                                                 new Sprite(ghostTexture, 32*4, 0, 32, 32),
@@ -2682,7 +2682,7 @@ class drawGhost extends Action {
                                                 new Sprite(ghostTexture, 32*5, 0, 32, 32),
                                                 new Sprite(ghostTexture, 32*6, 0, 32, 32),
                                                 new Sprite(ghostTexture, 32*7, 0, 32, 32)} );
-        
+
         this.sprites.put("up", new Sprite[]{ new Sprite(ghostTexture, 32*8, 0, 32, 32),
                                                 new Sprite(ghostTexture, 32*9, 0, 32, 32),
                                                 new Sprite(ghostTexture, 32*8, 0, 32, 32),
@@ -2712,22 +2712,22 @@ class drawGhost extends Action {
 
 //for spawning ghost, playing effects etc
 class spawnGhost extends Action {
-    
+
 
     public int layer = 114;
     public int getLayer(){return this.layer;}
 
     Sprite[] sprites;
-    
+
     int part1;
     int part2;
     int part3;
-    
+
     Vector2 position;
-    
+
     @Override
     public void step(Game game) {
-        
+
         if (part1 == 80) { //do once
             game.playerCanMove = false;
             //set player to face ghost
@@ -2749,7 +2749,7 @@ class spawnGhost extends Action {
                     game.player.currSprite = game.player.standingSprites.get("down");
                 }
             }
-            
+
             //play alert music
             game.currMusic.pause();
             Music music = Gdx.audio.newMusic(Gdx.files.internal("night1_alert1.ogg"));
@@ -2757,27 +2757,27 @@ class spawnGhost extends Action {
             music.setVolume(.7f);
             game.currMusic = music;
             game.currMusic.play();
-            
+
             //TODO - insert ! mark action
         }
-        
+
         //play anim frames one by one
         if (part1 > 0) {
-            
+
             if (part1 % 4 >= 2) {
                 this.sprites[0].draw(game.mapBatch);
             }
             part1--;
             return;
         }
-        
+
         if (part2 == 40) {
             game.insertAction(new PlaySound("ghost1", new DoneAction()));
         }
         if (part2 == 32) {
             game.insertAction(new PlaySound("ghost1", new DoneAction()));
         }
-        
+
         if (part2 > 0) {
             if (part2 % 8 >= 4) {
                 this.sprites[1].draw(game.mapBatch);
@@ -2788,13 +2788,13 @@ class spawnGhost extends Action {
             part2--;
             return;
         }
-        
+
         if (part3 > 0) {
             this.sprites[2].draw(game.mapBatch);
             part3--;
             return;
         }
-        
+
         //TODO - start frantic music (? best place? better in ghost draw?)
         game.currMusic.pause();
         Music music = Gdx.audio.newMusic(Gdx.files.internal("night1_chase1.ogg"));
@@ -2803,25 +2803,25 @@ class spawnGhost extends Action {
         game.currMusic = music;
 //        game.map.currRoute.music = music; //TODO - how to switch to normal after defeating
         game.currMusic.play();
-        
-        
+
+
         game.playerCanMove = true;
         game.actionStack.remove(this);
         game.insertAction(new drawGhost(game, this.position));
-        
+
     }
-    
-    
+
+
     public spawnGhost(Game game, Vector2 position) {
 
         this.part1 = 80;
         this.part2 = 40;
         this.part3 = 50;
         this.position = position;
-        
+
         Texture ghostTexture1 = new Texture(Gdx.files.internal("ghost_spawn1.png"));
         Texture ghostTexture2 = new Texture(Gdx.files.internal("ghost_sheet1.png"));
-        
+
         this.sprites = new Sprite[]{
                 new Sprite(ghostTexture1, 0, 0, 40, 40),
                 new Sprite(ghostTexture2, 0, 0, 32, 32),
@@ -2831,52 +2831,52 @@ class spawnGhost extends Action {
         this.sprites[0].setPosition(position.x-4, position.y-4);
         this.sprites[1].setPosition(position.x, position.y);
         this.sprites[2].setPosition(position.x, position.y);
-        
-        
+
+
     }
-        
+
 }
 
 
 
 class despawnGhost extends Action {
-    
+
 
     public int layer = 114;
     public int getLayer(){return this.layer;}
 
     Sprite[] sprites;
-    
+
     int part1;
     int part2;
     int part3;
-    
+
     Vector2 position;
     Sprite sprite;
-    
+
     @Override
     public void step(Game game) {
-        
+
         if (part1 > 0) {
-            
+
             if (part1 % 4 >=2) {
                 this.sprite.draw(game.mapBatch);
             }
-            
+
             part1--;
-            return;            
+            return;
         }
-        
+
         game.actionStack.remove(this);
-        
+
     }
-    
+
     public despawnGhost(Vector2 position) {
 
         this.part1 = 80;
-        
+
         this.position = position;
-        
+
         Texture ghostTexture1 = new Texture(Gdx.files.internal("ghost_spawn1.png"));
         this.sprite = new Sprite(ghostTexture1, 0, 0, 40, 40);
         this.sprite.setPosition(position.x-4, position.y-4);
@@ -2889,40 +2889,40 @@ class despawnGhost extends Action {
 //for keeping track of day night
  //pops up cycle change notif, changes shader, etc
 class CycleDayNight extends Action {
-    
+
 
     public int layer = 114;
     public int getLayer(){return this.layer;}
-    
+
     public String getCamera() {return "gui";};
-    
+
     int[] currFrames;
 
     boolean fadeToDay;
     boolean fadeToNight;
-    
+
     int animIndex;
-    
+
     AnimationContainer<Color> animContainer;
     AnimationContainer<Color> fadeToDayAnim;
-    
+
     Random rand;
     int countDownToGhost;
     public static int dayTimer;
-    
+
     Sprite bgSprite;
     String text;
-    
+
     int signCounter;
     int day, night; //number of days/nights that has passed
-    
+
     @Override
     public void step(Game game) {
-        
+
         if (game.playerCanMove == true) {
             dayTimer--;
         }
-        
+
         if (dayTimer <= 0) {
             //TODO - time of day is part of map
              //
@@ -2935,25 +2935,25 @@ class CycleDayNight extends Action {
                 dayTimer = 10000; //1000 - debug
             }
         }
-        
+
 
         if (fadeToDay == true) {
-            
+
             game.mapBatch.setColor(this.fadeToDayAnim.currentThing());
-            
+
             animIndex++;
 
             if (animIndex >= this.fadeToDayAnim.currentFrame()) {
                 this.fadeToDayAnim.index++;
                 animIndex = 0;
             }
-            
-            
+
+
             if (this.fadeToDayAnim.index >= this.fadeToDayAnim.animateThese.size()) {
                 fadeToDay = false;
                 game.map.timeOfDay = "Day";
                 this.fadeToDayAnim.index = 0;
-                
+
                 //TODO - fade day music
                 game.currMusic.pause();
                 //start night music
@@ -2963,33 +2963,33 @@ class CycleDayNight extends Action {
                 game.currMusic = music;
                 game.map.currRoute.music = music; //TODO - how to switch to normal after defeating
                 game.currMusic.play();
-                
+
                 //state which day it is
                 day++;
                 signCounter = 300;
                 this.bgSprite.setPosition(0,24);
             }
         }
-        
-        
+
+
         if (fadeToNight == true) {
-            
+
             game.mapBatch.setColor(this.animContainer.currentThing());
-            
+
             animIndex++;
 
             if (animIndex >= this.animContainer.currentFrame()) {
                 this.animContainer.index++;
                 animIndex = 0;
             }
-            
-            
+
+
             if (this.animContainer.index >= this.animContainer.animateThese.size()) {
                 fadeToNight = false;
                 game.map.timeOfDay = "Night";
                 this.countDownToGhost = 150; //this.rand.nextInt(5000) + 150;  // debug: 150;
                 this.animContainer.index = 0;
-                
+
                 //TODO - fade day music
                 game.currMusic.pause();
                 //start night music
@@ -2999,35 +2999,35 @@ class CycleDayNight extends Action {
                 game.currMusic = music;
                 game.map.currRoute.music = music; //TODO - how to switch to normal after defeating
                 game.currMusic.play();
-                
+
                 //state which night it is
                 night++;
                 signCounter = 150;
                 this.bgSprite.setPosition(0,24);
             }
         }
-        
-        
+
+
         //check player can move so don't spawn in middle of battle or when looking at ghost
-        if (game.map.timeOfDay == "Night" && game.playerCanMove == true) { 
+        if (game.map.timeOfDay == "Night" && game.playerCanMove == true) {
             //chance to spawn ghost
             countDownToGhost--;
             if (game.player.currState != "Running") {
                 countDownToGhost--;
             }
-            
+
             if (countDownToGhost == 0) {
                 Vector2 randPos = game.player.position.cpy().add(this.rand.nextInt(5)*16 - 48, this.rand.nextInt(5)*16 - 48);
                 game.insertAction(new spawnGhost(game, new Vector2(randPos)) );
                 this.countDownToGhost = this.rand.nextInt(4000) + 1000; // debug: 1000;
             }
-            
+
         }
-        
+
 
         if (signCounter > 0) {
             signCounter--;
-            
+
             if (signCounter > 100) {
             }
             else if (signCounter > 78) {
@@ -3038,7 +3038,7 @@ class CycleDayNight extends Action {
             else {
                 this.bgSprite.setPosition(this.bgSprite.getX(), this.bgSprite.getY()+1);
             }
-            
+
             this.bgSprite.draw(game.uiBatch);
             String temp="";
             if (game.map.timeOfDay == "Day") {
@@ -3049,14 +3049,14 @@ class CycleDayNight extends Action {
             }
             game.font.draw(game.uiBatch, game.map.timeOfDay+": "+temp, 60, this.bgSprite.getY()+134); //Gdx.graphics.getHeight()-
         }
-        
+
     }
-    
+
     public CycleDayNight(Game game) {
-        
+
         this.day = 1;
         this.night = 0;
-        
+
         this.animContainer = new AnimationContainer<Color>();
         animContainer.add(new Color(0.8f, 0.8f, 0.8f, 1.0f), 80);
         animContainer.add(new Color(0.5f, 0.5f, 0.6f, 1.0f), 80);
@@ -3064,7 +3064,7 @@ class CycleDayNight extends Action {
         animContainer.add(new Color(0.08f, 0.08f, 0.3f, 1.0f), 80);
         // this was too dark for color overworld
         // maybe use this in forest biomes, require player to have 'flash' pokemon (charmander walking, etc?)
-//        animContainer.add(new Color(0.01f, 0.01f, 0.2f, 1.0f), 80);  
+//        animContainer.add(new Color(0.01f, 0.01f, 0.2f, 1.0f), 80);
 
         this.fadeToDayAnim = new AnimationContainer<Color>();
 //        fadeToDayAnim.add(new Color(0.01f, 0.01f, 0.2f, 1.0f), 80);
@@ -3076,10 +3076,10 @@ class CycleDayNight extends Action {
         this.fadeToDay = false;
         this.fadeToNight = false;
         this.animIndex = 0;
-        
+
         this.rand = new Random();
         CycleDayNight.dayTimer = 10000; //100; //- debug // 10000;
-        
+
 
         Texture text = new Texture(Gdx.files.internal("text2.png"));
         this.bgSprite = new Sprite(text, 0, 0, 160, 144);
@@ -3097,12 +3097,12 @@ class itemPickupNotify extends Action {
   public int layer = 114;
   public int getLayer(){return this.layer;}
   public String getCamera() {return "gui";};
-  
+
   Sprite bgSprite;
   int signCounter = 150;
   String itemName;
   int quantity;
-  
+
   @Override
   public void step(Game game) {
       if (signCounter > 0) {
@@ -3121,7 +3121,7 @@ class itemPickupNotify extends Action {
           game.font.draw(game.uiBatch, "Picked up "+this.itemName+" x"+this.quantity+".", 42, this.bgSprite.getY()+134);
       }
   }
-  
+
   public itemPickupNotify(Game game, String itemName, int quantity) {
       this.itemName = itemName;
       this.quantity = quantity;
@@ -3136,12 +3136,12 @@ class requirementNotify extends Action {
   public int layer = 114;
   public int getLayer(){return this.layer;}
   public String getCamera() {return "gui";};
-  
+
   Sprite bgSprite;
   int signCounter = 100;
   String tileName;
   String text = "";
-  
+
   @Override
   public void step(Game game) {
       if (signCounter > 0) {
@@ -3157,11 +3157,11 @@ class requirementNotify extends Action {
               this.bgSprite.setPosition(this.bgSprite.getX(), this.bgSprite.getY()-1);
           }
           this.bgSprite.draw(game.uiBatch);
-          
+
           game.font.draw(game.uiBatch, "Requires: " + this.text, 10, this.bgSprite.getY()+134);
       }
   }
-  
+
   public requirementNotify(Game game, String tileName) {
       this.tileName = tileName;
       Texture text = new Texture(Gdx.files.internal("text2.png"));
@@ -3180,12 +3180,12 @@ class requirementNotify extends Action {
 //// maybe they could also check some global booleans?
 // // hmm, that might work
 //class DrawAndroidControls extends Action {
-//    
+//
 //    public int layer = 101;  // hopefully above most things?
 //    public int getLayer(){return this.layer;}
-//    
+//
 //    public String getCamera() {return "gui";};
-//    
+//
 //    Sprite leftArrowSprite;
 //    Sprite rightArrowSprite;
 ////    Robot robot;
@@ -3194,29 +3194,29 @@ class requirementNotify extends Action {
 //    public void step(Game game) {
 //
 //        this.leftArrowSprite.draw(game.uiBatch);
-//        
+//
 //
 //        if (Gdx.input.justTouched()) {
 //
 //            Vector3 touchPos = new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
 //            game.cam.unproject(touchPos);
-//            
+//
 //            if (this.leftArrowSprite.getBoundingRectangle().contains(touchPos.x, touchPos.y)) {
 //                int keyCode = KeyEvent.VK_LEFT; // left arrow
 ////                this.robot.keyPress(keyCode);
 //            }
 //        }
-//        
-//        
+//
+//
 //    }
 //
 //    public DrawAndroidControls() {
-//        
+//
 //        Texture text = new Texture(Gdx.files.internal("battle/player_back1.png"));
 //        this.leftArrowSprite = new Sprite(text, 0, 0, 28, 28);
 //        this.leftArrowSprite.setPosition(0,0);
 //        this.rightArrowSprite = new Sprite(text, 0, 0, 28, 28);
-//        
+//
 ////        try {
 ////            this.robot = new Robot();
 ////        } catch (AWTException e) {
@@ -3224,33 +3224,33 @@ class requirementNotify extends Action {
 ////            e.printStackTrace();
 ////        }
 //    }
-//}    
+//}
 
 
 
 //contains thing to cycle, number of frames for thing
 //add more in future, like sounds
 class AnimationContainer<E> {
-    
+
     ArrayList<E> animateThese;
     ArrayList<Integer> numFrames;
-    
+
     int index;
-    
+
     public void add(E thing, int numFrames) {
         animateThese.add(thing);;
         this.numFrames.add(numFrames);
-    
+
     }
 
     public E currentThing() {
         return this.animateThese.get(this.index);
     }
-    
+
     public int currentFrame() {
         return this.numFrames.get(this.index);
     }
-    
+
     public AnimationContainer() {
         this.animateThese = new ArrayList<E>();
         this.numFrames = new ArrayList<Integer>();
@@ -3260,7 +3260,7 @@ class AnimationContainer<E> {
 
 
 class CutTreeAnim extends Action {
-    
+
     int index = 0;
     Tile tile;
     Action nextAction;
@@ -3268,14 +3268,14 @@ class CutTreeAnim extends Action {
 
     @Override
     public void step(Game game) {
-        
+
         if (this.index < 13) {
         }
         else if (this.index == 13) {
             game.insertAction(new PlaySound("cut1", new DoneAction()));
         }
         else if (this.index < 19) {
-            
+
         }
         else if (this.index == 19) {
             // TODO: map tiles to anim tiles
@@ -3288,7 +3288,7 @@ class CutTreeAnim extends Action {
             game.map.tiles.put(this.tile.position.cpy(),
                                new Tile(this.tile.name, this.tile.position.cpy(),
                                         true, this.tile.routeBelongsTo));
-            
+
             game.mapBatch.draw(this.tile.sprite, this.tile.sprite.getX(), this.tile.sprite.getY());
             game.mapBatch.draw(this.tile.overSprite, this.tile.overSprite.getX(), this.tile.overSprite.getY());
         }
@@ -3308,7 +3308,7 @@ class CutTreeAnim extends Action {
             game.mapBatch.draw(this.right, this.right.getX(), this.right.getY());
         }
         else if (this.index < 20+17+2) {
-            
+
         }
         else if (this.index == 20+17+2) {
             this.left.translateX(-2);
@@ -3321,7 +3321,7 @@ class CutTreeAnim extends Action {
             game.mapBatch.draw(this.right, this.right.getX(), this.right.getY());
         }
         else if (this.index < 20+17+2+2+2) {
-            
+
         }
         else if (this.index == 20+17+2+2+2) {
             this.left.translateX(-2);
@@ -3334,7 +3334,7 @@ class CutTreeAnim extends Action {
             game.mapBatch.draw(this.right, this.right.getX(), this.right.getY());
         }
         else if (this.index < 20+17+2+2+2+2+2) {
-            
+
         }
         else if (this.index == 20+17+2+2+2+2+2) {
             this.left.translateX(-2);
@@ -3343,7 +3343,7 @@ class CutTreeAnim extends Action {
             game.mapBatch.draw(this.right, this.right.getX(), this.right.getY());
         }
         else if (this.index < 20+17+2+2+2+2+2+2) {
-            
+
         }
         else {
 //            game.map.tiles.put(this.tile.position.cpy(), this.tile);
@@ -3362,7 +3362,7 @@ class CutTreeAnim extends Action {
 
 
 class HeadbuttTreeAnim extends Action {
-    
+
     Sprite originalSprite;
     Sprite rightSprite;
     Sprite leftSprite;
@@ -3473,7 +3473,7 @@ class HeadbuttTreeAnim extends Action {
 
 
 /*
- * 
+ *
  *      Tried to used deltatime for movement, proved bad because pixels are so visible
 
         //draw the sprite corresponding to player direction
@@ -3481,15 +3481,15 @@ class HeadbuttTreeAnim extends Action {
 
 
         //game.batch.draw(game.player.standingSprites.get(game.player.dirFacing), game.player.position.x, game.player.position.y);
-        
+
         //game.player.currSprite = new Sprite(game.player.standingSprites.get(game.player.dirFacing));
-        
-        
+
+
 
         //game.player.currSprite.translate(0,-this.speed*Gdx.graphics.getDeltaTime());
         //snap camera
         //game.cam.translate(0,-this.speed*Gdx.graphics.getDeltaTime());
-        
+
         //game.player.currSprite.draw(game.batch);
 
         //System.out.println("Timer: " + String.valueOf(Math.abs(this.initialPos.y)));
@@ -3515,7 +3515,7 @@ class HeadbuttTreeAnim extends Action {
         //old playerMoving code to see where to move next
         /* remove this if chaining the standing action works
         this.initialPos = new Vector2(game.player.position);
-        
+
         if(Gdx.input.isKeyPressed(Input.Keys.UP)) {
             game.player.dirFacing = "up";
             this.alternate = !this.alternate; //flip sprite for up/down movement
@@ -3540,7 +3540,7 @@ class HeadbuttTreeAnim extends Action {
             game.insertAction(new playerStanding(game));
             game.actionStack.remove(this);
         }
-        
+
         //if the targetPos is a solid tile, instead go to 'bump' action
         Tile temp = game.map.tiles.get(this.targetPos);
         if (temp != null) {
@@ -3556,34 +3556,34 @@ class HeadbuttTreeAnim extends Action {
         /* detect encounters code in playerStanding
         //when moving to tile, no chance of encounter unless continuing to move
         boolean checkWildEncounter(PkmnGen game) {
-            
+
             Tile currTile = game.map.tiles.get(game.player.position);
-            
+
             if (currTile != null) {
-                
+
                 //if currently on grass
                 if (currTile.attrs.get("grass") == true) {
                     //chance wild encounter
                     int randomNum = this.rand.nextInt(100) + 1; //rate determine by player? //1 - 100
                     if (randomNum <= 50) { //encounterRate
-                        //disable player movement 
+                        //disable player movement
                         game.actionStack.remove(this);
-                        
+
                         //select new pokemon to encounter, put it in battle struct
                         int index = rand.nextInt(game.map.currRoute.pokemon.size());
                         //game.battle.currPokemon = game.map.currRoute.pokemon.get(index);
-                        
+
                         //start battle anim
                         //game.insertAction(new battleIntro(game));
-                        
+
                         System.out.println("Wild encounter.");
-                        
+
                         return true;
                     }
                 }
-                
+
             }
-            
+
             return false;
         }
         */
