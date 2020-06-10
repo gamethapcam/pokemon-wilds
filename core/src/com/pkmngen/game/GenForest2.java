@@ -3,15 +3,12 @@ package com.pkmngen.game;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.Random;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.math.Vector2;
-import com.pkmngen.game.GenForest1.AddPlatform;
 
 
 
@@ -33,7 +30,8 @@ class GenIsland1 extends Action {
 
     ArrayList<Action> doActions;
 
-    Vector2 topLeft, bottomRight;
+    Vector2 topLeft;
+    Vector2 bottomRight;
     Vector2 origin;
     int radius;
 
@@ -350,97 +348,97 @@ class GenIsland1 extends Action {
                     tileLevels.containsKey(right) && tileLevels.get(right) == tileLevels.get(tile)-1) {
                     tileLevels.put(tile, tileLevels.get(tile)-1);
                     done = false;
-                    break;
+//                    break;
                 }
                 if (tileLevels.containsKey(top) && tileLevels.get(top) == tileLevels.get(tile)-1 &&
                     tileLevels.containsKey(bot) && tileLevels.get(bot) == tileLevels.get(tile)-1) {
                     tileLevels.put(tile, tileLevels.get(tile)-1);
                     done = false;
-                    break;
+//                    break;
                 }
                 if (tileLevels.containsKey(top) && tileLevels.get(top) == tileLevels.get(tile)-1 &&
                     tileLevels.containsKey(left) && tileLevels.get(left) == tileLevels.get(tile)-1 &&
                     tileLevels.containsKey(br) && tileLevels.get(br) == tileLevels.get(tile)-1) {
                     tileLevels.put(tile, tileLevels.get(tile)-1);
                     done = false;
-                    break;
+//                    break;
                 }
                 if (tileLevels.containsKey(top) && tileLevels.get(top) == tileLevels.get(tile)-1 &&
                         tileLevels.containsKey(right) && tileLevels.get(right) == tileLevels.get(tile)-1 &&
                         tileLevels.containsKey(bl) && tileLevels.get(bl) == tileLevels.get(tile)-1) {
                    tileLevels.put(tile, tileLevels.get(tile)-1);
                    done = false;
-                   break;
+//                   break;
                 }
                 if (tileLevels.containsKey(bot) && tileLevels.get(bot) == tileLevels.get(tile)-1 &&
                         tileLevels.containsKey(right) && tileLevels.get(right) == tileLevels.get(tile)-1 &&
                         tileLevels.containsKey(tl) && tileLevels.get(tl) == tileLevels.get(tile)-1) {
                    tileLevels.put(tile, tileLevels.get(tile)-1);
                    done = false;
-                   break;
+//                   break;
                 }
                 if (tileLevels.containsKey(bot) && tileLevels.get(bot) == tileLevels.get(tile)-1 &&
                         tileLevels.containsKey(left) && tileLevels.get(left) == tileLevels.get(tile)-1 &&
                         tileLevels.containsKey(tr) && tileLevels.get(tr) == tileLevels.get(tile)-1) {
                    tileLevels.put(tile, tileLevels.get(tile)-1);
                    done = false;
-                   break;
+//                   break;
                 }
                 if (tileLevels.containsKey(bot) && tileLevels.get(bot) == tileLevels.get(tile) &&
                         tileLevels.containsKey(left) && tileLevels.get(left) == tileLevels.get(tile)-1 &&
                         tileLevels.containsKey(br) && tileLevels.get(br) == tileLevels.get(tile)-1) {
                    tileLevels.put(tile, tileLevels.get(tile)-1);
                    done = false;
-                   break;
+//                   break;
                 }
                 if (tileLevels.containsKey(bot) && tileLevels.get(bot) == tileLevels.get(tile) &&
                         tileLevels.containsKey(right) && tileLevels.get(right) == tileLevels.get(tile)-1 &&
                         tileLevels.containsKey(bl) && tileLevels.get(bl) == tileLevels.get(tile)-1) {
                    tileLevels.put(tile, tileLevels.get(tile)-1);
                    done = false;
-                   break;
+//                   break;
                 }
                 if (tileLevels.containsKey(top) && tileLevels.get(top) == tileLevels.get(tile) &&
                         tileLevels.containsKey(left) && tileLevels.get(left) == tileLevels.get(tile)-1 &&
                         tileLevels.containsKey(tr) && tileLevels.get(tr) == tileLevels.get(tile)-1) {
                    tileLevels.put(tile, tileLevels.get(tile)-1);
                    done = false;
-                   break;
+//                   break;
                 }
                 if (tileLevels.containsKey(top) && tileLevels.get(top) == tileLevels.get(tile) &&
                         tileLevels.containsKey(right) && tileLevels.get(right) == tileLevels.get(tile)-1 &&
                         tileLevels.containsKey(tl) && tileLevels.get(tl) == tileLevels.get(tile)-1) {
                    tileLevels.put(tile, tileLevels.get(tile)-1);
                    done = false;
-                   break;
+//                   break;
                 }
                 if (tileLevels.containsKey(right) && tileLevels.get(right) == tileLevels.get(tile) &&
                         tileLevels.containsKey(top) && tileLevels.get(top) == tileLevels.get(tile)-1 &&
                         tileLevels.containsKey(br) && tileLevels.get(br) == tileLevels.get(tile)-1) {
                    tileLevels.put(tile, tileLevels.get(tile)-1);
                    done = false;
-                   break;
+//                   break;
                 }
                 if (tileLevels.containsKey(right) && tileLevels.get(right) == tileLevels.get(tile) &&
                         tileLevels.containsKey(bot) && tileLevels.get(bot) == tileLevels.get(tile)-1 &&
                         tileLevels.containsKey(tr) && tileLevels.get(tr) == tileLevels.get(tile)-1) {
                    tileLevels.put(tile, tileLevels.get(tile)-1);
                    done = false;
-                   break;
+//                   break;
                 }
                 if (tileLevels.containsKey(left) && tileLevels.get(left) == tileLevels.get(tile) &&
                         tileLevels.containsKey(bot) && tileLevels.get(bot) == tileLevels.get(tile)-1 &&
                         tileLevels.containsKey(tl) && tileLevels.get(tl) == tileLevels.get(tile)-1) {
                    tileLevels.put(tile, tileLevels.get(tile)-1);
                    done = false;
-                   break;
+//                   break;
                 }
                 if (tileLevels.containsKey(left) && tileLevels.get(left) == tileLevels.get(tile) &&
                         tileLevels.containsKey(top) && tileLevels.get(top) == tileLevels.get(tile)-1 &&
                         tileLevels.containsKey(bl) && tileLevels.get(bl) == tileLevels.get(tile)-1) {
                    tileLevels.put(tile, tileLevels.get(tile)-1);
                    done = false;
-                   break;
+//                   break;
                 }
             }
         }
@@ -637,7 +635,7 @@ class GenIsland1 extends Action {
                                             newTile = new Tile("tree2", edge);
                                     }
                                 }
-                                else if ((int)distance < 3*maxDist/8) {
+                                else if ((int)distance + this.rand.nextInt(maxDist/16 +1) < 3*maxDist/8) {  // note: remove randint part for smoother forest edge
                                     forestMazeTiles.put(newTile.position.cpy(), newTile);
                                 }
                                 int grassBlotchHere = this.rand.nextInt(maxDist/4) + (int)distance;
@@ -793,8 +791,8 @@ class GenIsland1 extends Action {
             bl.y = bl.y - (bl.y % 16);
             // TODO: density/complexity appear to not matter at large sizes, maze is always the same size.
             // Algorithm needs to be fixed.
-            float density = .1f;
-            float complexity = .9f;
+            float density = 0.1f;
+            float complexity = 0.9f;
             int squareSize = 3*32;
             HashMap<Vector2, MazeNode> nodes = GenForest2.Maze_Algo1((int)(tr.x-bl.x)*2/squareSize, (int)(tr.y-bl.y)*2/squareSize, density, complexity, squareSize, this.rand);
             //for each node, get a template tile that matches it's number of openings
@@ -944,7 +942,13 @@ class GenIsland1 extends Action {
         for (Tile tile : endPoints) {
               // TODO: this might be fixed, test
             Route blotchRoute = new Route("forest1", 22); // TODO: mem usage too high
-            ApplyBlotch(game, "island", tile, maxDist/6, this.tilesToAdd, 1, true, blotchRoute);
+            // TODO: maxDist/6 is too big I think for some islands.
+            // maxDist/6 for 100x100 island, it looked pretty good.
+            // maxDist/10 for 100x180 island
+            // maxDist/14 for 100x350 island
+            // maxDist/17 for 100x500 island
+            // TODO: could try adding more layers to mountains for larger islands.
+            ApplyBlotch(game, "island", tile, maxDist/18, this.tilesToAdd, 1, true, blotchRoute); 
         }
         this.tilesToAdd.putAll(mtnTiles);
 
@@ -953,7 +957,7 @@ class GenIsland1 extends Action {
         // TODO: this occasionally causes crash (when tile == null)
         // Might need a better way to store tiles bigger than 16x16
         //  TODO: I should just have each of those 16x16 blocks pointing to the same tile, that would solve all of these issues.
-        for (int i=0; i<1; i++) {
+        for (int i=0; i < 1; i++) {
             for (Tile tile : new ArrayList<Tile>(tilesToAdd.values())) {
                 if (tile.name.equals("tree_large1")) {
                     Vector2 tl = tile.position.cpy().add(16,0);
@@ -972,25 +976,25 @@ class GenIsland1 extends Action {
                     }
                 }
                 // TODO: this isn't working, lots of tile == null
-//                else if (tile.name.equals("tree_large1_noSprite")) {
+                else if (tile.name.equals("tree_large1_noSprite")) {
 //
 //                    Vector2 tl = tile.position.cpy().add(16,0);
 //                    Vector2 tr = tile.position.cpy().add(16,16);
 //                    Vector2 br = tile.position.cpy().add(0,16);
 //                    Vector2 bl = tile.position.cpy().add(16,-16);
 //
-//                    if ((this.tilesToAdd.containsKey(tile.position.cpy().add(16,-16)) && !this.tilesToAdd.get(tile.position.cpy().add(16,0)).name.equals("tree_large1_noSprite") ||
-//                         !this.tilesToAdd.get(tile.position.cpy().add(0,-16)).name.equals("tree_large1") ||
-//                         !this.tilesToAdd.get(tile.position.cpy().add(16,-16)).name.equals("tree_large1_noSprite")) &&
-//                        (this.tilesToAdd.containsKey(tile.position.cpy().add(-16,-16)) && !this.tilesToAdd.get(tile.position.cpy().add(-16,0)).name.equals("tree_large1_noSprite") ||
-//                         !this.tilesToAdd.get(tile.position.cpy().add(-16,-16)).name.equals("tree_large1") ||
-//                         !this.tilesToAdd.get(tile.position.cpy().add(0,-16)).name.equals("tree_large1_noSprite")) &&
-//                        (this.tilesToAdd.containsKey(tile.position.cpy().add(-16,16)) && !this.tilesToAdd.get(tile.position.cpy().add(-16,16)).name.equals("tree_large1_noSprite") ||
-//                         !this.tilesToAdd.get(tile.position.cpy().add(-16,0)).name.equals("tree_large1") ||
-//                         !this.tilesToAdd.get(tile.position.cpy().add(0,16)).name.equals("tree_large1_noSprite"))) {
-//                        this.tilesToAdd.put(tile.position, new Tile("bush1", tile.position.cpy(), true, tile.routeBelongsTo));
-//                    }
-//                }
+                    if ((this.tilesToAdd.containsKey(tile.position.cpy().add(16,-16)) && !this.tilesToAdd.get(tile.position.cpy().add(16,0)).name.equals("tree_large1_noSprite") ||
+                         !this.tilesToAdd.get(tile.position.cpy().add(0,-16)).name.equals("tree_large1") ||
+                         !this.tilesToAdd.get(tile.position.cpy().add(16,-16)).name.equals("tree_large1_noSprite")) &&
+                        (this.tilesToAdd.containsKey(tile.position.cpy().add(-16,-16)) && !this.tilesToAdd.get(tile.position.cpy().add(-16,0)).name.equals("tree_large1_noSprite") ||
+                         !this.tilesToAdd.get(tile.position.cpy().add(-16,-16)).name.equals("tree_large1") ||
+                         !this.tilesToAdd.get(tile.position.cpy().add(0,-16)).name.equals("tree_large1_noSprite")) &&
+                        (this.tilesToAdd.containsKey(tile.position.cpy().add(-16,16)) && !this.tilesToAdd.get(tile.position.cpy().add(-16,16)).name.equals("tree_large1_noSprite") ||
+                         !this.tilesToAdd.get(tile.position.cpy().add(-16,0)).name.equals("tree_large1") ||
+                         !this.tilesToAdd.get(tile.position.cpy().add(0,16)).name.equals("tree_large1_noSprite"))) {
+                        this.tilesToAdd.put(tile.position, new Tile("bush1", tile.position.cpy(), true, tile.routeBelongsTo));
+                    }
+                }
             }
         }
 
@@ -1083,8 +1087,10 @@ class GenIsland1 extends Action {
 
 class MazeNode {
 
-    int x, y;
-    boolean leftOpen, downOpen;
+    int x;
+    int y;
+    boolean leftOpen;
+    boolean downOpen;
     boolean isOpen[];
     int size;
 
@@ -1124,7 +1130,8 @@ public class GenForest2 extends Action {
 
     ArrayList<Action> doActions;
 
-    Vector2 topLeft, bottomRight;
+    Vector2 topLeft;
+    Vector2 bottomRight;
 
     Random rand;
 
@@ -1208,8 +1215,8 @@ public class GenForest2 extends Action {
         int width = (int)((endLoc.x - startLoc.x)/squareSize)*2; //8; //
         int height = (int)((endLoc.y - startLoc.y)/squareSize)*2; //10; //
         //below settings allow for a few loops to be present on average, which is what I want
-        float density = .1f; //num times a 'long wall' is created. algo works by creating a long wall at random  //.2f //.1f for 500 width
-        float complexity = .9f; //length of that 'long wall' //.2f
+        float density = 0.1f; //num times a 'long wall' is created. algo works by creating a long wall at random  //.2f //.1f for 500 width
+        float complexity = 0.9f; //length of that 'long wall' //.2f
         HashMap<Vector2, MazeNode> nodes = Maze_Algo1(width, height, density, complexity, squareSize, this.rand);
 
 
@@ -2073,8 +2080,8 @@ public class GenForest2 extends Action {
             int x = this.rand.nextInt((int)(endLoc.x - startLoc.x)) + (int)startLoc.x;
             int y = this.rand.nextInt((int)(endLoc.y - startLoc.y)) + (int)startLoc.y;
             //make variable width about 3/6 of range, +/- 1/6 of range for now
-            int width = (int) ( .5f * (endLoc.x - startLoc.x) + ((this.rand.nextInt(10)+1)/10f) * (2f/6f) * (endLoc.x - startLoc.x) - (1f/6f) * (endLoc.x - startLoc.x) );
-            int height = (int) ( .5f * (endLoc.y - startLoc.y) + ((this.rand.nextInt(10)+1)/10f) * (2f/6f) * (endLoc.y - startLoc.y) - (1f/6f) * (endLoc.y - startLoc.y) );
+            int width = (int) (0.5f * (endLoc.x - startLoc.x) + ((this.rand.nextInt(10)+1)/10f) * (2f/6f) * (endLoc.x - startLoc.x) - (1f/6f) * (endLoc.x - startLoc.x) );
+            int height = (int) (0.5f * (endLoc.y - startLoc.y) + ((this.rand.nextInt(10)+1)/10f) * (2f/6f) * (endLoc.y - startLoc.y) - (1f/6f) * (endLoc.y - startLoc.y) );
 
 
             this.bottomLeft = new Vector2(x - width/2, y - height/2);

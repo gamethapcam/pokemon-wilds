@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.omg.CORBA.PUBLIC_MEMBER;
+
 import box2dLight.RayHandler;
 
 import com.badlogic.gdx.Application.ApplicationType;
@@ -12,10 +14,14 @@ import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.audio.Music;
+import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.graphics.Pixmap;
+import com.badlogic.gdx.graphics.PixmapIO;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.TextureData;
 import com.badlogic.gdx.graphics.Texture.TextureFilter;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.Sprite;
@@ -25,6 +31,7 @@ import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator.FreeTypeFont
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.physics.box2d.World;
+import com.badlogic.gdx.utils.GdxRuntimeException;
 import com.esotericsoftware.kryonet.Client;
 import com.esotericsoftware.kryonet.Connection;
 import com.esotericsoftware.kryonet.Server;
@@ -35,9 +42,6 @@ public class Game extends ApplicationAdapter {
 
     public ArrayList<Action> actionStack;
 
-    //for debug
-    public static String debugString;
-
     // For non-floating elements
     public SpriteBatch mapBatch;
 
@@ -45,12 +49,10 @@ public class Game extends ApplicationAdapter {
     public SpriteBatch uiBatch;
 
     public BitmapFont font;
+    public BitmapFont font2;
 
     public OrthographicCamera cam;
     public OrthographicCamera cam2;
-
-    // TODO: remove if unused
-//    public Viewport viewport;
 
     //demo code - num objectives finished
     public int numObjectivesFinished = 0;
@@ -62,10 +64,6 @@ public class Game extends ApplicationAdapter {
     public Client client;
     public Server server;
 
-    //box2d
-    //World world;
-    //Box2DDebugRenderer debugRenderer;
-
     Player player;
     PkmnMap map;
     Battle battle;
@@ -74,10 +72,10 @@ public class Game extends ApplicationAdapter {
      //may have to replace this with a string
     Music currMusic;
 
-    //when want to play a music file, put in here. call dispose and remove elements when done
+    // When want to play a music file, put in here. Call dispose and remove elements when done.
     HashMap<String, Music> loadedMusic =  new HashMap<String, Music>();
 
-    //char-to-Sprite text dictionary
+    // char-to-Sprite text dictionary
     Map<Character, Sprite> textDict;
 
     // Annoying - used for music completion listener
@@ -100,7 +98,7 @@ public class Game extends ApplicationAdapter {
 
     enum Type {
         CLIENT,
-        SERVER;
+        SERVER
     }
     Type type;
 
@@ -150,14 +148,22 @@ public class Game extends ApplicationAdapter {
         //set the font //disabled as per html5
         FreeTypeFontGenerator gen = new FreeTypeFontGenerator(Gdx.files.internal("fonts.ttf"));
         FreeTypeFontParameter parameter = new FreeTypeFontParameter();
-        parameter.size = 10;
+//        parameter.size = 10;
+        parameter.size = 30;
         font = gen.generateFont(parameter);
         font.getRegion().getTexture().setFilter(TextureFilter.Linear, TextureFilter.Linear);
         //font.setColor(Color.RED);
-        font.setColor(Color.BLACK);
+//        font.setColor(Color.BLACK);
+        font.setColor(Color.WHITE);
         //font.setScale(1,1); //used this when floatingBatch was 3x size
-        //font.setScale(.4f,.4f);
-        font.setScale(.5f,.5f);
+        //font.setScale(0.4f,.4f);
+        font.setScale(0.5f, 0.5f);
+
+        parameter.size = 20;
+        font2 = gen.generateFont(parameter);
+        font2.getRegion().getTexture().setFilter(TextureFilter.Linear, TextureFilter.Linear);
+        font2.setColor(Color.WHITE);
+        font2.setScale(0.5f, 0.5f);
 
         //stores touch location
         touchLoc = new Vector3();
@@ -213,7 +219,7 @@ public class Game extends ApplicationAdapter {
         // TODO: remove if unused
         //start playing music?
 //                    this.currMusic = this.map.currRoute.music;
-        //this.currMusic.setVolume(.0f);
+        //this.currMusic.setVolume(0.0f);
         //this.currMusic.play(); //debug TODO - enable this
 
         this.currMusic = Gdx.audio.newMusic(Gdx.files.internal("music/nature1_render.ogg"));
@@ -234,11 +240,11 @@ public class Game extends ApplicationAdapter {
                 String nextMusicName = Game.staticGame.map.currRoute.getNextMusic(true);
                 // TODO: would it be good to also accept music instance here?
                 // TODO: these fade-ins don't even work. will need for route musics
-                Action nextMusic = new FadeMusic("currMusic", "out", "", .025f,
+                Action nextMusic = new FadeMusic("currMusic", "out", "", 0.025f,
                                    // TODO: there's def a bug here if you run into a wild
                                    // pokemon while waiting frames, the next music will start anyway
                                    new WaitFrames(Game.staticGame, 360,
-                                   new FadeMusic(nextMusicName, "in", "", .2f, true, 1f, this, new DoneAction())));
+                                   new FadeMusic(nextMusicName, "in", "", 0.2f, true, 1f, this, new DoneAction())));
                 Game.staticGame.insertAction(nextMusic);
                 nextMusic.step(Game.staticGame);
             }
@@ -260,7 +266,9 @@ public class Game extends ApplicationAdapter {
         // old size = 16*20
 //                    PublicFunctions.insertToAS(this, new GenIsland1(this, new Vector2(0,0), 20*40)); //16*15 //30*40 // 20*40  //16*18 //20*30
         // generates a mountain now.
-        this.insertAction(new GenIsland1(this, new Vector2(0,0), 100*100)); //100*100 //20*30 //60*100 //100*120
+        // Tried 100*800, pixmap save didn't work.
+        // Tried 100*700, pixmap error loading tiles/water2.png
+        this.insertAction(new GenIsland1(this, new Vector2(0, 0), 100*300)); //100*500 //100*180 //100*100 //20*30 //60*100 //100*120
 
         // TODO - mega gengar battle debug in genforest2, remove that
 
@@ -332,15 +340,17 @@ public class Game extends ApplicationAdapter {
 
         //TODO: debug, delete
 //                    this.player.currPokemon.currentStats.put("hp", 12);
-//                    this.player.pokemon.add(new Pokemon("Machop", 50, Pokemon.Generation.CRYSTAL));
+        this.player.pokemon.add(new Pokemon("Machop", 50, Pokemon.Generation.CRYSTAL));
 //                    this.battle.attacks.get("karate chop").power = 200;  // TODO: debug, remove
-        this.player.pokemon.add(new Pokemon("Cyndaquil", 50, Pokemon.Generation.CRYSTAL));
-        this.battle.attacks.get("flamethrower").power = 200;  // TODO: debug, remove
+//        this.player.pokemon.add(new Pokemon("Cyndaquil", 50, Pokemon.Generation.CRYSTAL));
+//        this.battle.attacks.get("flamethrower").power = 200;  // TODO: debug, remove
         this.player.pokemon.add(new Pokemon("sneasel", 50, Pokemon.Generation.CRYSTAL));
-        this.player.pokemon.get(1).attacks[0] = "Bubblebeam";  // TODO: debug, remove
+//        this.player.pokemon.get(1).attacks[0] = "Bubblebeam";  // TODO: debug, remove
+        this.player.pokemon.get(1).attacks[0] = "Ice Beam";  // TODO: debug, remove
         this.player.pokemon.add(new Pokemon("stantler", 50, Pokemon.Generation.CRYSTAL));
         this.player.currPokemon = this.player.pokemon.get(0);
-
+        
+        
 
         // TODO: delete
 //                    this.currMusic = this.battle.music;
@@ -410,16 +420,12 @@ public class Game extends ApplicationAdapter {
 
     @Override
     public void render() {
-
         handleInput();
-
         Gdx.gl.glClearColor(1, 1, 1, 1);
-        // Gdx.gl.glClearColor(0, 0, 0, 1);  // was black bg
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
         this.cam.update();
         this.mapBatch.setProjectionMatrix(cam.combined);
-
-        // Iterate twice, once for this.batch (map objects), once for this.uiBatch (ui objects)
+        // Iterate through this.actionStack twice, once for this.batch (map objects), once for this.uiBatch (ui objects)
         this.mapBatch.begin();
         // Iterate through the action stack and call the step() fn of each Action.
         for (Action action : new ArrayList<Action>(this.actionStack)) {
@@ -441,24 +447,10 @@ public class Game extends ApplicationAdapter {
             }
         }
         this.mapBatch.end();
-
-        // TODO: Debug box2d lights
-        // TODO: Didn't end up using this, using shaders for lighting because
-        // it looks more natural to the Gen1/Gen2 graphics.
-//        this.accumulator += Gdx.graphics.getDeltaTime();
-//        while (this.accumulator >= this.timeIncrement) {
-//            this.b2World.step(this.timeIncrement, this.velocityIterations, this.positionIterations);
-//            this.accumulator -= this.timeIncrement;
-//        }
-//        this.rayHandler.setCombinedMatrix(this.cam.combined.cpy().scale(32.f, 32.f, 32.f));
-////        this.rayHandler.useCustomViewport(Gdx.graphics.getWidth() / 2, 0, Gdx.graphics.getWidth() / 2, Gdx.graphics.getHeight());
-//        this.rayHandler.setAmbientLight(new Color(0f, 0f, 0f, 1f));
-//        this.rayHandler.updateAndRender();
-
         this.uiBatch.begin();
-        //iterate through action stack
-        for (Action action : new ArrayList<Action>(this.actionStack)) { //iterate copy
-            if (action.getCamera().equals("gui")) { //only gui actions
+        // Iterate through the action stack and call the step() fn of each Action.
+        for (Action action : new ArrayList<Action>(this.actionStack)) {
+            if (action.getCamera().equals("gui")) {
                 if (action.firstStep) {
                     action.firstStep(this);
                     action.firstStep = false;
@@ -466,31 +458,10 @@ public class Game extends ApplicationAdapter {
                 action.step(this);
             }
         }
-        // TODO: remove if unused.
-        // Disabled as per html5
-        //font.draw(floatingBatch, "Cam zoom: "+String.valueOf(cam.zoom), 130, 40);
-//        font.draw(floatingBatch, "Cam x pos: "+String.valueOf(cam.position.x), 130, 30);
-//        font.draw(floatingBatch, "Cam y pos: "+String.valueOf(cam.position.y), 130, 20);
-//        font.draw(floatingBatch, "Mouse x pos: "+String.valueOf(Gdx.input.getX()), 130, 50);
-//        font.draw(floatingBatch, "Mouse y pos: "+String.valueOf(Gdx.graphics.getHeight() -  Gdx.input.getY()), 130, 40);
-
-//        font.draw(floatingBatch, "Mouse x pos: "+String.valueOf((Gdx.input.getX())/3), 0, 20);
-//        font.draw(floatingBatch, "Mouse y pos: "+String.valueOf((Gdx.graphics.getHeight() -  Gdx.input.getY())/3), 0, 10);
-//        font.draw(floatingBatch, "Debug: "+PkmnGen.debugString, 10, 20);
-
-//        font.draw(floatingBatch, "CTRL = Slide", 130, 20);
-//        font.draw(floatingBatch, "WASD = Move", 130, 40);
-//        font.draw(floatingBatch, "Q/E = Zoom", 130, 60);
-//        font.draw(floatingBatch, "FPS... = " + String.valueOf(Gdx.graphics.getFramesPerSecond()), 10, 20);
         this.uiBatch.end();
-
-        //box2d
-        //this.world.step(1/60f, 6, 2);
-        //this.debugRenderer.render(world, this.cam.combined);
     }
 
     private void handleInput() {
-
         if(Gdx.input.isKeyPressed(Input.Keys.Q)) {
             cam.zoom += 0.5;
         }
@@ -516,18 +487,14 @@ public class Game extends ApplicationAdapter {
         if(Gdx.input.isKeyJustPressed(Input.Keys.F)) {
             this.cam.zoom = 1;
         }
-        //print action stack in order if p key is pressed
+        // Print action stack in layer-order
         if(Gdx.input.isKeyPressed(Input.Keys.P)) {
             System.out.println("Layer, Name");
             for (Action action : this.actionStack) {
                 System.out.println(String.valueOf(action.getLayer()) + "  " + action.getClass().getName());
             }
-            // TODO: debug, remove
-//            System.out.println("Musics: " + String.valueOf(this.map.currRoute.musics.size()));
-            System.out.println("Test:  ");
-            System.out.println(3 + (3 << 2) + (0 << 4));
         }
-        // check network type (reset when pressed)
+        // Check network type (reset when pressed)
         if (Gdx.input.isKeyJustPressed(Input.Keys.M)) {
             // set up networking
             try {
@@ -540,6 +507,69 @@ public class Game extends ApplicationAdapter {
             try {
                 initClient("127.0.0.1");
             } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        // Screenshot
+        if (Gdx.input.isKeyJustPressed(Input.Keys.L)) {
+            try {
+                // Find map corners
+                Vector2 tl = null;
+                Vector2 br = null;
+                for (Tile tile : this.map.tiles.values()) {
+                    if (tl == null) {
+                        tl = tile.position.cpy();
+                    }
+                    if (br == null) {
+                        br = tile.position.cpy();
+                    }
+                    if (tile.position.x < tl.x) {
+                        tl.x = tile.position.x;
+                    }
+                    else if (tile.position.x > br.x) {
+                        br.x = tile.position.x;
+                    }
+                    if (tile.position.y < br.y) {
+                        br.y = tile.position.y;
+                    }
+                    else if (tile.position.y > tl.y) {
+                        tl.y = tile.position.y;
+                    }
+                }
+                System.out.println("Creating screenshot of full map...");
+                Pixmap pixmap = new Pixmap((int)(br.x-tl.x), (int)(tl.y-br.y), Pixmap.Format.RGBA8888);
+                // Draw all tiles onto the pixmap from top-left to bottom-right
+                for (Vector2 currPos = tl.cpy(); currPos.y >= br.y; currPos.x += 16) {
+                    if (currPos.x > br.x) {
+                        currPos.x = tl.x-16;
+                        currPos.y -= 16;
+                        continue;
+                    }
+                    Tile currTile = this.map.tiles.get(currPos);
+                    if (currTile == null) {
+                        continue;
+                    }
+                    // Draw current tile onto the pixmap
+                    TextureData temp = currTile.sprite.getTexture().getTextureData();
+                    if (!temp.isPrepared()) {
+                        temp.prepare();
+                    }
+                    Pixmap currPixmap = temp.consumePixmap();
+                    pixmap.drawPixmap(currPixmap, (int)(currPos.x-tl.x), (int)(tl.y-currPos.y)+(16-(int)currPixmap.getHeight()));
+                    if (currTile.overSprite == null) {
+                        continue;
+                    }
+                    temp = currTile.overSprite.getTexture().getTextureData();
+                    if (!temp.isPrepared()) {
+                        temp.prepare();
+                    }
+                    currPixmap = temp.consumePixmap();
+                    pixmap.drawPixmap(currPixmap, (int)(currPos.x-tl.x), (int)(tl.y-currPos.y)+(16-(int)currPixmap.getHeight()));
+                }
+                FileHandle file = new FileHandle("screenshot1.png");
+                PixmapIO.writePNG(file, pixmap);
+                System.out.println("Done.");
+            } catch (GdxRuntimeException e) {
                 e.printStackTrace();
             }
         }
@@ -577,6 +607,7 @@ public class Game extends ApplicationAdapter {
         //special chars
         //char[] special_chars = " ".toCharArray();
         textDict.put(' ', new Sprite(text, 10+16*10, 5+12+12, 8, 8)); //blank spot
+        textDict.put('_', new Sprite(text, 10+16*2, 5+12+12+12, 8, 8));
         textDict.put('?', new Sprite(text, 10+16*3, 5+12+12+12, 8, 8));
         textDict.put('!', new Sprite(text, 10+16*4, 5+12+12+12, 8, 8));
         textDict.put('.', new Sprite(text, 10+16*7, 5+12+12+12, 8, 8));
@@ -768,7 +799,6 @@ public class Game extends ApplicationAdapter {
 
         // TODO: handle login differently.
         if (this.player.name == "") {
-            this.player.network.id = "dummy_id";
         }
         else {
             this.player.network.id = this.player.name;

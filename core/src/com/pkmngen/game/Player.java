@@ -241,6 +241,7 @@ public class Player {
         this.itemsDict = new HashMap<String, Integer>();
 //        this.itemsDict.put("Safari Ball", 99);
         this.itemsDict.put("Ultra Ball", 99);
+        this.itemsDict.put("Poké Ball", 99);
         this.itemsDict.put("Sleeping Bag", 1);
 
         this.network = new Network(this.position);
@@ -454,10 +455,10 @@ class playerStanding extends Action {
 
                 game.playerCanMove = false;
                 game.insertAction(Battle_Actions.get(game));
-                game.currMusic.pause();
-                game.currMusic = game.battle.music;
-                game.currMusic.stop();
-                game.currMusic.play();
+//                game.currMusic.pause();
+//                game.currMusic = game.battle.music;
+//                game.currMusic.stop();
+//                game.currMusic.play();
                 //game.battle.music.play(); //would rather have an action that does this?
                 this.checkWildEncounter = false;
                 return;
@@ -752,7 +753,7 @@ class playerStanding extends Action {
             if (game.player.dirFacing.equals("down") && currTile.name.contains("rug")) {
                 // do leave building anim, then player travels down one space
                 game.insertAction(new EnterBuilding(game, "exit",
-                                                 new playerMoving(game, this.alternate)));
+                                  new playerMoving(game, this.alternate)));
                 return;
             }
             // Check if moving into empty space to avoid temp.attr checks afterwards
@@ -1448,6 +1449,9 @@ class playerMoving extends Action {
             this.player.currSprite = this.player.standingSprites.get(this.player.dirFacing);
         }
         if (this.xDist >= 16 || this.yDist >= 16) {
+//            // this.player.currRoute keeps track of which route
+//            if (game.map.tiles.get(this.targetPos) != null && game.map.tiles.get(this.targetPos).routeBelongsTo != null) {
+            
             this.player.position.set(this.targetPos);
 //            Action standingAction = new playerStanding(game, this.player, !this.alternate, false);
             this.player.standingAction.alternate = !this.alternate;

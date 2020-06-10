@@ -1,6 +1,5 @@
 package com.pkmngen.game;
 
-import java.awt.List;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -12,10 +11,7 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryonet.Connection;
 import com.esotericsoftware.kryonet.EndPoint;
 import com.esotericsoftware.kryonet.Listener;
-import com.oracle.jrockit.jfr.InvalidValueException;
-import com.pkmngen.game.DrawPokemonMenu.SelectedMenu;
 import com.pkmngen.game.Game.CharacterConnection;
-import com.pkmngen.game.Pokemon.Generation;
 
 public class Network {
 
@@ -34,7 +30,7 @@ public class Network {
         kryo.register(com.badlogic.gdx.physics.box2d.Filter.class);
         kryo.register(java.util.ArrayList.class);
         kryo.register(java.util.HashMap.class);
-        kryo.register(String[].class);
+//        kryo.register(String[].class);  // TODO: uncomment
         kryo.register(Color.class);
 
         //
@@ -294,14 +290,16 @@ public class Network {
     static public class DoBattleAction {
         String playerId;
         String attack;
+        String itemName;
         Battle.DoTurn.Type type = Battle.DoTurn.Type.ATTACK;
 
         public DoBattleAction(){}
 
-        public DoBattleAction(String playerId, Battle.DoTurn.Type type, String attack) {
+        public DoBattleAction(String playerId, Battle.DoTurn.Type type, String action) {
             this.playerId = playerId;
             this.type = type;
-            this.attack = attack;
+            this.attack = action;
+            this.itemName = action;
         }
     }
 
@@ -313,7 +311,10 @@ public class Network {
         Attack enemyAttack;
         String enemyTrappedBy = null;
         int enemyTrapCounter = 0;
-
+        // Item-related data
+        String itemName;
+        int numWobbles;
+        // If player chose 'run', whether or not it was successful.
         boolean runSuccessful;
 
         public BattleTurnData(){}
@@ -395,7 +396,8 @@ class ClientBroadcast extends Action {
                                 player.network.id = serverPlayerData.number;  // on client side, just index player by number
                                 player.setColor(serverPlayerData.color);
                                 game.players.put(serverPlayerData.number, player);
-                                game.insertAction(new playerStanding(game, player, false, true));
+                                player.standingAction = new playerStanding(game, player, false, true);
+                                game.insertAction(player.standingAction);
                             }
 
                             // server is notifying client that a player has moved
@@ -435,16 +437,17 @@ class ClientBroadcast extends Action {
                         catch (Exception e) {
                             e.printStackTrace();
                         }
-                        synchronized (this) {
-                            this.notify();
-                        }
+                        // TODO: uncomment
+                        // synchronized (this) {
+                            // this.notify();
+                        // }
                     }
                 };
                 Gdx.app.postRunnable(runnable);
                 try {
-                    synchronized (runnable) {
-                        runnable.wait();
-                    }
+                    // synchronized (runnable) {
+                        // runnable.wait();
+                    // }
                 } catch (InterruptedException e) {
                     // TODO Auto-generated catch block
                     e.printStackTrace();
@@ -531,8 +534,9 @@ class ServerBroadcast extends Action {
                                     final String playerId = login.playerId;
                                     Player player = new Player();
                                     // Spawn player at random edge location
-                                    Vector2 startLoc = game.map.edges.get(game.map.rand.nextInt(game.map.edges.size()));
-                                    player.position.set(startLoc);
+                                    // TODO: uncomment
+//                                    Vector2 startLoc = game.map.edges.get(game.map.rand.nextInt(game.map.edges.size()));
+//                                    player.position.set(startLoc);
                                     player.type = Player.Type.REMOTE;
                                     player.network = player.new Network(player.position);
                                     player.network.connectionId = connection.getID();
@@ -653,10 +657,26 @@ class ServerBroadcast extends Action {
 
                                 // TODO: don't determine player attack outcome if run, item, or switch.
 
-                                // apply the effects of the attack, and send back to client
+                                // Apply the effects of the attack, and send back to client
                                 // TODO: calculations here for hit/miss, crit, effect hit, etc.
                                 Network.BattleTurnData turnData = new Network.BattleTurnData();
-                                if (battleAction.type == Battle.DoTurn.Type.RUN) {
+                                if (battleAction.type == Battle.DoTurn.Type.ITEM) {
+                                    turnData.oppFirst = false;
+                                    player.numFlees = 0;
+                                    turnData.itemName = battleAction.itemName;
+                                    // For now, just have a bunch of cases for each item
+                                    if (turnData.itemName.contains("ball")) {
+                                        turnData.numWobbles = Battle.gen2CalcIfCaught(game, battle.oppPokemon,
+                                                                                      battleAction.itemName);
+                                        if (turnData.numWobbles == -1) {
+                                            player.pokemon.add(battle.oppPokemon);
+                                            Route currRoute = game.map.tiles.get(player.position).routeBelongsTo;
+                                            currRoute.pokemon.remove(battle.oppPokemon);
+                                            currRoute.genPokemon(256);
+                                        }
+                                    }
+                                }
+                                else if (battleAction.type == Battle.DoTurn.Type.RUN) {
                                     turnData.oppFirst = false;
                                     turnData.runSuccessful = battle.calcIfRunSuccessful(game, player);
                                     if (turnData.runSuccessful) {
@@ -668,6 +688,7 @@ class ServerBroadcast extends Action {
                                 }
                                 // determine attack outcome
                                 else {
+                                    player.numFlees = 0;
                                     boolean found = false;
                                     for (int i=0; i < player.currPokemon.attacks.length; i++) {
                                         if (player.currPokemon.attacks[i] == null) {
@@ -717,8 +738,11 @@ class ServerBroadcast extends Action {
                                         battle.oppPokemon.currentStats.put("hp", finalHealth);
                                         turnData.playerAttack.damage = damage;
                                         if (finalHealth <= 0) {
-                                            game.map.currRoute.pokemon.remove(game.battle.oppPokemon);
-                                            game.map.currRoute.genPokemon(256);
+                                            // TODO: currRoute == null will cause crash, which would happen if player isn't on
+                                            // grass (ie trainer battle?)
+                                            Route currRoute = game.map.tiles.get(player.position).routeBelongsTo;
+                                            currRoute.pokemon.remove(battle.oppPokemon);
+                                            currRoute.genPokemon(256);
                                             player.currPokemon.exp += battle.calcFaintExp();
                                             while (player.currPokemon.level < 100 && player.currPokemon.gen2CalcExpForLevel(player.currPokemon.level+1) <= player.currPokemon.exp) {
                                                 player.currPokemon.level += 1;
@@ -734,7 +758,11 @@ class ServerBroadcast extends Action {
                                             }
                                         }
                                     }
-                                    if (finalHealth > 0 || (battleAction.type == Battle.DoTurn.Type.RUN && !turnData.runSuccessful)) {
+                                    // If enemy is still alive after attack, or player failed to run, or player failed
+                                    // to catch pokemon, then enemy pokemon attacks player pokemon.
+                                    if (finalHealth > 0 || 
+                                        (battleAction.type == Battle.DoTurn.Type.RUN && !turnData.runSuccessful) ||
+                                        (battleAction.type == Battle.DoTurn.Type.ITEM && turnData.numWobbles != -1)) {
                                         int damage = Battle.calcDamage(battle.oppPokemon, turnData.enemyAttack, player.currPokemon);
                                         int currHealth = player.currPokemon.currentStats.get("hp");
                                         finalHealth = currHealth - damage > 0 ? currHealth - damage : 0;
@@ -756,8 +784,9 @@ class ServerBroadcast extends Action {
                                         turnData.playerAttack.damage = damage;
                                         if (finalHealth <= 0) {
                                             // TODO: this is some duplicate code with an if block above
-                                            game.map.currRoute.pokemon.remove(game.battle.oppPokemon);
-                                            game.map.currRoute.genPokemon(256);
+                                            Route currRoute = game.map.tiles.get(player.position).routeBelongsTo;
+                                            currRoute.pokemon.remove(battle.oppPokemon);
+                                            currRoute.genPokemon(256);
                                             player.currPokemon.exp += battle.calcFaintExp();
                                             while (player.currPokemon.level < 100 && player.currPokemon.gen2CalcExpForLevel(player.currPokemon.level+1) <= player.currPokemon.exp) {
                                                 player.currPokemon.level += 1;
@@ -776,7 +805,9 @@ class ServerBroadcast extends Action {
                                 }
                                 // TODO: won't work for trainer battles
                                 //  might be something like battle.oppPokemons or battle.pokemon
-                                if (battle.oppPokemon.currentStats.get("hp") <= 0 || (battleAction.type == Battle.DoTurn.Type.RUN && turnData.runSuccessful)) {
+                                if (battle.oppPokemon.currentStats.get("hp") <= 0 || 
+                                    (battleAction.type == Battle.DoTurn.Type.RUN && turnData.runSuccessful) ||
+                                    (battleAction.type == Battle.DoTurn.Type.ITEM && turnData.numWobbles == -1)) {
                                     battle.oppPokemon.inBattle = false;
                                     player.canMove = true;
                                     player.numFlees = 0;

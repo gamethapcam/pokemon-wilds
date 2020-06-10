@@ -25,9 +25,13 @@ public class Action {
 
     // order to draw this action
     // 0 is top (last element in actionStack), and it's step() function is executed last
-    public int getLayer(){return 0;};
+    public int getLayer() {
+        return 0;
+    }
     //draw using which camera?
-    public String getCamera() {return "map";};
+    public String getCamera() {
+        return "map";
+    }
 
     // Keep reference to Game.staticGame to prevent having to pass `Game game` to
     // init functions and step function.
@@ -56,51 +60,6 @@ public class Action {
 }
 
 
-/*
- * Idea for 'runnable' action.
- *
- * TODO: I think since this will be posted to the Gdx thread, it will just cause the thread to hang.
- */
-class RunnableAction implements Runnable {
-
-    public static Game game = Game.staticGame;
-
-    boolean firstStep = true;
-    Action nextAction = null;
-
-    @Override
-    public void run() {  // Can't pass game here
-        try {
-            synchronized (this) {
-                this.wait();
-            }
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        if (this.firstStep) {
-            this.firstStep = false;
-            this.firstStep(game);
-        }
-        this.step(game);
-        synchronized (this) {
-            this.notify();
-        }
-    }
-
-    // TODO: change name
-    public void waitHere() throws InterruptedException{
-        synchronized (this) {
-            this.notify();
-            this.wait();
-        }
-    }
-
-    // What one time before anything else.
-    public void firstStep(Game game){}
-
-    // What to do at each iteration.
-    public void step(Game game){}
-}
 
 
 // TODO: migrate away from this
@@ -131,10 +90,12 @@ class SplitAction extends Action {
     private Action nextAction2;
 
     // TODO: shouldn't this have layer == LARGE_NUMBER?
-    public int getLayer(){return 500;};
+    public int getLayer(){
+        return 500;
+    }
 
     String camera = "map";
-    public String getCamera() {return camera;};
+    public String getCamera() {return camera;}
 
     public SplitAction(Action nextAction1, Action nextAction2) {
         //put two new actions in the actionStack
@@ -220,7 +181,7 @@ class DrawObjectives extends Action {
     public int layer = 140;
     public int getLayer(){return this.layer;}
 
-    public String getCamera() {return "gui";};
+    public String getCamera() {return "gui";}
 
 
     @Override
@@ -359,7 +320,7 @@ class DoneWithDemo extends Action {
     public int layer = 140;
     public int getLayer(){return this.layer;}
 
-    public String getCamera() {return "gui";};
+    public String getCamera() {return "gui";}
 
     Sprite bgSprite;
 
@@ -383,6 +344,31 @@ class DoneWithDemo extends Action {
 }
 
 
+class PromoVidText1 extends Action {
+
+
+    public int layer = 0;
+    public int getLayer(){return this.layer;}
+
+    public String getCamera() {return "gui";}
+
+    Sprite bgSprite;
+
+    @Override
+    public void step(Game game) {
+        this.bgSprite.draw(game.uiBatch);
+        game.uiBatch.draw(this.bgSprite, -160, 0);
+        game.uiBatch.draw(this.bgSprite, 160, 0);
+        game.font.draw(game.uiBatch, "Pokemon Wilds", 0, 90);
+        game.font2.draw(game.uiBatch, "(features demo)", 14, 70);
+    }
+
+    public PromoVidText1(Game game) {
+        Texture text = new Texture(Gdx.files.internal("battle/intro_frame3.png"));
+        this.bgSprite = new Sprite(text);
+    }
+}
+
 
 //draw text on screen
  //right now you have to insert spaces to do newline
@@ -402,15 +388,16 @@ class DisplayText extends Action {
     Action scrollUpAction; //keeps track of if text is currently scrolling up
 
     public int layer = 106;
-    public int getLayer(){return this.layer;}
+    public int getLayer() {return this.layer;}
 
-    public String getCamera() {return "gui";};
+    public String getCamera() {return "gui";}
 
     Sprite helperSprite;
     Sprite bgSprite;
     int timer;
 
-    int speedTimer, speed;
+    int speedTimer;
+    int speed;
 
     Action triggerAction;
     boolean foundTrigger;
@@ -647,7 +634,8 @@ class DisplayText extends Action {
 
         char[] textArray = lines.toCharArray(); //iterate elements
 
-        int i = 0, j = 0; ///, offsetNext = 0; //offsetNext if char sizes are ever different. atm it works.
+        int i = 0;
+        int j = 0;  ///, offsetNext = 0; //offsetNext if char sizes are ever different. atm it works.
         Sprite currSprite;
         for (char letter : textArray) {
             //offsetNext += spriteWidth*3+2 //how to do this?
@@ -708,9 +696,9 @@ class DisplayText extends Action {
         ArrayList<Sprite> otherText;
 
         public int layer = 110;
-        public int getLayer(){return this.layer;}
+        public int getLayer() {return this.layer;}
 
-        public String getCamera() {return "gui";};
+        public String getCamera() {return "gui";}
 
 
         //what to do at each iteration
@@ -828,7 +816,7 @@ class DisplayText extends Action {
             }
 
             if (!this.music.isPlaying()) {
-                //game.battle.music.setVolume(.3f);
+                //game.battle.music.setVolume(0.3f);
                 game.currMusic.setVolume(this.initialVolume);
                 game.actionStack.remove(this);
                 game.insertAction(this.nextAction);
@@ -859,8 +847,8 @@ class RemoveDisplayText extends Action {
 class WaitFrames extends Action {
     int length;
     public int layer = 110;
-    public int getLayer(){return this.layer;}
-    public String getCamera() {return "gui";};
+    public int getLayer() {return this.layer;}
+    public String getCamera() {return "gui";}
 
 
     @Override
@@ -898,7 +886,7 @@ class DisplayTextIntro extends Action {
 
     public int layer = 110;
     public int getLayer(){return this.layer;}
-    public String getCamera() {return "gui";};
+    public String getCamera() {return "gui";}
 
 
 
@@ -906,7 +894,8 @@ class DisplayTextIntro extends Action {
     Sprite bgSprite;
     int timer;
 
-    int speedTimer, speed;
+    int speedTimer;
+    int speed;
 
     //when we need to stop after trigger action
     Action triggerAction;
@@ -1119,7 +1108,8 @@ class DisplayTextIntro extends Action {
 
         char[] textArray = lines.toCharArray(); //iterate elements
 
-        int i = 0, j = 0; ///, offsetNext = 0; //offsetNext if char sizes are ever different. atm it works.
+        int i = 0;
+        int j = 0;  ///, offsetNext = 0; //offsetNext if char sizes are ever different. atm it works.
         Sprite currSprite;
         for (char letter : textArray) {
             //offsetNext += spriteWidth*3+2 //how to do this?
@@ -1183,7 +1173,7 @@ class DisplayTextIntro extends Action {
 
         public int layer = 110;
         public int getLayer(){return this.layer;}
-        public String getCamera() {return "gui";};
+        public String getCamera() {return "gui";}
 
         //what to do at each iteration
         public void step(Game game) {
@@ -1310,11 +1300,11 @@ class PlaySound extends Action {
         if (pokemon.generation == Pokemon.Generation.CRYSTAL) {
             if (pokemon.dexNumber.equals("000")) {
                 this.music = Gdx.audio.newMusic(Gdx.files.internal("crystal_pokemon/cries/" + pokemon.dexNumber + ".ogg"));
-                this.music.setVolume(.9f);
+                this.music.setVolume(0.9f);
             }
             else {
                 this.music = Gdx.audio.newMusic(Gdx.files.internal("crystal_pokemon/cries/" + pokemon.dexNumber + ".wav"));
-                this.music.setVolume(.5f);
+                this.music.setVolume(0.5f);
             }
             this.music.setLooping(false);
         }
@@ -1372,7 +1362,7 @@ class PlaySound extends Action {
         else if (sound == "wild_battle") {
             this.music = Gdx.audio.newMusic(Gdx.files.internal("battle/battle-vs-wild-pokemon.wav")); //use this
             this.music.setLooping(false);
-            this.music.setVolume(.3f);
+            this.music.setVolume(0.3f);
 
         }
 
@@ -1392,7 +1382,7 @@ class PlaySound extends Action {
         else if (sound == "Cloyster") {
             this.music = Gdx.audio.newMusic(Gdx.files.internal("pokemon/cries/091Cry.ogg"));
             this.music.setLooping(false);
-            this.music.setVolume(.6f);
+            this.music.setVolume(0.6f);
         }
         else if (sound == "Electabuzz") {
             this.music = Gdx.audio.newMusic(Gdx.files.internal("pokemon/electabuzz.mp3")); //use this
@@ -1413,7 +1403,7 @@ class PlaySound extends Action {
         else if (sound.equals("Mega Gengar")) {
             this.music = Gdx.audio.newMusic(Gdx.files.internal("pokemon/cries/m_gengar_cry1.ogg"));
             this.music.setLooping(false);
-            this.music.setVolume(.5f);
+            this.music.setVolume(0.5f);
         }
         else if (sound == "Spinarak") {
             this.music = Gdx.audio.newMusic(Gdx.files.internal("pokemon/cries/167Cry.ogg"));
@@ -1421,7 +1411,7 @@ class PlaySound extends Action {
         }
         else if (sound == "Mareep") {
             this.music = Gdx.audio.newMusic(Gdx.files.internal("pokemon/cries/179Cry.wav"));
-            this.music.setVolume(.7f);
+            this.music.setVolume(0.7f);
             this.music.setLooping(false);
         }
         else if (sound == "Flaaffy") {
@@ -1434,7 +1424,7 @@ class PlaySound extends Action {
         }
         else if (sound == "Sneasel") {
             this.music = Gdx.audio.newMusic(Gdx.files.internal("pokemon/cries/215Cry.ogg"));
-            this.music.setVolume(.7f);
+            this.music.setVolume(0.7f);
             this.music.setLooping(false);
         }
         else if (sound == "Raikou") {
@@ -1501,7 +1491,7 @@ class PlaySound extends Action {
         else if (sound == "Machop") {
             this.music = Gdx.audio.newMusic(Gdx.files.internal("pokemon/cries/066Cry.ogg"));
             this.music.setLooping(false);
-            this.music.setVolume(.5f);
+            this.music.setVolume(0.5f);
         }
 
         else if (sound == "throw_rock1") {
@@ -1631,7 +1621,7 @@ class FadeMusic extends Action {
     String direction;
     String shouldPause;
 
-    float amt =  -.05f;
+    float amt =  -0.05f;
 
     float maxVol = 1f;
 
@@ -1666,7 +1656,7 @@ class FadeMusic extends Action {
 
                         Music temp = Gdx.audio.newMusic(Gdx.files.internal("music/"+this.musicName+extension)); //danger1.ogg
 //                        temp.setLooping(true);  // TODO: don't think I need this
-                        temp.setVolume(.1f); //will always fade in (for now, have option to fade in fast) //.1f because of 'failed to allocate' bug
+                        temp.setVolume(0.1f); //will always fade in (for now, have option to fade in fast) //.1f because of 'failed to allocate' bug
                         if (this.onCompleteListener != null) {
                             temp.setOnCompletionListener(this.onCompleteListener);
                         }
@@ -1725,11 +1715,11 @@ class FadeMusic extends Action {
 
 
         if (this.direction.equals("out")) {
-            if (music.getVolume() <= .1f) { //bug - for some reason this can't be .0f - no idea why. 'failed to allocate' issue if play() (on any Music) ever called in future
+            if (music.getVolume() <= 0.1f) { //bug - for some reason this can't be .0f - no idea why. 'failed to allocate' issue if play() (on any Music) ever called in future
 
 
                 if (this.shouldPause.equals("pause")) {
-                    this.music.setVolume(.1f);
+                    this.music.setVolume(0.1f);
                     this.music.pause();
                 }
                 else if (this.shouldPause.equals("stop")) {
@@ -1737,7 +1727,7 @@ class FadeMusic extends Action {
 //                  this.music.pause();
 
                     //dispose and remove from loadedMusic
-                    this.music.setVolume(.1f);
+                    this.music.setVolume(0.1f);
                     this.music.stop();
                     this.music.dispose();
                     game.loadedMusic.remove(this.musicName);
@@ -1829,7 +1819,7 @@ class DrawSetupMenu extends Action {
     public int layer = 107;
     public int getLayer(){return this.layer;}
 
-    public String getCamera() {return "gui";};
+    public String getCamera() {return "gui";}
 
     Sprite bgSprite;
     Sprite helperSprite;
@@ -1892,7 +1882,7 @@ class DrawSetupMenu extends Action {
                         this.name.remove(this.name.size()-1);
                     }
                     if (DrawSetupMenu.avatarAnimCounter >= 12) {
-                        letterSprite = game.textDict.get('.');
+                        letterSprite = game.textDict.get('_');
                         game.uiBatch.draw(letterSprite, 16 +5*8 + 8*this.name.size(), 128 -16*j);
                     }
                 }
@@ -1980,7 +1970,7 @@ class DrawSetupMenu extends Action {
                         this.serverIp.remove(this.serverIp.size()-1);
                     }
                     if (DrawSetupMenu.avatarAnimCounter >= 12) {
-                        letterSprite = game.textDict.get('.');
+                        letterSprite = game.textDict.get('_');
                         game.uiBatch.draw(letterSprite, 16 + 8*this.serverIp.size(), 128 -16 -16*j);
                     }
                 }
@@ -2122,7 +2112,8 @@ class DrawSetupMenu extends Action {
         //      this.healthSprite = new Sprite(text, 0,0,1,2);
 
         text = new Texture(Gdx.files.internal("battle/battle_bg3.png"));
-        this.bgSprite = new Sprite(text, 0, 0, 16*10, 16*9);
+        this.bgSprite = new Sprite(text, 0, 0, 176, 160);
+        this.bgSprite.setPosition(-8, -8);
 
         //helper sprite
         //      text = new Texture(Gdx.files.internal("pokemon_menu/helper1.png"));

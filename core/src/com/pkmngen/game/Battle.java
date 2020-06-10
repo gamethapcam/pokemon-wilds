@@ -1,7 +1,6 @@
 package com.pkmngen.game;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.Reader;
@@ -24,10 +23,10 @@ import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Quaternion;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
+import com.badlogic.gdx.utils.GdxRuntimeException;
 import com.badlogic.gdx.utils.ScreenUtils;
-import com.pkmngen.game.DrawPlayerMenu.Intro;
-import com.pkmngen.game.Player.Network;
 
+import com.pkmngen.game.Network.BattleTurnData;
 
 class Attack {
 
@@ -82,7 +81,7 @@ public class Battle {
     HashMap<String, Attack> attacks = new HashMap<String, Attack>();
 
     class Network {
-        com.pkmngen.game.Network.BattleTurnData turnData;
+        BattleTurnData turnData;
 
         public Network() {}
     }
@@ -92,11 +91,11 @@ public class Battle {
 
         this.music = Gdx.audio.newMusic(Gdx.files.internal("battle/battle-vs-wild-pokemon.ogg"));
         this.music.setLooping(true);
-        this.music.setVolume(.3f);
+        this.music.setVolume(0.3f);
 
         this.victoryFanfare = Gdx.audio.newMusic(Gdx.files.internal("victory_fanfare2.ogg"));
         this.victoryFanfare.setLooping(true);
-        this.victoryFanfare.setVolume(.3f);
+        this.victoryFanfare.setVolume(0.3f);
 
         // TODO: this could have been a string table, converted to map
 //                normal fire water ...
@@ -118,16 +117,16 @@ public class Battle {
         this.gen2TypeEffectiveness.get("normal").put("flying", 1f);
         this.gen2TypeEffectiveness.get("normal").put("psychic", 1f);
         this.gen2TypeEffectiveness.get("normal").put("bug", 1f);
-        this.gen2TypeEffectiveness.get("normal").put("rock", .5f);
+        this.gen2TypeEffectiveness.get("normal").put("rock", 0.5f);
         this.gen2TypeEffectiveness.get("normal").put("ghost", 0f);
         this.gen2TypeEffectiveness.get("normal").put("dragon", 1f);
         this.gen2TypeEffectiveness.get("normal").put("dark", 1f);
-        this.gen2TypeEffectiveness.get("normal").put("steel", .5f);
+        this.gen2TypeEffectiveness.get("normal").put("steel", 0.5f);
         this.gen2TypeEffectiveness.get("normal").put("fairy", 1f);
         this.gen2TypeEffectiveness.put("fire", new HashMap<String, Float>());
         this.gen2TypeEffectiveness.get("fire").put("normal", 1f);
-        this.gen2TypeEffectiveness.get("fire").put("fire", .5f);
-        this.gen2TypeEffectiveness.get("fire").put("water", .5f);
+        this.gen2TypeEffectiveness.get("fire").put("fire", 0.5f);
+        this.gen2TypeEffectiveness.get("fire").put("water", 0.5f);
         this.gen2TypeEffectiveness.get("fire").put("electric", 1f);
         this.gen2TypeEffectiveness.get("fire").put("grass", 2f);
         this.gen2TypeEffectiveness.get("fire").put("ice", 2f);
@@ -137,18 +136,18 @@ public class Battle {
         this.gen2TypeEffectiveness.get("fire").put("flying", 1f);
         this.gen2TypeEffectiveness.get("fire").put("psychic", 1f);
         this.gen2TypeEffectiveness.get("fire").put("bug", 2f);
-        this.gen2TypeEffectiveness.get("fire").put("rock", .5f);
+        this.gen2TypeEffectiveness.get("fire").put("rock", 0.5f);
         this.gen2TypeEffectiveness.get("fire").put("ghost", 1f);
-        this.gen2TypeEffectiveness.get("fire").put("dragon", .5f);
+        this.gen2TypeEffectiveness.get("fire").put("dragon", 0.5f);
         this.gen2TypeEffectiveness.get("fire").put("dark", 1f);
-        this.gen2TypeEffectiveness.get("fire").put("steel", .5f);
+        this.gen2TypeEffectiveness.get("fire").put("steel", 0.5f);
         this.gen2TypeEffectiveness.get("fire").put("fairy", 1f);
         this.gen2TypeEffectiveness.put("water", new HashMap<String, Float>());
         this.gen2TypeEffectiveness.get("water").put("normal", 1f);
         this.gen2TypeEffectiveness.get("water").put("fire", 2f);
-        this.gen2TypeEffectiveness.get("water").put("water", .5f);
+        this.gen2TypeEffectiveness.get("water").put("water", 0.5f);
         this.gen2TypeEffectiveness.get("water").put("electric", 1f);
-        this.gen2TypeEffectiveness.get("water").put("grass", .5f);
+        this.gen2TypeEffectiveness.get("water").put("grass", 0.5f);
         this.gen2TypeEffectiveness.get("water").put("ice", 1f);
         this.gen2TypeEffectiveness.get("water").put("fighting", 1f);
         this.gen2TypeEffectiveness.get("water").put("poison", 1f);
@@ -158,7 +157,7 @@ public class Battle {
         this.gen2TypeEffectiveness.get("water").put("bug", 1f);
         this.gen2TypeEffectiveness.get("water").put("rock", 2f);
         this.gen2TypeEffectiveness.get("water").put("ghost", 1f);
-        this.gen2TypeEffectiveness.get("water").put("dragon", .5f);
+        this.gen2TypeEffectiveness.get("water").put("dragon", 0.5f);
         this.gen2TypeEffectiveness.get("water").put("dark", 1f);
         this.gen2TypeEffectiveness.get("water").put("steel", 1f);
         this.gen2TypeEffectiveness.get("water").put("fairy", 1f);
@@ -166,8 +165,8 @@ public class Battle {
         this.gen2TypeEffectiveness.get("electric").put("normal", 1f);
         this.gen2TypeEffectiveness.get("electric").put("fire", 1f);
         this.gen2TypeEffectiveness.get("electric").put("water", 2f);
-        this.gen2TypeEffectiveness.get("electric").put("electric", .5f);
-        this.gen2TypeEffectiveness.get("electric").put("grass", .5f);
+        this.gen2TypeEffectiveness.get("electric").put("electric", 0.5f);
+        this.gen2TypeEffectiveness.get("electric").put("grass", 0.5f);
         this.gen2TypeEffectiveness.get("electric").put("ice", 1f);
         this.gen2TypeEffectiveness.get("electric").put("fighting", 1f);
         this.gen2TypeEffectiveness.get("electric").put("poison", 1f);
@@ -177,36 +176,36 @@ public class Battle {
         this.gen2TypeEffectiveness.get("electric").put("bug", 1f);
         this.gen2TypeEffectiveness.get("electric").put("rock", 1f);
         this.gen2TypeEffectiveness.get("electric").put("ghost", 1f);
-        this.gen2TypeEffectiveness.get("electric").put("dragon", .5f);
+        this.gen2TypeEffectiveness.get("electric").put("dragon", 0.5f);
         this.gen2TypeEffectiveness.get("electric").put("dark", 1f);
         this.gen2TypeEffectiveness.get("electric").put("steel", 1f);
         this.gen2TypeEffectiveness.get("electric").put("fairy", 1f);
         this.gen2TypeEffectiveness.put("grass", new HashMap<String, Float>());
         this.gen2TypeEffectiveness.get("grass").put("normal", 1f);
-        this.gen2TypeEffectiveness.get("grass").put("fire", .5f);
+        this.gen2TypeEffectiveness.get("grass").put("fire", 0.5f);
         this.gen2TypeEffectiveness.get("grass").put("water", 2f);
         this.gen2TypeEffectiveness.get("grass").put("electric", 1f);
-        this.gen2TypeEffectiveness.get("grass").put("grass", .5f);
+        this.gen2TypeEffectiveness.get("grass").put("grass", 0.5f);
         this.gen2TypeEffectiveness.get("grass").put("ice", 1f);
         this.gen2TypeEffectiveness.get("grass").put("fighting", 1f);
-        this.gen2TypeEffectiveness.get("grass").put("poison", .5f);
+        this.gen2TypeEffectiveness.get("grass").put("poison", 0.5f);
         this.gen2TypeEffectiveness.get("grass").put("ground", 2f);
-        this.gen2TypeEffectiveness.get("grass").put("flying", .5f);
+        this.gen2TypeEffectiveness.get("grass").put("flying", 0.5f);
         this.gen2TypeEffectiveness.get("grass").put("psychic", 1f);
-        this.gen2TypeEffectiveness.get("grass").put("bug", .5f);
+        this.gen2TypeEffectiveness.get("grass").put("bug", 0.5f);
         this.gen2TypeEffectiveness.get("grass").put("rock", 2f);
         this.gen2TypeEffectiveness.get("grass").put("ghost", 1f);
-        this.gen2TypeEffectiveness.get("grass").put("dragon", .5f);
+        this.gen2TypeEffectiveness.get("grass").put("dragon", 0.5f);
         this.gen2TypeEffectiveness.get("grass").put("dark", 1f);
-        this.gen2TypeEffectiveness.get("grass").put("steel", .5f);
+        this.gen2TypeEffectiveness.get("grass").put("steel", 0.5f);
         this.gen2TypeEffectiveness.get("grass").put("fairy", 1f);
         this.gen2TypeEffectiveness.put("ice", new HashMap<String, Float>());
         this.gen2TypeEffectiveness.get("ice").put("normal", 1f);
-        this.gen2TypeEffectiveness.get("ice").put("fire", .5f);
-        this.gen2TypeEffectiveness.get("ice").put("water", .5f);
+        this.gen2TypeEffectiveness.get("ice").put("fire", 0.5f);
+        this.gen2TypeEffectiveness.get("ice").put("water", 0.5f);
         this.gen2TypeEffectiveness.get("ice").put("electric", 1f);
         this.gen2TypeEffectiveness.get("ice").put("grass", 2f);
-        this.gen2TypeEffectiveness.get("ice").put("ice", .5f);
+        this.gen2TypeEffectiveness.get("ice").put("ice", 0.5f);
         this.gen2TypeEffectiveness.get("ice").put("fighting", 1f);
         this.gen2TypeEffectiveness.get("ice").put("poison", 1f);
         this.gen2TypeEffectiveness.get("ice").put("ground", 2f);
@@ -217,7 +216,7 @@ public class Battle {
         this.gen2TypeEffectiveness.get("ice").put("ghost", 1f);
         this.gen2TypeEffectiveness.get("ice").put("dragon", 2f);
         this.gen2TypeEffectiveness.get("ice").put("dark", 1f);
-        this.gen2TypeEffectiveness.get("ice").put("steel", .5f);
+        this.gen2TypeEffectiveness.get("ice").put("steel", 0.5f);
         this.gen2TypeEffectiveness.get("ice").put("fairy", 1f);
         this.gen2TypeEffectiveness.put("fighting", new HashMap<String, Float>());
         this.gen2TypeEffectiveness.get("fighting").put("normal", 2f);
@@ -227,17 +226,17 @@ public class Battle {
         this.gen2TypeEffectiveness.get("fighting").put("grass", 1f);
         this.gen2TypeEffectiveness.get("fighting").put("ice", 2f);
         this.gen2TypeEffectiveness.get("fighting").put("fighting", 1f);
-        this.gen2TypeEffectiveness.get("fighting").put("poison", .5f);
+        this.gen2TypeEffectiveness.get("fighting").put("poison", 0.5f);
         this.gen2TypeEffectiveness.get("fighting").put("ground", 1f);
-        this.gen2TypeEffectiveness.get("fighting").put("flying", .5f);
-        this.gen2TypeEffectiveness.get("fighting").put("psychic", .5f);
-        this.gen2TypeEffectiveness.get("fighting").put("bug", .5f);
+        this.gen2TypeEffectiveness.get("fighting").put("flying", 0.5f);
+        this.gen2TypeEffectiveness.get("fighting").put("psychic", 0.5f);
+        this.gen2TypeEffectiveness.get("fighting").put("bug", 0.5f);
         this.gen2TypeEffectiveness.get("fighting").put("rock", 2f);
         this.gen2TypeEffectiveness.get("fighting").put("ghost", 0f);
         this.gen2TypeEffectiveness.get("fighting").put("dragon", 1f);
         this.gen2TypeEffectiveness.get("fighting").put("dark", 2f);
         this.gen2TypeEffectiveness.get("fighting").put("steel", 2f);
-        this.gen2TypeEffectiveness.get("fighting").put("fairy", .5f);
+        this.gen2TypeEffectiveness.get("fighting").put("fairy", 0.5f);
         this.gen2TypeEffectiveness.put("poison", new HashMap<String, Float>());
         this.gen2TypeEffectiveness.get("poison").put("normal", 1f);
         this.gen2TypeEffectiveness.get("poison").put("fire", 1f);
@@ -246,13 +245,13 @@ public class Battle {
         this.gen2TypeEffectiveness.get("poison").put("grass", 2f);
         this.gen2TypeEffectiveness.get("poison").put("ice", 1f);
         this.gen2TypeEffectiveness.get("poison").put("fighting", 1f);
-        this.gen2TypeEffectiveness.get("poison").put("poison", .5f);
-        this.gen2TypeEffectiveness.get("poison").put("ground", .5f);
+        this.gen2TypeEffectiveness.get("poison").put("poison", 0.5f);
+        this.gen2TypeEffectiveness.get("poison").put("ground", 0.5f);
         this.gen2TypeEffectiveness.get("poison").put("flying", 1f);
         this.gen2TypeEffectiveness.get("poison").put("psychic", 1f);
         this.gen2TypeEffectiveness.get("poison").put("bug", 1f);
-        this.gen2TypeEffectiveness.get("poison").put("rock", .5f);
-        this.gen2TypeEffectiveness.get("poison").put("ghost", .5f);
+        this.gen2TypeEffectiveness.get("poison").put("rock", 0.5f);
+        this.gen2TypeEffectiveness.get("poison").put("ghost", 0.5f);
         this.gen2TypeEffectiveness.get("poison").put("dragon", 1f);
         this.gen2TypeEffectiveness.get("poison").put("dark", 1f);
         this.gen2TypeEffectiveness.get("poison").put("steel", 0f);
@@ -262,14 +261,14 @@ public class Battle {
         this.gen2TypeEffectiveness.get("ground").put("fire", 2f);
         this.gen2TypeEffectiveness.get("ground").put("water", 1f);
         this.gen2TypeEffectiveness.get("ground").put("electric", 2f);
-        this.gen2TypeEffectiveness.get("ground").put("grass", .5f);
+        this.gen2TypeEffectiveness.get("ground").put("grass", 0.5f);
         this.gen2TypeEffectiveness.get("ground").put("ice", 1f);
         this.gen2TypeEffectiveness.get("ground").put("fighting", 1f);
         this.gen2TypeEffectiveness.get("ground").put("poison", 2f);
         this.gen2TypeEffectiveness.get("ground").put("ground", 1f);
         this.gen2TypeEffectiveness.get("ground").put("flying", 0f);
         this.gen2TypeEffectiveness.get("ground").put("psychic", 1f);
-        this.gen2TypeEffectiveness.get("ground").put("bug", .5f);
+        this.gen2TypeEffectiveness.get("ground").put("bug", 0.5f);
         this.gen2TypeEffectiveness.get("ground").put("rock", 2f);
         this.gen2TypeEffectiveness.get("ground").put("ghost", 1f);
         this.gen2TypeEffectiveness.get("ground").put("dragon", 1f);
@@ -280,7 +279,7 @@ public class Battle {
         this.gen2TypeEffectiveness.get("flying").put("normal", 1f);
         this.gen2TypeEffectiveness.get("flying").put("fire", 1f);
         this.gen2TypeEffectiveness.get("flying").put("water", 1f);
-        this.gen2TypeEffectiveness.get("flying").put("electric", .5f);
+        this.gen2TypeEffectiveness.get("flying").put("electric", 0.5f);
         this.gen2TypeEffectiveness.get("flying").put("grass", 2f);
         this.gen2TypeEffectiveness.get("flying").put("ice", 1f);
         this.gen2TypeEffectiveness.get("flying").put("fighting", 2f);
@@ -289,11 +288,11 @@ public class Battle {
         this.gen2TypeEffectiveness.get("flying").put("flying", 1f);
         this.gen2TypeEffectiveness.get("flying").put("psychic", 1f);
         this.gen2TypeEffectiveness.get("flying").put("bug", 2f);
-        this.gen2TypeEffectiveness.get("flying").put("rock", .5f);
+        this.gen2TypeEffectiveness.get("flying").put("rock", 0.5f);
         this.gen2TypeEffectiveness.get("flying").put("ghost", 1f);
         this.gen2TypeEffectiveness.get("flying").put("dragon", 1f);
         this.gen2TypeEffectiveness.get("flying").put("dark", 1f);
-        this.gen2TypeEffectiveness.get("flying").put("steel", .5f);
+        this.gen2TypeEffectiveness.get("flying").put("steel", 0.5f);
         this.gen2TypeEffectiveness.get("flying").put("fairy", 1f);
         this.gen2TypeEffectiveness.put("psychic", new HashMap<String, Float>());
         this.gen2TypeEffectiveness.get("psychic").put("normal", 1f);
@@ -306,33 +305,33 @@ public class Battle {
         this.gen2TypeEffectiveness.get("psychic").put("poison", 2f);
         this.gen2TypeEffectiveness.get("psychic").put("ground", 1f);
         this.gen2TypeEffectiveness.get("psychic").put("flying", 1f);
-        this.gen2TypeEffectiveness.get("psychic").put("psychic", .5f);
+        this.gen2TypeEffectiveness.get("psychic").put("psychic", 0.5f);
         this.gen2TypeEffectiveness.get("psychic").put("bug", 1f);
         this.gen2TypeEffectiveness.get("psychic").put("rock", 1f);
         this.gen2TypeEffectiveness.get("psychic").put("ghost", 1f);
         this.gen2TypeEffectiveness.get("psychic").put("dragon", 1f);
         this.gen2TypeEffectiveness.get("psychic").put("dark", 0f);
-        this.gen2TypeEffectiveness.get("psychic").put("steel", .5f);
+        this.gen2TypeEffectiveness.get("psychic").put("steel", 0.5f);
         this.gen2TypeEffectiveness.get("psychic").put("fairy", 1f);
         this.gen2TypeEffectiveness.put("bug", new HashMap<String, Float>());
         this.gen2TypeEffectiveness.get("bug").put("normal", 1f);
-        this.gen2TypeEffectiveness.get("bug").put("fire", .5f);
+        this.gen2TypeEffectiveness.get("bug").put("fire", 0.5f);
         this.gen2TypeEffectiveness.get("bug").put("water", 1f);
         this.gen2TypeEffectiveness.get("bug").put("electric", 1f);
         this.gen2TypeEffectiveness.get("bug").put("grass", 2f);
         this.gen2TypeEffectiveness.get("bug").put("ice", 1f);
-        this.gen2TypeEffectiveness.get("bug").put("fighting", .5f);
-        this.gen2TypeEffectiveness.get("bug").put("poison", .5f);
+        this.gen2TypeEffectiveness.get("bug").put("fighting", 0.5f);
+        this.gen2TypeEffectiveness.get("bug").put("poison", 0.5f);
         this.gen2TypeEffectiveness.get("bug").put("ground", 1f);
-        this.gen2TypeEffectiveness.get("bug").put("flying", .5f);
+        this.gen2TypeEffectiveness.get("bug").put("flying", 0.5f);
         this.gen2TypeEffectiveness.get("bug").put("psychic", 2f);
         this.gen2TypeEffectiveness.get("bug").put("bug", 1f);
         this.gen2TypeEffectiveness.get("bug").put("rock", 1f);
-        this.gen2TypeEffectiveness.get("bug").put("ghost", .5f);
+        this.gen2TypeEffectiveness.get("bug").put("ghost", 0.5f);
         this.gen2TypeEffectiveness.get("bug").put("dragon", 1f);
         this.gen2TypeEffectiveness.get("bug").put("dark", 2f);
-        this.gen2TypeEffectiveness.get("bug").put("steel", .5f);
-        this.gen2TypeEffectiveness.get("bug").put("fairy", .5f);
+        this.gen2TypeEffectiveness.get("bug").put("steel", 0.5f);
+        this.gen2TypeEffectiveness.get("bug").put("fairy", 0.5f);
         this.gen2TypeEffectiveness.put("rock", new HashMap<String, Float>());
         this.gen2TypeEffectiveness.get("rock").put("normal", 1f);
         this.gen2TypeEffectiveness.get("rock").put("fire", 2f);
@@ -340,9 +339,9 @@ public class Battle {
         this.gen2TypeEffectiveness.get("rock").put("electric", 1f);
         this.gen2TypeEffectiveness.get("rock").put("grass", 1f);
         this.gen2TypeEffectiveness.get("rock").put("ice", 2f);
-        this.gen2TypeEffectiveness.get("rock").put("fighting", .5f);
+        this.gen2TypeEffectiveness.get("rock").put("fighting", 0.5f);
         this.gen2TypeEffectiveness.get("rock").put("poison", 1f);
-        this.gen2TypeEffectiveness.get("rock").put("ground", .5f);
+        this.gen2TypeEffectiveness.get("rock").put("ground", 0.5f);
         this.gen2TypeEffectiveness.get("rock").put("flying", 2f);
         this.gen2TypeEffectiveness.get("rock").put("psychic", 1f);
         this.gen2TypeEffectiveness.get("rock").put("bug", 2f);
@@ -350,7 +349,7 @@ public class Battle {
         this.gen2TypeEffectiveness.get("rock").put("ghost", 1f);
         this.gen2TypeEffectiveness.get("rock").put("dragon", 1f);
         this.gen2TypeEffectiveness.get("rock").put("dark", 1f);
-        this.gen2TypeEffectiveness.get("rock").put("steel", .5f);
+        this.gen2TypeEffectiveness.get("rock").put("steel", 0.5f);
         this.gen2TypeEffectiveness.get("rock").put("fairy", 1f);
         this.gen2TypeEffectiveness.put("ghost", new HashMap<String, Float>());
         this.gen2TypeEffectiveness.get("ghost").put("normal", 0f);
@@ -368,7 +367,7 @@ public class Battle {
         this.gen2TypeEffectiveness.get("ghost").put("rock", 1f);
         this.gen2TypeEffectiveness.get("ghost").put("ghost", 2f);
         this.gen2TypeEffectiveness.get("ghost").put("dragon", 1f);
-        this.gen2TypeEffectiveness.get("ghost").put("dark", .5f);
+        this.gen2TypeEffectiveness.get("ghost").put("dark", 0.5f);
         this.gen2TypeEffectiveness.get("ghost").put("steel", 1f);
         this.gen2TypeEffectiveness.get("ghost").put("fairy", 1f);
         this.gen2TypeEffectiveness.put("dragon", new HashMap<String, Float>());
@@ -388,7 +387,7 @@ public class Battle {
         this.gen2TypeEffectiveness.get("dragon").put("ghost", 1f);
         this.gen2TypeEffectiveness.get("dragon").put("dragon", 2f);
         this.gen2TypeEffectiveness.get("dragon").put("dark", 1f);
-        this.gen2TypeEffectiveness.get("dragon").put("steel", .5f);
+        this.gen2TypeEffectiveness.get("dragon").put("steel", 0.5f);
         this.gen2TypeEffectiveness.get("dragon").put("fairy", 0f);
         this.gen2TypeEffectiveness.put("dark", new HashMap<String, Float>());
         this.gen2TypeEffectiveness.get("dark").put("normal", 1f);
@@ -397,7 +396,7 @@ public class Battle {
         this.gen2TypeEffectiveness.get("dark").put("electric", 1f);
         this.gen2TypeEffectiveness.get("dark").put("grass", 1f);
         this.gen2TypeEffectiveness.get("dark").put("ice", 1f);
-        this.gen2TypeEffectiveness.get("dark").put("fighting", .5f);
+        this.gen2TypeEffectiveness.get("dark").put("fighting", 0.5f);
         this.gen2TypeEffectiveness.get("dark").put("poison", 1f);
         this.gen2TypeEffectiveness.get("dark").put("ground", 1f);
         this.gen2TypeEffectiveness.get("dark").put("flying", 1f);
@@ -406,14 +405,14 @@ public class Battle {
         this.gen2TypeEffectiveness.get("dark").put("rock", 1f);
         this.gen2TypeEffectiveness.get("dark").put("ghost", 2f);
         this.gen2TypeEffectiveness.get("dark").put("dragon", 1f);
-        this.gen2TypeEffectiveness.get("dark").put("dark", .5f);
+        this.gen2TypeEffectiveness.get("dark").put("dark", 0.5f);
         this.gen2TypeEffectiveness.get("dark").put("steel", 1f);
-        this.gen2TypeEffectiveness.get("dark").put("fairy", .5f);
+        this.gen2TypeEffectiveness.get("dark").put("fairy", 0.5f);
         this.gen2TypeEffectiveness.put("steel", new HashMap<String, Float>());
         this.gen2TypeEffectiveness.get("steel").put("normal", 1f);
-        this.gen2TypeEffectiveness.get("steel").put("fire", .5f);
-        this.gen2TypeEffectiveness.get("steel").put("water", .5f);
-        this.gen2TypeEffectiveness.get("steel").put("electric", .5f);
+        this.gen2TypeEffectiveness.get("steel").put("fire", 0.5f);
+        this.gen2TypeEffectiveness.get("steel").put("water", 0.5f);
+        this.gen2TypeEffectiveness.get("steel").put("electric", 0.5f);
         this.gen2TypeEffectiveness.get("steel").put("grass", 1f);
         this.gen2TypeEffectiveness.get("steel").put("ice", 2f);
         this.gen2TypeEffectiveness.get("steel").put("fighting", 1f);
@@ -426,17 +425,17 @@ public class Battle {
         this.gen2TypeEffectiveness.get("steel").put("ghost", 1f);
         this.gen2TypeEffectiveness.get("steel").put("dragon", 1f);
         this.gen2TypeEffectiveness.get("steel").put("dark", 1f);
-        this.gen2TypeEffectiveness.get("steel").put("steel", .5f);
+        this.gen2TypeEffectiveness.get("steel").put("steel", 0.5f);
         this.gen2TypeEffectiveness.get("steel").put("fairy", 2f);
         this.gen2TypeEffectiveness.put("fairy", new HashMap<String, Float>());
         this.gen2TypeEffectiveness.get("fairy").put("normal", 1f);
-        this.gen2TypeEffectiveness.get("fairy").put("fire", .5f);
+        this.gen2TypeEffectiveness.get("fairy").put("fire", 0.5f);
         this.gen2TypeEffectiveness.get("fairy").put("water", 1f);
         this.gen2TypeEffectiveness.get("fairy").put("electric", 1f);
         this.gen2TypeEffectiveness.get("fairy").put("grass", 1f);
         this.gen2TypeEffectiveness.get("fairy").put("ice", 1f);
         this.gen2TypeEffectiveness.get("fairy").put("fighting", 2f);
-        this.gen2TypeEffectiveness.get("fairy").put("poison", .5f);
+        this.gen2TypeEffectiveness.get("fairy").put("poison", 0.5f);
         this.gen2TypeEffectiveness.get("fairy").put("ground", 1f);
         this.gen2TypeEffectiveness.get("fairy").put("flying", 1f);
         this.gen2TypeEffectiveness.get("fairy").put("psychic", 1f);
@@ -445,7 +444,7 @@ public class Battle {
         this.gen2TypeEffectiveness.get("fairy").put("ghost", 1f);
         this.gen2TypeEffectiveness.get("fairy").put("dragon", 2f);
         this.gen2TypeEffectiveness.get("fairy").put("dark", 2f);
-        this.gen2TypeEffectiveness.get("fairy").put("steel", .5f);
+        this.gen2TypeEffectiveness.get("fairy").put("steel", 0.5f);
         this.gen2TypeEffectiveness.get("fairy").put("fairy", 1f);
 
         ArrayList<String> gen2PhysicalTypes = new ArrayList<String>();
@@ -472,7 +471,7 @@ public class Battle {
 //                    this.dexNumber = line.split(" ; ")[1];
 //                } else
                 if (lineNum > 14 && lineNum < 266) {
-                    String attrs[] = line.split("\tmove ")[1].split(",\\s+");
+                    String[] attrs = line.split("\tmove ")[1].split(",\\s+");
                     Attack attack = new Attack(attrs[0].toLowerCase().replace('_', ' '), Integer.valueOf(attrs[2]),
                                                attrs[3].toLowerCase(), Integer.valueOf(attrs[4]),
                                                Integer.valueOf(attrs[5]), Integer.valueOf(attrs[6]));
@@ -506,7 +505,7 @@ public class Battle {
                     }
                     // TODO: prism moves.asm includes info about physical/special/status
                     // Not using 'STATUS' type for gen2, so ignoring for now.
-                    String attrs[] = line.split("\tmove ")[1].split(",\\s+");
+                    String[] attrs = line.split("\tmove ")[1].split(",\\s+");
                     Attack attack = new Attack(attrs[0].toLowerCase().replace('_', ' '), Integer.valueOf(attrs[2]),
                                                attrs[3].toLowerCase(), Integer.valueOf(attrs[5]),
                                                Integer.valueOf(attrs[6]), Integer.valueOf(attrs[7].split(" ")[0]));
@@ -527,6 +526,7 @@ public class Battle {
         Attack attack = new Attack("Mewtwo_Special1", 100, "Psychic", 100, 1, 100);
         this.attacks.put(attack.name, attack);
     }
+
     /*
      * Determine if run from battle is successful or not.
      *
@@ -549,6 +549,85 @@ public class Battle {
         return false;
     }
 
+    /*
+     * Determine if pokeball capture was successful or not (Gen 2).
+     * 
+     * Returns -1 if pokemon is caught.
+     *
+     * Sources:
+     * https://bulbapedia.bulbagarden.net/wiki/Catch_rate#Capture_method_.28Generation_II.29
+     * https://www.dragonflycave.com/mechanics/gen-ii-capturing
+     */
+    public static int gen2CalcIfCaught(Game game, Pokemon pokemon, String ballUsed) {
+        ballUsed = ballUsed.toLowerCase();
+
+        if (ballUsed.equals("master ball")) {
+            return -1;
+        }
+        int rateModified = pokemon.maxStats.get("catchRate");
+        if (ballUsed.equals("great ball") || ballUsed.equals("park ball")) {
+            rateModified *= 1.5;
+        }
+        else if (ballUsed.equals("ultra ball")) {
+            rateModified *= 2;
+        }
+        // TODO: other pokeballs
+//      else if (ballUsed.equals("heavy ball")) {
+//      }
+        else if (ballUsed.equals("fast ball") && (pokemon.name.equals("tangela") || 
+                                                  pokemon.name.equals("grimer")  || 
+                                                  pokemon.name.equals("magnemite"))) {
+            rateModified *= 4;
+        }
+        if (rateModified > 255){
+            rateModified = 255;
+        }
+        int bonusStatus = 0;  // TODO: sleep/frozen bonus 
+        int m = 3*pokemon.maxStats.get("hp");
+        int h = 2*pokemon.currentStats.get("hp");
+        if (m > 255) {
+            m = m/2;
+            m = m/2;
+            h = h/2;
+            h = h/2;
+        }
+        int a = ((m - h)*rateModified)/m;
+        if (a < 1) {
+            a = 1;
+        }
+        a += bonusStatus;
+        if (a > 255) {
+            a = 255;
+        }
+        // Determine if pokemon is caught or not.
+        System.out.println(a);
+        if (game.map.rand.nextInt(256) <= a) {
+            return -1;
+        }
+        int[] aLookup = new int[]{1, 2, 3, 4, 5, 7, 10, 15, 20, 30, 40, 50, 60, 80, 100, 120, 140, 160, 180, 200, 220, 240, 254, 255};
+        int[] bLookup = new int[]{63, 75, 84, 90, 95, 103, 113, 126, 134, 149, 160, 169, 177, 191, 201, 211, 220, 227, 234, 240, 246, 251, 253, 255};
+        int i = 0;
+        int prevVal = -1;
+        for (int val : aLookup) {
+            if (a > prevVal && a <= val) {
+                break;
+            }
+            prevVal = val;
+            i++;
+        }
+        int b = bLookup[i];
+        System.out.println(b);
+        if (game.map.rand.nextInt(256) >= b) {
+            return 0;  // 0 shakes
+        }
+        if (game.map.rand.nextInt(256) >= b) {
+            return 1;  // 1 shakes
+        }
+        if (game.map.rand.nextInt(256) >= b) {
+            return 2;  // 2 shakes
+        }
+        return 3;  // 3 shakes
+    }
 
     /*
      * Calculate an attack's damage.
@@ -593,9 +672,9 @@ public class Battle {
 
         Action text;
 
-        public int getLayer() {return 500;};
+        public int getLayer() {return 500;}
 
-        public String getCamera() {return "gui";};
+        public String getCamera() {return "gui";}
 
         @Override
         public void firstStep(Game game) {
@@ -647,7 +726,7 @@ public class Battle {
         }
         Type type = Type.ATTACK;
 
-        public int getLayer() {return 500;};
+        public int getLayer() {return 500;}
 
         @Override
         public void step(Game game) {
@@ -657,14 +736,79 @@ public class Battle {
             Action playerAction;
             Action doTurn;
 
-            if (this.type == Type.RUN) {
+            if (this.type == Type.ITEM) {
+                game.player.numFlees = 0;
+                BattleTurnData turnData = game.battle.network.turnData;
+                String itemName = turnData.itemName.toLowerCase();
+                if (itemName.contains("ball")) {
+                    int numWobbles;  // 0 wobbles == caught
+                    if (game.type != Game.Type.CLIENT) {
+                        numWobbles = Battle.gen2CalcIfCaught(game, game.battle.oppPokemon, itemName);
+                    }
+                    else {
+                        // Get run result from server
+                        numWobbles = turnData.numWobbles;
+                    }
+                    System.out.println("numWobbles");
+                    System.out.println(numWobbles);
+                    // TODO: refactors, stop using catchAction, catchPokemon_wigglesThenCatch needs to insert nextAction
+                    // currently it just ignores nextAction.
+                    Action catchAction;
+                    if (numWobbles == 0) {
+                        catchAction = new CatchPokemonMiss(game,
+//                                      new PrintAngryEating(game,
+//                                      new ChanceToRun(game,
+                                      null);
+                    }
+                    else if (numWobbles == 1) {
+                        catchAction = new CatchPokemonWobbles1Time(game,
+//                                      new PrintAngryEating(game,
+//                                      new ChanceToRun(game,
+                                      null);
+                    }
+                    else if (numWobbles == 2) {
+                        catchAction = new CatchPokemonWobbles2Times(game,
+//                                      new PrintAngryEating(game,
+//                                      new ChanceToRun(game,
+                                      null);
+                    }
+                    else if (numWobbles == 3) {
+                        catchAction = new CatchPokemonWobbles3Times(game,
+//                                      new PrintAngryEating(game,
+//                                      new ChanceToRun(game,
+                                      null);
+                    }
+                    else {
+                        catchAction = new CatchPokemonWobblesThenCatch(game, null);
+                    }
+                    // Display text, throw animation, catch or not
+                    playerAction = new DisplayText(game, game.player.name+" used "+itemName.toUpperCase()+"!",
+                                                   null, catchAction,
+                                   new ThrowPokeball(game,
+                                   catchAction));
+                    // If pokemon was caught, don't do anything else this turn.
+                    if (numWobbles == -1) {
+                        game.battle.oppPokemon.inBattle = false;
+                        game.insertAction(playerAction);
+                        game.actionStack.remove(this);
+                        game.battle.network.turnData = null;
+                        return;
+                    }
+                }
+                else {
+                    playerAction =  new DisplayText(game, "Dev note - Invalid item.",
+                                                    null, null,
+                                    null);
+                }
+            }
+            else if (this.type == Type.RUN) {
                 boolean runSuccessful;
                 if (game.type != Game.Type.CLIENT) {
                     runSuccessful = game.battle.calcIfRunSuccessful(game, game.player);
                 }
                 else {
                     // Get run result from server
-                    com.pkmngen.game.Network.BattleTurnData turnData = game.battle.network.turnData;
+                    BattleTurnData turnData = game.battle.network.turnData;
                     runSuccessful = turnData.runSuccessful;
                 }
                 if (runSuccessful) {
@@ -672,22 +816,19 @@ public class Battle {
                     game.battle.oppPokemon.inBattle = false;
                     game.actionStack.remove(this);
                     game.insertAction(new WaitFrames(game, 18,
-                                                     new DisplayText(game, "Got away safely!", null, null,
-                                                     new SplitAction(new BattleFadeOut(game,
-                                                                     null),
-                                                     new BattleFadeOutMusic(game,
-                                                     null)))));
-                    game.insertAction(new PlaySound("run1",
-                                                     null));
+                                      new DisplayText(game, "Got away safely!", null, null,
+                                      new SplitAction(new BattleFadeOut(game,
+                                                      null),
+                                      new BattleFadeOutMusic(game,
+                                      null)))));
+                    game.insertAction(new PlaySound("run1", null));
                     game.battle.network.turnData = null;
                     return;
                 }
                 // Failed to run away if we got here.
                 game.player.numFlees++;
-                playerAction =  new DisplayText(game,
-                                                "Canì Escape!",
-                                                null,
-                                                null,
+                playerAction =  new DisplayText(game, "Canì Escape!",
+                                                null, null,
                                 null);
             }
             // else, player selected attack
@@ -727,7 +868,7 @@ public class Battle {
                 }
                 // if this is a CLIENT, get all outcomes of attacks etc from the server.
                 else {
-                    com.pkmngen.game.Network.BattleTurnData turnData = game.battle.network.turnData;
+                    BattleTurnData turnData = game.battle.network.turnData;
                     oppFirst = turnData.oppFirst;
                     playerAttack = turnData.playerAttack;
                     game.player.currPokemon.trappedBy = turnData.playerTrappedBy;
@@ -742,7 +883,7 @@ public class Battle {
                                 null));
             }
 
-            // select enemy attack
+            // Select enemy attack
             if (game.type != Game.Type.CLIENT) {
                 //set up enemy attack
                 String attackChoice = game.battle.oppPokemon.attacks[game.map.rand.nextInt(game.battle.oppPokemon.attacks.length)];
@@ -769,8 +910,9 @@ public class Battle {
                     game.player.currPokemon.trapCounter = game.map.rand.nextInt(4) + 2;
                 }
             }
+            // If Client, get enemy attack that was sent from server.
             else {
-                com.pkmngen.game.Network.BattleTurnData turnData = game.battle.network.turnData;
+                BattleTurnData turnData = game.battle.network.turnData;
                 enemyAttack = turnData.enemyAttack;
                 game.battle.oppPokemon.trappedBy = turnData.enemyTrappedBy;
                 game.battle.oppPokemon.trapCounter = turnData.enemyTrapCounter;
@@ -850,65 +992,65 @@ public class Battle {
         }
     }
 
-    /*
-     * TODO: remove if unused
-     */
-    class CheckTrapped extends Action {
-        public int layer = 500;
-        public int getLayer(){return this.layer;}
-
-        @Override
-        public void step(Game game) {
-            this.step();
-        }
-
-        public void step() {
-            // TODO: trying out method where can only reference parent battle object, using Battle.this
-            // probably revert at some point
-            // TODO: if keeping, refactor to remove references to Game.staticGame
-            //  likely need global actionStack or something
-
-            // always goes you, then opponent
-            Game.staticGame.actionStack.remove(this);
-            if (Battle.this.oppPokemon.trappedBy != null) {
-                this.nextAction = new Battle_Actions.LoadAndPlayAttackAnimation(Game.staticGame, Battle.this.oppPokemon.trappedBy, Battle.this.oppPokemon,
-                                  new DisplayText.Clear(Game.staticGame,
-                                  new WaitFrames(Game.staticGame, 3,
-                                  new DisplayText(Game.staticGame,
-                                                  Battle.this.oppPokemon.name.toUpperCase()+"' hurt by "+Battle.this.oppPokemon.trappedBy.toUpperCase()+"!",
-                                                  null,
-                                                  true,
-                                  new DepleteEnemyHealth(Game.staticGame,
-                                  new WaitFrames(Game.staticGame, 13,
-                                  this.nextAction))))));
-                Battle.this.oppPokemon.trapCounter -= 1;
-                if (Battle.this.oppPokemon.trapCounter <= 0) {
-                    Battle.this.oppPokemon.trappedBy = null;
-                }
-            }
-            if (Game.staticGame.player.currPokemon.trappedBy != null) {
-                this.nextAction = new Battle_Actions.LoadAndPlayAttackAnimation(Game.staticGame, Game.staticGame.player.currPokemon.trappedBy, Game.staticGame.player.currPokemon,
-                                  new DisplayText.Clear(Game.staticGame,
-                                  new WaitFrames(Game.staticGame, 3,
-                                  new DisplayText(Game.staticGame,
-                                                  Game.staticGame.player.currPokemon.name.toUpperCase()+"' hurt by "+Game.staticGame.player.currPokemon.trappedBy.toUpperCase()+"!",
-                                                  null,
-                                                  true,
-                                  new DepleteFriendlyHealth(Game.staticGame.player.currPokemon,
-                                  new WaitFrames(Game.staticGame, 13,
-                                  this.nextAction))))));
-                Game.staticGame.player.currPokemon.trapCounter -= 1;
-                if (Battle.this.oppPokemon.trapCounter <= 0) {
-                    Battle.this.oppPokemon.trappedBy = null;
-                }
-            }
-            Game.staticGame.insertAction(this.nextAction);
-        }
-
-        public CheckTrapped(Game game, Action nextAction) {
-            this.nextAction = nextAction;
-        }
-    }
+//    /*
+//     * TODO: remove if unused
+//     */
+//    class CheckTrapped extends Action {
+//        public int layer = 500;
+//        public int getLayer(){return this.layer;}
+//
+//        @Override
+//        public void step(Game game) {
+//            this.step();
+//        }
+//
+//        public void step() {
+//            // TODO: trying out method where can only reference parent battle object, using Battle.this
+//            // probably revert at some point
+//            // TODO: if keeping, refactor to remove references to Game.staticGame
+//            //  likely need global actionStack or something
+//
+//            // always goes you, then opponent
+//            Game.staticGame.actionStack.remove(this);
+//            if (Battle.this.oppPokemon.trappedBy != null) {
+//                this.nextAction = new Battle_Actions.LoadAndPlayAttackAnimation(Game.staticGame, Battle.this.oppPokemon.trappedBy, Battle.this.oppPokemon,
+//                                  new DisplayText.Clear(Game.staticGame,
+//                                  new WaitFrames(Game.staticGame, 3,
+//                                  new DisplayText(Game.staticGame,
+//                                                  Battle.this.oppPokemon.name.toUpperCase()+"' hurt by "+Battle.this.oppPokemon.trappedBy.toUpperCase()+"!",
+//                                                  null,
+//                                                  true,
+//                                  new DepleteEnemyHealth(Game.staticGame,
+//                                  new WaitFrames(Game.staticGame, 13,
+//                                  this.nextAction))))));
+//                Battle.this.oppPokemon.trapCounter -= 1;
+//                if (Battle.this.oppPokemon.trapCounter <= 0) {
+//                    Battle.this.oppPokemon.trappedBy = null;
+//                }
+//            }
+//            if (Game.staticGame.player.currPokemon.trappedBy != null) {
+//                this.nextAction = new Battle_Actions.LoadAndPlayAttackAnimation(Game.staticGame, Game.staticGame.player.currPokemon.trappedBy, Game.staticGame.player.currPokemon,
+//                                  new DisplayText.Clear(Game.staticGame,
+//                                  new WaitFrames(Game.staticGame, 3,
+//                                  new DisplayText(Game.staticGame,
+//                                                  Game.staticGame.player.currPokemon.name.toUpperCase()+"' hurt by "+Game.staticGame.player.currPokemon.trappedBy.toUpperCase()+"!",
+//                                                  null,
+//                                                  true,
+//                                  new DepleteFriendlyHealth(Game.staticGame.player.currPokemon,
+//                                  new WaitFrames(Game.staticGame, 13,
+//                                  this.nextAction))))));
+//                Game.staticGame.player.currPokemon.trapCounter -= 1;
+//                if (Battle.this.oppPokemon.trapCounter <= 0) {
+//                    Battle.this.oppPokemon.trappedBy = null;
+//                }
+//            }
+//            Game.staticGame.insertAction(this.nextAction);
+//        }
+//
+//        public CheckTrapped(Game game, Action nextAction) {
+//            this.nextAction = nextAction;
+//        }
+//    }
 }
 
 
@@ -926,7 +1068,7 @@ class BattleIntro extends Action {
     public int layer = 139;
     public int getLayer(){return this.layer;}
 
-    public String getCamera() {return "gui";};
+    public String getCamera() {return "gui";}
 
     @Override
     public void step(Game game) {
@@ -1012,21 +1154,18 @@ class BattleIntro extends Action {
 
 class BattleIntroMusic extends Action {
 
-
-
-
     public int layer = 139;
     public int getLayer(){return this.layer;}
 
-    public String getCamera() {return "gui";};
+    public String getCamera() {return "gui";}
 
     @Override
     public void step(Game game) {
 
-
-        game.currMusic.pause();
-        game.currMusic = game.battle.music;
-        game.currMusic.play();
+        // TODO: uncomment
+//        game.currMusic.pause();
+//        game.currMusic = game.battle.music;
+//        game.currMusic.play();
 
         game.insertAction(this.nextAction);
         game.actionStack.remove(this);
@@ -1051,7 +1190,7 @@ class BattleIntro_anim1 extends Action {
     public int layer = 139;
     public int getLayer(){return this.layer;}
 
-    public String getCamera() {return "gui";};
+    public String getCamera() {return "gui";}
 
     @Override
     public void step(Game game) {
@@ -1113,7 +1252,7 @@ class BattleAnim_positionPlayers extends Action {
     public int layer = 140;
     public int getLayer(){return this.layer;}
 
-    public String getCamera() {return "gui";};
+    public String getCamera() {return "gui";}
 
     @Override
     public void step(Game game) {
@@ -1179,7 +1318,7 @@ class MovePlayerOffScreen extends Action {
     public int layer = 140;
     public int getLayer(){return this.layer;}
 
-    public String getCamera() {return "gui";};
+    public String getCamera() {return "gui";}
 
     @Override
     public void step(Game game) {
@@ -1258,7 +1397,7 @@ class EnemyFaint extends Action {
     public int layer = 120;
     public int getLayer(){return this.layer;}
 
-    public String getCamera() {return "gui";};
+    public String getCamera() {return "gui";}
 
     boolean firstStep;
 
@@ -1417,7 +1556,7 @@ class FriendlyFaint extends Action {
     public int layer = 120;
     public int getLayer(){return this.layer;}
 
-    public String getCamera() {return "gui";};
+    public String getCamera() {return "gui";}
 
     boolean firstStep;
 
@@ -1631,7 +1770,7 @@ class DrawBattleMenu1 extends Action {
     public int layer = 129;
     public int getLayer(){return this.layer;}
 
-    public String getCamera() {return "gui";};
+    public String getCamera() {return "gui";}
 
 
     Map<String, Vector2> getCoords = new HashMap<String, Vector2>();
@@ -1741,7 +1880,7 @@ class DrawBattleMenu_SafariZone extends Action {
     public int layer = 129;
     public int getLayer(){return this.layer;}
 
-    public String getCamera() {return "gui";};
+    public String getCamera() {return "gui";}
 
 
     Map<String, Vector2> getCoords = new HashMap<String, Vector2>();
@@ -1959,7 +2098,7 @@ class DrawBattleMenu_SafariZone extends Action {
 
         //simplify and put above
         if (breaksFree == false) { //ie was caught
-            return new catchPokemon_wigglesThenCatch(game, this);
+            return new CatchPokemonWobblesThenCatch(game, this);
         }
 
         //else, ie breaksFree = true
@@ -1968,7 +2107,7 @@ class DrawBattleMenu_SafariZone extends Action {
                 //, where the value of Ball is 255 for the Poké Ball, 200 for the Great Ball, or 150 for other balls
         if (d >= 256) {
             //shake 3 times before breaking free
-            return new catchPokemon_wiggles3Times(game, new PrintAngryEating(game, new ChanceToRun(game, this) ) );
+            return new CatchPokemonWobbles3Times(game, new PrintAngryEating(game, new ChanceToRun(game, this) ) );
         }
 
         int s = 0;//status thing again
@@ -1976,22 +2115,22 @@ class DrawBattleMenu_SafariZone extends Action {
 
         if (x < 10) {
             //ball misses
-            return new catchPokemon_miss(game, new PrintAngryEating(game, new ChanceToRun(game, this) ) );
+            return new CatchPokemonMiss(game, new PrintAngryEating(game, new ChanceToRun(game, this) ) );
         }
         else if (x < 30) {
             //ball shakes once
-            return new catchPokemon_wiggles1Time(game, new PrintAngryEating(game, new ChanceToRun(game, this) ) );
+            return new CatchPokemonWobbles1Time(game, new PrintAngryEating(game, new ChanceToRun(game, this) ) );
         }
         else if (x < 70) {
             //ball shakes twice
-            return new catchPokemon_wiggles2Times(game, new PrintAngryEating(game, new ChanceToRun(game, this) ) );
+            return new CatchPokemonWobbles2Times(game, new PrintAngryEating(game, new ChanceToRun(game, this) ) );
         }
         //ball shakes three times before pkmn gets free
 
         //System.out.println("x: "+String.valueOf(x));
         //System.out.println("Shake three times: "+String.valueOf(x));
 
-        return new catchPokemon_wiggles3Times(game, new PrintAngryEating(game, new ChanceToRun(game, this) ) );
+        return new CatchPokemonWobbles3Times(game, new PrintAngryEating(game, new ChanceToRun(game, this) ) );
     }
 }
 
@@ -2008,7 +2147,7 @@ class DrawBattleMenuNormal extends MenuAction {
     public int layer = 109;
     public int getLayer(){return this.layer;}
 
-    public String getCamera() {return "gui";};
+    public String getCamera() {return "gui";}
 
 
     Map<String, Vector2> getCoords = new HashMap<String, Vector2>();
@@ -2078,7 +2217,7 @@ class DrawBattleMenuNormal extends MenuAction {
                 game.insertAction(new PlaySound("click1", new DoneAction()));
                 // new menu that selects between pokemon attacks
                 game.insertAction(new DrawItemMenu.Intro(this, 1,
-                                                 new DrawItemMenu(game, this)));
+                                  new DrawItemMenu(game, this)));
                 // remove this action,
                 game.actionStack.remove(this);
             }
@@ -2096,7 +2235,7 @@ class DrawBattleMenuNormal extends MenuAction {
                 game.actionStack.remove(this);
             }
 
-            //user selected 'run'
+            // User selected 'RUN'
             else if (curr.equals("br")) {
 //                Action runAction = new Battle.DoTurn(game, Battle.DoTurn.Type.RUN, this);
 //                if (game.type == Game.Type.CLIENT) {
@@ -2221,7 +2360,7 @@ class DrawAttacksMenu extends Action {
     public int layer = 108;
     public int getLayer(){return this.layer;}
 
-    public String getCamera() {return "gui";};
+    public String getCamera() {return "gui";}
 
 
     Map<Integer, Vector2> getCoords;
@@ -2383,7 +2522,7 @@ class DrawPlayerMenu extends MenuAction {
     public int layer = 108;
     public int getLayer(){return this.layer;}
 
-    public String getCamera() {return "gui";};
+    public String getCamera() {return "gui";}
 
     Map<Integer, Vector2> arrowCoords;
     Vector2 newPos;
@@ -2559,7 +2698,7 @@ class DrawPlayerMenu extends MenuAction {
         public int layer = 120;
         public int getLayer(){return this.layer;}
 
-        public String getCamera() {return "gui";};
+        public String getCamera() {return "gui";}
 
 
 
@@ -2650,7 +2789,7 @@ class DrawItemMenu extends MenuAction {
     public int layer = 107;
     public int getLayer(){return this.layer;}
 
-    public String getCamera() {return "gui";};
+    public String getCamera() {return "gui";}
 
 
     Map<Integer, Vector2> arrowCoords;
@@ -2771,7 +2910,7 @@ class DrawItemMenu extends MenuAction {
             }
             else {
                 this.disabled = true;
-                System.out.println(String.valueOf(this.prevMenu));
+//                System.out.println(String.valueOf(this.prevMenu));
                 game.insertAction(new DrawUseTossMenu(game, this, name));
                 game.actionStack.remove(this);
                 return;
@@ -2837,7 +2976,7 @@ class DrawItemMenu extends MenuAction {
         int j = 0;
         //add 'cancel' to the items list
 //        this.itemsList = new ArrayList<String>(game.player.itemsList); // TODO: delete
-        this.itemsList = new ArrayList<String>(game.player.itemsDict.keySet()); // TODO: delete
+        this.itemsList = new ArrayList<String>(game.player.itemsDict.keySet());
         this.itemsList.add("Cancel");
         //convert player item list to sprites
         for (String entry : this.itemsList) {
@@ -2895,7 +3034,7 @@ class DrawItemMenu extends MenuAction {
         public int layer = 110;
         public int getLayer(){return this.layer;}
 
-        public String getCamera() {return "gui";};
+        public String getCamera() {return "gui";}
 
 
 
@@ -2936,7 +3075,7 @@ class DrawUseTossMenu extends MenuAction {
     public int layer = 106;
     public int getLayer(){return this.layer;}
 
-    public String getCamera() {return "gui";};
+    public String getCamera() {return "gui";}
 
     Map<Integer, Vector2> getCoords;
     int curr;
@@ -3055,17 +3194,34 @@ class DrawUseTossMenu extends MenuAction {
     }
 
     public void useItem(Game game, String itemName) {
-        //
-        if (itemName.toLowerCase().equals("ultra ball")) {
-            // calculate if pokemon was caught
-            this.prevMenu.prevMenu.disabled = false;  // menu won't get drawn until catch anim is over
-            Action catchAction = Battle_Actions.calcIfCaught(game, this.prevMenu.prevMenu);
-            // display text, throw animation, catch or not
-            String textString = game.player.name+" used "+itemName.toUpperCase()+"!";
-            game.insertAction(new DisplayText(game, textString, null, catchAction,
-                                             new ThrowPokeball(game, catchAction
-                                             )));
+        itemName = itemName.toLowerCase();
+        // TODO: demo code, possibly remove.
+//        if (itemName.toLowerCase().equals("ultra ball")) {
+//            this.prevMenu.prevMenu.disabled = false;  // Menu won't get drawn until catch anim is over
+//            // Calculate if pokemon was caught
+//            Action catchAction = Battle_Actions.calcIfCaught(game, this.prevMenu.prevMenu);
+//            // Display text, throw animation, catch or not
+//            String textString = game.player.name+" used "+itemName.toUpperCase()+"!";
+//            game.insertAction(new DisplayText(game, textString, null, catchAction,
+//                              new ThrowPokeball(game,
+//                              catchAction)));
+//            
+//        }
+        this.prevMenu.prevMenu.disabled = false;
+        Action action = new SplitAction(new PlaySound("click1", null), null);
+        if (game.type == Game.Type.CLIENT) {
+            action.appendAction(new Battle.WaitTurnData(game, null));
+            game.client.sendTCP(new com.pkmngen.game.Network.DoBattleAction(game.player.network.id, Battle.DoTurn.Type.ITEM, itemName));
         }
+        else {
+            // Battle.DoTurn handles what to do with the item; it looks at game.battle.network.turnData.itemName
+            // to know which item is being used.
+            game.battle.network.turnData = new BattleTurnData();
+            game.battle.network.turnData.itemName = itemName;
+        }
+        action.appendAction(new Battle.DoTurn(game, Battle.DoTurn.Type.ITEM, this.prevMenu.prevMenu));
+        game.actionStack.remove(this);
+        game.insertAction(action);
     }
 }
 
@@ -3076,7 +3232,7 @@ class DrawPokemonMenu extends MenuAction {
     public int layer = 107;
     public int getLayer(){return this.layer;}
 
-    public String getCamera() {return "gui";};
+    public String getCamera() {return "gui";}
 
     Sprite bgSprite;
     Sprite helperSprite;
@@ -3320,7 +3476,7 @@ class DrawPokemonMenu extends MenuAction {
         public int layer = 110;
         public int getLayer(){return this.layer;}
 
-        public String getCamera() {return "gui";};
+        public String getCamera() {return "gui";}
 
         int duration = 18;
         Sprite bgSprite;
@@ -3362,7 +3518,7 @@ class DrawPokemonMenu extends MenuAction {
         public int layer = 110;
         public int getLayer(){return this.layer;}
 
-        public String getCamera() {return "gui";};
+        public String getCamera() {return "gui";}
 
         int duration = 34;
         Sprite bgSprite;
@@ -3412,7 +3568,7 @@ class DrawPokemonMenu extends MenuAction {
         public int layer = 106;
         public int getLayer(){return this.layer;}
 
-        public String getCamera() {return "gui";};
+        public String getCamera() {return "gui";}
 
         Map<Integer, Vector2> getCoords;
         int curr;
@@ -3632,7 +3788,7 @@ class DrawPokemonMenu extends MenuAction {
             public int layer = 110;
             public int getLayer(){return this.layer;}
 
-            public String getCamera() {return "gui";};
+            public String getCamera() {return "gui";}
 
             int duration = 9;
 
@@ -3668,7 +3824,7 @@ class DrawPokemonMenu extends MenuAction {
         static class ExitAfterActions extends MenuAction {
             public int layer = 107;
             public int getLayer(){return this.layer;}
-            public String getCamera() {return "gui";};
+            public String getCamera() {return "gui";}
 
             boolean firstStep = true;
 
@@ -3724,7 +3880,7 @@ class DrawPokemonMenu extends MenuAction {
             public int layer = 106;
             public int getLayer(){return this.layer;}
 
-            public String getCamera() {return "gui";};
+            public String getCamera() {return "gui";}
 
             Map<Integer, Vector2> arrowCoords;
             int curr;
@@ -3866,7 +4022,7 @@ class DrawPokemonMenu extends MenuAction {
                 // 1 frame avatar anim at 12 here (1 extra frame for avatar anim)
                 public int layer = 110;
                 public int getLayer(){return this.layer;}
-                public String getCamera() {return "gui";};
+                public String getCamera() {return "gui";}
                 int timer = 0; //timer counting up
 
                 @Override
@@ -3914,7 +4070,7 @@ class BattleFadeOut extends Action {
     public int layer = 129;
     public int getLayer(){return this.layer;}
 
-    public String getCamera() {return "gui";};
+    public String getCamera() {return "gui";}
 
     @Override
     public void step(Game game) {
@@ -3990,7 +4146,7 @@ class BattleFadeOutMusic extends Action {
     public int layer = 129;
     public int getLayer(){return this.layer;}
 
-    public String getCamera() {return "gui";};
+    public String getCamera() {return "gui";}
 
     @Override
     public void step(Game game) {
@@ -4047,25 +4203,25 @@ class BattleFadeOutMusic extends Action {
 
         //fade out from white anim
         for (int i=0; i < 14; i++) {
-            this.frames.add(.3f);
+            this.frames.add(0.3f);
         }
         for (int i=0; i < 14; i++) {
-            this.frames.add(.25f);
+            this.frames.add(0.25f);
         }
         for (int i=0; i < 14; i++) {
-            this.frames.add(.2f);
+            this.frames.add(0.2f);
         }
         for (int i=0; i < 14; i++) {
-            this.frames.add(.15f);
+            this.frames.add(0.15f);
         }
         for (int i=0; i < 14; i++) {
-            this.frames.add(.1f);
+            this.frames.add(0.1f);
         }
         for (int i=0; i < 7; i++) {
-            this.frames.add(.05f);
+            this.frames.add(0.05f);
         }
         for (int i=0; i < 7; i++) {
-            this.frames.add(.025f);
+            this.frames.add(0.025f);
         }
     }
 }
@@ -4086,7 +4242,7 @@ class DrawBattle extends Action {
     public int layer = 130;
     public int getLayer(){return this.layer;}
 
-    public String getCamera() {return "gui";};
+    public String getCamera() {return "gui";}
 
     Sprite helperSprite;
 
@@ -4173,7 +4329,7 @@ class EvolutionAnim extends Action {
     public int layer = 130;
     public int getLayer(){return this.layer;}
 
-    public String getCamera() {return "gui";};
+    public String getCamera() {return "gui";}
 
     public static Sprite bgSprite;
     Sprite spritePart;
@@ -4418,7 +4574,7 @@ class DrawEnemyHealth extends Action {
 
     public int layer = 129;
     public int getLayer(){return this.layer;}
-    public String getCamera() {return "gui";};
+    public String getCamera() {return "gui";}
     public static boolean shouldDraw = true;
 
     @Override
@@ -4506,7 +4662,7 @@ class DrawFriendlyHealth extends Action {
     public int layer = 129;
     public int getLayer(){return this.layer;}
 
-    public String getCamera() {return "gui";};
+    public String getCamera() {return "gui";}
     boolean firstStep = true;
     public static boolean shouldDraw = true;
 
@@ -4618,7 +4774,7 @@ class DepleteEnemyHealth extends Action {
     public int layer = 129;
     public int getLayer(){return this.layer;}
 
-    public String getCamera() {return "gui";};
+    public String getCamera() {return "gui";}
 
 
     boolean firstStep;
@@ -4669,7 +4825,7 @@ class DepleteEnemyHealth extends Action {
 
             // If enemy health is 0, do EnemyFaint
             if (game.battle.oppPokemon.currentStats.get("hp") <= 0) {
-                int exp = game.battle.calcFaintExp();
+                int exp = 3000; // game.battle.calcFaintExp();
                 game.player.currPokemon.exp += exp;
                 Action nextAction = new EnemyFaint(game,
                                     new RemoveDisplayText(  // TODO: refactor to stop using this
@@ -4724,7 +4880,7 @@ class DepleteFriendlyHealth extends Action {
     public int layer = 129;
     public int getLayer(){return this.layer;}
 
-    public String getCamera() {return "gui";};
+    public String getCamera() {return "gui";}
 
 
     Pokemon pokemon;
@@ -4870,7 +5026,7 @@ class ThrowRock extends Action {
     public int layer = 120;
     public int getLayer(){return this.layer;}
 
-    public String getCamera() {return "gui";};
+    public String getCamera() {return "gui";}
 
 
 
@@ -5031,7 +5187,7 @@ class ThrowBait extends Action {
     public int layer = 120;
     public int getLayer(){return this.layer;}
 
-    public String getCamera() {return "gui";};
+    public String getCamera() {return "gui";}
 
 
 
@@ -5187,11 +5343,7 @@ class ThrowPokeball extends Action {
     public int layer = 120;
     public int getLayer(){return this.layer;}
 
-    public String getCamera() {return "gui";};
-
-
-
-    Sprite helperSprite; //just for helping me position the animation. delete later.
+    public String getCamera() {return "gui";}
 
     @Override
     public void step(Game game) {
@@ -5350,7 +5502,7 @@ class ThrowFastPokeball extends Action {
     public int layer = 120;
     public int getLayer(){return this.layer;}
 
-    public String getCamera() {return "gui";};
+    public String getCamera() {return "gui";}
 
 
 
@@ -5537,7 +5689,7 @@ class ThrowHyperPokeball extends Action {
     public int layer = 120;
     public int getLayer(){return this.layer;}
 
-    public String getCamera() {return "gui";};
+    public String getCamera() {return "gui";}
 
 
 
@@ -5684,12 +5836,7 @@ class ThrowHyperPokeball extends Action {
     }
 }
 
-
-//draws pokeball wiggling once then releasing pokemon
- //note - maybe this should be a chain of actions? depending on how probabilities work?
-class catchPokemon_wigglesThenCatch extends Action {
-
-    //Sprite pokeballSprite;
+class CatchPokemonWobblesThenCatch extends Action {
 
     ArrayList<Vector2> positions;
     Vector2 position;
@@ -5702,11 +5849,7 @@ class catchPokemon_wigglesThenCatch extends Action {
     public int layer = 120;
     public int getLayer(){return this.layer;}
 
-    public String getCamera() {return "gui";};
-
-
-
-    Sprite helperSprite; //just for helping me position the animation. delete later.
+    public String getCamera() {return "gui";}
 
     @Override
     public void step(Game game) {
@@ -5717,19 +5860,14 @@ class catchPokemon_wigglesThenCatch extends Action {
         //set sprite position
         //if done with anim, do nextAction
         if (positions.isEmpty() || sprites.isEmpty()) {
-
-
-
             //demo code - add to player adrenaline
             int adrenaline = (int)Math.ceil((256 - game.battle.oppPokemon.baseStats.get("catchRate"))/100.0f);
             game.player.adrenaline += adrenaline;
-            System.out.println("adrenaline: " + String.valueOf(adrenaline));
-
-            //
+//            System.out.println("adrenaline: " + String.valueOf(adrenaline));
 
             //PokemonCaught_Events - sprite and text
             //new DisplayText(game, string)
-            Action newAction = new PokemonCaught_Events(
+            Action newAction = new PokemonCaughtEvents(
                                     game, adrenaline, new SplitAction( //demo code
                                         new BattleFadeOut(game,
                                                 new DoneAction() //new playerStanding(game)
@@ -5815,7 +5953,7 @@ class catchPokemon_wigglesThenCatch extends Action {
         }
     }
 
-    public catchPokemon_wigglesThenCatch(Game game, Action nextAction) {
+    public CatchPokemonWobblesThenCatch(Game game, Action nextAction) {
 
         this.nextAction = nextAction;
 
@@ -5900,14 +6038,14 @@ class catchPokemon_wigglesThenCatch extends Action {
 
 
 
-class catchPokemon_miss extends Action {
+class CatchPokemonMiss extends Action {
 
     ArrayList<Float> alphas;
 
     public int layer = 120;
     public int getLayer(){return this.layer;}
 
-    public String getCamera() {return "gui";};
+    public String getCamera() {return "gui";}
 
 
 
@@ -5930,7 +6068,7 @@ class catchPokemon_miss extends Action {
 
     }
 
-    public catchPokemon_miss(Game game, Action nextAction) {
+    public CatchPokemonMiss(Game game, Action nextAction) {
 
         this.nextAction = nextAction;
         /*
@@ -5947,7 +6085,7 @@ class catchPokemon_miss extends Action {
 }
 
 
-class catchPokemon_wiggles1Time extends Action {
+class CatchPokemonWobbles1Time extends Action {
 
     ArrayList<Vector2> positions;
     Vector2 position;
@@ -5962,7 +6100,7 @@ class catchPokemon_wiggles1Time extends Action {
     public int layer = 120;
     public int getLayer(){return this.layer;}
 
-    public String getCamera() {return "gui";};
+    public String getCamera() {return "gui";}
 
 
 
@@ -6029,7 +6167,7 @@ class catchPokemon_wiggles1Time extends Action {
         }
     }
 
-    public catchPokemon_wiggles1Time(Game game, Action nextAction) {
+    public CatchPokemonWobbles1Time(Game game, Action nextAction) {
 
         this.nextAction = nextAction;
 
@@ -6114,7 +6252,7 @@ class catchPokemon_wiggles1Time extends Action {
 }
 
 
-class catchPokemon_wiggles2Times extends Action {
+class CatchPokemonWobbles2Times extends Action {
 
     //Sprite pokeballSprite;
 
@@ -6131,7 +6269,7 @@ class catchPokemon_wiggles2Times extends Action {
     public int layer = 120;
     public int getLayer(){return this.layer;}
 
-    public String getCamera() {return "gui";};
+    public String getCamera() {return "gui";}
 
 
 
@@ -6201,7 +6339,7 @@ class catchPokemon_wiggles2Times extends Action {
         }
     }
 
-    public catchPokemon_wiggles2Times(Game game, Action nextAction) {
+    public CatchPokemonWobbles2Times(Game game, Action nextAction) {
 
         this.nextAction = nextAction;
 
@@ -6306,9 +6444,7 @@ class catchPokemon_wiggles2Times extends Action {
 
 //draws pokeball wiggling3 times and then releasing pokemon
  //still need to get wiggle animation done here
-class catchPokemon_wiggles3Times extends Action {
-
-    //Sprite pokeballSprite;
+class CatchPokemonWobbles3Times extends Action {
 
     ArrayList<Vector2> positions;
     Vector2 position;
@@ -6323,11 +6459,7 @@ class catchPokemon_wiggles3Times extends Action {
     public int layer = 120;
     public int getLayer(){return this.layer;}
 
-    public String getCamera() {return "gui";};
-
-
-
-    Sprite helperSprite; //just for helping me position the animation. delete later.
+    public String getCamera() {return "gui";}
 
     @Override
     public void step(Game game) {
@@ -6409,7 +6541,7 @@ class catchPokemon_wiggles3Times extends Action {
         }
     }
 
-    public catchPokemon_wiggles3Times(Game game, Action nextAction) {
+    public CatchPokemonWobbles3Times(Game game, Action nextAction) {
 
         //TODO - would be nice to confirm this version with a recording
 
@@ -6535,7 +6667,7 @@ class PrintAngryEating extends Action {
     public int layer = 120;
     public int getLayer(){return this.layer;}
 
-    public String getCamera() {return "gui";};
+    public String getCamera() {return "gui";}
 
 
 
@@ -6586,7 +6718,7 @@ class ChanceToRun extends Action {
     public int layer = 120;
     public int getLayer(){return this.layer;}
 
-    public String getCamera() {return "gui";};
+    public String getCamera() {return "gui";}
 
 
 
@@ -6692,7 +6824,7 @@ class OppPokemonFlee extends Action {
     public int layer = 120;
     public int getLayer(){return this.layer;}
 
-    public String getCamera() {return "gui";};
+    public String getCamera() {return "gui";}
 
 
 
@@ -6793,10 +6925,12 @@ class OppPokemonFlee extends Action {
 }
 
 
-//displays caught pkmn text
-//plays victory fanfare
-//continues to draw pokeball on screen
-class PokemonCaught_Events extends Action {
+/*
+ * Display caught pkmn text.
+ * Play victory fanfare.
+ * Continue to draw pokeball on screen.
+ */
+class PokemonCaughtEvents extends Action {
 
     Action displayTextAction;
 
@@ -6805,10 +6939,7 @@ class PokemonCaught_Events extends Action {
     public int layer = 120;
     public int getLayer(){return this.layer;}
 
-    public String getCamera() {return "gui";};
-
-
-
+    public String getCamera() {return "gui";}
     boolean startLooking;
 
     //what to do at each iteration
@@ -6817,7 +6948,7 @@ class PokemonCaught_Events extends Action {
 
         this.pokeballSprite.draw(game.uiBatch);
 
-        //when text action first appears, start checking for when it leaves AS
+        // When text action first appears, start checking for when it leaves AS
         if (this.startLooking == false && game.actionStack.contains(this.displayTextAction)) {
             this.startLooking = true;
             return; //won't have left AS on this first iteration, might as well return
@@ -6840,7 +6971,7 @@ class PokemonCaught_Events extends Action {
 
     }
 
-    public PokemonCaught_Events(Game game, int adrenaline, Action nextAction) {
+    public PokemonCaughtEvents(Game game, int adrenaline, Action nextAction) {
 
         this.nextAction = nextAction;
 
@@ -6852,21 +6983,17 @@ class PokemonCaught_Events extends Action {
         //demo code
         String string2 = ""+game.player.name+" gained "+Character.forDigit(adrenaline,10)+" ADRENALINE!";
 
-        this.displayTextAction  = new DisplayText(game, string2,  null, null, new DoneAction());
-        Action firstTextAction = new DisplayText(game, string1, "fanfare1", null, this.displayTextAction); //trigger
+        // TODO: remove if unused
+//        this.displayTextAction  = new DisplayText(game, string2,  null, null, new DoneAction());
+//        Action firstTextAction = new DisplayText(game, string1, "fanfare1", null, this.displayTextAction);
+        Action firstTextAction = new DisplayText(game, string1, "fanfare1", null, null);
+        this.displayTextAction = firstTextAction;
 
         game.insertAction(firstTextAction);
-        //
 
-        //
         Texture text = new Texture(Gdx.files.internal("throw_pokeball_anim/pokeball_wiggleSheet1.png"));
         this.pokeballSprite = new Sprite(text, 12*2, 0, 12, 12); //right tilt
         this.pokeballSprite.setPosition(115,88);
-        //this.pokeballSprite.setScale(3); //post scaling change
-
-
-
-
     }
 
 }
@@ -6896,7 +7023,7 @@ class ThrowOutPokemon extends Action {
     public int layer = 105;  // TODO: test
     public int getLayer(){return this.layer;}
 
-    public String getCamera() {return "gui";};
+    public String getCamera() {return "gui";}
 
 
 
@@ -7175,7 +7302,7 @@ class ThrowOutPokemonCrystal extends Action {
   public int layer = 105;
   public int getLayer(){return this.layer;}
 
-  public String getCamera() {return "gui";};
+  public String getCamera() {return "gui";}
 
 
 
@@ -7450,7 +7577,7 @@ class SpecialBattleMewtwo extends Action {
     public int layer = 107;
     public int getLayer(){return this.layer;}
 
-    public String getCamera() {return "gui";};
+    public String getCamera() {return "gui";}
 
     Music music;
     boolean firstStep = true;
@@ -7463,7 +7590,7 @@ class SpecialBattleMewtwo extends Action {
         if (this.firstStep) {
             this.music = Gdx.audio.newMusic(Gdx.files.internal("battle/pokemon_mansion_remix_eq.ogg"));
             this.music.setLooping(true);
-            this.music.setVolume(.9f);
+            this.music.setVolume(0.9f);
 
             game.currMusic = this.music;
             game.currMusic.stop();
@@ -7597,7 +7724,7 @@ class SpecialBattleMewtwo extends Action {
         public int layer = 129;
         public int getLayer(){return this.layer;}
 
-        public String getCamera() {return "gui";};
+        public String getCamera() {return "gui";}
 
         SpecialMewtwo1 mewtwo;
 
@@ -7656,7 +7783,7 @@ class SpecialBattleMewtwo extends Action {
         public int layer = 140;
         public int getLayer(){return this.layer;}
 
-        public String getCamera() {return "gui";};
+        public String getCamera() {return "gui";}
 
         int timer = 0;
         String vertexShader;
@@ -7696,22 +7823,22 @@ class SpecialBattleMewtwo extends Action {
 
             if (this.timer == 0) {
                 // TODO: will fail if WebGL (maybe LibGDX has fixed this?)
-                ShaderProgram shader = new ShaderProgram(this.vertexShader, this.getShader(.8f));
+                ShaderProgram shader = new ShaderProgram(this.vertexShader, this.getShader(0.8f));
                 game.uiBatch.setShader(shader);
-//                game.battle.oppPokemon.sprite.setColor(.2f, .2f, .2f, .2f);
+//                game.battle.oppPokemon.sprite.setColor(0.2f, .2f, .2f, .2f);
             }
 
 
             if (this.timer == 490) {
-                ShaderProgram shader = new ShaderProgram(this.vertexShader, this.getShader(.6f));
+                ShaderProgram shader = new ShaderProgram(this.vertexShader, this.getShader(0.6f));
                 game.uiBatch.setShader(shader);
             }
             else if (this.timer == 490 + 6) {
-                ShaderProgram shader = new ShaderProgram(this.vertexShader, this.getShader(.4f));
+                ShaderProgram shader = new ShaderProgram(this.vertexShader, this.getShader(0.4f));
                 game.uiBatch.setShader(shader);
             }
             else if (this.timer == 490 + 6*2) {
-                ShaderProgram shader = new ShaderProgram(this.vertexShader, this.getShader(.2f));
+                ShaderProgram shader = new ShaderProgram(this.vertexShader, this.getShader(0.2f));
                 game.uiBatch.setShader(shader);
             }
             else if (this.timer == 490 + 6*3) {
@@ -7719,31 +7846,31 @@ class SpecialBattleMewtwo extends Action {
                 game.uiBatch.setShader(shader);
             }
             else if (this.timer == 490 + 6*4) {
-                ShaderProgram shader = new ShaderProgram(this.vertexShader, this.getShader(-.2f));
+                ShaderProgram shader = new ShaderProgram(this.vertexShader, this.getShader(-0.2f));
                 game.uiBatch.setShader(shader);
             }
             else if (this.timer == 490 + 6*5) {
-                ShaderProgram shader = new ShaderProgram(this.vertexShader, this.getShader(-.4f));
+                ShaderProgram shader = new ShaderProgram(this.vertexShader, this.getShader(-0.4f));
                 game.uiBatch.setShader(shader);
             }
             else if (this.timer == 490 + 6*6) {
-                ShaderProgram shader = new ShaderProgram(this.vertexShader, this.getShader(-.6f));
+                ShaderProgram shader = new ShaderProgram(this.vertexShader, this.getShader(-0.6f));
                 game.uiBatch.setShader(shader);
             }
             else if (this.timer == 490 + 6*7) {
-                ShaderProgram shader = new ShaderProgram(this.vertexShader, this.getShader(-.8f));
+                ShaderProgram shader = new ShaderProgram(this.vertexShader, this.getShader(-0.8f));
                 game.uiBatch.setShader(shader);
             }
             else if (this.timer == 490 + 6*8) {
-                ShaderProgram shader = new ShaderProgram(this.vertexShader, this.getShader(-.85f));
+                ShaderProgram shader = new ShaderProgram(this.vertexShader, this.getShader(-0.85f));
                 game.uiBatch.setShader(shader);
             }
             else if (this.timer == 490 + 6*9) {
-                ShaderProgram shader = new ShaderProgram(this.vertexShader, this.getShader(-.90f));
+                ShaderProgram shader = new ShaderProgram(this.vertexShader, this.getShader(-0.90f));
                 game.uiBatch.setShader(shader);
             }
             else if (this.timer == 490 + 6*10) {
-                ShaderProgram shader = new ShaderProgram(this.vertexShader, this.getShader(-.95f));
+                ShaderProgram shader = new ShaderProgram(this.vertexShader, this.getShader(-0.95f));
                 game.uiBatch.setShader(shader);
             }
             else if (this.timer == 490 + 6*11) {
@@ -7755,14 +7882,15 @@ class SpecialBattleMewtwo extends Action {
                 game.uiBatch.setShader(shader);
             }
             else if (this.timer == 490 + 6*19 + 3) {
-                ShaderProgram shader = new ShaderProgram(this.vertexShader, this.getShader(-.5f));
+                ShaderProgram shader = new ShaderProgram(this.vertexShader, this.getShader(-0.5f));
                 game.uiBatch.setShader(shader);
             }
             else if (this.timer == 490 + 6*19 + 5) {
                 game.uiBatch.setShader(null);
             }
             else if (this.timer == 620) {
-                SpecialBattleMewtwo.DrawBreathingSprite.shouldBreathe = true;
+                SpecialBattleMewtwo.DrawBreathingSprite drawBreathingSprite;
+                drawBreathingSprite.shouldBreathe = true;
             }
 
 
@@ -7875,7 +8003,7 @@ class SpecialBattleMewtwo extends Action {
         public int layer = 139;
         public int getLayer(){return this.layer;}
 
-        public String getCamera() {return "gui";};
+        public String getCamera() {return "gui";}
 
         @Override
         public void step(Game game) {
@@ -7926,7 +8054,7 @@ class SpecialBattleMewtwo extends Action {
         public int layer = 109;
         public int getLayer(){return this.layer;}
 
-        public String getCamera() {return "gui";};
+        public String getCamera() {return "gui";}
 
         ShaderProgram shader;
         String fragShader;
@@ -8039,7 +8167,7 @@ class SpecialBattleMewtwo extends Action {
         public int layer = 111;
         public int getLayer(){return this.layer;}
 
-        public String getCamera() {return "gui";};
+        public String getCamera() {return "gui";}
 
         Sprite textboxSprite;
         Sprite[] sprites = new Sprite[10];
@@ -8058,7 +8186,8 @@ class SpecialBattleMewtwo extends Action {
         public void step(Game game) {
 
             if (this.firstStep) {
-                SpecialBattleMewtwo.RocksEffect2.drawRocks = true;
+                SpecialBattleMewtwo.RocksEffect2 rocksEffect2;
+                rocksEffect2.drawRocks = true;
                 this.firstStep = false;
             }
 
@@ -8130,7 +8259,7 @@ class SpecialBattleMewtwo extends Action {
         public int layer = 131;
         public int getLayer(){return this.layer;}
 
-        public String getCamera() {return "gui";};
+        public String getCamera() {return "gui";}
         Sprite bgSprite;
         Sprite bgSprite2;
         Sprite[] sprites = new Sprite[10];
@@ -8290,7 +8419,7 @@ class SpecialBattleMewtwo extends Action {
         public int layer = 130;
         public int getLayer(){return this.layer;}
 
-        public String getCamera() {return "gui";};
+        public String getCamera() {return "gui";}
 
         @Override
         public void step(Game game) {
@@ -8317,7 +8446,7 @@ class SpecialBattleMegaGengar extends Action {
     public int layer = 107;
     public int getLayer(){return this.layer;}
 
-    public String getCamera() {return "gui";};
+    public String getCamera() {return "gui";}
 
     Music music;
     boolean firstStep = true;
@@ -8332,8 +8461,8 @@ class SpecialBattleMegaGengar extends Action {
             this.music = Gdx.audio.newMusic(Gdx.files.internal("battle/mgengar_battle_intro1.wav"));
             this.music.setLooping(false);
             // trying to balance this the attack sound effects mainly - they are pretty quiet
-            this.music.setVolume(.2f);
-//            this.music.setVolume(.0f); // TODO: debug, remove
+            this.music.setVolume(0.2f);
+//            this.music.setVolume(0.0f); // TODO: debug, remove
 
             // TODO: sound manager object needs to do this
             game.currMusic.stop();
@@ -8379,7 +8508,7 @@ class SpecialBattleMegaGengar extends Action {
 //                    PkmnGen.staticGame.currMusic = temp;
 //                    //lower lag, but still noticeable
 //                    PkmnGen.staticGame.currMusic.setPosition(0f);
-//                    PkmnGen.staticGame.currMusic.setVolume(.9f);
+//                    PkmnGen.staticGame.currMusic.setVolume(0.9f);
 //                    System.out.println(System.nanoTime());
 //                    PkmnGen.staticGame.notify();
 //                    }
@@ -8389,7 +8518,7 @@ class SpecialBattleMegaGengar extends Action {
             // pre-load battle music
             temp = Gdx.audio.newMusic(Gdx.files.internal("battle/mgengar_battle1.wav"));
             temp.setLooping(true);
-            temp.setVolume(.2f);
+            temp.setVolume(0.2f);
             temp.play();
             temp.pause();
             game.loadedMusic.put("mgengar_battle1", temp);
@@ -8401,7 +8530,7 @@ class SpecialBattleMegaGengar extends Action {
 //        if (this.timer == 1) {
 //            temp.pause();
 ////            temp.setPosition(0f);
-//            temp.setVolume(.9f);
+//            temp.setVolume(0.9f);
 //        }
 
         if (this.timer == 0) {
@@ -8449,8 +8578,8 @@ class SpecialBattleMegaGengar extends Action {
 //
 //            this.music = Gdx.audio.newMusic(Gdx.files.internal("battle/mgengar_battle1.wav"));
 //            this.music.setLooping(true);
-//            this.music.setVolume(.9f);
-////            this.music.setVolume(.0f);  // TODO: debug, remove
+//            this.music.setVolume(0.9f);
+////            this.music.setVolume(0.0f);  // TODO: debug, remove
 //
 //            game.currMusic = this.music;
 //            game.currMusic.stop();
@@ -8472,7 +8601,7 @@ class SpecialBattleMegaGengar extends Action {
         public int layer = 131;
         public int getLayer(){return this.layer;}
 
-        public String getCamera() {return "gui";};
+        public String getCamera() {return "gui";}
 
         SpecialMegaGengar1 gengar;
 
@@ -8543,7 +8672,7 @@ class SpecialBattleMegaGengar extends Action {
 
         public int layer = 140;
         public int getLayer(){return this.layer;}
-        public String getCamera() {return "gui";};
+        public String getCamera() {return "gui";}
 
         ArrayList<Vector2> moves_relative;
         Vector2 move;
@@ -8557,7 +8686,7 @@ class SpecialBattleMegaGengar extends Action {
 
             if (this.firstStep) {
                 // TODO: will fail if WebGL (maybe LibGDX has fixed this?)
-                ShaderProgram shader = new ShaderProgram(this.vertexShader, this.getShader(.8f));
+                ShaderProgram shader = new ShaderProgram(this.vertexShader, this.getShader(0.8f));
                 game.uiBatch.setShader(shader);
                 this.firstStep = false;
             }
@@ -8612,19 +8741,19 @@ class SpecialBattleMegaGengar extends Action {
 
             //start of flash anim
             else if (this.timer == 20) {
-                ShaderProgram shader = new ShaderProgram(this.vertexShader, this.getShader(.7f));
+                ShaderProgram shader = new ShaderProgram(this.vertexShader, this.getShader(0.7f));
                 game.uiBatch.setShader(shader);
             }
             else if (this.timer == 20 + 24) {
-                ShaderProgram shader = new ShaderProgram(this.vertexShader, this.getShader(.6f));
+                ShaderProgram shader = new ShaderProgram(this.vertexShader, this.getShader(0.6f));
                 game.uiBatch.setShader(shader);
             }
             else if (this.timer == 20 + 24*2) {
-                ShaderProgram shader = new ShaderProgram(this.vertexShader, this.getShader(.4f));
+                ShaderProgram shader = new ShaderProgram(this.vertexShader, this.getShader(0.4f));
                 game.uiBatch.setShader(shader);
             }
             else if (this.timer == 20 + 24*3) {
-                ShaderProgram shader = new ShaderProgram(this.vertexShader, this.getShader(.2f));
+                ShaderProgram shader = new ShaderProgram(this.vertexShader, this.getShader(0.2f));
                 game.uiBatch.setShader(shader);
             }
             else if (this.timer == 20 + 24*4) {
@@ -8695,7 +8824,8 @@ class SpecialBattleMegaGengar extends Action {
                 game.actionStack.remove(game.displayTextAction);
                 game.displayTextAction = null;
                 game.actionStack.remove(this);
-                SpecialBattleMegaGengar.DrawBreathingSprite.shouldBreathe = true;
+                SpecialBattleMegaGengar.DrawBreathingSprite drawBreathingSprite;
+                drawBreathingSprite.shouldBreathe = true;
             }
             this.timer++;
         }
@@ -8801,7 +8931,7 @@ class SpecialBattleMegaGengar extends Action {
         public int layer = 139;
         public int getLayer(){return this.layer;}
 
-        public String getCamera() {return "gui";};
+        public String getCamera() {return "gui";}
 
         @Override
         public void step(Game game) {
@@ -8851,7 +8981,7 @@ class SpecialBattleMegaGengar extends Action {
 
         public int layer = 130;
         public int getLayer(){return this.layer;}
-        public String getCamera() {return "gui";};
+        public String getCamera() {return "gui";}
 
         Sprite bgSprite;
 
@@ -8881,7 +9011,7 @@ class SpecialBattleMegaGengar extends Action {
 class PokemonIntroAnim extends Action {
     public int layer = 140;
     public int getLayer(){return this.layer;}
-    public String getCamera() {return "gui";};
+    public String getCamera() {return "gui";}
 
 
 
@@ -8917,7 +9047,7 @@ class PokemonIntroAnim extends Action {
 class AttackAnim extends Action {
 
     public int layer = 500;  // ensure that this triggers before other actions
-    public int getLayer(){return this.layer;};
+    public int getLayer(){return this.layer;}
 
     Attack attack;
     boolean isFriendly;
@@ -8940,9 +9070,18 @@ class AttackAnim extends Action {
 //return the type of battle the the player must enter
  //safari battle (no pokemon),
  //throw out first pkmn
-
+/*
+ * TODO: this all needs to move under the Battle class.
+ * 
+ */
 class Battle_Actions extends Action {
 
+    /*
+     * TODO: The below has modifications making it inaccurate (re: adrenaline mechanic)
+     * Also, capture probability should be calculated separate from Actions.
+     * 
+     * Probably stash the below code, and make a new function gen1CalcIfCaught(). Returns number of wobbles.
+     */
     // TODO: this catch calculator is for gen1 only, also want gen2
     // dupe of a fn in draw safari menu action, put here bc the one in safari menu has demo code
     public static Action calcIfCaught(Game game, Action nextAction) {
@@ -8992,19 +9131,17 @@ class Battle_Actions extends Action {
             System.out.println("(randomNum_M / f / adr): ("+String.valueOf(randomNum_M)+" / "+String.valueOf(f)+" / +"+String.valueOf(adrenaline*10)+")");
         }
 
-
         //simplify and put above
         if (breaksFree == false) { //ie was caught
-            return new catchPokemon_wigglesThenCatch(game, nextAction);
+            return new CatchPokemonWobblesThenCatch(game, nextAction);
         }
 
         //else, ie breaksFree = true
-
         int d = game.battle.oppPokemon.currentStats.get("catchRate") * 100 / maxRand;
                 //, where the value of Ball is 255 for the Poké Ball, 200 for the Great Ball, or 150 for other balls
         if (d >= 256) {
             //shake 3 times before breaking free
-            return new catchPokemon_wiggles3Times(game, new PrintAngryEating(game, new ChanceToRun(game, nextAction) ) );
+            return new CatchPokemonWobbles3Times(game, new PrintAngryEating(game, new ChanceToRun(game, nextAction) ) );
         }
 
         int s = 0;//status thing again
@@ -9012,22 +9149,22 @@ class Battle_Actions extends Action {
 
         if (x < 10) {
             //ball misses
-            return new catchPokemon_miss(game, new PrintAngryEating(game, new ChanceToRun(game, nextAction) ) );
+            return new CatchPokemonMiss(game, new PrintAngryEating(game, new ChanceToRun(game, nextAction) ) );
         }
         else if (x < 30) {
             //ball shakes once
-            return new catchPokemon_wiggles1Time(game, new PrintAngryEating(game, new ChanceToRun(game, nextAction) ) );
+            return new CatchPokemonWobbles1Time(game, new PrintAngryEating(game, new ChanceToRun(game, nextAction) ) );
         }
         else if (x < 70) {
             //ball shakes twice
-            return new catchPokemon_wiggles2Times(game, new PrintAngryEating(game, new ChanceToRun(game, nextAction) ) );
+            return new CatchPokemonWobbles2Times(game, new PrintAngryEating(game, new ChanceToRun(game, nextAction) ) );
         }
         //ball shakes three times before pkmn gets free
 
         //System.out.println("x: "+String.valueOf(x));
         //System.out.println("Shake three times: "+String.valueOf(x));
 
-        return new catchPokemon_wiggles3Times(game, new PrintAngryEating(game, new ChanceToRun(game, nextAction) ) );
+        return new CatchPokemonWobbles3Times(game, new PrintAngryEating(game, new ChanceToRun(game, nextAction) ) );
     }
 
     public static Action getAttackAction(Game game, Attack attack, boolean isFriendly, Action nextAction) {
@@ -9367,7 +9504,7 @@ class Battle_Actions extends Action {
         public int layer = 108;
         public int getLayer(){return this.layer;}
 
-        public String getCamera() {return "gui";};
+        public String getCamera() {return "gui";}
 
 
 
@@ -9550,7 +9687,7 @@ class Battle_Actions extends Action {
         public int layer = 108;
         public int getLayer(){return this.layer;}
 
-        public String getCamera() {return "gui";};
+        public String getCamera() {return "gui";}
 
 
 
@@ -9742,7 +9879,7 @@ class Battle_Actions extends Action {
         public int layer = 100;
         public int getLayer(){return this.layer;}
 
-        public String getCamera() {return "gui";};
+        public String getCamera() {return "gui";}
 
 
 
@@ -9984,7 +10121,7 @@ class Battle_Actions extends Action {
         public int layer = 109;
         public int getLayer(){return this.layer;}
 
-        public String getCamera() {return "gui";};
+        public String getCamera() {return "gui";}
 
         // TODO: set these
         int power = 100;
@@ -10121,11 +10258,11 @@ class Battle_Actions extends Action {
 
             // shader 'flash' anim at beginning
             // 0, .33, .66, 1 ?
-            String darken1 = this.getShader(-.33f);
-            String darken2 = this.getShader(-.66f);
+            String darken1 = this.getShader(-0.33f);
+            String darken2 = this.getShader(-0.66f);
             String darken3 = this.getShader(-1f);
-            String lighten1 = this.getShader(.33f);
-            String lighten2 = this.getShader(.66f);
+            String lighten1 = this.getShader(0.33f);
+            String lighten2 = this.getShader(0.66f);
             String lighten3 = this.getShader(1f);
             String normal = this.getShader(0f);
             this.shaderVals.add(darken1);
@@ -10367,7 +10504,7 @@ class Battle_Actions extends Action {
         public int layer = 109;
         public int getLayer(){return this.layer;}
 
-        public String getCamera() {return "gui";};
+        public String getCamera() {return "gui";}
 
         // TODO: set these
         int power = 100;
@@ -10394,39 +10531,41 @@ class Battle_Actions extends Action {
         @Override
         public void step(Game game) {
 
+            SpecialBattleMewtwo.RocksEffect1 rocksEffect1;
+            SpecialBattleMewtwo.RocksEffect2 rocksEffect2;
             if (this.timer == 0) {
 
                 this.currShader = new ShaderProgram(this.vertexShader,
-                                                    this.getShader(.8f));
+                                                    this.getShader(0.8f));
                 game.uiBatch.setShader(this.currShader);
                 // pause rock anim
-                SpecialBattleMewtwo.RocksEffect1.shouldMoveY = false;
-                SpecialBattleMewtwo.RocksEffect2.shouldMoveY = false;
+                rocksEffect1.shouldMoveY = false;
+                rocksEffect2.shouldMoveY = false;
             }
             else if (this.timer < 50) {
 
             }
             else if (this.timer == 60) {
                 game.insertAction(new PlaySound("Mewtwo_Special1", new DoneAction()));
-                SpecialBattleMewtwo.RocksEffect1.velocityX = -8;
-                SpecialBattleMewtwo.RocksEffect2.velocityX = -2;  // TODO: is this doing anything?
-                this.currShader = new ShaderProgram(this.vertexShader, this.getShader(.6f));
+                rocksEffect1.velocityX = -8;
+                rocksEffect2.velocityX = -2;  // TODO: is this doing anything?
+                this.currShader = new ShaderProgram(this.vertexShader, this.getShader(0.6f));
                 game.uiBatch.setShader(this.currShader);
             }
             else if (this.timer == 120) {
-                SpecialBattleMewtwo.RocksEffect1.velocityX = -12;
-                SpecialBattleMewtwo.RocksEffect2.velocityX = -3;
-                this.currShader = new ShaderProgram(this.vertexShader, this.getShader(.4f));
+                rocksEffect1.velocityX = -12;
+                rocksEffect2.velocityX = -3;
+                this.currShader = new ShaderProgram(this.vertexShader, this.getShader(0.4f));
                 game.uiBatch.setShader(this.currShader);
             }
             else if (this.timer == 180) {
-                SpecialBattleMewtwo.RocksEffect1.velocityX = -16;
-                SpecialBattleMewtwo.RocksEffect2.velocityX = -4;
-                this.currShader = new ShaderProgram(this.vertexShader, this.getShader(.2f));
+                rocksEffect1.velocityX = -16;
+                rocksEffect2.velocityX = -4;
+                this.currShader = new ShaderProgram(this.vertexShader, this.getShader(0.2f));
                 game.uiBatch.setShader(this.currShader);
             }
             else if (this.timer == 190) {
-                this.currShader = new ShaderProgram(this.vertexShader, this.getShader(.3f));
+                this.currShader = new ShaderProgram(this.vertexShader, this.getShader(0.3f));
                 game.uiBatch.setShader(this.currShader);
             }
             else if (this.timer == 200) {
@@ -10434,35 +10573,35 @@ class Battle_Actions extends Action {
                 game.uiBatch.setShader(this.currShader);
             }
             else if (this.timer == 210) {
-                this.currShader = new ShaderProgram(this.vertexShader, this.getShader(.1f));
+                this.currShader = new ShaderProgram(this.vertexShader, this.getShader(0.1f));
                 game.uiBatch.setShader(this.currShader);
             }
             else if (this.timer == 220) {
-                this.currShader = new ShaderProgram(this.vertexShader, this.getShader(-.2f));
+                this.currShader = new ShaderProgram(this.vertexShader, this.getShader(-0.2f));
                 game.uiBatch.setShader(this.currShader);
             }
             else if (this.timer == 230) {
-                this.currShader = new ShaderProgram(this.vertexShader, this.getShader(-.1f));
+                this.currShader = new ShaderProgram(this.vertexShader, this.getShader(-0.1f));
                 game.uiBatch.setShader(this.currShader);
             }
             else if (this.timer == 240) {
-                this.currShader = new ShaderProgram(this.vertexShader, this.getShader(-.4f));
+                this.currShader = new ShaderProgram(this.vertexShader, this.getShader(-0.4f));
                 game.uiBatch.setShader(this.currShader);
             }
             else if (this.timer == 250) {
-                this.currShader = new ShaderProgram(this.vertexShader, this.getShader(-.3f));
+                this.currShader = new ShaderProgram(this.vertexShader, this.getShader(-0.3f));
                 game.uiBatch.setShader(this.currShader);
             }
             else if (this.timer == 260) {
-                this.currShader = new ShaderProgram(this.vertexShader, this.getShader(-.6f));
+                this.currShader = new ShaderProgram(this.vertexShader, this.getShader(-0.6f));
                 game.uiBatch.setShader(this.currShader);
             }
             else if (this.timer == 270) {
-                this.currShader = new ShaderProgram(this.vertexShader, this.getShader(-.5f));
+                this.currShader = new ShaderProgram(this.vertexShader, this.getShader(-0.5f));
                 game.uiBatch.setShader(this.currShader);
             }
             else if (this.timer == 280) {
-                this.currShader = new ShaderProgram(this.vertexShader, this.getShader(-.8f));
+                this.currShader = new ShaderProgram(this.vertexShader, this.getShader(-0.8f));
                 game.uiBatch.setShader(this.currShader);
             }
             else if (this.timer < 300) {
@@ -10477,56 +10616,56 @@ class Battle_Actions extends Action {
                 }
 
                 if (this.timer == 340) {
-                    this.currShader = new ShaderProgram(this.vertexShader, this.getShader(-.6f));
+                    this.currShader = new ShaderProgram(this.vertexShader, this.getShader(-0.6f));
                     game.uiBatch.setShader(this.currShader);
                 }
                 if (this.timer == 400) {
-                    this.currShader = new ShaderProgram(this.vertexShader, this.getShader(-.4f));
+                    this.currShader = new ShaderProgram(this.vertexShader, this.getShader(-0.4f));
                     game.uiBatch.setShader(this.currShader);
                 }
                 if (this.timer == 460) {
-                    this.currShader = new ShaderProgram(this.vertexShader, this.getShader(-.2f));
+                    this.currShader = new ShaderProgram(this.vertexShader, this.getShader(-0.2f));
                     game.uiBatch.setShader(this.currShader);
                 }
 
                 if (this.timer == 305 +150) {
-                    SpecialBattleMewtwo.RocksEffect1.velocityX = -14;
-                    SpecialBattleMewtwo.RocksEffect2.velocityX = -3;
+                    rocksEffect1.velocityX = -14;
+                    rocksEffect2.velocityX = -3;
                 }
                 else if (this.timer == 315 +150) {
-                    SpecialBattleMewtwo.RocksEffect1.velocityX = -12;
+                    rocksEffect1.velocityX = -12;
                 }
                 else if (this.timer == 325 +150) {
-                    SpecialBattleMewtwo.RocksEffect1.velocityX = -10;
+                    rocksEffect1.velocityX = -10;
                 }
                 else if (this.timer == 335 +150) {
-                    SpecialBattleMewtwo.RocksEffect1.velocityX = -8;
-                    SpecialBattleMewtwo.RocksEffect2.velocityX = -2;
+                    rocksEffect1.velocityX = -8;
+                    rocksEffect2.velocityX = -2;
                 }
                 else if (this.timer == 345 +150) {
-                    SpecialBattleMewtwo.RocksEffect1.velocityX = -6;
+                    rocksEffect1.velocityX = -6;
                 }
                 else if (this.timer == 355 +150) {
-                    SpecialBattleMewtwo.RocksEffect1.velocityX = -6;
+                    rocksEffect1.velocityX = -6;
                 }
                 else if (this.timer == 365 +150) {
-                    SpecialBattleMewtwo.RocksEffect1.velocityX = -4;
-                    SpecialBattleMewtwo.RocksEffect2.velocityX = -1;
+                    rocksEffect1.velocityX = -4;
+                    rocksEffect2.velocityX = -1;
                 }
                 else if (this.timer == 375 +150) {
-                    SpecialBattleMewtwo.RocksEffect1.velocityX = -2;
+                    rocksEffect1.velocityX = -2;
                 }
                 else if (this.timer == 385 +150) {
-                    SpecialBattleMewtwo.RocksEffect1.velocityX = 0;
-                    SpecialBattleMewtwo.RocksEffect2.velocityX = 0;
+                    rocksEffect1.velocityX = 0;
+                    rocksEffect2.velocityX = 0;
                 }
             }
             else if (this.timer == 550) {
                 game.player.currPokemon.backSprite.setAlpha(1);
                 this.currShader = new ShaderProgram(this.vertexShader, this.getShader(0f));
                 game.uiBatch.setShader(this.currShader);
-                SpecialBattleMewtwo.RocksEffect1.shouldMoveY = true;
-                SpecialBattleMewtwo.RocksEffect2.shouldMoveY = true;
+                rocksEffect1.shouldMoveY = true;
+                rocksEffect2.shouldMoveY = true;
             }
             else if (this.timer < 600) {
 
@@ -10639,11 +10778,11 @@ class Battle_Actions extends Action {
 
             // shader 'flash' anim at beginning
             // 0, .33, .66, 1 ?
-            String darken1 = this.getShader(-.33f);
-            String darken2 = this.getShader(-.66f);
+            String darken1 = this.getShader(-0.33f);
+            String darken2 = this.getShader(-0.66f);
             String darken3 = this.getShader(-1f);
-            String lighten1 = this.getShader(.33f);
-            String lighten2 = this.getShader(.66f);
+            String lighten1 = this.getShader(0.33f);
+            String lighten2 = this.getShader(0.66f);
             String lighten3 = this.getShader(1f);
             String normal = this.getShader(0f);
             this.shaderVals.add(darken1);
@@ -10756,7 +10895,7 @@ class Battle_Actions extends Action {
 
         public int layer = 110;
         public int getLayer(){return this.layer;}
-        public String getCamera() {return "gui";};
+        public String getCamera() {return "gui";}
 
         String name;
         HashMap<Integer, String> metadata = new HashMap<Integer, String>();
@@ -10770,7 +10909,8 @@ class Battle_Actions extends Action {
         Vector2 playerSpriteOrigin;
         Vector2 enemySpriteOrigin;
         Pixmap pixmap;
-        int pixmapX, pixmapY;
+        int pixmapX;
+        int pixmapY;
 
         @Override
         public void step(Game game) {
@@ -10800,7 +10940,7 @@ class Battle_Actions extends Action {
                     e.printStackTrace();
                 } catch (IOException e) {
                     e.printStackTrace();
-                } catch (com.badlogic.gdx.utils.GdxRuntimeException e) {
+                } catch (GdxRuntimeException e) {
                     // pass, this animation will just be skipped
                 }
                 this.firstStep = false;
@@ -10901,7 +11041,7 @@ class Battle_Actions extends Action {
                     Sprite drawSprite = new Sprite(new Texture(newPixmap));
                     drawSprite.flip(false, true); // pixmaps are flipped for some reason
 //                    Sprite drawSprite = new Sprite(new Texture(this.pixmap));
-//                    drawSprite.scale(.3f);
+//                    drawSprite.scale(0.3f);
 //                    drawSprite.setPosition(this.pixmapX, this.pixmapY);
                     game.uiBatch.draw(drawSprite, this.pixmapX, this.pixmapY);
 //                    drawSprite.draw(game.floatingBatch);
@@ -11002,7 +11142,7 @@ class DefaultAttack extends Action {
     public int layer = 120;
     public int getLayer(){return this.layer;}
 
-    public String getCamera() {return "gui";};
+    public String getCamera() {return "gui";}
 
 
 
@@ -11173,7 +11313,7 @@ class DefaultEnemyAttack extends Action {
     public int layer = 120;
     public int getLayer(){return this.layer;}
 
-    public String getCamera() {return "gui";};
+    public String getCamera() {return "gui";}
 
     Sprite helperSprite;
 
