@@ -455,10 +455,10 @@ class playerStanding extends Action {
 
                 game.playerCanMove = false;
                 game.insertAction(Battle_Actions.get(game));
-//                game.currMusic.pause();
-//                game.currMusic = game.battle.music;
-//                game.currMusic.stop();
-//                game.currMusic.play();
+                game.currMusic.pause();
+                game.currMusic = game.battle.music;
+                game.currMusic.stop();
+                game.currMusic.play();
                 //game.battle.music.play(); //would rather have an action that does this?
                 this.checkWildEncounter = false;
                 return;

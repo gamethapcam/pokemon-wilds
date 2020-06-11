@@ -30,7 +30,7 @@ public class Network {
         kryo.register(com.badlogic.gdx.physics.box2d.Filter.class);
         kryo.register(java.util.ArrayList.class);
         kryo.register(java.util.HashMap.class);
-//        kryo.register(String[].class);  // TODO: uncomment
+        kryo.register(String[].class);
         kryo.register(Color.class);
 
         //
@@ -437,17 +437,16 @@ class ClientBroadcast extends Action {
                         catch (Exception e) {
                             e.printStackTrace();
                         }
-                        // TODO: uncomment
-                        // synchronized (this) {
-                            // this.notify();
-                        // }
+                        synchronized (this) {
+                            this.notify();
+                        }
                     }
                 };
                 Gdx.app.postRunnable(runnable);
                 try {
-                    // synchronized (runnable) {
-                        // runnable.wait();
-                    // }
+                    synchronized (runnable) {
+                        runnable.wait();
+                    }
                 } catch (InterruptedException e) {
                     // TODO Auto-generated catch block
                     e.printStackTrace();
@@ -534,9 +533,10 @@ class ServerBroadcast extends Action {
                                     final String playerId = login.playerId;
                                     Player player = new Player();
                                     // Spawn player at random edge location
-                                    // TODO: uncomment
-//                                    Vector2 startLoc = game.map.edges.get(game.map.rand.nextInt(game.map.edges.size()));
-//                                    player.position.set(startLoc);
+                                    // NOTE: Comment to start players in middle (like for debug)
+                                    Vector2 startLoc = game.map.edges.get(game.map.rand.nextInt(game.map.edges.size()));
+                                    player.position.set(startLoc);
+                                    //
                                     player.type = Player.Type.REMOTE;
                                     player.network = player.new Network(player.position);
                                     player.network.connectionId = connection.getID();
@@ -856,7 +856,7 @@ class ServerBroadcast extends Action {
                                 }
                             }
                             if (object instanceof Network.UseHM) {
-                                Network.UseHM useHM = (Network.UseHM) object;
+                                Network.UseHM useHM = (Network.UseHM) object;  // TODO: fix name
                                 System.out.println(useHM.hm);
                                 if (!game.players.containsKey(useHM.playerId)) {
                                     System.out.println("UseHM: Invalid player id " + useHM.playerId + ", sent by: " + connection.getRemoteAddressTCP().toString());

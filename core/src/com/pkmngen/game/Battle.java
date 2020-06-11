@@ -992,65 +992,65 @@ public class Battle {
         }
     }
 
-//    /*
-//     * TODO: remove if unused
-//     */
-//    class CheckTrapped extends Action {
-//        public int layer = 500;
-//        public int getLayer(){return this.layer;}
-//
-//        @Override
-//        public void step(Game game) {
-//            this.step();
-//        }
-//
-//        public void step() {
-//            // TODO: trying out method where can only reference parent battle object, using Battle.this
-//            // probably revert at some point
-//            // TODO: if keeping, refactor to remove references to Game.staticGame
-//            //  likely need global actionStack or something
-//
-//            // always goes you, then opponent
-//            Game.staticGame.actionStack.remove(this);
-//            if (Battle.this.oppPokemon.trappedBy != null) {
-//                this.nextAction = new Battle_Actions.LoadAndPlayAttackAnimation(Game.staticGame, Battle.this.oppPokemon.trappedBy, Battle.this.oppPokemon,
-//                                  new DisplayText.Clear(Game.staticGame,
-//                                  new WaitFrames(Game.staticGame, 3,
-//                                  new DisplayText(Game.staticGame,
-//                                                  Battle.this.oppPokemon.name.toUpperCase()+"' hurt by "+Battle.this.oppPokemon.trappedBy.toUpperCase()+"!",
-//                                                  null,
-//                                                  true,
-//                                  new DepleteEnemyHealth(Game.staticGame,
-//                                  new WaitFrames(Game.staticGame, 13,
-//                                  this.nextAction))))));
-//                Battle.this.oppPokemon.trapCounter -= 1;
-//                if (Battle.this.oppPokemon.trapCounter <= 0) {
-//                    Battle.this.oppPokemon.trappedBy = null;
-//                }
-//            }
-//            if (Game.staticGame.player.currPokemon.trappedBy != null) {
-//                this.nextAction = new Battle_Actions.LoadAndPlayAttackAnimation(Game.staticGame, Game.staticGame.player.currPokemon.trappedBy, Game.staticGame.player.currPokemon,
-//                                  new DisplayText.Clear(Game.staticGame,
-//                                  new WaitFrames(Game.staticGame, 3,
-//                                  new DisplayText(Game.staticGame,
-//                                                  Game.staticGame.player.currPokemon.name.toUpperCase()+"' hurt by "+Game.staticGame.player.currPokemon.trappedBy.toUpperCase()+"!",
-//                                                  null,
-//                                                  true,
-//                                  new DepleteFriendlyHealth(Game.staticGame.player.currPokemon,
-//                                  new WaitFrames(Game.staticGame, 13,
-//                                  this.nextAction))))));
-//                Game.staticGame.player.currPokemon.trapCounter -= 1;
-//                if (Battle.this.oppPokemon.trapCounter <= 0) {
-//                    Battle.this.oppPokemon.trappedBy = null;
-//                }
-//            }
-//            Game.staticGame.insertAction(this.nextAction);
-//        }
-//
-//        public CheckTrapped(Game game, Action nextAction) {
-//            this.nextAction = nextAction;
-//        }
-//    }
+    /*
+     * TODO: remove if unused
+     */
+    class CheckTrapped extends Action {
+        public int layer = 500;
+        public int getLayer(){return this.layer;}
+
+        @Override
+        public void step(Game game) {
+            this.step();
+        }
+
+        public void step() {
+            // TODO: trying out method where can only reference parent battle object, using Battle.this
+            // probably revert at some point
+            // TODO: if keeping, refactor to remove references to Game.staticGame
+            //  likely need global actionStack or something
+
+            // always goes you, then opponent
+            Game.staticGame.actionStack.remove(this);
+            if (Battle.this.oppPokemon.trappedBy != null) {
+                this.nextAction = new Battle_Actions.LoadAndPlayAttackAnimation(Game.staticGame, Battle.this.oppPokemon.trappedBy, Battle.this.oppPokemon,
+                                  new DisplayText.Clear(Game.staticGame,
+                                  new WaitFrames(Game.staticGame, 3,
+                                  new DisplayText(Game.staticGame,
+                                                  Battle.this.oppPokemon.name.toUpperCase()+"' hurt by "+Battle.this.oppPokemon.trappedBy.toUpperCase()+"!",
+                                                  null,
+                                                  true,
+                                  new DepleteEnemyHealth(Game.staticGame,
+                                  new WaitFrames(Game.staticGame, 13,
+                                  this.nextAction))))));
+                Battle.this.oppPokemon.trapCounter -= 1;
+                if (Battle.this.oppPokemon.trapCounter <= 0) {
+                    Battle.this.oppPokemon.trappedBy = null;
+                }
+            }
+            if (Game.staticGame.player.currPokemon.trappedBy != null) {
+                this.nextAction = new Battle_Actions.LoadAndPlayAttackAnimation(Game.staticGame, Game.staticGame.player.currPokemon.trappedBy, Game.staticGame.player.currPokemon,
+                                  new DisplayText.Clear(Game.staticGame,
+                                  new WaitFrames(Game.staticGame, 3,
+                                  new DisplayText(Game.staticGame,
+                                                  Game.staticGame.player.currPokemon.name.toUpperCase()+"' hurt by "+Game.staticGame.player.currPokemon.trappedBy.toUpperCase()+"!",
+                                                  null,
+                                                  true,
+                                  new DepleteFriendlyHealth(Game.staticGame.player.currPokemon,
+                                  new WaitFrames(Game.staticGame, 13,
+                                  this.nextAction))))));
+                Game.staticGame.player.currPokemon.trapCounter -= 1;
+                if (Battle.this.oppPokemon.trapCounter <= 0) {
+                    Battle.this.oppPokemon.trappedBy = null;
+                }
+            }
+            Game.staticGame.insertAction(this.nextAction);
+        }
+
+        public CheckTrapped(Game game, Action nextAction) {
+            this.nextAction = nextAction;
+        }
+    }
 }
 
 
@@ -1161,15 +1161,11 @@ class BattleIntroMusic extends Action {
 
     @Override
     public void step(Game game) {
-
-        // TODO: uncomment
-//        game.currMusic.pause();
-//        game.currMusic = game.battle.music;
-//        game.currMusic.play();
-
+        game.currMusic.pause();
+        game.currMusic = game.battle.music;
+        game.currMusic.play();
         game.insertAction(this.nextAction);
         game.actionStack.remove(this);
-
     }
 
     public BattleIntroMusic(Action nextAction) {
@@ -4825,7 +4821,7 @@ class DepleteEnemyHealth extends Action {
 
             // If enemy health is 0, do EnemyFaint
             if (game.battle.oppPokemon.currentStats.get("hp") <= 0) {
-                int exp = 3000; // game.battle.calcFaintExp();
+                int exp = game.battle.calcFaintExp();
                 game.player.currPokemon.exp += exp;
                 Action nextAction = new EnemyFaint(game,
                                     new RemoveDisplayText(  // TODO: refactor to stop using this
@@ -7889,8 +7885,7 @@ class SpecialBattleMewtwo extends Action {
                 game.uiBatch.setShader(null);
             }
             else if (this.timer == 620) {
-                SpecialBattleMewtwo.DrawBreathingSprite drawBreathingSprite;
-                drawBreathingSprite.shouldBreathe = true;
+                SpecialBattleMewtwo.DrawBreathingSprite.shouldBreathe = true;
             }
 
 
@@ -8186,8 +8181,7 @@ class SpecialBattleMewtwo extends Action {
         public void step(Game game) {
 
             if (this.firstStep) {
-                SpecialBattleMewtwo.RocksEffect2 rocksEffect2;
-                rocksEffect2.drawRocks = true;
+                SpecialBattleMewtwo.RocksEffect2.drawRocks = true;
                 this.firstStep = false;
             }
 
@@ -8824,8 +8818,7 @@ class SpecialBattleMegaGengar extends Action {
                 game.actionStack.remove(game.displayTextAction);
                 game.displayTextAction = null;
                 game.actionStack.remove(this);
-                SpecialBattleMegaGengar.DrawBreathingSprite drawBreathingSprite;
-                drawBreathingSprite.shouldBreathe = true;
+                SpecialBattleMegaGengar.DrawBreathingSprite.shouldBreathe = true;
             }
             this.timer++;
         }
@@ -10531,36 +10524,34 @@ class Battle_Actions extends Action {
         @Override
         public void step(Game game) {
 
-            SpecialBattleMewtwo.RocksEffect1 rocksEffect1;
-            SpecialBattleMewtwo.RocksEffect2 rocksEffect2;
             if (this.timer == 0) {
 
                 this.currShader = new ShaderProgram(this.vertexShader,
                                                     this.getShader(0.8f));
                 game.uiBatch.setShader(this.currShader);
                 // pause rock anim
-                rocksEffect1.shouldMoveY = false;
-                rocksEffect2.shouldMoveY = false;
+                SpecialBattleMewtwo.RocksEffect1.shouldMoveY = false;
+                SpecialBattleMewtwo.RocksEffect2.shouldMoveY = false;
             }
             else if (this.timer < 50) {
 
             }
             else if (this.timer == 60) {
                 game.insertAction(new PlaySound("Mewtwo_Special1", new DoneAction()));
-                rocksEffect1.velocityX = -8;
-                rocksEffect2.velocityX = -2;  // TODO: is this doing anything?
+                SpecialBattleMewtwo.RocksEffect1.velocityX = -8;
+                SpecialBattleMewtwo.RocksEffect2.velocityX = -2;  // TODO: is this doing anything?
                 this.currShader = new ShaderProgram(this.vertexShader, this.getShader(0.6f));
                 game.uiBatch.setShader(this.currShader);
             }
             else if (this.timer == 120) {
-                rocksEffect1.velocityX = -12;
-                rocksEffect2.velocityX = -3;
+                SpecialBattleMewtwo.RocksEffect1.velocityX = -12;
+                SpecialBattleMewtwo.RocksEffect2.velocityX = -3;
                 this.currShader = new ShaderProgram(this.vertexShader, this.getShader(0.4f));
                 game.uiBatch.setShader(this.currShader);
             }
             else if (this.timer == 180) {
-                rocksEffect1.velocityX = -16;
-                rocksEffect2.velocityX = -4;
+                SpecialBattleMewtwo.RocksEffect1.velocityX = -16;
+                SpecialBattleMewtwo.RocksEffect2.velocityX = -4;
                 this.currShader = new ShaderProgram(this.vertexShader, this.getShader(0.2f));
                 game.uiBatch.setShader(this.currShader);
             }
@@ -10629,43 +10620,43 @@ class Battle_Actions extends Action {
                 }
 
                 if (this.timer == 305 +150) {
-                    rocksEffect1.velocityX = -14;
-                    rocksEffect2.velocityX = -3;
+                    SpecialBattleMewtwo.RocksEffect1.velocityX = -14;
+                    SpecialBattleMewtwo.RocksEffect2.velocityX = -3;
                 }
                 else if (this.timer == 315 +150) {
-                    rocksEffect1.velocityX = -12;
+                    SpecialBattleMewtwo.RocksEffect1.velocityX = -12;
                 }
                 else if (this.timer == 325 +150) {
-                    rocksEffect1.velocityX = -10;
+                    SpecialBattleMewtwo.RocksEffect1.velocityX = -10;
                 }
                 else if (this.timer == 335 +150) {
-                    rocksEffect1.velocityX = -8;
-                    rocksEffect2.velocityX = -2;
+                    SpecialBattleMewtwo.RocksEffect1.velocityX = -8;
+                    SpecialBattleMewtwo.RocksEffect2.velocityX = -2;
                 }
                 else if (this.timer == 345 +150) {
-                    rocksEffect1.velocityX = -6;
+                    SpecialBattleMewtwo.RocksEffect1.velocityX = -6;
                 }
                 else if (this.timer == 355 +150) {
-                    rocksEffect1.velocityX = -6;
+                    SpecialBattleMewtwo.RocksEffect1.velocityX = -6;
                 }
                 else if (this.timer == 365 +150) {
-                    rocksEffect1.velocityX = -4;
-                    rocksEffect2.velocityX = -1;
+                    SpecialBattleMewtwo.RocksEffect1.velocityX = -4;
+                    SpecialBattleMewtwo.RocksEffect2.velocityX = -1;
                 }
                 else if (this.timer == 375 +150) {
-                    rocksEffect1.velocityX = -2;
+                    SpecialBattleMewtwo.RocksEffect1.velocityX = -2;
                 }
                 else if (this.timer == 385 +150) {
-                    rocksEffect1.velocityX = 0;
-                    rocksEffect2.velocityX = 0;
+                    SpecialBattleMewtwo.RocksEffect1.velocityX = 0;
+                    SpecialBattleMewtwo.RocksEffect2.velocityX = 0;
                 }
             }
             else if (this.timer == 550) {
                 game.player.currPokemon.backSprite.setAlpha(1);
                 this.currShader = new ShaderProgram(this.vertexShader, this.getShader(0f));
                 game.uiBatch.setShader(this.currShader);
-                rocksEffect1.shouldMoveY = true;
-                rocksEffect2.shouldMoveY = true;
+                SpecialBattleMewtwo.RocksEffect1.shouldMoveY = true;
+                SpecialBattleMewtwo.RocksEffect2.shouldMoveY = true;
             }
             else if (this.timer < 600) {
 
