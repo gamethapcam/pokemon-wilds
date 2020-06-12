@@ -422,8 +422,8 @@ class DrawSpecialMewtwoBg extends Action {
 
 }
 
-class Entei_Tile extends Tile {
-    public Entei_Tile(Vector2 pos) {
+class EnteiTile extends Tile {
+    public EnteiTile(Vector2 pos) {
         super("entei_overw1", pos);
         // TODO Auto-generated constructor stub
     }
@@ -436,77 +436,32 @@ class Entei_Tile extends Tile {
         game.battle.oppPokemon = new Pokemon("Entei", 50);
 
         Action encounterAction = new SplitAction(
-                new BattleIntro(
-                        new BattleIntro_anim1(
-                                new SplitAction(
-                                        new DrawBattle(game),
-                                        new BattleAnim_positionPlayers(
-                                                game,
-                                                new PlaySound(
-                                                        game.battle.oppPokemon.name,
-                                                        new DisplayText(
-                                                                game,
-                                                                "Wild "
-                                                                        + game.battle.oppPokemon.name
-                                                                                .toUpperCase()
-                                                                        + " appeared!",
-                                                                null,
-                                                                null,
-                                                                new WaitFrames(
-                                                                        game,
-                                                                        39,
-                                                                        // demo
-                                                                        // code
-                                                                        // -
-                                                                        // wildly
-                                                                        // confusing,
-                                                                        // but i
-                                                                        // don't
-                                                                        // want
-                                                                        // to
-                                                                        // write
-                                                                        // another
-                                                                        // if
-                                                                        // statement
-                                                                        game.player.adrenaline > 0 ? new DisplayText(
-                                                                                game,
-                                                                                ""
-                                                                                        + game.player.name
-                                                                                        + " has ADRENALINE "
-                                                                                        + Integer
-                                                                                                .toString(game.player.adrenaline)
-                                                                                        + "!",
-                                                                                null,
-                                                                                null,
-                                                                                new PrintAngryEating(
-                                                                                        game, // for
-                                                                                                // demo
-                                                                                                // mode,
-                                                                                                // normally
-                                                                                                // left
-                                                                                                // out
-                                                                                        new DrawBattleMenuSafariZone(
-                                                                                                game,
-                                                                                                null)))
-                                                                                : new PrintAngryEating(
-                                                                                        game, // for
-                                                                                                // demo
-                                                                                                // mode,
-                                                                                                // normally
-                                                                                                // left
-                                                                                                // out
-                                                                                        new DrawBattleMenuSafariZone(
-                                                                                                game,
-                                                                                                null))
-                                                                //
-                                                                ))))))),
-                new WaitFrames(game, 10, new BattleIntroMusic(new WaitFrames(
-                        game, 100, new DoneWithDemo(game)))));
+                                     new BattleIntro(
+                                     new BattleIntroAnim1(
+                                     new SplitAction(
+                                         new DrawBattle(game),
+                                     new BattleAnimPositionPlayers(game,
+                                     new PlaySound(game.battle.oppPokemon.name,
+                                     new DisplayText(game, "Wild "+ game.battle.oppPokemon.name.toUpperCase()+ " appeared!",
+                                                     null, null,
+                                     new WaitFrames(game, 39,
+                                     game.player.adrenaline > 0 ?
+                                         new DisplayText(game, "" + game.player.name + " has ADRENALINE " + Integer.toString(game.player.adrenaline) + "!",
+                                                         null, null,
+                                         new PrintAngryEating(game,
+                                         new DrawBattleMenuSafariZone(game, null)))
+                                     :
+                                         new PrintAngryEating(game,
+                                         new DrawBattleMenuSafariZone(game, null))
+                                      ))))))),
+                                  new WaitFrames(game, 10,
+                                  new BattleIntroMusic(
+                                  new WaitFrames(game, 100,
+                                  new DoneWithDemo(game)))));
 
-        game.insertAction(new DisplayText(game, "GROWL!!",
-                "Entei", null,
-                // new PlayerCanMove(game,
-                encounterAction));
+        game.insertAction(new DisplayText(game, "GROWL!!", "Entei", null,
+                          // new PlayerCanMove(game,
+                          encounterAction));
     }
 }
 
@@ -578,136 +533,6 @@ class EnterBuilding extends Action {
       this.timer++;
 
   }
-}
-
-class genMountain_1 extends Action {
-    public int layer = 120;
-
-    ArrayList<Tile> tilesToAdd = new ArrayList<Tile>();
-
-    Vector2 seed;
-
-    Vector2 topLeft, bottomRight;
-    Random rand;
-
-    int height = 5;
-
-    public genMountain_1(Game game, Vector2 seed, int variance, int steepness) {
-        this.seed = seed;
-        this.topLeft = new Vector2(seed.x, seed.y);
-        this.bottomRight = new Vector2(seed.x + 16, seed.y - 16);
-
-        // fill in initial tilesToAdd
-        this.tilesToAdd.add(new Tile("ground2", new Vector2(this.topLeft)));
-        this.tilesToAdd.add(new Tile("ground2", new Vector2(this.topLeft.x,
-                this.bottomRight.y)));
-        this.tilesToAdd.add(new Tile("ground2", new Vector2(this.bottomRight)));
-        this.tilesToAdd.add(new Tile("ground2", new Vector2(this.bottomRight.x,
-                this.topLeft.y)));
-
-        this.rand = new Random();
-    }
-
-    public int getLayer() {
-        return this.layer;
-    }
-
-    @Override
-    public void step(Game game) {
-        if (tilesToAdd.isEmpty()) {
-            // if done with mountain, return and remove
-            if (this.height <= 0) {
-                game.actionStack.remove(this);
-                return;
-            }
-
-            // increment corners
-
-            // add tiles on each increment
-
-            // int randomNum = rand.nextInt((max - min) + 1) + min;
-            int randomNum = this.rand.nextInt(5);
-            // 0=left, 1=bottom, 2=right, 3=top, 4=ledge
-
-            // left
-            if (randomNum == 0) {
-                topLeft.x -= 16;
-                for (int i = (int) this.topLeft.y; i >= (int) this.bottomRight.y; i -= 16) {
-                    this.tilesToAdd.add(new Tile("ground2", new Vector2(
-                            this.topLeft.x, i)));
-                }
-            }
-            // bottom
-            else if (randomNum == 1) {
-                bottomRight.y -= 16;
-                for (int i = (int) this.topLeft.x; i <= (int) this.bottomRight.x; i += 16) {
-                    this.tilesToAdd.add(new Tile("ground2", new Vector2(i,
-                            bottomRight.y)));
-                }
-            }
-            // right
-            else if (randomNum == 2) {
-                bottomRight.x += 16;
-                for (int i = (int) this.bottomRight.y; i <= (int) this.topLeft.y; i += 16) {
-                    this.tilesToAdd.add(new Tile("ground2", new Vector2(
-                            this.bottomRight.x, i)));
-                }
-            }
-            // top
-            else if (randomNum == 3) {
-                topLeft.y += 16;
-                for (int i = (int) this.bottomRight.x; i >= (int) this.topLeft.x; i -= 16) {
-                    this.tilesToAdd.add(new Tile("ground2", new Vector2(i,
-                            topLeft.y)));
-                }
-            } else if (randomNum == 4) {
-                topLeft.x -= 16;
-                topLeft.y += 16;
-                bottomRight.x += 16;
-                bottomRight.y -= 16;
-
-                // corners
-                this.tilesToAdd.add(new Tile("ledge1_corner_bl", new Vector2(
-                        this.topLeft.x, this.bottomRight.y)));
-                this.tilesToAdd.add(new Tile("ledge1_corner_br", new Vector2(
-                        this.bottomRight.x, this.bottomRight.y)));
-                this.tilesToAdd.add(new Tile("ledge2_corner_tl", new Vector2(
-                        this.topLeft.x, this.topLeft.y)));
-                this.tilesToAdd.add(new Tile("ledge2_corner_tr", new Vector2(
-                        this.bottomRight.x, this.topLeft.y)));
-
-                for (int i = (int) this.topLeft.y - 16; i > (int) this.bottomRight.y; i -= 16) {
-                    this.tilesToAdd.add(new Tile("ledge1_left", new Vector2(
-                            this.topLeft.x, i)));
-                }
-                for (int i = (int) this.topLeft.x + 16; i < (int) this.bottomRight.x; i += 16) {
-                    this.tilesToAdd.add(new Tile("ledge1_down", new Vector2(i,
-                            bottomRight.y)));
-                }
-                for (int i = (int) this.bottomRight.y + 16; i < (int) this.topLeft.y; i += 16) {
-                    this.tilesToAdd.add(new Tile("ledge1_right", new Vector2(
-                            this.bottomRight.x, i)));
-                }
-                for (int i = (int) this.bottomRight.x - 16; i > (int) this.topLeft.x; i -= 16) {
-                    this.tilesToAdd.add(new Tile("ground2_top", new Vector2(i,
-                            topLeft.y)));
-                }
-
-                //
-                this.height -= 1;
-            }
-            // game.actionStack.remove(this);
-
-            // System.out.println("done");
-        }
-
-        Tile currTile = this.tilesToAdd.get(0);
-        game.map.tiles.put(currTile.position.cpy(), currTile);
-        this.tilesToAdd.remove(0);
-
-        // System.out.println("pos: "+String.valueOf(currTile.position));
-    }
-
 }
 
 class MegaGengarTile extends Tile {
@@ -1046,11 +871,11 @@ public class PkmnMap {
             // pkmn to appear
             int randNum = this.rand.nextInt(3); // 0,1,2
             if (randNum == 0) {
-                this.tiles.put(pos, new Raikou_Tile(pos));
+                this.tiles.put(pos, new RaikouTile(pos));
             } else if (randNum == 1) {
-                this.tiles.put(pos, new Entei_Tile(pos));
+                this.tiles.put(pos, new EnteiTile(pos));
             } else {
-                this.tiles.put(pos, new Suicune_Tile(pos));
+                this.tiles.put(pos, new SuicuneTile(pos));
             }
 
             this.currRoute = new Route("Route 1", 20);
@@ -1234,8 +1059,8 @@ public class PkmnMap {
 
 }
 
-class Raikou_Tile extends Tile {
-    public Raikou_Tile(Vector2 pos) {
+class RaikouTile extends Tile {
+    public RaikouTile(Vector2 pos) {
         super("raikou_overw1", pos);
         // TODO Auto-generated constructor stub
     }
@@ -1249,10 +1074,10 @@ class Raikou_Tile extends Tile {
 
         Action encounterAction = new SplitAction(
                 new BattleIntro(
-                        new BattleIntro_anim1(
+                        new BattleIntroAnim1(
                                 new SplitAction(
                                         new DrawBattle(game),
-                                        new BattleAnim_positionPlayers(
+                                        new BattleAnimPositionPlayers(
                                                 game,
                                                 new PlaySound(
                                                         game.battle.oppPokemon.name,
@@ -1659,8 +1484,8 @@ class SpecialMewtwoTile extends Tile {
 // TODO - in future, will not handle these as tiles but as
 // overworld pkmn. need easy way to access tile and overworld
 // pkmn functions all at once
-class Suicune_Tile extends Tile {
-    public Suicune_Tile(Vector2 pos) {
+class SuicuneTile extends Tile {
+    public SuicuneTile(Vector2 pos) {
         super("suicune_overw1", pos);
         // TODO Auto-generated constructor stub
     }
@@ -1674,10 +1499,10 @@ class Suicune_Tile extends Tile {
 
         Action encounterAction = new SplitAction(
                 new BattleIntro(
-                        new BattleIntro_anim1(
+                        new BattleIntroAnim1(
                                 new SplitAction(
                                         new DrawBattle(game),
-                                        new BattleAnim_positionPlayers(
+                                        new BattleAnimPositionPlayers(
                                                 game,
                                                 new PlaySound(
                                                         game.battle.oppPokemon.name,

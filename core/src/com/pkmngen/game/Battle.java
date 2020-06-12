@@ -2191,9 +2191,9 @@ public class Battle {
         if (game.player.pokemon.isEmpty()) {
     
             return new SplitAction(new BattleIntro(
-                                   new BattleIntro_anim1(
+                                   new BattleIntroAnim1(
                                    new SplitAction(new DrawBattle(game),
-                                                   new BattleAnim_positionPlayers(game,
+                                                   new BattleAnimPositionPlayers(game,
                                                    new PlaySound(game.battle.oppPokemon,
                                                    new DisplayText(game, "Wild "+game.battle.oppPokemon.name.toUpperCase()+" appeared!", null, null,
                                                    new WaitFrames(game, 39,
@@ -2232,9 +2232,9 @@ public class Battle {
                                 afterTrigger)));
             }
             return new BattleIntro(
-                   new BattleIntro_anim1(
+                   new BattleIntroAnim1(
                    new SplitAction(new DrawBattle(game),
-                   new BattleAnim_positionPlayers(game,
+                   new BattleAnimPositionPlayers(game,
                    new SplitAction(new WaitFrames(game, 4,
                                       new PlaySound(game.battle.oppPokemon,
                                       null)),
@@ -2265,10 +2265,10 @@ public class Battle {
                                    new DrawBattleMenuNormal(game, null)
                                    ));
             return new BattleIntro(
-                   new BattleIntro_anim1(
+                   new BattleIntroAnim1(
                    new SplitAction(
                    new DrawBattle(game),
-                   new BattleAnim_positionPlayers(game,
+                   new BattleAnimPositionPlayers(game,
                    new PlaySound(game.battle.oppPokemon.name,
                    new DisplayText(game, "Wild "+game.battle.oppPokemon.name.toUpperCase()+" appeared!", null, null,
                    new SplitAction(new WaitFrames(game, 1,
@@ -3403,12 +3403,12 @@ public class Battle {
 }
 
 // scroll both players into view
-class BattleAnim_positionPlayers extends Action {
+class BattleAnimPositionPlayers extends Action {
     ArrayList<Vector2> moves_relative;
     Vector2 move;
 
     public int layer = 140;
-    public BattleAnim_positionPlayers(Game game, Action nextAction) {
+    public BattleAnimPositionPlayers(Game game, Action nextAction) {
         this.nextAction = nextAction;
 
         this.moves_relative = new ArrayList<Vector2>();
@@ -3696,12 +3696,12 @@ class BattleIntro extends Action {
 }
 
 // TODO - i think this needs to call .step() for next b/c there is a missing frame before battle
-class BattleIntro_anim1 extends Action {
+class BattleIntroAnim1 extends Action {
     ArrayList<Sprite> frames;
     Sprite frame;
 
     public int layer = 139;
-    public BattleIntro_anim1(Action nextAction) {
+    public BattleIntroAnim1(Action nextAction) {
         this.nextAction = nextAction;
 
         this.frames = new ArrayList<Sprite>();

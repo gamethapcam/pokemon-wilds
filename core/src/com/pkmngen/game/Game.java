@@ -409,7 +409,7 @@ public class Game extends ApplicationAdapter {
     public void start() {
         ArrayList<Action> startActions = new ArrayList<Action>();
         startActions.add(new DrawMap(this));
-        startActions.add(new playerStanding(this));
+        startActions.add(new PlayerStanding(this));
         startActions.add(new DrawPlayerLower(this));
         startActions.add(new DrawMapGrass(this));
         startActions.add(new DrawPlayerUpper(this));

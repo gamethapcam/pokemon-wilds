@@ -332,7 +332,7 @@ class CycleDayNight extends Action {
     }
 }
 
-class despawnGhost extends Action {
+class DespawnGhost extends Action {
     public int layer = 114;
     Sprite[] sprites;
 
@@ -343,7 +343,7 @@ class despawnGhost extends Action {
     Vector2 position;
 
     Sprite sprite;
-    public despawnGhost(Vector2 position) {
+    public DespawnGhost(Vector2 position) {
         this.part1 = 80;
 
         this.position = position;
@@ -370,8 +370,10 @@ class despawnGhost extends Action {
     }
 }
 
-// for drawing the ghost that chases the player
-class drawGhost extends Action {
+/**
+ * Draws the ghost that chases the player.
+ */
+class DrawGhost extends Action {
     public int layer = 114;
     Sprite currSprite;
 
@@ -394,9 +396,9 @@ class drawGhost extends Action {
 
     int noEncounterTimer = 0;
     Vector2 startPos;
-
     Vector2 endPos;
-    public drawGhost(Game game, Vector2 position) {
+
+    public DrawGhost(Game game, Vector2 position) {
         this.basePos = position;
         this.sineTimer = 0;
         this.dirFacing = "down";
@@ -460,7 +462,7 @@ class drawGhost extends Action {
         if (game.map.timeOfDay != "Night") {
             this.currSprite.draw(game.mapBatch);
             game.actionStack.remove(this);
-            game.insertAction(new despawnGhost(this.basePos.cpy()));
+            game.insertAction(new DespawnGhost(this.basePos.cpy()));
             return;
         }
 
@@ -485,7 +487,7 @@ class drawGhost extends Action {
             if (tile.nameUpper.contains("campfire")) {
                 this.currSprite.draw(game.mapBatch);
                 game.actionStack.remove(this);
-                game.insertAction(new despawnGhost(this.basePos.cpy()));
+                game.insertAction(new DespawnGhost(this.basePos.cpy()));
                 game.currMusic.pause();
                 game.currMusic = game.map.currRoute.music;
                 game.currMusic.play();
@@ -908,42 +910,43 @@ class HeadbuttTreeAnim extends Action {
     }
 }
 
-class itemPickupNotify extends Action {
-  public int layer = 114;
-  Sprite bgSprite;
-  int signCounter = 150;;
+class ItemPickupNotify extends Action {
+    public int layer = 114;
+    Sprite bgSprite;
+    int signCounter = 150;;
 
-  String itemName;
-  int quantity;
-  public itemPickupNotify(Game game, String itemName, int quantity) {
-      this.itemName = itemName;
-      this.quantity = quantity;
-      Texture text = new Texture(Gdx.files.internal("text2.png"));
-      this.bgSprite = new Sprite(text, 0, 0, 160, 144);
-      this.bgSprite.setPosition(0, -144);
-  }
-  public String getCamera() {return "gui";}
+    String itemName;
+    int quantity;
 
-  public int getLayer(){return this.layer;}
+    public ItemPickupNotify(Game game, String itemName, int quantity) {
+        this.itemName = itemName;
+        this.quantity = quantity;
+        Texture text = new Texture(Gdx.files.internal("text2.png"));
+        this.bgSprite = new Sprite(text, 0, 0, 160, 144);
+        this.bgSprite.setPosition(0, -144);
+    }
+    public String getCamera() {return "gui";}
 
-  @Override
-  public void step(Game game) {
-      if (signCounter > 0) {
-          signCounter--;
-          if (signCounter > 100) {
-          }
-          else if (signCounter > 78) {
-              this.bgSprite.setPosition(this.bgSprite.getX(), this.bgSprite.getY()+1);
-          }
-          else if (signCounter > 22) {
-          }
-          else {
-              this.bgSprite.setPosition(this.bgSprite.getX(), this.bgSprite.getY()-1);
-          }
-          this.bgSprite.draw(game.uiBatch);
-          game.font.draw(game.uiBatch, "Picked up "+this.itemName+" x"+this.quantity+".", 42, this.bgSprite.getY()+134);
-      }
-  }
+    public int getLayer(){return this.layer;}
+
+    @Override
+    public void step(Game game) {
+        if (signCounter > 0) {
+            signCounter--;
+            if (signCounter > 100) {
+            }
+            else if (signCounter > 78) {
+                this.bgSprite.setPosition(this.bgSprite.getX(), this.bgSprite.getY()+1);
+            }
+            else if (signCounter > 22) {
+            }
+            else {
+                this.bgSprite.setPosition(this.bgSprite.getX(), this.bgSprite.getY()-1);
+            }
+            this.bgSprite.draw(game.uiBatch);
+            game.font.draw(game.uiBatch, "Picked up "+this.itemName+" x"+this.quantity+".", 42, this.bgSprite.getY()+134);
+        }
+    }
 }
 
 /**
@@ -999,7 +1002,7 @@ public class Player {
     HashMap<String, HashMap<String, Integer>> buildTileRequirements = new HashMap<String, HashMap<String, Integer>>();
     boolean canMove = true;  // TODO: migrate to start using this
     int numFlees = 0;  // used in battle run away mechanic
-    playerStanding standingAction;
+    PlayerStanding standingAction;
 
     public Type type;
     Network network;
@@ -1246,7 +1249,7 @@ public class Player {
     }
 }
 
-class playerBump extends Action {
+class PlayerBump extends Action {
     public int layer = 130;
     int timer = 0;
 
@@ -1254,11 +1257,11 @@ class playerBump extends Action {
     boolean alternate = false;
 
     Player player;
-    public playerBump(Game game) {
+    public PlayerBump(Game game) {
         this(game, game.player);
     }
 
-    public playerBump(Game game, Player player) {
+    public PlayerBump(Game game, Player player) {
         this.player = player;
         game.insertAction(new PlaySound("bump2", null));
     }
@@ -1292,19 +1295,19 @@ class playerBump extends Action {
         // when facingDir key is released, go to playerStanding
 
         if (!Gdx.input.isKeyPressed(Input.Keys.UP) && game.player.dirFacing == "up") {
-            game.insertAction(new playerStanding(game));
+            game.insertAction(new PlayerStanding(game));
             game.actionStack.remove(this);
         }
         else if (!Gdx.input.isKeyPressed(Input.Keys.DOWN) && game.player.dirFacing == "down") {
-            game.insertAction(new playerStanding(game));
+            game.insertAction(new PlayerStanding(game));
             game.actionStack.remove(this);
         }
         else if (!Gdx.input.isKeyPressed(Input.Keys.LEFT) && game.player.dirFacing == "left") {
-            game.insertAction(new playerStanding(game));
+            game.insertAction(new PlayerStanding(game));
             game.actionStack.remove(this);
         }
         else if (!Gdx.input.isKeyPressed(Input.Keys.RIGHT) && game.player.dirFacing == "right") {
-            game.insertAction(new playerStanding(game));
+            game.insertAction(new PlayerStanding(game));
             game.actionStack.remove(this);
         }
     }
@@ -1370,7 +1373,7 @@ class PlayerCanMove extends Action {
 
 // made up/right/left anim same as down
  // possible that length that shadow stays isn't perfect
-class playerLedgeJump extends Action {
+class PlayerLedgeJump extends Action {
     public int layer = 131;
     float xDist, yDist;
 
@@ -1385,11 +1388,11 @@ class playerLedgeJump extends Action {
     ArrayList<Map<String, Sprite>> spriteAnim = new ArrayList<Map<String, Sprite>>();
     // Map<String, ArrayList<Sprite>> spritesAnimList = new HashMap<String, ArrayList<Sprite>>();
     Player player;
-    public playerLedgeJump(Game game) {
+    public PlayerLedgeJump(Game game) {
         this(game, game.player);
     }
 
-    public playerLedgeJump(Game game, Player player) {
+    public PlayerLedgeJump(Game game, Player player) {
         this.player = player;
         this.initialPos = new Vector2(this.player.position);
         if (this.player.dirFacing == "up") {
@@ -1507,7 +1510,7 @@ class playerLedgeJump extends Action {
             game.player.position.set(this.targetPos);
             game.cam.position.set(this.targetPos.x+16, this.targetPos.y,0);
 
-            Action playerStanding = new playerStanding(game);
+            Action playerStanding = new PlayerStanding(game);
             game.insertAction(playerStanding);
             // playerStanding.step(game); // step to detect movement right away
             game.actionStack.remove(this);
@@ -1710,7 +1713,7 @@ class PlayerLedgeJumpFast extends Action {
 //                Action playerStanding = new playerStanding(game);
 //                game.insertAction(playerStanding);
 //            }
-            Action playerStanding = new playerStanding(game);
+            Action playerStanding = new PlayerStanding(game);
             game.insertAction(playerStanding);
             game.actionStack.remove(this);
 
@@ -1782,7 +1785,7 @@ class PlayerLedgeJumpFast extends Action {
 
 // draw character action
 // need to build in 'button press delay'
-class playerMoving extends Action {
+class PlayerMoving extends Action {
     public int layer = 150;
     Vector2 initialPos; // track distance of movement
 
@@ -1793,11 +1796,11 @@ class playerMoving extends Action {
     boolean alternate = false;
 
     Player player;
-    public playerMoving(Game game, boolean alternate) {
+    public PlayerMoving(Game game, boolean alternate) {
         this(game, game.player, alternate);
     }
 
-    public playerMoving(Game game, Player player, boolean alternate) {
+    public PlayerMoving(Game game, Player player, boolean alternate) {
         this.alternate = alternate;
         this.player = player;
         this.initialPos = new Vector2(this.player.position);
@@ -1915,7 +1918,7 @@ class playerMoving extends Action {
             game.player.position.set(this.targetPos);
             game.cam.position.set(this.targetPos.x+16, this.targetPos.y,0);
 
-            Action standingAction = new playerStanding(game, !this.alternate);
+            Action standingAction = new PlayerStanding(game, !this.alternate);
             game.insertAction(standingAction);
             standingAction.step(game); // decide where to move // doesn't actually seem to do much
             game.actionStack.remove(this);
@@ -1981,7 +1984,7 @@ class playerMoving extends Action {
 // note - this action is nearly identical to playerMoving. Keeping separate though,
  // for simplicity
  // differences are - player sprites, movement speed
-class playerRunning extends Action {
+class PlayerRunning extends Action {
     public int layer = 150;
     Vector2 initialPos; // track distance of movement
 
@@ -1992,11 +1995,11 @@ class playerRunning extends Action {
     boolean alternate = false;
 
     Player player;
-    public playerRunning(Game game, boolean alternate) {
+    public PlayerRunning(Game game, boolean alternate) {
         this(game, game.player, alternate);
     }
 
-    public playerRunning(Game game, Player player, boolean alternate) {
+    public PlayerRunning(Game game, Player player, boolean alternate) {
         this.alternate = alternate;
         this.player = player;
 
@@ -2115,7 +2118,7 @@ class playerRunning extends Action {
             game.cam.update();                                     // this line fixes jittering bug
             game.mapBatch.setProjectionMatrix(game.cam.combined);    // same
 
-            Action standingAction = new playerStanding(game, !this.alternate, true); // pass true to keep running animation going
+            Action standingAction = new PlayerStanding(game, !this.alternate, true); // pass true to keep running animation going
             game.insertAction(standingAction);
             standingAction.step(game); // decide where to move // doesn't actually seem to do much
             game.actionStack.remove(this);
@@ -2184,7 +2187,7 @@ class playerRunning extends Action {
 // this action is basically the decision-maker for
 //  what to do next when a player presses a button
 //  all moving states come back to here
-class playerStanding extends Action {
+class PlayerStanding extends Action {
     public int layer = 130;
     public float initialWait; // might use this to wait before moving
 
@@ -2199,7 +2202,7 @@ class playerStanding extends Action {
     /*
      * TODO: correct constructors, ie this one should call this(game, something); instead.
      */
-    public playerStanding(Game game) {
+    public PlayerStanding(Game game) {
         // could snap cam, and have playerMoving come here after 15 pixels. saves a little code
          // problems - timer before moving, alternating sprites
         this.alternate = true;
@@ -2208,7 +2211,7 @@ class playerStanding extends Action {
         this.player = game.player;
     }
 
-    public playerStanding(Game game, boolean alternate) {
+    public PlayerStanding(Game game, boolean alternate) {
         // only used by playerMoving atm
         this.alternate = alternate;
         this.isRunning = false;
@@ -2216,7 +2219,7 @@ class playerStanding extends Action {
         // todo - might be able to remove above alternate code, should work atm. after 1 iter this.alternate = false, init to true
     }
 
-    public playerStanding(Game game, boolean alternate, boolean isRunning) {
+    public PlayerStanding(Game game, boolean alternate, boolean isRunning) {
         // only used by playerMoving atm
         this.alternate = alternate;
         this.isRunning = isRunning;
@@ -2224,7 +2227,7 @@ class playerStanding extends Action {
         // todo - might be able to remove above alternate code, should work atm. after 1 iter this.alternate = false, init to true
     }
 
-    public playerStanding(Game game, Player player, boolean alternate, boolean isRunning) {
+    public PlayerStanding(Game game, Player player, boolean alternate, boolean isRunning) {
         this.alternate = alternate;
         this.isRunning = isRunning;
         this.checkWildEncounter = false;
@@ -2450,7 +2453,7 @@ class playerStanding extends Action {
                 game.player.buildTileIndex = game.player.buildTiles.size() - 1;
             }
             game.player.currBuildTile = game.player.buildTiles.get(game.player.buildTileIndex);
-            game.insertAction(new requirementNotify(game, game.player.currBuildTile.name));
+            game.insertAction(new RequirementNotify(game, game.player.currBuildTile.name));
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.V) && game.player.isBuilding) {
             game.player.buildTileIndex += 1;
@@ -2458,7 +2461,7 @@ class playerStanding extends Action {
                 game.player.buildTileIndex = 0;
             }
             game.player.currBuildTile = game.player.buildTiles.get(game.player.buildTileIndex);
-            game.insertAction(new requirementNotify(game, game.player.currBuildTile.name));
+            game.insertAction(new RequirementNotify(game, game.player.currBuildTile.name));
         }
 
         if (Gdx.input.isKeyJustPressed(Input.Keys.X)) {
@@ -2612,7 +2615,7 @@ class playerStanding extends Action {
                     // get items from tile
                     if (!currTile.items.isEmpty()) {
                         for (String item : currTile.items.keySet()) {
-                            game.insertAction(new itemPickupNotify(game, item, currTile.items.get(item)));
+                            game.insertAction(new ItemPickupNotify(game, item, currTile.items.get(item)));
                             if (game.player.itemsDict.containsKey(item)) {
                                 int currQuantity = game.player.itemsDict.get(item);
                                 game.player.itemsDict.put(item, currQuantity+currTile.items.get(item));
@@ -2671,7 +2674,7 @@ class playerStanding extends Action {
             if (game.player.dirFacing.equals("down") && currTile.name.contains("rug")) {
                 // do leave building anim, then player travels down one space
                 game.insertAction(new EnterBuilding(game, "exit",
-                                  new playerMoving(game, this.alternate)));
+                                  new PlayerMoving(game, this.alternate)));
                 return;
             }
             // Check if moving into empty space to avoid temp.attr checks afterwards
@@ -2679,15 +2682,15 @@ class playerStanding extends Action {
             if (temp == null || Gdx.input.isKeyPressed(Input.Keys.SPACE)) {
                 // No tile here, so just move normally
                 if (Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT)) { // check if player should be running
-                    game.insertAction(new playerRunning(game, this.alternate));
+                    game.insertAction(new PlayerRunning(game, this.alternate));
                 }
                 else {
-                    game.insertAction(new playerMoving(game, this.alternate));
+                    game.insertAction(new PlayerMoving(game, this.alternate));
                 }
                 return;
             }
             if (temp.attrs.get("solid")) {
-                game.insertAction(new playerBump(game));
+                game.insertAction(new PlayerBump(game));
                 return;
             }
             if (game.player.isJumping) {
@@ -2701,7 +2704,7 @@ class playerStanding extends Action {
                     }
                     else {
                         // bump into ledge
-                        game.insertAction(new playerBump(game));
+                        game.insertAction(new PlayerBump(game));
                         return;
                     }
                 }
@@ -2721,7 +2724,7 @@ class playerStanding extends Action {
                 return;
             }
             if (temp.attrs.get("ledge") && temp.ledgeDir.equals("up") && game.player.dirFacing.equals("down")) {
-                game.insertAction(new playerBump(game));
+                game.insertAction(new PlayerBump(game));
                 return;
             }
             if (temp.attrs.get("ledge") && !temp.ledgeDir.equals("up")) {
@@ -2730,20 +2733,20 @@ class playerStanding extends Action {
                 Tile fartherOutTile = game.map.tiles.get(newPos.cpy().add(diff));
                 if (temp.ledgeDir.equals(game.player.dirFacing) && (fartherOutTile == null || (!fartherOutTile.attrs.get("solid") && !fartherOutTile.attrs.get("ledge")))) {
                     // jump over ledge
-                    game.insertAction(new playerLedgeJump(game));
+                    game.insertAction(new PlayerLedgeJump(game));
                 }
                 else {
                     // bump into ledge
-                    game.insertAction(new playerBump(game));
+                    game.insertAction(new PlayerBump(game));
                 }
                 return;
             }
             // Check if player should be running
             if (Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT)) {
-                game.insertAction(new playerRunning(game, this.alternate));
+                game.insertAction(new PlayerRunning(game, this.alternate));
                 return;
             }
-            game.insertAction(new playerMoving(game, this.alternate));
+            game.insertAction(new PlayerMoving(game, this.alternate));
             return;
         }
 
@@ -2946,15 +2949,15 @@ class playerStanding extends Action {
             if (temp == null) {
                 // No tile here, so just move normally
                 if (this.player.network.isRunning) {
-                    game.insertAction(new playerRunning(game, this.player, this.alternate));
+                    game.insertAction(new PlayerRunning(game, this.player, this.alternate));
                 }
                 else {
-                    game.insertAction(new playerMoving(game, this.player, this.alternate));
+                    game.insertAction(new PlayerMoving(game, this.player, this.alternate));
                 }
                 return;
             }
             if (temp.attrs.get("solid")) {
-                game.insertAction(new playerBump(game, this.player));
+                game.insertAction(new PlayerBump(game, this.player));
                 return;
             }
             if (this.player.isJumping) {
@@ -2968,7 +2971,7 @@ class playerStanding extends Action {
                     }
                     else {
                         // bump into ledge
-                        game.insertAction(new playerBump(game, this.player));
+                        game.insertAction(new PlayerBump(game, this.player));
                         return;
                     }
                 }
@@ -2988,26 +2991,26 @@ class playerStanding extends Action {
                 return;
             }
             if (temp.attrs.get("ledge") && temp.ledgeDir.equals("up") && this.player.dirFacing.equals("down")) {
-                game.insertAction(new playerBump(game, this.player));
+                game.insertAction(new PlayerBump(game, this.player));
                 return;
             }
             if (temp.attrs.get("ledge") && !temp.ledgeDir.equals("up")) {
                 if (temp.ledgeDir.equals(this.player.dirFacing)) {
                     // jump over ledge
-                    game.insertAction(new playerLedgeJump(game, this.player));
+                    game.insertAction(new PlayerLedgeJump(game, this.player));
                 }
                 else {
                     // bump into ledge
-                    game.insertAction(new playerBump(game, this.player));
+                    game.insertAction(new PlayerBump(game, this.player));
                 }
                 return;
             }
             // Check if player should be running
             if (this.player.network.isRunning) {
-                game.insertAction(new playerRunning(game, this.player, this.alternate));
+                game.insertAction(new PlayerRunning(game, this.player, this.alternate));
             }
             else {
-                game.insertAction(new playerMoving(game, this.player, this.alternate));
+                game.insertAction(new PlayerMoving(game, this.player, this.alternate));
             }
             if (game.type == Game.Type.SERVER) {
                 // check wild encounter on next position, send back if yes
@@ -3120,14 +3123,14 @@ class playerStanding extends Action {
 
 }
 
-class requirementNotify extends Action {
+class RequirementNotify extends Action {
   public int layer = 114;
   Sprite bgSprite;
   int signCounter = 100;;
 
   String tileName;
   String text = "";
-  public requirementNotify(Game game, String tileName) {
+  public RequirementNotify(Game game, String tileName) {
       this.tileName = tileName;
       Texture text = new Texture(Gdx.files.internal("text2.png"));
       this.bgSprite = new Sprite(text, 0, 0, 160, 144);
@@ -3273,7 +3276,7 @@ class spawnGhost extends Action {
 
         game.playerCanMove = true;
         game.actionStack.remove(this);
-        game.insertAction(new drawGhost(game, this.position));
+        game.insertAction(new DrawGhost(game, this.position));
     }
 
 }

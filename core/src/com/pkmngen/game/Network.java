@@ -87,7 +87,7 @@ class ClientBroadcast extends Action {
                                 player.network.id = serverPlayerData.number;  // on client side, just index player by number
                                 player.setColor(serverPlayerData.color);
                                 game.players.put(serverPlayerData.number, player);
-                                player.standingAction = new playerStanding(game, player, false, true);
+                                player.standingAction = new PlayerStanding(game, player, false, true);
                                 game.insertAction(player.standingAction);
                             }
 
@@ -518,7 +518,7 @@ class ServerBroadcast extends Action {
 
                                 // Add standing action to actionStack
                                 if (player.standingAction == null) {
-                                    player.standingAction = new playerStanding(game, player, false, true);
+                                    player.standingAction = new PlayerStanding(game, player, false, true);
                                 }
                                 if (!game.actionStack.contains(player.standingAction)) {
                                     game.insertAction(player.standingAction);
