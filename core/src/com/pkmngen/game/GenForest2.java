@@ -308,7 +308,7 @@ public class GenForest2 extends Action {
 
         String[][] format = new String[][]{};
 
-        String[] rn = {"ground1", "qmark", "grass1"}; // random non-solid objects
+//        String[] rn = {"ground1", "qmark", "grass1"}; // random non-solid objects
          // bug - qmark can potentially be solid
 
         // choose from temp because I want more uniformity
@@ -1574,7 +1574,6 @@ class GenIsland1 extends Action {
 
         while (!edgeTiles.isEmpty()) {
             for (Tile tile : new ArrayList<Tile>(edgeTiles.values())) {
-                int numAdded = 0;
                 for (Vector2 edge : new Vector2[]{tile.position.cpy().add(-16f, 0f),
                                                   tile.position.cpy().add(16f, 0f),
                                                   tile.position.cpy().add(0f, 16f),
@@ -1738,8 +1737,6 @@ class GenIsland1 extends Action {
                                 tilesToAdd.put(newTile.position.cpy(), newTile);
                                 edgeTiles.put(newTile.position.cpy(), newTile);
                             }
-
-                            numAdded++;
                         }
                     }
                 }
@@ -1825,7 +1822,7 @@ class GenIsland1 extends Action {
             // TODO: this still isn't working
             // it keeps creating larger and larger mazes
             if (tilesToAdd.size() > 0) {
-                Action temp = new GenForest2.ApplyForestBiome(tilesToAdd, bl.cpy(), tr.cpy(), true, new DoneAction());
+                Action temp = new GenForest2.ApplyForestBiome(tilesToAdd, bl.cpy(), tr.cpy(), true, null);
                 temp.step(game);
             }
 
@@ -2213,9 +2210,9 @@ class GenIsland1 extends Action {
             Tile bot = mtnTiles.get(tile.position.cpy().add(0, -16));
             Tile br = mtnTiles.get(tile.position.cpy().add(16, -16));
             Tile left = mtnTiles.get(tile.position.cpy().add(-16, 0));
-            Tile tl = mtnTiles.get(tile.position.cpy().add(-16, 16));
+//            Tile tl = mtnTiles.get(tile.position.cpy().add(-16, 16));
             Tile top = mtnTiles.get(tile.position.cpy().add(0, 16));
-            Tile tr = mtnTiles.get(tile.position.cpy().add(16, 16));
+//            Tile tr = mtnTiles.get(tile.position.cpy().add(16, 16));
             Tile right = mtnTiles.get(tile.position.cpy().add(16, 0));
             if (tileLevels.containsKey(left) && tileLevels.get(left) == tileLevels.get(tile) &&
                 tileLevels.containsKey(bot) && tileLevels.get(bot) == tileLevels.get(tile)-1 &&

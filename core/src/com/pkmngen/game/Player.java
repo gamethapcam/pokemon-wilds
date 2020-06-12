@@ -64,7 +64,7 @@ class CutTreeAnim extends Action {
         if (this.index < 13) {
         }
         else if (this.index == 13) {
-            game.insertAction(new PlaySound("cut1", new DoneAction()));
+            game.insertAction(new PlaySound("cut1", null));
         }
         else if (this.index < 19) {
         }
@@ -626,12 +626,12 @@ class drawGhost extends Action {
 //                                                                                game.player.adrenaline > 0 ?
 //                                                                                new DisplayText(game, ""+game.player.name+" has ADRENALINE "+Integer.toString(game.player.adrenaline)+"!", null, null,
 //                                                                                    new PrintAngryEating(game, // for demo mode, normally left out
-//                                                                                            new DrawBattleMenu_SafariZone(game, new DoneAction())
+//                                                                                            new DrawBattleMenu_SafariZone(game, null)
 //                                                                                        )
 //                                                                                    )
 //                                                                                :
 //                                                                                new PrintAngryEating(game, // for demo mode, normally left out
-//                                                                                        new DrawBattleMenu_SafariZone(game, new DoneAction())
+//                                                                                        new DrawBattleMenu_SafariZone(game, null)
 //                                                                            )
 //                                                                            //
 //                                                                        )
@@ -641,7 +641,7 @@ class drawGhost extends Action {
 //                                                        )
 //                                                    )
 //                                                ),
-//                                                new DoneAction()
+//                                                null
 //                                            )
 //                                        );
             game.insertAction(Battle.getIntroAction(game));
@@ -866,7 +866,7 @@ class HeadbuttTreeAnim extends Action {
             this.leftSprite.setPosition((int)this.originalSprite.getX()-4, this.originalSprite.getY());
         }
         else if (this.index == 14) {
-            game.insertAction(new PlaySound("headbutt1", new DoneAction()));
+            game.insertAction(new PlaySound("headbutt1", null));
         }
         else if (this.index == 18+3) {
             this.tile.overSprite = this.rightSprite;
@@ -1260,7 +1260,7 @@ class playerBump extends Action {
 
     public playerBump(Game game, Player player) {
         this.player = player;
-        game.insertAction(new PlaySound("bump2", new DoneAction()));
+        game.insertAction(new PlaySound("bump2", null));
     }
 
     public int getLayer(){return this.layer;}
@@ -1271,7 +1271,7 @@ class playerBump extends Action {
         if (this.timer >= 2*maxTime ) {
             this.alternate = !this.alternate;
             this.timer = 0;
-            game.insertAction(new PlaySound("bump2", new DoneAction()));
+            game.insertAction(new PlaySound("bump2", null));
         }
 
         if (this.timer < maxTime) {
@@ -1316,7 +1316,7 @@ class playerBump extends Action {
         if (this.timer >= 2*maxTime ) {
             this.alternate = !this.alternate;
             this.timer = 0;
-            game.insertAction(new PlaySound("bump2", new DoneAction()));
+            game.insertAction(new PlaySound("bump2", null));
         }
 
         if (this.timer < maxTime) {
@@ -1410,7 +1410,7 @@ class playerLedgeJump extends Action {
         this.shadow = new Sprite(shadowText, 0, 0, 16, 16);
 
         // play sound
-        game.insertAction(new PlaySound("ledge1", new DoneAction()));
+        game.insertAction(new PlaySound("ledge1", null));
 
         // below two lists are used to get exact sprite and
          // y movement on every other frame
@@ -2384,7 +2384,7 @@ class playerStanding extends Action {
 
             // TODO: idk where the right place for this is.
             if (game.map.tiles.get(game.player.position) != null && game.map.tiles.get(game.player.position).nameUpper.contains("door")) {
-                game.insertAction(new EnterBuilding(game, new DoneAction()));
+                game.insertAction(new EnterBuilding(game, null));
             }
 
             this.checkWildEncounter = false;
@@ -2413,7 +2413,7 @@ class playerStanding extends Action {
                               new DrawPlayerMenu(game,
                               new WaitFrames(game, 1,
                               new PlayerCanMove(game,
-                              new DoneAction())))));
+                              null)))));
             // game.actionStack.remove(this);
             game.playerCanMove = false;
             return;
@@ -2549,11 +2549,11 @@ class playerStanding extends Action {
                         game.client.sendTCP(new Network.TileData(newTile));
                     }
                     game.insertAction(new PlaySound("strength1",
-                                                     new DoneAction()));
+                                                     null));
                     game.playerCanMove = false;
                     game.insertAction(new WaitFrames(game, 30,
                                                      new PlayerCanMove(game,
-                                                     new DoneAction())));
+                                                     null)));
                     this.detectIsHouseBuilt(game, currTile);
                     // add tile to interiors
                     if (!game.player.currBuildTile.nameUpper.contains("campfire") && !game.player.currBuildTile.nameUpper.contains("sleeping_bag")) {
@@ -2581,7 +2581,7 @@ class playerStanding extends Action {
             else if (game.player.isHeadbutting) {
                 if (currTile.attrs.containsKey("headbuttable") && currTile.attrs.get("headbuttable")) {
                     // choose if found anything
-                    Action nextAction = new PlayerCanMove(game, new DoneAction());
+                    Action nextAction = new PlayerCanMove(game, null);
 //                    int randInt = game.map.rand.nextInt(4);
                     if (currTile.routeBelongsTo != null && !currTile.routeBelongsTo.pokemon.isEmpty()) {
                         // TODO: need to be static per-tree somehow.
@@ -2602,7 +2602,7 @@ class playerStanding extends Action {
             else if (game.player.isCutting) {
                 if (currTile.attrs.containsKey("cuttable") && currTile.attrs.get("cuttable")) {
                     game.insertAction(new CutTreeAnim(game, game.map.tiles.get(pos),
-                                                     new DoneAction()));
+                                                     null));
                     // place black tile at location
                     // TODO: if there are ever interior objects, how do you preserve those?
                     Tile interiorTile = new Tile("black1", currTile.position.cpy());
@@ -2788,7 +2788,7 @@ class playerStanding extends Action {
 //
 //            // TODO: idk where the right place for this is.
 //            if (game.map.tiles.get(game.player.position) != null && game.map.tiles.get(game.player.position).name.contains("door")) {
-//                game.insertAction(new EnterBuilding(game, new DoneAction()));
+//                game.insertAction(new EnterBuilding(game, null));
 //            }
 //            this.checkWildEncounter = false;
 //        }
@@ -3239,10 +3239,10 @@ class spawnGhost extends Action {
         }
 
         if (part2 == 40) {
-            game.insertAction(new PlaySound("ghost1", new DoneAction()));
+            game.insertAction(new PlaySound("ghost1", null));
         }
         if (part2 == 32) {
-            game.insertAction(new PlaySound("ghost1", new DoneAction()));
+            game.insertAction(new PlaySound("ghost1", null));
         }
 
         if (part2 > 0) {

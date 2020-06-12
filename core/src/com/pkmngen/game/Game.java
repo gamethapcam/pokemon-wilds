@@ -29,7 +29,6 @@ import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.GdxRuntimeException;
 
 import com.esotericsoftware.kryonet.Client;
-import com.esotericsoftware.kryonet.Connection;
 import com.esotericsoftware.kryonet.Server;
 
 /**
@@ -324,22 +323,6 @@ public class Game extends ApplicationAdapter {
     }
 
     /**
-     * Chain Actions together, then insert. Useful because Eclipse auto-
-     * formatting for arrays is easier to read than nested classes (when
-     * declaring new Action(s)).
-     */
-    public void insertActions(Action[] actions) {
-        if (actions.length <= 0) {
-            return;
-        }
-        Action action = actions[0];
-        for (int i = 0; i+1 < actions.length; i++) {
-            actions[i].nextAction = actions[i+1];
-        }
-        this.insertAction(action);
-    }
-
-    /**
      * Insert action into this.actionStack at the layer defined by actionToInsert.getLayer().
      */
     public void insertAction(Action actionToInsert) {
@@ -373,7 +356,7 @@ public class Game extends ApplicationAdapter {
         this.mapBatch.begin();
         // Iterate through the action stack and call the step() fn of each Action.
         for (Action action : new ArrayList<Action>(this.actionStack)) {
-            if (action.getCamera() == "map") {
+            if (action.getCamera().equals("map")) {
                 if (action.firstStep) {
                     action.firstStep(this);
                     action.firstStep = false;
@@ -451,11 +434,12 @@ public class Game extends ApplicationAdapter {
                 // TODO: These fade-ins don't even work. Will need for route musics
                 // TODO: there's def a bug here if you run into a wild
                 // pokemon while waiting frames, the next music will start anyway
-                Action[] nextMusic = {new FadeMusic("currMusic", "out", "", 0.025f, null),
-                                      new WaitFrames(Game.staticGame, 360, null),
-                                      new FadeMusic(nextMusicName, "in", "", 0.2f, true, 1f, this, null)};
-                Game.staticGame.insertActions(nextMusic);
-                nextMusic[0].step(Game.staticGame);
+                Action nextMusic = new FadeMusic("currMusic", "out", "", 0.025f,
+                                   new WaitFrames(Game.staticGame, 360,
+                                   new FadeMusic(nextMusicName, "in", "", 0.2f, true, 1f, this,
+                                   null)));
+                Game.staticGame.insertAction(nextMusic);
+                nextMusic.step(Game.staticGame);
             }
         };
         this.currMusic.setOnCompletionListener(this.musicCompletionListener);

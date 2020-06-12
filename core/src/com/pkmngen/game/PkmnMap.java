@@ -23,7 +23,6 @@ import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.esotericsoftware.kryo.io.Output;
-import com.pkmngen.game.Network.PokemonData;
 
 import box2dLight.PointLight;
 
@@ -33,67 +32,6 @@ import box2dLight.PointLight;
 // just use two draw actions
 // likely need to mark tile as 'grass',
 // for wild encounters (not positive tho)
-
-class detectWildEncounter extends Action {
-    public int layer = 0;
-
-    Tile currTile;
-
-    Random rand;
-
-    public detectWildEncounter(Game game) {
-        // get player's current tile
-        // this.currTile = game.map.tiles.get(game.player.position);
-
-        this.rand = new Random();
-    }
-
-    public int getLayer() {
-        return this.layer;
-    }
-
-    @Override
-    public void step(Game game) {
-        // when the player moves to a new tile, chance of wild encounter
-        Tile newTile = game.map.tiles.get(new Vector2(game.cam.position.x,
-                game.cam.position.y));
-
-        // beginning of game
-        if (currTile == null) {
-            currTile = newTile;
-        }
-        // if moved to a new tile
-        if (newTile != null && newTile != this.currTile) {
-            //
-            this.currTile = newTile;
-
-            // if stepped into grass,
-            if (newTile.attrs.get("grass") == true) {
-                // chance wild encounter
-                int randomNum = this.rand.nextInt(100) + 1; // rate determine by
-                                                            // player? // 1 - 100
-                if (randomNum <= 75) { // encounterRate
-                    // disable player movement (how?) (flag in player, move
-                    // actions self-destruct when seen?)
-
-                    // select new pokemon to encounter, put it in battle struct
-                    int index = rand.nextInt(game.map.currRoute.pokemon.size());
-                    // game.battle.currPokemon =
-                    // game.map.currRoute.pokemon.get(index);
-
-                    // start battle anim
-                    // game.insertAction(new battleIntro(game));
-
-                    System.out.println("Wild encounter.");
-                }
-            }
-
-        }
-
-    }
-
-}
-
 class DrawMap extends Action { // /
 
     public int layer = 140;
@@ -549,7 +487,7 @@ class Entei_Tile extends Tile {
                                                                                                 // out
                                                                                         new DrawBattleMenuSafariZone(
                                                                                                 game,
-                                                                                                new DoneAction())))
+                                                                                                null)))
                                                                                 : new PrintAngryEating(
                                                                                         game, // for
                                                                                                 // demo
@@ -559,7 +497,7 @@ class Entei_Tile extends Tile {
                                                                                                 // out
                                                                                         new DrawBattleMenuSafariZone(
                                                                                                 game,
-                                                                                                new DoneAction()))
+                                                                                                null))
                                                                 //
                                                                 ))))))),
                 new WaitFrames(game, 10, new BattleIntroMusic(new WaitFrames(
@@ -603,7 +541,7 @@ class EnterBuilding extends Action {
   public void step(Game game) {
       if (this.timer < 2*slow) {
           if (this.timer == 0 && this.action.equals("enter") || this.action.equals("exit")) {
-              game.insertAction(new PlaySound(this.action+"1", new DoneAction()));
+              game.insertAction(new PlaySound(this.action+"1", null));
           }
       }
       else if (this.timer < 4*slow) {
@@ -1361,7 +1299,7 @@ class Raikou_Tile extends Tile {
                                                                                                 // out
                                                                                         new DrawBattleMenuSafariZone(
                                                                                                 game,
-                                                                                                new DoneAction())))
+                                                                                                null)))
                                                                                 : new PrintAngryEating(
                                                                                         game, // for
                                                                                                 // demo
@@ -1371,7 +1309,7 @@ class Raikou_Tile extends Tile {
                                                                                                 // out
                                                                                         new DrawBattleMenuSafariZone(
                                                                                                 game,
-                                                                                                new DoneAction()))
+                                                                                                null))
                                                                 //
                                                                 ))))))),
                 new WaitFrames(game, 10, new BattleIntroMusic(new WaitFrames(
@@ -1786,7 +1724,7 @@ class Suicune_Tile extends Tile {
                                                                                                 // out
                                                                                         new DrawBattleMenuSafariZone(
                                                                                                 game,
-                                                                                                new DoneAction())))
+                                                                                                null)))
                                                                                 : new PrintAngryEating(
                                                                                         game, // for
                                                                                                 // demo
@@ -1796,7 +1734,7 @@ class Suicune_Tile extends Tile {
                                                                                                 // out
                                                                                         new DrawBattleMenuSafariZone(
                                                                                                 game,
-                                                                                                new DoneAction()))
+                                                                                                null))
                                                                 //
                                                                 ))))))),
                 new WaitFrames(game, 10, new BattleIntroMusic(new WaitFrames(

@@ -147,34 +147,6 @@ class ClientBroadcast extends Action {
     }
 
     public int getLayer(){return this.layer;}
-
-    @Override
-    public void step(Game game) {
-        // send to server the location of current player
-         // right now it's location of wasd player
-         // in future will need to pass the player index as well
-
-        this.timeStep++;
-
-        // TODO - timestep of 1 will not work - why? some sort of interference?
-
-        if (this.timeStep >= 1) {
-            Network.UpdatePlayer updatePlayer = new Network.UpdatePlayer();
-
-//            updatePlayer.position = this.player.physics.getPosition();
-//            updatePlayer.dirFacing = this.player.dirFacing;
-//
-//            updatePlayer.health = this.player.health;
-//            updatePlayer.swordSwingCooldown = this.player.swordSwingCooldown;
-//            updatePlayer.damageCooldown = this.player.damageCooldown;
-//
-//            updatePlayer.swordPos = this.player.sword.physics.getPosition();
-//            updatePlayer.swordFilter = this.player.sword.physics.fixture.getFilterData();
-
-//            game.client.sendTCP(updatePlayer);
-            this.timeStep = 0;
-        }
-    }
 }
 
 public class Network {
@@ -908,81 +880,5 @@ class ServerBroadcast extends Action {
     }
 
     public int getLayer(){return this.layer;}
-
-    @Override
-    public void step(Game game) {
-        this.timeStep++;
-
-        // note - 1 WILL NOT work if you are using ServerReceive to receive client requests (use 2)
-        // not sure why this is, but happens when stopping the thread in game.initNetwork and then updating via ServerReceive every frame
-        if (this.timeStep >= 1) {
-            Network.UpdatePlayer updatePlayer = new Network.UpdatePlayer();
-
-            //          updatePlayer.position = game.player.physics.getPosition();
-            //          updatePlayer.dirFacing = game.player.dirFacing;
-            //
-            //          updatePlayer.health = game.player.health;
-            //          updatePlayer.swordSwingCooldown = game.player.swordSwingCooldown;
-            //          updatePlayer.damageCooldown = game.player.damageCooldown;
-            //
-            //          updatePlayer.swordPos = game.player.sword.physics.getPosition();
-            //          updatePlayer.swordFilter = game.player.sword.physics.fixture.getFilterData();
-
-            //          game.server.sendToAllTCP(updatePlayer);
-
-            //        System.out.println("Server - update player  "+String.valueOf(1));
-
-            //          // update fireball
-            //          Network.UpdateFireball updateFireball = new Network.UpdateFireball();
-            ////          updateFireball.position = game.map.fireball.physics.getPosition();
-            //
-            //          game.server.sendToAllTCP(updateFireball);
-
-            // update ghosts
-            //          int i = 0;
-            //          for (Ghost ghost : game.map.enemies) {
-            //              Network.UpdateGhostData updateGhost = new Network.UpdateGhostData();
-            //              updateGhost.position = ghost.physics.getPosition();
-            //              updateGhost.dirFacing = ghost.dirFacing;
-            //              updateGhost.id = ghost.id;
-            //
-            //              updateGhost.damageCooldown = ghost.damageCooldown;
-            //              updateGhost.isDying = ghost.isDying;
-            //              updateGhost.attackingCooldown = ghost.attackingCooldown;
-            //              updateGhost.damageBoxCooldown = ghost.damageBoxCooldown;
-            //
-            //              updateGhost.target = ghost.targetIndex;
-            //
-            //              game.server.sendToAllTCP(updateGhost);
-            //
-            //              i++; // unused
-            //          }
-
-            // update game.map score for both players
-            // only occurs when score changes
-            //          if (game.map.network.prevPlayer1Score != game.map.player1Score) {
-            //
-            //              Network.UpdateScore updateScore = new Network.UpdateScore();
-            //              updateScore.player = 0;
-            //              updateScore.score = game.map.player1Score;
-            //              game.server.sendToAllTCP(updateScore);
-            //
-            //              game.map.network.prevPlayer1Score = game.map.player1Score;
-            ////            System.out.println("server - sent player 1 score: " + String.valueOf(updateScore.score)); // debug
-            //          }
-            //
-            //          if (game.map.network.prevPlayer2Score != game.map.player2Score) {
-            //
-            //              Network.UpdateScore updateScore = new Network.UpdateScore();
-            //              updateScore.player = 1;
-            //              updateScore.score = game.map.player2Score;
-            //              game.server.sendToAllTCP(updateScore);
-            //
-            //              game.map.network.prevPlayer2Score = game.map.player2Score;
-            //          }
-            //        System.out.println("Num ghosts:  "+String.valueOf(i));
-            this.timeStep = 0;
-        }
-    }
 }
 

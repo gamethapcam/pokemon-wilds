@@ -131,7 +131,7 @@ class DisplayText extends Action {
         this.spritesBeingDrawn = new ArrayList<Sprite>();
 
         if (playSound != null) {
-            this.playSoundAction = new DisplayText.PlaySoundText(playSound, new DoneAction());
+            this.playSoundAction = new DisplayText.PlaySoundText(playSound, null);
             this.playSound = true;
         }
         else {
@@ -239,7 +239,7 @@ class DisplayText extends Action {
     // what to do at each iteration
     public void step(Game game) {
         if (this.firstStep == true) {
-            // if you ever just pass 'new DoneAction()' to triggerAction, and
+            // if you ever just pass 'null' to triggerAction, and
              // then remove game.displayTextAction from actionStack later,
              // text will stop displaying
              // needed when enemy pkmn faints (displayText doesn't wait for user input)
@@ -340,7 +340,7 @@ class DisplayText extends Action {
             this.timer--;
 
             if (Gdx.input.isKeyJustPressed(Input.Keys.Z)) {
-                Action playSound = new PlaySound("click1", new DoneAction());
+                Action playSound = new PlaySound("click1", null);
                 game.insertAction(playSound);
                 playSound.step(game); // prevent latency
 
@@ -567,7 +567,7 @@ class DisplayTextIntro extends Action {
         this.spritesBeingDrawn = new ArrayList<Sprite>();
 
         if (playSound != null) {
-            this.playSoundAction = new DisplayTextIntro.PlaySound_Text(playSound, new DoneAction());
+            this.playSoundAction = new DisplayTextIntro.PlaySound_Text(playSound, null);
             this.playSound = true;
         }
         else {
@@ -658,7 +658,7 @@ class DisplayTextIntro extends Action {
     // what to do at each iteration
     public void step(Game game) {
         if (this.firstStep == true) {
-            // if you ever just pass 'new DoneAction()' to triggerAction, and
+            // if you ever just pass 'null' to triggerAction, and
              // then remove game.displayTextAction from actionStack later,
              // text will stop displaying
              // needed when enemy pkmn faints (displayText doesn't wait for user input)
@@ -1345,7 +1345,7 @@ class FadeMusic extends Action {
                 // if currmusic still playing, fade it out
                 if (game.currMusic != null) {
                     if (game.currMusic.isPlaying()) {
-//                      game.insertAction(new FadeMusic("currMusic", "out", "pause", .05f, new DoneAction()));
+//                      game.insertAction(new FadeMusic("currMusic", "out", "pause", .05f, null));
                         game.currMusic.pause();
                     }
                 }
