@@ -11,334 +11,25 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryonet.Connection;
 import com.esotericsoftware.kryonet.EndPoint;
 import com.esotericsoftware.kryonet.Listener;
-import com.pkmngen.game.Game.CharacterConnection;
 
-public class Network {
-
-    static public final int port = 54555;
-
-    // This registers objects that are going to be sent over the network.
-    static public void register (EndPoint endPoint) {
-        Kryo kryo = endPoint.getKryo();
-        kryo.register(UpdatePlayer.class);
-        kryo.register(UpdateFireball.class);
-        kryo.register(UpdateGhostData.class);
-        kryo.register(AllGhosts.class);
-        kryo.register(UpdateScore.class);
-
-        kryo.register(com.badlogic.gdx.math.Vector2.class);
-        kryo.register(com.badlogic.gdx.physics.box2d.Filter.class);
-        kryo.register(java.util.ArrayList.class);
-        kryo.register(java.util.HashMap.class);
-        kryo.register(String[].class);
-        kryo.register(Color.class);
-
-        //
-        kryo.register(MapTiles.class);
-        kryo.register(TileData.class);
-        kryo.register(Login.class);
-        kryo.register(PlayerData.class);
-        kryo.register(PokemonData.class);
-        kryo.register(MovePlayer.class);
-        kryo.register(Pokemon.Generation.class);
-        kryo.register(ServerPlayerData.class);
-        kryo.register(BattleData.class);
-        kryo.register(BattleTurnData.class);
-        kryo.register(Attack.class);
-        kryo.register(DoBattleAction.class);
-        kryo.register(Battle.DoTurn.Type.class);
-        kryo.register(RelocatePlayer.class);
-        kryo.register(RouteData.class);
-        kryo.register(UseHM.class);
-    }
-
-
-    static public class UpdatePlayer {
-        public String dirFacing;
-        public Vector2 position;
-
-        public int health;
-//      public boolean isDead; //TODO - remove
-
-        public int damageCooldown;
-        public int swordSwingCooldown;
-        public Vector2 swordPos;
-//        public Filter swordFilter;
-    }
-
-    static public class UpdateFireball {
-        public Vector2 position;
-    }
-
-    static public class UpdateGhostData {
-        public Vector2 position;
-        public String dirFacing;
-        public int id;
-        public int target;
-
-        public int damageCooldown;
-        public int isDying;
-        public int attackingCooldown;
-        public int damageBoxCooldown;
-    }
-
-    static public class UpdateScore {
-        public int player;
-        public int score;
-    }
-
-    static public class AllGhosts {
-        public ArrayList<UpdateGhostData> ghosts;
-    }
-
-
-
-
-    static public class PokemonData {
-        String name;
-        int level;
-        Pokemon.Generation generation;
-        int hp;
-        String[] attacks = new String[4];
-
-        public PokemonData() {}
-
-        public PokemonData(Pokemon pokemon) {
-            this.name = pokemon.name;
-            this.level = pokemon.level;
-            this.generation = pokemon.generation;
-            this.hp = pokemon.currentStats.get("hp");
-            this.attacks[0] = pokemon.attacks[0];
-            this.attacks[1] = pokemon.attacks[1];
-            this.attacks[2] = pokemon.attacks[2];
-            this.attacks[3] = pokemon.attacks[3];
-            // TODO: psn, para etc status
-        }
-    }
-
-    /*
-     * Data associated with the Player to be sent over the network.
-     *
-     * Used to initialize a Player instance.
-     */
-    static public class PlayerData {
-        public Vector2 position;
-        public String name;
-        ArrayList<PokemonData> pokemon;
-        PokemonData currPokemon;
-        Map<String, Integer> itemsDict;
-        String id;
-        String number;
-        Color color;
-
-        public PlayerData(){}
-
-        public PlayerData(Player player) {
-            this.position = player.position.cpy();
-            this.position.x = this.position.x - (this.position.x % 16);
-            this.position.y = this.position.y - (this.position.y % 16);
-            this.name = player.name;
-            this.pokemon = new ArrayList<PokemonData>();
-            for (Pokemon pokemon : player.pokemon) {
-                this.pokemon.add(new PokemonData(pokemon));
-            }
-            if (player.currPokemon != null) {
-                this.currPokemon = new PokemonData(player.currPokemon);
-            }
-            this.itemsDict = player.itemsDict;
-            this.id = player.network.id;
-            this.number = player.network.number;
-            this.color = player.color;
-        }
-    }
-
-    static public class ServerPlayerData {
-        public Vector2 position;
-        public String name;
-        String number;
-        Color color;
-
-        public ServerPlayerData(){}
-
-        public ServerPlayerData(Player player) {
-            this.position = player.position;
-            this.name = player.name;
-            this.number = player.network.number;
-            this.color = player.color;
-        }
-    }
-
-    static public class Login {
-        public String playerId = "";
-        Color color;
-
-        public Login(){}
-
-        public Login(String playerId, Color color) {
-            this.playerId = playerId;
-            this.color = color;
-        }
-    }
-
-    static public class TileData {
-        public Vector2 pos;
-        public String tileName;
-        public String tileNameUpper;
-        String routeBelongsTo;  // this is a string of the route's class id
-
-        public TileData(){}
-
-        public TileData(Tile tile) {
-            this.pos = tile.position.cpy();
-            this.tileName = tile.name;
-            this.tileNameUpper = tile.nameUpper;
-            if (tile.routeBelongsTo != null) {
-                this.routeBelongsTo = tile.routeBelongsTo.toString();
-            }
-        }
-    }
-
-    static public class RouteData {
-
-        String classId;
-        String name;
-        int level;
-        ArrayList<PokemonData> pokemon = new ArrayList<PokemonData>();
-        ArrayList<String> allowedPokemon;
-        ArrayList<String> musics;
-        int musicsIndex = 0;
-
-        public RouteData(){}
-
-        public RouteData(Route route) {
-            this.classId = route.toString();
-            this.name = route.name;
-            this.level = route.level;
-            this.allowedPokemon = new ArrayList<String>(route.allowedPokemon);
-            this.musics = new ArrayList<String>(route.musics);
-            this.musicsIndex = route.musicsIndex;
-            for (Pokemon pokemon : route.pokemon) {
-                this.pokemon.add(new PokemonData(pokemon));
-            }
-        }
-    }
-
-    static public class UseHM {
-        String playerId;
-        int pokemonIndex;
-        String hm;
-
-        public UseHM(){}
-
-        public UseHM(String playerId, int pokemonIndex, String hm) {
-            this.playerId = playerId;
-            this.pokemonIndex = pokemonIndex;
-            this.hm = hm;
-        }
-    }
-
-    static public class MapTiles {
-        public ArrayList<TileData> tiles = new ArrayList<TileData>();
-        // store routes as classId->Route
-        public HashMap<String, RouteData> routes = new HashMap<String, RouteData>();
-        public ArrayList<Vector2> edges = new ArrayList<Vector2>();
-
-        // used to sync time with server
-        String timeOfDay;
-        int dayTimer;
-
-        public MapTiles(){}
-    }
-
-    static public class MovePlayer {
-        String playerId;
-        public String dirFacing;
-        boolean isRunning;
-
-        public MovePlayer(){}
-
-        public MovePlayer(String playerId, String dirFacing, boolean isRunning) {
-            this.playerId = playerId;
-            this.dirFacing = dirFacing;
-            this.isRunning = isRunning;
-        }
-    }
-
-    /*
-     * Sent by server, tells client to move player to given location
-     */
-    static public class RelocatePlayer {
-        Vector2 position;
-
-        public RelocatePlayer(){}
-
-        public RelocatePlayer(Vector2 position) {
-            this.position = position.cpy();
-        }
-    }
-
-    static public class BattleData {
-        PokemonData pokemonData;
-
-        public BattleData(){}
-
-        public BattleData(Pokemon pokemon) {
-            this.pokemonData = new PokemonData(pokemon);
-        }
-    }
-
-    static public class DoBattleAction {
-        String playerId;
-        String attack;
-        String itemName;
-        Battle.DoTurn.Type type = Battle.DoTurn.Type.ATTACK;
-
-        public DoBattleAction(){}
-
-        public DoBattleAction(String playerId, Battle.DoTurn.Type type, String action) {
-            this.playerId = playerId;
-            this.type = type;
-            this.attack = action;
-            this.itemName = action;
-        }
-    }
-
-    static public class BattleTurnData {
-        boolean oppFirst;
-        Attack playerAttack;
-        String playerTrappedBy = null;
-        int playerTrapCounter = 0;
-        Attack enemyAttack;
-        String enemyTrappedBy = null;
-        int enemyTrapCounter = 0;
-        // Item-related data
-        String itemName;
-        int numWobbles;
-        // If player chose 'run', whether or not it was successful.
-        boolean runSuccessful;
-
-        public BattleTurnData(){}
-    }
-}
-
-
+/**
+ * Adds Listener to game.client to receive and handle incoming server
+ * connections.
+ */
 class ClientBroadcast extends Action {
-
 //    HeroPlayer player;
     int playerIndex;
 
     int timeStep = 0;
 
     public int layer = 1;
-    public int getLayer(){return this.layer;}
-
     public ClientBroadcast(final Game game) {
 //        this.player = game.players[1];
         this.playerIndex = 1;
 
-        //game has final keyword because registering listeners below requires it
+        // game has final keyword because registering listeners below requires it
 
-        //register listeners - trigger whenever client receives message from server
+        // register listeners - trigger whenever client receives message from server
 //      this.client.addListener(new ThreadedListener(new Listener() {
         game.client.addListener(new Listener() {
             public void connected(Connection connection) {
@@ -455,19 +146,19 @@ class ClientBroadcast extends Action {
         });
     }
 
+    public int getLayer(){return this.layer;}
+
     @Override
     public void step(Game game) {
-
-        //send to server the location of current player
-         //right now it's location of wasd player
-         //in future will need to pass the player index as well
+        // send to server the location of current player
+         // right now it's location of wasd player
+         // in future will need to pass the player index as well
 
         this.timeStep++;
 
-        //TODO - timestep of 1 will not work - why? some sort of interference?
+        // TODO - timestep of 1 will not work - why? some sort of interference?
 
         if (this.timeStep >= 1) {
-
             Network.UpdatePlayer updatePlayer = new Network.UpdatePlayer();
 
 //            updatePlayer.position = this.player.physics.getPosition();
@@ -486,22 +177,320 @@ class ClientBroadcast extends Action {
     }
 }
 
+public class Network {
+    static public final int port = 54555;
 
+    // This registers objects that are going to be sent over the network.
+    static public void register (EndPoint endPoint) {
+        Kryo kryo = endPoint.getKryo();
+        kryo.register(UpdatePlayer.class);
+        kryo.register(UpdateFireball.class);
+        kryo.register(UpdateGhostData.class);
+        kryo.register(AllGhosts.class);
+        kryo.register(UpdateScore.class);
 
-//this class will broadcast positions that client must update periodically
+        kryo.register(com.badlogic.gdx.math.Vector2.class);
+        kryo.register(com.badlogic.gdx.physics.box2d.Filter.class);
+        kryo.register(java.util.ArrayList.class);
+        kryo.register(java.util.HashMap.class);
+        kryo.register(String[].class);
+        kryo.register(Color.class);
+
+        //
+        kryo.register(MapTiles.class);
+        kryo.register(TileData.class);
+        kryo.register(Login.class);
+        kryo.register(PlayerData.class);
+        kryo.register(PokemonData.class);
+        kryo.register(MovePlayer.class);
+        kryo.register(Pokemon.Generation.class);
+        kryo.register(ServerPlayerData.class);
+        kryo.register(BattleData.class);
+        kryo.register(BattleTurnData.class);
+        kryo.register(Attack.class);
+        kryo.register(DoBattleAction.class);
+        kryo.register(Battle.DoTurn.Type.class);
+        kryo.register(RelocatePlayer.class);
+        kryo.register(RouteData.class);
+        kryo.register(UseHM.class);
+    }
+
+    static public class AllGhosts {
+        public ArrayList<UpdateGhostData> ghosts;
+    }
+
+    static public class BattleData {
+        PokemonData pokemonData;
+
+        public BattleData(){}
+
+        public BattleData(Pokemon pokemon) {
+            this.pokemonData = new PokemonData(pokemon);
+        }
+    }
+
+    static public class BattleTurnData {
+        boolean oppFirst;
+        Attack playerAttack;
+        String playerTrappedBy = null;
+        int playerTrapCounter = 0;
+        Attack enemyAttack;
+        String enemyTrappedBy = null;
+        int enemyTrapCounter = 0;
+        // Item-related data
+        String itemName;
+        int numWobbles;
+        // If player chose 'run', whether or not it was successful.
+        boolean runSuccessful;
+
+        public BattleTurnData(){}
+    }
+
+    static public class DoBattleAction {
+        String playerId;
+        String attack;
+        String itemName;
+        Battle.DoTurn.Type type = Battle.DoTurn.Type.ATTACK;
+
+        public DoBattleAction(){}
+
+        public DoBattleAction(String playerId, Battle.DoTurn.Type type, String action) {
+            this.playerId = playerId;
+            this.type = type;
+            this.attack = action;
+            this.itemName = action;
+        }
+    }
+
+    static public class Login {
+        public String playerId = "";
+        Color color;
+
+        public Login(){}
+
+        public Login(String playerId, Color color) {
+            this.playerId = playerId;
+            this.color = color;
+        }
+    }
+
+    static public class MapTiles {
+        public ArrayList<TileData> tiles = new ArrayList<TileData>();
+        // store routes as classId->Route
+        public HashMap<String, RouteData> routes = new HashMap<String, RouteData>();
+        public ArrayList<Vector2> edges = new ArrayList<Vector2>();
+
+        // used to sync time with server
+        String timeOfDay;
+        int dayTimer;
+
+        public MapTiles(){}
+    }
+
+    static public class MovePlayer {
+        String playerId;
+        public String dirFacing;
+        boolean isRunning;
+
+        public MovePlayer(){}
+
+        public MovePlayer(String playerId, String dirFacing, boolean isRunning) {
+            this.playerId = playerId;
+            this.dirFacing = dirFacing;
+            this.isRunning = isRunning;
+        }
+    }
+
+    /**
+     * Data associated with the Player to be sent over the network.
+     *
+     * Used to initialize a Player instance.
+     */
+    static public class PlayerData {
+        public Vector2 position;
+        public String name;
+        ArrayList<PokemonData> pokemon;
+        PokemonData currPokemon;
+        Map<String, Integer> itemsDict;
+        String id;
+        String number;
+        Color color;
+
+        public PlayerData(){}
+
+        public PlayerData(Player player) {
+            this.position = player.position.cpy();
+            this.position.x = this.position.x - (this.position.x % 16);
+            this.position.y = this.position.y - (this.position.y % 16);
+            this.name = player.name;
+            this.pokemon = new ArrayList<PokemonData>();
+            for (Pokemon pokemon : player.pokemon) {
+                this.pokemon.add(new PokemonData(pokemon));
+            }
+            if (player.currPokemon != null) {
+                this.currPokemon = new PokemonData(player.currPokemon);
+            }
+            this.itemsDict = player.itemsDict;
+            this.id = player.network.id;
+            this.number = player.network.number;
+            this.color = player.color;
+        }
+    }
+
+    static public class PokemonData {
+        String name;
+        int level;
+        Pokemon.Generation generation;
+        int hp;
+        String[] attacks = new String[4];
+
+        public PokemonData() {}
+
+        public PokemonData(Pokemon pokemon) {
+            this.name = pokemon.name;
+            this.level = pokemon.level;
+            this.generation = pokemon.generation;
+            this.hp = pokemon.currentStats.get("hp");
+            this.attacks[0] = pokemon.attacks[0];
+            this.attacks[1] = pokemon.attacks[1];
+            this.attacks[2] = pokemon.attacks[2];
+            this.attacks[3] = pokemon.attacks[3];
+            // TODO: psn, para etc status
+        }
+    }
+
+    /*
+     * Sent by server, tells client to move player to given location
+     */
+    static public class RelocatePlayer {
+        Vector2 position;
+
+        public RelocatePlayer(){}
+
+        public RelocatePlayer(Vector2 position) {
+            this.position = position.cpy();
+        }
+    }
+
+    static public class RouteData {
+        String classId;
+        String name;
+        int level;
+        ArrayList<PokemonData> pokemon = new ArrayList<PokemonData>();
+        ArrayList<String> allowedPokemon;
+        ArrayList<String> musics;
+        int musicsIndex = 0;
+
+        public RouteData(){}
+
+        public RouteData(Route route) {
+            this.classId = route.toString();
+            this.name = route.name;
+            this.level = route.level;
+            this.allowedPokemon = new ArrayList<String>(route.allowedPokemon);
+            this.musics = new ArrayList<String>(route.musics);
+            this.musicsIndex = route.musicsIndex;
+            for (Pokemon pokemon : route.pokemon) {
+                this.pokemon.add(new PokemonData(pokemon));
+            }
+        }
+    }
+
+    static public class ServerPlayerData {
+        public Vector2 position;
+        public String name;
+        String number;
+        Color color;
+
+        public ServerPlayerData(){}
+
+        public ServerPlayerData(Player player) {
+            this.position = player.position;
+            this.name = player.name;
+            this.number = player.network.number;
+            this.color = player.color;
+        }
+    }
+
+    static public class TileData {
+        public Vector2 pos;
+        public String tileName;
+        public String tileNameUpper;
+        String routeBelongsTo;  // this is a string of the route's class id
+
+        public TileData(){}
+
+        public TileData(Tile tile) {
+            this.pos = tile.position.cpy();
+            this.tileName = tile.name;
+            this.tileNameUpper = tile.nameUpper;
+            if (tile.routeBelongsTo != null) {
+                this.routeBelongsTo = tile.routeBelongsTo.toString();
+            }
+        }
+    }
+
+    static public class UpdateFireball {
+        public Vector2 position;
+    }
+
+    static public class UpdateGhostData {
+        public Vector2 position;
+        public String dirFacing;
+        public int id;
+        public int target;
+
+        public int damageCooldown;
+        public int isDying;
+        public int attackingCooldown;
+        public int damageBoxCooldown;
+    }
+
+    static public class UpdatePlayer {
+        public String dirFacing;
+        public Vector2 position;
+
+        public int health;
+//      public boolean isDead; // TODO - remove
+
+        public int damageCooldown;
+        public int swordSwingCooldown;
+        public Vector2 swordPos;
+//        public Filter swordFilter;
+    }
+
+    static public class UpdateScore {
+        public int player;
+        public int score;
+    }
+
+    static public class UseHM {
+        String playerId;
+        int pokemonIndex;
+        String hm;
+
+        public UseHM(){}
+
+        public UseHM(String playerId, int pokemonIndex, String hm) {
+            this.playerId = playerId;
+            this.pokemonIndex = pokemonIndex;
+            this.hm = hm;
+        }
+    }
+}
+
+/**
+ * Adds Listener to game.server to receive and handle incoming client
+ * connections.
+ */
 class ServerBroadcast extends Action {
-
     int timeStep = 0;
 
     public int layer = 1;
-    public int getLayer(){return this.layer;}
-
     public ServerBroadcast(final Game game) {
-
-        //register server listeners
+        // register server listeners
         game.server.addListener(new Listener() {
-            public void received(Connection c, final Object object) {
-
+            public void received(final Connection connection, final Object object) {
                 // debug code
 //                try {
 //                    Thread.sleep(game.map.rand.nextInt(400));
@@ -510,20 +499,13 @@ class ServerBroadcast extends Action {
 //                    e.printStackTrace();
 //                }
 
-                // We know all connections for this server are actually
-                // CharacterConnections.
-                final CharacterConnection connection = (CharacterConnection) c;
-                Vector2 character = connection.character;
-
                 // annoying, but need to handle the received object in the Gdx thread
                 // because only Gdx thread can make OpenGL calls
                 Runnable runnable = new Runnable() {
                     public void run() {
                         try {
-
                             // client is notifying server that it wants to load map tiles
                             if (object instanceof Network.Login) {
-
                                 Network.Login login = (Network.Login) object;
                                 Network.MapTiles mapTiles = new Network.MapTiles();
 
@@ -925,15 +907,15 @@ class ServerBroadcast extends Action {
         });
     }
 
+    public int getLayer(){return this.layer;}
+
     @Override
     public void step(Game game) {
-
         this.timeStep++;
 
-        //note - 1 WILL NOT work if you are using ServerReceive to receive client requests (use 2)
-        //not sure why this is, but happens when stopping the thread in game.initNetwork and then updating via ServerReceive every frame
+        // note - 1 WILL NOT work if you are using ServerReceive to receive client requests (use 2)
+        // not sure why this is, but happens when stopping the thread in game.initNetwork and then updating via ServerReceive every frame
         if (this.timeStep >= 1) {
-
             Network.UpdatePlayer updatePlayer = new Network.UpdatePlayer();
 
             //          updatePlayer.position = game.player.physics.getPosition();
@@ -950,15 +932,13 @@ class ServerBroadcast extends Action {
 
             //        System.out.println("Server - update player  "+String.valueOf(1));
 
-
-            //          //update fireball
+            //          // update fireball
             //          Network.UpdateFireball updateFireball = new Network.UpdateFireball();
             ////          updateFireball.position = game.map.fireball.physics.getPosition();
             //
             //          game.server.sendToAllTCP(updateFireball);
 
-
-            //update ghosts
+            // update ghosts
             //          int i = 0;
             //          for (Ghost ghost : game.map.enemies) {
             //              Network.UpdateGhostData updateGhost = new Network.UpdateGhostData();
@@ -975,11 +955,11 @@ class ServerBroadcast extends Action {
             //
             //              game.server.sendToAllTCP(updateGhost);
             //
-            //              i++; //unused
+            //              i++; // unused
             //          }
 
-            //update game.map score for both players
-            //only occurs when score changes
+            // update game.map score for both players
+            // only occurs when score changes
             //          if (game.map.network.prevPlayer1Score != game.map.player1Score) {
             //
             //              Network.UpdateScore updateScore = new Network.UpdateScore();
@@ -988,7 +968,7 @@ class ServerBroadcast extends Action {
             //              game.server.sendToAllTCP(updateScore);
             //
             //              game.map.network.prevPlayer1Score = game.map.player1Score;
-            ////            System.out.println("server - sent player 1 score: " + String.valueOf(updateScore.score)); //debug
+            ////            System.out.println("server - sent player 1 score: " + String.valueOf(updateScore.score)); // debug
             //          }
             //
             //          if (game.map.network.prevPlayer2Score != game.map.player2Score) {

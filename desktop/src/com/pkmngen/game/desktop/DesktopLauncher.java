@@ -8,10 +8,9 @@ public class DesktopLauncher {
     public static void main(String[] arg) {
         LwjglApplicationConfiguration config = new LwjglApplicationConfiguration();
 
-        // try 160 x 144 pixels
-        int multi_temp = 3; // scale viewport
-        config.width = multi_temp * 160; // + 160*2;
-        config.height = multi_temp * 144;
+        int scale = 3; // scale viewport
+        config.width = scale * 160;
+        config.height = scale * 144;
 
         new LwjglApplication(new Game(), config);
     }
