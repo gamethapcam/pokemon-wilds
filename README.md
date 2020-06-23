@@ -1,3 +1,5 @@
+# Pokemon Wilds
+
 ![Pokemon Wilds](https://github.com/SheerSt/pokemon-wilds/blob/master/android/assets/8.png)
 
 ## v0.1 gameplay demo
@@ -8,7 +10,7 @@ https://www.youtube.com/watch?v=ndQ0d0hhIRQ
 
 https://imgur.com/a/Pq2Ht2p
 
-# Pokemon Wilds - A Gen 2 Pokemon Game/Engine using libGDX
+# About
 
 Pokemon Wilds is a Gen 2 Pokemon game/engine built using libGDX. It uses procedural generation to create large worlds with different biomes, each with their own unique pokemon. The levels of wild pokemon increase the further you explore, meaning that some biomes with rare pokemon are difficult to get to. Your Pokemon can help you explore the world by usual means (cut, fly, surf etc), but there are also be new HMs that allow you to interact with the world in new ways, like building structures/houses, jumping up ledges, starting fires, and more.
 
