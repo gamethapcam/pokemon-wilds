@@ -1,4 +1,4 @@
-![Pokemon Wilds](https://imgur.com/6qBD4Ta)
+![Pokemon Wilds](https://github.com/SheerSt/pokemon-wilds/blob/master/android/assets/8.png)
 
 ## v0.1 gameplay demo
 
