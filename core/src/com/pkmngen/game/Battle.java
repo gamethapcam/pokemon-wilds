@@ -4898,14 +4898,14 @@ class DrawAttacksMenu extends Action {
         // check user input
          //'tl' = top left, etc.
          // modify position by modifying curr to tl, tr, bl or br
-        if (Gdx.input.isKeyJustPressed(Input.Keys.UP)) {
+        if (InputProcessor.upJustPressed) {
             if (DrawAttacksMenu.curr != 0) {
                 DrawAttacksMenu.curr -= 1;
                 newPos = getCoords.get(DrawAttacksMenu.curr);
             }
 
         }
-        else if (Gdx.input.isKeyJustPressed(Input.Keys.DOWN)) {
+        else if (InputProcessor.downJustPressed) {
             if (DrawAttacksMenu.curr != 3) {
                 DrawAttacksMenu.curr += 1;
                 newPos = getCoords.get(DrawAttacksMenu.curr);
@@ -4913,7 +4913,7 @@ class DrawAttacksMenu extends Action {
         }
 
         // if press a, do attack
-        if (Gdx.input.isKeyJustPressed(Input.Keys.Z)) {
+        if (InputProcessor.aJustPressed) {
             // Reset counter keeping track of number flees done by player this battle (used in run away mechanic).
             game.player.numFlees = 0;
 
@@ -4936,7 +4936,7 @@ class DrawAttacksMenu extends Action {
             return;
         }
         // player presses b, ie wants to go back
-        else if (Gdx.input.isKeyJustPressed(Input.Keys.X)) {
+        else if (InputProcessor.bJustPressed) {
             game.actionStack.remove(this);
             game.insertAction(this.nextAction);
         }
@@ -5098,26 +5098,26 @@ class DrawBattleMenu1 extends Action {
         // check user input
          //'tl' = top left, etc.
          // modify position by modifying curr to tl, tr, bl or br
-        if (Gdx.input.isKeyPressed(Input.Keys.UP)) {
+        if (InputProcessor.upPressed) {
             if (curr.equals("bl") || curr.equals("br")) {
                 curr = "t"+String.valueOf(curr.charAt(1));
                 newPos = getCoords.get(curr);
             }
 
         }
-        else if (Gdx.input.isKeyPressed(Input.Keys.DOWN)) {
+        else if (InputProcessor.downPressed) {
             if (curr.equals("tl") || curr.equals("tr")) {
                 curr = "b"+String.valueOf(curr.charAt(1));
                 newPos = getCoords.get(curr);
             }
         }
-        else if (Gdx.input.isKeyPressed(Input.Keys.LEFT)) {
+        else if (InputProcessor.leftPressed) {
             if (curr.equals("tr") || curr.equals("br")) {
                 curr = String.valueOf(curr.charAt(0))+"l";
                 newPos = getCoords.get(curr);
             }
         }
-        else if (Gdx.input.isKeyPressed(Input.Keys.RIGHT)) {
+        else if (InputProcessor.rightPressed) {
             if (curr.equals("tl") || curr.equals("bl")) {
                 curr = String.valueOf(curr.charAt(0))+"r";
                 newPos = getCoords.get(curr);
@@ -5212,26 +5212,26 @@ class DrawBattleMenuNormal extends MenuAction {
         // check user input
          //'tl' = top left, etc.
          // modify position by modifying curr to tl, tr, bl or br
-        if (Gdx.input.isKeyPressed(Input.Keys.UP)) {
+        if (InputProcessor.upPressed) {
             if (curr.equals("bl") || curr.equals("br")) {
                 curr = "t"+String.valueOf(curr.charAt(1));
                 newPos = getCoords.get(curr);
             }
 
         }
-        else if (Gdx.input.isKeyPressed(Input.Keys.DOWN)) {
+        else if (InputProcessor.downPressed) {
             if (curr.equals("tl") || curr.equals("tr")) {
                 curr = "b"+String.valueOf(curr.charAt(1));
                 newPos = getCoords.get(curr);
             }
         }
-        else if (Gdx.input.isKeyPressed(Input.Keys.LEFT)) {
+        else if (InputProcessor.leftPressed) {
             if (curr.equals("tr") || curr.equals("br")) {
                 curr = String.valueOf(curr.charAt(0))+"l";
                 newPos = getCoords.get(curr);
             }
         }
-        else if (Gdx.input.isKeyPressed(Input.Keys.RIGHT)) {
+        else if (InputProcessor.rightPressed) {
             if (curr.equals("tl") || curr.equals("bl")) {
                 curr = String.valueOf(curr.charAt(0))+"r";
                 newPos = getCoords.get(curr);
@@ -5239,7 +5239,7 @@ class DrawBattleMenuNormal extends MenuAction {
         }
 
         // if button press, do something
-        if (Gdx.input.isKeyJustPressed(Input.Keys.Z)) { // using isKeyJustPressed rather than isKeyPressed
+        if (InputProcessor.aJustPressed) { // using isKeyJustPressed rather than isKeyPressed
 
             // user selected 'fight'
             if (curr.equals("tl")) {
@@ -5491,36 +5491,34 @@ class DrawBattleMenuSafariZone extends Action {
         // check user input
          //'tl' = top left, etc.
          // modify position by modifying curr to tl, tr, bl or br
-        if (Gdx.input.isKeyPressed(Input.Keys.UP)) {
+        if (InputProcessor.upPressed) {
             if (curr.equals("bl") || curr.equals("br")) {
                 curr = "t"+String.valueOf(curr.charAt(1));
                 newPos = getCoords.get(curr);
             }
 
         }
-        else if (Gdx.input.isKeyPressed(Input.Keys.DOWN)) {
+        else if (InputProcessor.downPressed) {
             if (curr.equals("tl") || curr.equals("tr")) {
                 curr = "b"+String.valueOf(curr.charAt(1));
                 newPos = getCoords.get(curr);
             }
         }
-        else if (Gdx.input.isKeyPressed(Input.Keys.LEFT)) {
+        else if (InputProcessor.leftPressed) {
             if (curr.equals("tr") || curr.equals("br")) {
                 curr = String.valueOf(curr.charAt(0))+"l";
                 newPos = getCoords.get(curr);
             }
         }
-        else if (Gdx.input.isKeyPressed(Input.Keys.RIGHT)) {
+        else if (InputProcessor.rightPressed) {
             if (curr.equals("tl") || curr.equals("bl")) {
                 curr = String.valueOf(curr.charAt(0))+"r";
                 newPos = getCoords.get(curr);
             }
         }
-
-        // if button press, do something
-        if (Gdx.input.isKeyJustPressed(Input.Keys.Z)) { // using isKeyJustPressed rather than isKeyPressed
-
-            // user selected 'pokeball'
+        // If button press, do something
+        if (InputProcessor.aJustPressed) {
+            // User selected 'pokeball'
             if (curr.equals("tl")) {
                 // decide if caught or not, use corresponding action
                  // this is a trigger action for displayText_triggered
@@ -5955,7 +5953,7 @@ class DrawItemMenu extends MenuAction {
         // check user input
          //'tl' = top left, etc.
          // modify position by modifying curr to tl, tr, bl or br
-        if (Gdx.input.isKeyJustPressed(Input.Keys.UP)) {
+        if (InputProcessor.upJustPressed) {
             if (cursorPos > 0) {
                 cursorPos -= 1;
                 newPos = arrowCoords.get(cursorPos);
@@ -5965,7 +5963,7 @@ class DrawItemMenu extends MenuAction {
             }
 
         }
-        else if (Gdx.input.isKeyJustPressed(Input.Keys.DOWN)) {
+        else if (InputProcessor.downJustPressed) {
             if (cursorPos < 2 && cursorPos+1 < this.itemsList.size()) {
                 cursorPos += 1;
                 newPos = arrowCoords.get(cursorPos);
@@ -6001,7 +5999,7 @@ class DrawItemMenu extends MenuAction {
 
         // button interaction is below drawing b/c I want to be able to return here
         // if press a, draw use/toss for item
-        if (Gdx.input.isKeyJustPressed(Input.Keys.Z)) { // using isKeyJustPressed rather than isKeyPressed
+        if (InputProcessor.aJustPressed) { // using isKeyJustPressed rather than isKeyPressed
 
             game.insertAction(new PlaySound("click1", null));
 
@@ -6026,7 +6024,7 @@ class DrawItemMenu extends MenuAction {
 
         }
         // player presses b, ie wants to go back
-        else if (Gdx.input.isKeyJustPressed(Input.Keys.X)) {
+        else if (InputProcessor.bJustPressed) {
             DrawItemMenu.lastCurrIndex = this.currIndex;  // save last position
             DrawItemMenu.lastCursorPos = this.cursorPos;
             this.prevMenu.disabled = false;
@@ -6186,14 +6184,14 @@ class DrawPlayerMenu extends MenuAction {
         // check user input
          //'tl' = top left, etc.
          // modify position by modifying curr to tl, tr, bl or br
-        if (Gdx.input.isKeyJustPressed(Input.Keys.UP)) {
+        if (InputProcessor.upJustPressed) {
             if (this.currIndex > 0) {
                 this.currIndex -= 1;
                 newPos = arrowCoords.get(this.currIndex);
             }
 
         }
-        else if (Gdx.input.isKeyJustPressed(Input.Keys.DOWN)) {
+        else if (InputProcessor.downJustPressed) {
             if (this.currIndex < 1) {
                 this.currIndex += 1;
                 newPos = arrowCoords.get(this.currIndex);
@@ -6201,7 +6199,7 @@ class DrawPlayerMenu extends MenuAction {
         }
 
         // if press a, do attack
-        if (Gdx.input.isKeyJustPressed(Input.Keys.Z)) { // using isKeyJustPressed rather than isKeyPressed
+        if (InputProcessor.aJustPressed) { // using isKeyJustPressed rather than isKeyPressed
 
             game.insertAction(new PlaySound("click1", null));
 
@@ -6222,7 +6220,7 @@ class DrawPlayerMenu extends MenuAction {
 
         }
         // player presses b, ie wants to go back
-        else if (Gdx.input.isKeyJustPressed(Input.Keys.X) || Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
+        else if (InputProcessor.bJustPressed || InputProcessor.startJustPressed) {
             DrawPlayerMenu.lastIndex = this.currIndex;
             game.actionStack.remove(this);
             game.insertAction(this.nextAction);
@@ -6494,13 +6492,13 @@ class DrawPokemonMenu extends MenuAction {
         }
 
         // handle arrow input
-        if (Gdx.input.isKeyJustPressed(Input.Keys.UP)) {
+        if (InputProcessor.upJustPressed) {
             if (DrawPokemonMenu.currIndex > 0) {
                 DrawPokemonMenu.currIndex -= 1;
                 DrawPokemonMenu.avatarAnimCounter = 12; // reset to 12 for 1 extra frame of first frame for avatar anim
             }
         }
-        else if (Gdx.input.isKeyJustPressed(Input.Keys.DOWN)) {
+        else if (InputProcessor.downJustPressed) {
             if (DrawPokemonMenu.currIndex < game.player.pokemon.size()-1) {
                 DrawPokemonMenu.currIndex += 1;
                 DrawPokemonMenu.avatarAnimCounter = 12; // reset to 12 for 1 extra frame of first frame for avatar anim
@@ -6514,7 +6512,7 @@ class DrawPokemonMenu extends MenuAction {
 
         // button interaction is below drawing b/c I want to be able to return here
         // if press a, draw use/toss for item
-        if (Gdx.input.isKeyJustPressed(Input.Keys.Z)) { // using isKeyJustPressed rather than isKeyPressed
+        if (InputProcessor.aJustPressed) { // using isKeyJustPressed rather than isKeyPressed
             game.insertAction(new PlaySound("click1", null));
 
             // This was done from battle screen, so just send out pokemon.
@@ -6545,7 +6543,7 @@ class DrawPokemonMenu extends MenuAction {
             return;
         }
         // player presses b, ie wants to go back
-        if (Gdx.input.isKeyJustPressed(Input.Keys.X)) {
+        if (InputProcessor.bJustPressed) {
             DrawPokemonMenu.lastIndex = DrawPokemonMenu.currIndex;
             game.actionStack.remove(this);
             game.insertAction(new DrawPokemonMenu.Outro(
@@ -6783,13 +6781,13 @@ class DrawPokemonMenu extends MenuAction {
             // check user input
              //'tl' = top left, etc.
              // modify position by modifying curr to tl, tr, bl or br
-            if (Gdx.input.isKeyJustPressed(Input.Keys.UP)) {
+            if (InputProcessor.upJustPressed) {
                 if (curr > 0) {
                     curr -= 1;
                     newPos = getCoords.get(curr);
                 }
             }
-            else if (Gdx.input.isKeyJustPressed(Input.Keys.DOWN)) {
+            else if (InputProcessor.downJustPressed) {
                 if (curr < 2) {
                     curr += 1;
                     newPos = getCoords.get(curr);
@@ -6819,7 +6817,7 @@ class DrawPokemonMenu extends MenuAction {
             this.arrow.setPosition(newPos.x, newPos.y);
             this.arrow.draw(game.uiBatch);
 
-            if (Gdx.input.isKeyJustPressed(Input.Keys.Z)) {
+            if (InputProcessor.aJustPressed) {
                 // get action for this item
 
                 // perform the action
@@ -6844,7 +6842,7 @@ class DrawPokemonMenu extends MenuAction {
 
             }
             // player presses b, ie wants to go back
-            else if (Gdx.input.isKeyJustPressed(Input.Keys.X)) {
+            else if (InputProcessor.bJustPressed) {
                 game.insertAction(new PlaySound("click1", null));
                 // reset avatar anim
                 DrawPokemonMenu.avatarAnimCounter = 12;
@@ -7024,14 +7022,14 @@ public String getCamera() {return "gui";}
                     }
                 }
                 if (this.timer > 8) {
-                    if (Gdx.input.isKeyJustPressed(Input.Keys.UP)) {
+                    if (InputProcessor.upJustPressed) {
                         if (this.curr > 0) {
                             this.curr -= 1;
                             DrawPokemonMenu.currIndex = this.curr; // DrawPokemonMenu animates the avatars
                             newPos = this.arrowCoords.get(this.curr);
                         }
                     }
-                    else if (Gdx.input.isKeyJustPressed(Input.Keys.DOWN)) {
+                    else if (InputProcessor.downJustPressed) {
                         if (this.curr < game.player.pokemon.size()-1) {
                             this.curr += 1;
                             DrawPokemonMenu.currIndex = this.curr; // DrawPokemonMenu animates the avatars
@@ -7042,7 +7040,7 @@ public String getCamera() {return "gui";}
                     // debug
 //                    helperSprite.draw(game.floatingBatch);
 
-                    if (Gdx.input.isKeyJustPressed(Input.Keys.Z)) {
+                    if (InputProcessor.aJustPressed) {
                         // switch
                         // TODO: anim?
                         // TODO: probably won't refresh
@@ -7070,7 +7068,7 @@ public String getCamera() {return "gui";}
                         return;
                     }
                     // player presses b, ie wants to go back
-                    else if (Gdx.input.isKeyJustPressed(Input.Keys.X)) {
+                    else if (InputProcessor.bJustPressed) {
                         this.disabled = true;
                         game.insertAction(new PlaySound("click1", null));
                         // reset avatar anim
@@ -7189,14 +7187,14 @@ class DrawUseTossMenu extends MenuAction {
         // check user input
          //'tl' = top left, etc.
          // modify position by modifying curr to tl, tr, bl or br
-        if (Gdx.input.isKeyJustPressed(Input.Keys.UP)) {
+        if (InputProcessor.upJustPressed) {
             if (curr > 0) {
                 curr -= 1;
                 newPos = getCoords.get(curr);
             }
 
         }
-        else if (Gdx.input.isKeyJustPressed(Input.Keys.DOWN)) {
+        else if (InputProcessor.downJustPressed) {
             if (curr < 1) {
                 curr += 1;
                 newPos = getCoords.get(curr);
@@ -7231,14 +7229,14 @@ class DrawUseTossMenu extends MenuAction {
         }
 
         // if press a, do attack
-        if (Gdx.input.isKeyJustPressed(Input.Keys.Z)) {
+        if (InputProcessor.aJustPressed) {
             // perform the action based on which item selected
             game.actionStack.remove(this);
             useItem(game, this.itemName);
             return;
         }
         // player presses b, ie wants to go back
-        else if (Gdx.input.isKeyJustPressed(Input.Keys.X)) {
+        else if (InputProcessor.bJustPressed) {
             this.prevMenu.disabled = false;
             game.actionStack.remove(this);
             game.insertAction(this.prevMenu);

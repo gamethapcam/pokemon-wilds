@@ -27,9 +27,9 @@ import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator.FreeTypeFont
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.GdxRuntimeException;
-
 import com.esotericsoftware.kryonet.Client;
 import com.esotericsoftware.kryonet.Server;
+import com.esotericsoftware.minlog.Log;
 
 /**
  * Standard libGDX Game biolerplate extended for Pokemon Wilds.
@@ -98,6 +98,11 @@ public class Game extends ApplicationAdapter {
         this.map = new PkmnMap("default");
 
         this.textDict = initTextDict();
+
+        this.insertAction(new InputProcessor());  // Mux keyboard/mobile input to common button presses
+        if (Gdx.app.getType() == ApplicationType.Android) {
+            this.insertAction(new DrawMobileControls(this));
+        }
         this.insertAction(new DrawSetupMenu(this, null));
     }
 
@@ -304,7 +309,7 @@ public class Game extends ApplicationAdapter {
         }
         // Numbers
         for (int i = 0; i < 10; i++) {
-            textDict.put(Character.forDigit(i,10), new Sprite(text, 10+16*i, 5+12+12, 8, 8));
+            textDict.put(Character.forDigit(i, 10), new Sprite(text, 10+16*i, 5+12+12, 8, 8));
         }
         // Special chars
         textDict.put(' ', new Sprite(text, 10+16*10, 5+12+12, 8, 8));
@@ -376,23 +381,32 @@ public class Game extends ApplicationAdapter {
                 action.step(this);
             }
         }
+//        font.draw(this.uiBatch, "input: " + new Vector2(Gdx.input.getX(), Gdx.input.getY()), 0, 20);
+//        font.draw(this.uiBatch, "curr dims: " + this.currScreen, 0, 30);
+//        font.draw(this.uiBatch, "ex rect: " + DrawMobileControls.upArrowSprite.getBoundingRectangle(), 0, 40);
+//        font.draw(this.uiBatch, "touchLoc: " + InputProcessor.touchLoc, 0, 10);
+
         this.uiBatch.end();
     }
 
     @Override
     public void resize(int width, int height) {
+        // TODO: probably just check if width > height instead of application type
         if (Gdx.app.getType() == ApplicationType.Android) {
             // TODO: haven't tested the android resizing yet
             int menuHeight = (160*height)/width;  // height/width = menuHeight/160
             int offsetY = (menuHeight-144)/2;
             this.uiBatch.getProjectionMatrix().setToOrtho2D(0, -offsetY, 160, menuHeight);
+//            Gdx.input.setOnscreenKeyboardVisible(true);
+            this.cam.viewportWidth = 160;
+            this.cam.viewportHeight = menuHeight;
         }
         else {
             // Below will scale floatingBatch regardless of current screen size
+            // This might not be technically the best method; works for now.
             int menuWidth = (144*width)/height;  // height/width = 144/menuWidth
             int offsetX = (menuWidth-160)/2;
             this.uiBatch.getProjectionMatrix().setToOrtho2D(-offsetX, 0, menuWidth, 144);
-            // This might not be technically the best method; works for now.
             this.cam.viewportWidth = width/3;
             this.cam.viewportHeight = height/3;
         }
@@ -407,15 +421,13 @@ public class Game extends ApplicationAdapter {
      * Do things required at the start of the game (draw map, draw player, start music, etc).
      */
     public void start() {
-        ArrayList<Action> startActions = new ArrayList<Action>();
-        startActions.add(new DrawMap(this));
-        startActions.add(new PlayerStanding(this));
-        startActions.add(new DrawPlayerLower(this));
-        startActions.add(new DrawMapGrass(this));
-        startActions.add(new DrawPlayerUpper(this));
-        startActions.add(new DrawMapTrees(this));  // Draw tops of trees over player
-        startActions.add(new MoveWater(this));  // Move water tiles around
-        this.actionStack.addAll(startActions);
+        this.insertAction(new DrawMap(this));
+        this.insertAction(new PlayerStanding(this));
+        this.insertAction(new DrawPlayerLower(this));
+        this.insertAction(new DrawMapGrass(this));
+        this.insertAction(new DrawPlayerUpper(this));
+        this.insertAction(new DrawMapTrees(this));  // Draw tops of trees over player
+        this.insertAction(new MoveWater(this));  // Move water tiles around
 
         // This will 'radio' through a selection of musics for the map (based on current route)
         this.currMusic = Gdx.audio.newMusic(Gdx.files.internal("music/nature1_render.ogg"));
@@ -448,7 +460,7 @@ public class Game extends ApplicationAdapter {
         // Note reg. full-res screenshot using pixmap:
         //  Tried 100*800, pixmap save didn't work.
         //  Tried 100*700, pixmap error loading tiles/water2.png
-        this.insertAction(new GenIsland1(this, new Vector2(0, 0), 100*300)); // 100*500 // 100*180 // 100*100 // 20*30 // 60*100 // 100*120
+        this.insertAction(new GenIsland1(this, new Vector2(0, 0), 100*300)); // 100*300 // 100*500 // 100*180 // 100*100 // 20*30 // 60*100 // 100*120
 
         // This is the special mewtwo battle debug map
         // Comment out the GenIsland1 above to use this

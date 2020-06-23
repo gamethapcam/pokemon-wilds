@@ -298,7 +298,7 @@ class CycleDayNight extends Action {
 
             if (countDownToGhost == 0) {
                 Vector2 randPos = game.player.position.cpy().add(this.rand.nextInt(5)*16 - 48, this.rand.nextInt(5)*16 - 48);
-                game.insertAction(new spawnGhost(game, new Vector2(randPos)) );
+                game.insertAction(new SpawnGhost(game, new Vector2(randPos)) );
                 this.countDownToGhost = this.rand.nextInt(4000) + 1000; // debug: 1000;
             }
 
@@ -376,24 +376,17 @@ class DespawnGhost extends Action {
 class DrawGhost extends Action {
     public int layer = 114;
     Sprite currSprite;
-
-    Vector2 basePos; // need this to make ghost 'float'
+    Vector2 basePos;  // need this to make ghost 'float'
     float velX;
-
     float velY;
     float maxVel;
     float sineTimer;
-
     String dirFacing;
     Map<String, Sprite[]> sprites;
-
     int animIndex;
-
     int animFrame;
     Pokemon pokemon;
-
     boolean inBattle = false;
-
     int noEncounterTimer = 0;
     Vector2 startPos;
     Vector2 endPos;
@@ -449,7 +442,6 @@ class DrawGhost extends Action {
         Sprite temp4 = new Sprite(ghostTexture, 32*7, 0, 32, 32);
         temp4.flip(true, false);
         this.sprites.put("right", new Sprite[]{temp, temp2, temp, temp2, temp, temp2, temp3, temp4});
-
         this.currSprite = this.sprites.get(this.dirFacing)[this.animIndex];
         this.currSprite.setPosition(position.x, position.y);
     }
@@ -481,7 +473,6 @@ class DrawGhost extends Action {
                 currPos.y += 16;
             }
             if (tile == null) {
-                System.out.println("hey");
                 continue;
             }
             if (tile.nameUpper.contains("campfire")) {
@@ -495,7 +486,27 @@ class DrawGhost extends Action {
             }
         }
 
-        // check if ghost pokemon is dead. if yes, remove this from AS
+        // Check if ghost pokemon is dead. if yes, remove this from AS
+        // TODO: wait 
+        if (this.pokemon.currentStats.get("hp") <= 0 && !this.inBattle) {
+            this.currSprite.draw(game.mapBatch);
+            game.actionStack.remove(this);
+            game.insertAction(new DespawnGhost(this.basePos.cpy()));
+            // TODO: check if this works.
+            boolean foundGhost = false;
+            for (Action action : game.actionStack) {
+                if (DrawGhost.class.isInstance(action)) {
+                    foundGhost = true;
+                    break;
+                }
+            }
+            if (!foundGhost) {
+                game.currMusic.pause();
+                game.currMusic = game.map.currRoute.music;
+                game.currMusic.play();
+            }
+            return;
+        }
 
         // check whether player is in battle or not
         // if not, don't move the ghost at all (subject to change)
@@ -506,7 +517,7 @@ class DrawGhost extends Action {
             return;
         }
 
-        // wait for a while if you just exited battle
+        // Wait for a while if you just exited battle
         if (inBattle == true) {
             if (noEncounterTimer % 4 >= 2) {
                 this.currSprite.draw(game.mapBatch);
@@ -518,13 +529,13 @@ class DrawGhost extends Action {
             inBattle = false;
         }
 
-        // pause if player can't move
+        // Pause if player can't move
         if (game.playerCanMove == false) {
             this.currSprite.draw(game.mapBatch);
             return;
         }
 
-        // calculate direction to player, face that direction
+        // Calculate direction to player, face that direction
         float dx = this.basePos.x - game.player.position.x;
         float dy = this.basePos.y - game.player.position.y;
         if (dx < dy) {
@@ -544,12 +555,12 @@ class DrawGhost extends Action {
             }
         }
 
-        // set ghost sprite to dirFacing
+        // Set ghost sprite to dirFacing
         this.currSprite = this.sprites.get(this.dirFacing)[this.animIndex];
 
         // game.player.position.x < this.basePos.x
 
-        // modify base pos to chase player (accelerate in player direction)
+        // Modify base pos to chase player (accelerate in player direction)
         if (this.dirFacing == "left") {
             if (velX > -maxVel) {
                 this.velX -= .1f;
@@ -581,16 +592,14 @@ class DrawGhost extends Action {
         float shiftPosX = (float)Math.sin(sineTimer);
         float shiftPosY = (float)Math.sin(2*sineTimer);
         this.currSprite.setPosition(basePos.x+shiftPosX, basePos.y+shiftPosY);
-
         this.currSprite.draw(game.mapBatch);
-        // game.batch.draw(this.currSprite, this.currSprite.getX(), this.currSprite.getY()); // TODO - remove
 
         sineTimer+=.125f;
         if (sineTimer >= 3.14*2f) {
             sineTimer = 0.0f;
         }
 
-        // run ghost animation
+        // Play ghost animation
         animFrame++;
         if (animFrame > 10) {
             animFrame = 0;
@@ -600,52 +609,17 @@ class DrawGhost extends Action {
             animIndex = 0;
         }
 
-        // need to make ghost rectangle bounds smaller
+        // Need to make ghost rectangle bounds smaller
         Rectangle rect = this.currSprite.getBoundingRectangle();
         rect.x +=16;
         rect.y +=16;
         rect.width -=2*16;
         rect.height -=2*16;
 
-        // check collision. if collision, start battle with pokemon
+        // Check collision. if collision, start battle with ghost pokemon
         if (rect.overlaps(game.player.currSprite.getBoundingRectangle())) {
-            // System.out.println("collision x: " + String.valueOf(this.currSprite.getBoundingRectangle().x)); // debug
-            // System.out.println("collision x: " + String.valueOf(game.player.currSprite.getBoundingRectangle().x)); // debug
-
             game.battle.oppPokemon = this.pokemon;
             game.playerCanMove = false;
-            // todo - remove
-//            game.insertAction(new SplitAction(
-//                                                new BattleIntro(
-//                                                    new BattleIntro_anim1(
-//                                                        new SplitAction(
-//                                                            new DrawBattle(game),
-//                                                            new BattleAnim_positionPlayers(game,
-//                                                                new PlaySound(game.battle.oppPokemon.name,
-//                                                                    new DisplayText(game, "A Ghost appeared!", null, null,
-//                                                                        new WaitFrames(game, 39,
-//                                                                            // demo code - wildly confusing, but i don't want to write another if statement
-//                                                                                game.player.adrenaline > 0 ?
-//                                                                                new DisplayText(game, ""+game.player.name+" has ADRENALINE "+Integer.toString(game.player.adrenaline)+"!", null, null,
-//                                                                                    new PrintAngryEating(game, // for demo mode, normally left out
-//                                                                                            new DrawBattleMenu_SafariZone(game, null)
-//                                                                                        )
-//                                                                                    )
-//                                                                                :
-//                                                                                new PrintAngryEating(game, // for demo mode, normally left out
-//                                                                                        new DrawBattleMenu_SafariZone(game, null)
-//                                                                            )
-//                                                                            //
-//                                                                        )
-//                                                                    )
-//                                                                )
-//                                                            )
-//                                                        )
-//                                                    )
-//                                                ),
-//                                                null
-//                                            )
-//                                        );
             game.insertAction(Battle.getIntroAction(game));
         }
     }
@@ -968,7 +942,7 @@ public class Player {
     Sprite battleSprite;
 
     String name;  // Player display name
-    Color color;  // Used to colorize the player sprite
+    Color color = new Color(0.9137255f, 0.5294118f, 0.1764706f, 1f);  // Used to colorize the player sprite
 
     // players pokemon
      // functions as pokemon storage in demo
@@ -1294,19 +1268,19 @@ class PlayerBump extends Action {
 
         // when facingDir key is released, go to playerStanding
 
-        if (!Gdx.input.isKeyPressed(Input.Keys.UP) && game.player.dirFacing == "up") {
+        if (!InputProcessor.upPressed && game.player.dirFacing == "up") {
             game.insertAction(new PlayerStanding(game));
             game.actionStack.remove(this);
         }
-        else if (!Gdx.input.isKeyPressed(Input.Keys.DOWN) && game.player.dirFacing == "down") {
+        else if (!InputProcessor.downPressed && game.player.dirFacing == "down") {
             game.insertAction(new PlayerStanding(game));
             game.actionStack.remove(this);
         }
-        else if (!Gdx.input.isKeyPressed(Input.Keys.LEFT) && game.player.dirFacing == "left") {
+        else if (!InputProcessor.leftPressed && game.player.dirFacing == "left") {
             game.insertAction(new PlayerStanding(game));
             game.actionStack.remove(this);
         }
-        else if (!Gdx.input.isKeyPressed(Input.Keys.RIGHT) && game.player.dirFacing == "right") {
+        else if (!InputProcessor.rightPressed && game.player.dirFacing == "right") {
             game.insertAction(new PlayerStanding(game));
             game.actionStack.remove(this);
         }
@@ -2354,7 +2328,7 @@ class PlayerStanding extends Action {
     public int getLayer(){return this.layer;}
     public void localStep(Game game) {
         if (game.playerCanMove == false || game.player.isSleeping) {
-            if (Gdx.input.isKeyJustPressed(Input.Keys.X) && game.player.isSleeping) {
+            if (InputProcessor.bJustPressed && game.player.isSleeping) {
                 game.player.isSleeping = false;
                 Tile currTile = game.map.tiles.get(game.player.position);
                 Texture text = new Texture(Gdx.files.internal("tiles/sleeping_bag1.png"));
@@ -2411,7 +2385,7 @@ class PlayerStanding extends Action {
         }
 
         // Check if player wants to access the menu
-        if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
+        if (InputProcessor.startJustPressed) {
             game.insertAction(new DrawPlayerMenu.Intro(game,
                               new DrawPlayerMenu(game,
                               new WaitFrames(game, 1,
@@ -2423,24 +2397,24 @@ class PlayerStanding extends Action {
         }
 
         // check user input
-        if (Gdx.input.isKeyPressed(Input.Keys.UP)) {
+        if (InputProcessor.upPressed) {
             // if the block below isn't solid,
             // exec down move
             game.player.dirFacing = "up";
             newPos = new Vector2(game.player.position.x, game.player.position.y+16);
             shouldMove = true;
         }
-        else if (Gdx.input.isKeyPressed(Input.Keys.DOWN)) {
+        else if (InputProcessor.downPressed) {
             game.player.dirFacing = "down";
             newPos = new Vector2(game.player.position.x, game.player.position.y-16);
             shouldMove = true;
         }
-        else if (Gdx.input.isKeyPressed(Input.Keys.LEFT)) {
+        else if (InputProcessor.leftPressed) {
             game.player.dirFacing = "left";
             newPos = new Vector2(game.player.position.x-16, game.player.position.y);
             shouldMove = true;
         }
-        else if (Gdx.input.isKeyPressed(Input.Keys.RIGHT)) {
+        else if (InputProcessor.rightPressed) {
             game.player.dirFacing = "right";
             newPos = new Vector2(game.player.position.x+16, game.player.position.y);
             shouldMove = true;
@@ -2464,7 +2438,7 @@ class PlayerStanding extends Action {
             game.insertAction(new RequirementNotify(game, game.player.currBuildTile.name));
         }
 
-        if (Gdx.input.isKeyJustPressed(Input.Keys.X)) {
+        if (InputProcessor.bJustPressed) {
             // TODO: this is broken, no idea what's going on.
             if (game.type == Game.Type.CLIENT && (game.player.isBuilding || game.player.isCutting || game.player.isHeadbutting || game.player.isJumping)) {
                 game.client.sendTCP(new com.pkmngen.game.Network.UseHM(game.player.network.id,
@@ -2489,7 +2463,7 @@ class PlayerStanding extends Action {
             }
         }
 
-        if (Gdx.input.isKeyJustPressed(Input.Keys.Z)) {
+        if (InputProcessor.aJustPressed) {
             // place the built tile
             Vector2 pos = new Vector2(0,0);
             if (game.player.dirFacing == "right") {
@@ -2761,7 +2735,7 @@ class PlayerStanding extends Action {
         }
         // TODO: not sure what to do with this
 //        if (game.playerCanMove == false || game.player.isSleeping) {
-//            if (Gdx.input.isKeyJustPressed(Input.Keys.X) && game.player.isSleeping) {
+//            if (InputProcessor.bJustPressed && game.player.isSleeping) {
 //                game.player.isSleeping = false;
 //                Tile currTile = game.map.tiles.get(game.player.position);
 //                Texture text = new Texture(Gdx.files.internal("tiles/sleeping_bag1.png"));
@@ -3165,17 +3139,15 @@ class RequirementNotify extends Action {
 }
 
 // for spawning ghost, playing effects etc
-class spawnGhost extends Action {
+class SpawnGhost extends Action {
     public int layer = 114;
     Sprite[] sprites;
-
     int part1;
-
     int part2;
     int part3;
     Vector2 position;
 
-    public spawnGhost(Game game, Vector2 position) {
+    public SpawnGhost(Game game, Vector2 position) {
         this.part1 = 80;
         this.part2 = 40;
         this.part3 = 50;
@@ -3278,5 +3250,4 @@ class spawnGhost extends Action {
         game.actionStack.remove(this);
         game.insertAction(new DrawGhost(game, this.position));
     }
-
 }

@@ -1,17 +1,21 @@
 package com.pkmngen.game;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
+import com.badlogic.gdx.Application.ApplicationType;
 import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Sprite;
+import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
+import com.esotericsoftware.minlog.Log;
 
 // TODO: enums
 // layers
@@ -339,7 +343,7 @@ class DisplayText extends Action {
             }
             this.timer--;
 
-            if (Gdx.input.isKeyJustPressed(Input.Keys.Z)) {
+            if (InputProcessor.aJustPressed) {
                 Action playSound = new PlaySound("click1", null);
                 game.insertAction(playSound);
                 playSound.step(game); // prevent latency
@@ -372,7 +376,7 @@ class DisplayText extends Action {
 
         // get next sprite, remove from spritesNotDrawn
         // text speed - if pressing A or B, add 3 sprites instead of 1
-        if (Gdx.input.isKeyPressed(Input.Keys.Z) || Gdx.input.isKeyPressed(Input.Keys.X)) {
+        if (InputProcessor.aPressed || InputProcessor.bPressed) {
             // if would take too many, stop
             for (int i=0; i < 3 && !spritesNotDrawn.isEmpty(); i++) {
                 spritesBeingDrawn.add(spritesNotDrawn.get(0));
@@ -756,7 +760,7 @@ class DisplayTextIntro extends Action {
 
             // Intro - Always go to next line
             // z button still enabled for skipping text
-//            if (Gdx.input.isKeyJustPressed(Input.Keys.Z)) {
+//            if (InputProcessor.aJustPressed) {
                 if (spritesNotDrawn.isEmpty()) {
                     game.insertAction(this.nextAction);
 
@@ -891,7 +895,7 @@ class DisplayTextIntro extends Action {
             // if done, remove first 24 elements
             // frees up DisplayText's text array, which will get filled with new sprites
             if (this.positions.isEmpty()) {
-                for (int i=0; i<18; i++) {
+                for (int i=0; i < 18; i++) {
                     this.text.remove(0);
                 }
                 game.actionStack.remove(this);
@@ -932,6 +936,64 @@ class DoneWithDemo extends Action {
 }
 
 /**
+ * Draw Mobile controls on screen.
+ * TODO: likely want setting where all controls are on right side of phone screen.
+ */
+class DrawMobileControls extends Action {
+    public static Sprite upArrowSprite = new Sprite();
+    public static Sprite downArrowSprite = new Sprite();
+    public static Sprite leftArrowSprite = new Sprite();
+    public static Sprite rightArrowSprite = new Sprite();
+    public static Sprite aSprite = new Sprite();
+    public static Sprite bSprite = new Sprite();
+    public static Sprite startSprite = new Sprite();
+
+    public DrawMobileControls(Game game) {
+        Texture text = new Texture(Gdx.files.internal("gb_arrow2.png"));
+        DrawMobileControls.upArrowSprite = new Sprite(text, 0, 0, 24, 24);
+        DrawMobileControls.downArrowSprite = new Sprite(text, 0, 0, 24, 24);
+        DrawMobileControls.downArrowSprite.flip(false, true);
+        DrawMobileControls.rightArrowSprite = new Sprite(text, 0, 0, 24, 24);
+        DrawMobileControls.rightArrowSprite.rotate90(true);
+        DrawMobileControls.leftArrowSprite = new Sprite(text, 0, 0, 24, 24);
+        DrawMobileControls.leftArrowSprite.rotate90(false);
+        // TODO: a and b button sprites
+        DrawMobileControls.aSprite = new Sprite(text, 0, 0, 24, 24);
+        DrawMobileControls.bSprite = new Sprite(text, 0, 0, 24, 24);
+        DrawMobileControls.startSprite = new Sprite(text, 0, 0, 24, 24);
+    }
+
+    @Override
+    public void firstStep(Game game) {
+        float scaleX = 160/game.currScreen.x;
+        int offsetY = (int)(((game.currScreen.y-144/scaleX)/2)*scaleX);
+        DrawMobileControls.upArrowSprite.setPosition(30, 90 - offsetY - 35);
+        DrawMobileControls.downArrowSprite.setPosition(30, 40 - offsetY - 35);
+        DrawMobileControls.leftArrowSprite.setPosition(5, 65 - offsetY - 35);
+        DrawMobileControls.rightArrowSprite.setPosition(55, 65 - offsetY - 35);
+        DrawMobileControls.bSprite.setPosition(100, 75 - offsetY - 35);
+        DrawMobileControls.aSprite.setPosition(125, 85 - offsetY - 35);
+        DrawMobileControls.startSprite.setPosition(100, 45 - offsetY - 35);
+    }
+
+    @Override
+    public void step(Game game) {
+        DrawMobileControls.upArrowSprite.draw(game.uiBatch);
+        DrawMobileControls.downArrowSprite.draw(game.uiBatch);
+        DrawMobileControls.leftArrowSprite.draw(game.uiBatch);
+        DrawMobileControls.rightArrowSprite.draw(game.uiBatch);
+        DrawMobileControls.aSprite.draw(game.uiBatch);
+        DrawMobileControls.bSprite.draw(game.uiBatch);
+        DrawMobileControls.startSprite.draw(game.uiBatch);
+    }
+
+    public String getCamera() {return "gui";}
+
+    public int getLayer(){return 0;}
+}
+
+
+/**
  * Displayed at the beginning of the game so that the player can specify setup options.
  */
 class DrawSetupMenu extends Action {
@@ -958,6 +1020,7 @@ class DrawSetupMenu extends Action {
 
     HashMap<Integer, Character> numberKeys = new HashMap<Integer, Character>();
     ArrayList<Color> colors = new ArrayList<Color>();
+
     public DrawSetupMenu(Game game, Action nextAction) {
         this.nextAction = nextAction;
         Texture text = new Texture(Gdx.files.internal("battle/arrow_right_white.png"));
@@ -1082,7 +1145,7 @@ class DrawSetupMenu extends Action {
                         avatarSprite = new Sprite(this.avatarSprites.get(2));
                     }
 
-                    if (Gdx.input.isKeyJustPressed(Input.Keys.LEFT)) {
+                    if (InputProcessor.leftJustPressed) {
                         this.avatarColorIndex--;
                         if (this.avatarColorIndex < 0) {
                             this.avatarColorIndex = this.colors.size()-1;
@@ -1093,7 +1156,7 @@ class DrawSetupMenu extends Action {
                         this.avatarSprites.add(game.player.movingSprites.get("down"));
                         this.avatarSprites.add(game.player.altMovingSprites.get("down"));
                     }
-                    if (Gdx.input.isKeyJustPressed(Input.Keys.RIGHT)) {
+                    if (InputProcessor.rightJustPressed) {
                         this.avatarColorIndex++;
                         if (this.avatarColorIndex >= this.colors.size()) {
                             this.avatarColorIndex = 0;
@@ -1156,7 +1219,7 @@ class DrawSetupMenu extends Action {
                 }
                 if (j == DrawSetupMenu.currIndex) {
                     // Set up the map.
-                    if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
+                    if (InputProcessor.startJustPressed || InputProcessor.aJustPressed) {
                         game.actionStack.remove(this);
                         game.start();
 
@@ -1188,6 +1251,26 @@ class DrawSetupMenu extends Action {
 //                            }
 //                        }
 
+                        // TODO: debug, remove
+//                        if (Gdx.app.getType() != ApplicationType.Android) {
+//                            try {
+//                                game.initClient("25.8.66.159");
+//                            } catch (IOException e) {
+//                                e.printStackTrace();
+//                            }
+//                        }
+//                        else {
+//                            Log.set(Log.LEVEL_DEBUG);
+//                            try {
+//                                game.initServer();
+//                            } catch (IOException e) {
+//                                e.printStackTrace();
+//                            } catch (Exception e) {
+//                                e.printStackTrace();
+//                                Log.debug("pkmngen", e.getStackTrace().toString());
+//                            }
+//                        }
+
                         EnterBuilding enterBuilding = new EnterBuilding(game, "", null);
                         enterBuilding.slow = 8;
                         game.insertAction(enterBuilding);
@@ -1206,13 +1289,13 @@ class DrawSetupMenu extends Action {
         }
 
         // Handle arrow input
-        if (Gdx.input.isKeyJustPressed(Input.Keys.UP)) {
+        if (InputProcessor.upJustPressed) {
             if (DrawSetupMenu.currIndex > 0) {
                 DrawSetupMenu.currIndex -= 1;
                 DrawSetupMenu.avatarAnimCounter = 24; // reset to 12 for 1 extra frame of first frame for avatar anim
             }
         }
-        else if (Gdx.input.isKeyJustPressed(Input.Keys.DOWN)) {
+        else if (InputProcessor.downJustPressed) {
             if (DrawSetupMenu.currIndex < 3) {
                 DrawSetupMenu.currIndex += 1;
                 DrawSetupMenu.avatarAnimCounter = 24; // reset to 12 for 1 extra frame of first frame for avatar anim
@@ -1238,7 +1321,6 @@ class FadeMusic extends Action {
 
     public FadeMusic(String musicName, String direction, String shouldPause, float rate, Action nextAction) {
         this.musicName = musicName;
-
         this.shouldPause = shouldPause;
 
         this.direction = direction;
@@ -1404,6 +1486,139 @@ class FadeMusic extends Action {
             }
         }
 
+    }
+}
+
+/**
+ * Handle input events in a less annoying fashion than libGDX input processors.
+ * Note: this is called before all Actions, so functionally behaves exactly
+ * the same as an InputProcessor.
+ */
+class InputProcessor extends Action {
+
+    public static boolean upPressed = false;
+    public static boolean downPressed = false;
+    public static boolean leftPressed = false;
+    public static boolean rightPressed = false;
+    public static boolean aPressed = false;
+    public static boolean bPressed = false;
+    public static boolean startPressed = false;
+    public static boolean upJustPressed = false;
+    public static boolean downJustPressed = false;
+    public static boolean leftJustPressed = false;
+    public static boolean rightJustPressed = false;
+    public static boolean aJustPressed = false;
+    public static boolean bJustPressed = false;
+    public static boolean startJustPressed = false;
+    Vector2 touchLoc = new Vector2();
+
+    @Override
+    public void step(Game game) {
+        if (Gdx.input.isTouched()) {
+
+//            int menuHeight = (int)((160*game.currScreen.y)/game.currScreen.x);  // height/width = menuHeight/160
+            float scaleX = 160/game.currScreen.x;
+//            float scaleY = 144/game.currScreen.y;
+            int offsetY = (int)(((game.currScreen.y-144/scaleX)/2)*scaleX);
+            // height/width = menuHeight/160
+            this.touchLoc.set(Gdx.input.getX()*scaleX, (game.currScreen.y-Gdx.input.getY())*scaleX - offsetY); // game.currScreen.y - 
+        }
+        else {
+            this.touchLoc.set(-1, -1);
+        }
+        // Up
+        if (Gdx.input.isKeyPressed(Input.Keys.UP) || DrawMobileControls.upArrowSprite.getBoundingRectangle().contains(this.touchLoc)) {
+            InputProcessor.upJustPressed = false;
+            if (!InputProcessor.upPressed) {
+                InputProcessor.upJustPressed = true;
+            }
+            InputProcessor.upPressed = true;
+        }
+        else {
+            InputProcessor.upJustPressed = false;
+            InputProcessor.upPressed = false;
+        }
+        // Down
+//        System.out.println(DrawMobileControls.downArrowSprite.getBoundingRectangle().contains(this.touchLoc));
+        if (Gdx.input.isKeyPressed(Input.Keys.DOWN) || DrawMobileControls.downArrowSprite.getBoundingRectangle().contains(this.touchLoc)) {
+            InputProcessor.downJustPressed = false;
+            if (!InputProcessor.downPressed) {
+                InputProcessor.downJustPressed = true;
+            }
+            InputProcessor.downPressed = true;
+        }
+        else {
+            InputProcessor.downJustPressed = false;
+            InputProcessor.downPressed = false;
+        }
+        // Left
+        if (Gdx.input.isKeyPressed(Input.Keys.LEFT) || DrawMobileControls.leftArrowSprite.getBoundingRectangle().contains(this.touchLoc)) {
+            InputProcessor.leftJustPressed = false;
+            if (!InputProcessor.leftPressed) {
+                InputProcessor.leftJustPressed = true;
+            }
+            InputProcessor.leftPressed = true;
+        }
+        else {
+            InputProcessor.leftJustPressed = false;
+            InputProcessor.leftPressed = false;
+        }
+        // Right
+        if (Gdx.input.isKeyPressed(Input.Keys.RIGHT) || DrawMobileControls.rightArrowSprite.getBoundingRectangle().contains(this.touchLoc)) {
+            InputProcessor.rightJustPressed = false;
+            if (!InputProcessor.rightPressed) {
+                InputProcessor.rightJustPressed = true;
+            }
+            InputProcessor.rightPressed = true;
+        }
+        else {
+            InputProcessor.rightJustPressed = false;
+            InputProcessor.rightPressed = false;
+        }
+        // A
+        if (Gdx.input.isKeyPressed(Input.Keys.Z) || DrawMobileControls.aSprite.getBoundingRectangle().contains(this.touchLoc)) {
+            InputProcessor.aJustPressed = false;
+            if (!InputProcessor.aPressed) {
+                InputProcessor.aJustPressed = true;
+            }
+            InputProcessor.aPressed = true;
+        }
+        else {
+            InputProcessor.aJustPressed = false;
+            InputProcessor.aPressed = false;
+        }
+        // B
+        if (Gdx.input.isKeyPressed(Input.Keys.X) || DrawMobileControls.bSprite.getBoundingRectangle().contains(this.touchLoc)) {
+            InputProcessor.bJustPressed = false;
+            if (!InputProcessor.bPressed) {
+                InputProcessor.bJustPressed = true;
+            }
+            InputProcessor.bPressed = true;
+        }
+        else {
+            InputProcessor.bJustPressed = false;
+            InputProcessor.bPressed = false;
+        }
+        // Start
+        if (Gdx.input.isKeyPressed(Input.Keys.ENTER) || DrawMobileControls.startSprite.getBoundingRectangle().contains(this.touchLoc)) {
+            InputProcessor.startJustPressed = false;
+            if (!InputProcessor.startPressed) {
+                InputProcessor.startJustPressed = true;
+            }
+            InputProcessor.startPressed = true;
+        }
+        else {
+            InputProcessor.startJustPressed = false;
+            InputProcessor.startPressed = false;
+        }
+    }
+
+    public String getCamera() {
+        return "map";
+    }
+
+    public int getLayer(){
+        return -1;
     }
 }
 

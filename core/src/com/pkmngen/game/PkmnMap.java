@@ -575,6 +575,7 @@ class MoveWater extends Action {
     Sprite[] campfireSprites;
     int campfireTimer = 0;
     PointLight pointLight;
+
     public MoveWater(Game game) {
         this.positions = new ArrayList<Vector2>();
         resetVars();
