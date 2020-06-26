@@ -2,7 +2,7 @@
 
 ![Pokemon Wilds](https://github.com/SheerSt/pokemon-wilds/blob/master/android/assets/8.png)
 
-## v0.1 gameplay demo
+## v0.1 gameplay video
 
 https://www.youtube.com/watch?v=ndQ0d0hhIRQ
 
@@ -26,12 +26,12 @@ In the future I hope that the game can also support graphics from other generati
  - Building stuff.
  - Multiplayer support.
  - Saving/Loading worlds.
- - Currently desktop and android support only.
+ - Currently desktop and Android support only.
 
-# Future aims and goals for the project:
+# Future aims and goals for the project
  - Map editor.
  - Support for other platforms (controls, screen resizing).
- - Larger proc-gen worlds with more biomes.
+ - Larger proc-gen worlds with more biomes (desert, graveyard, dungeons, ...)
  - Full Gen 2 engine replication (battle mechanics, attacks, etc).
  - Other Generations.
  
