@@ -69,7 +69,9 @@ class ClientBroadcast extends Action {
                             if (object instanceof Network.MapTiles) {
                                 Network.MapTiles mapTiles = (Network.MapTiles) object;
                                 for (Network.TileData tileData : mapTiles.tiles) {
-                                    Tile tile = new Tile(tileData.tileName, tileData.tileNameUpper, tileData.pos.cpy(), true, null);
+                                    // TODO: remove
+//                                    Tile tile = new Tile(tileData.tileName, tileData.tileNameUpper, tileData.pos.cpy(), true, null);
+                                    Tile tile = Tile.get(tileData, null);
                                     game.map.tiles.put(tileData.pos.cpy(), tile);
                                 }
                                 if (mapTiles.timeOfDay != null) {
@@ -124,6 +126,10 @@ class ClientBroadcast extends Action {
                                                    new Tile(tileData.tileName, tileData.tileNameUpper,
                                                             tileData.pos.cpy(), true, null));
                             }
+                            if (object instanceof Network.PokemonData) {
+                                Network.PokemonData pokemonData = (Network.PokemonData) object;
+                                game.player.pokemon.set(pokemonData.index, new Pokemon(pokemonData));
+                            }
                         }
                         catch (Exception e) {
                             e.printStackTrace();
@@ -155,20 +161,12 @@ public class Network {
     // This registers objects that are going to be sent over the network.
     static public void register (EndPoint endPoint) {
         Kryo kryo = endPoint.getKryo();
-        kryo.register(UpdatePlayer.class);
-        kryo.register(UpdateFireball.class);
-        kryo.register(UpdateGhostData.class);
-        kryo.register(AllGhosts.class);
-        kryo.register(UpdateScore.class);
-
         kryo.register(com.badlogic.gdx.math.Vector2.class);
         kryo.register(com.badlogic.gdx.physics.box2d.Filter.class);
         kryo.register(java.util.ArrayList.class);
         kryo.register(java.util.HashMap.class);
         kryo.register(String[].class);
         kryo.register(Color.class);
-
-        //
         kryo.register(MapTiles.class);
         kryo.register(TileData.class);
         kryo.register(Login.class);
@@ -185,10 +183,8 @@ public class Network {
         kryo.register(RelocatePlayer.class);
         kryo.register(RouteData.class);
         kryo.register(UseHM.class);
-    }
-
-    static public class AllGhosts {
-        public ArrayList<UpdateGhostData> ghosts;
+        kryo.register(Sleep.class);
+        kryo.register(Craft.class);
     }
 
     static public class BattleData {
@@ -216,6 +212,23 @@ public class Network {
         boolean runSuccessful;
 
         public BattleTurnData(){}
+    }
+
+    /**
+     * Sent client->server to notify that the player has crafted an item.
+     */
+    static public class Craft {
+        String playerId;
+        int craftIndex;
+        int amount;
+
+        public Craft(){}
+
+        public Craft(String playerId, int craftIndex, int amount) {
+            this.playerId = playerId;
+            this.craftIndex = craftIndex;
+            this.amount = amount;
+        }
     }
 
     static public class DoBattleAction {
@@ -287,6 +300,8 @@ public class Network {
         String id;
         String number;
         Color color;
+        String dirFacing;
+        public Vector2 spawnLoc;
 
         public PlayerData(){}
 
@@ -306,6 +321,8 @@ public class Network {
             this.id = player.network.id;
             this.number = player.network.number;
             this.color = player.color;
+            this.dirFacing = player.dirFacing;
+            this.spawnLoc = player.spawnLoc;
         }
     }
 
@@ -315,6 +332,7 @@ public class Network {
         Pokemon.Generation generation;
         int hp;
         String[] attacks = new String[4];
+        int index;  // index in player inventory
 
         public PokemonData() {}
 
@@ -328,6 +346,11 @@ public class Network {
             this.attacks[2] = pokemon.attacks[2];
             this.attacks[3] = pokemon.attacks[3];
             // TODO: psn, para etc status
+        }
+
+        public PokemonData(Pokemon pokemon, int index) {
+            this(pokemon);
+            this.index = index;
         }
     }
 
@@ -384,11 +407,30 @@ public class Network {
         }
     }
 
+    /**
+     * Sent client->server to notify that player is using the sleeping bag.
+     */
+    static public class Sleep {
+        String playerId;
+        boolean isSleeping;
+
+        public Sleep(){}
+
+        public Sleep(String playerId, boolean isSleeping) {
+            this.playerId = playerId;
+            this.isSleeping = isSleeping;
+        }
+    }
+
     static public class TileData {
         public Vector2 pos;
         public String tileName;
         public String tileNameUpper;
         String routeBelongsTo;  // this is a string of the route's class id
+
+        // TrainerTipsTile stuff
+        boolean isUnown;
+        String message = "";
 
         public TileData(){}
 
@@ -399,43 +441,17 @@ public class Network {
             if (tile.routeBelongsTo != null) {
                 this.routeBelongsTo = tile.routeBelongsTo.toString();
             }
+            if (TrainerTipsTile.class.isInstance(tile)) {
+                TrainerTipsTile tTile = (TrainerTipsTile)tile;
+                this.isUnown = tTile.isUnown;
+                this.message = tTile.message;
+            }
         }
     }
 
-    static public class UpdateFireball {
-        public Vector2 position;
-    }
-
-    static public class UpdateGhostData {
-        public Vector2 position;
-        public String dirFacing;
-        public int id;
-        public int target;
-
-        public int damageCooldown;
-        public int isDying;
-        public int attackingCooldown;
-        public int damageBoxCooldown;
-    }
-
-    static public class UpdatePlayer {
-        public String dirFacing;
-        public Vector2 position;
-
-        public int health;
-//      public boolean isDead; // TODO - remove
-
-        public int damageCooldown;
-        public int swordSwingCooldown;
-        public Vector2 swordPos;
-//        public Filter swordFilter;
-    }
-
-    static public class UpdateScore {
-        public int player;
-        public int score;
-    }
-
+    /**
+     * Sent client->server to notify that the player has used an HM.
+     */
     static public class UseHM {
         String playerId;
         int pokemonIndex;
@@ -490,6 +506,7 @@ class ServerBroadcast extends Action {
                                     // NOTE: Comment to start players in middle (like for debug)
                                     Vector2 startLoc = game.map.edges.get(game.map.rand.nextInt(game.map.edges.size()));
                                     player.position.set(startLoc);
+                                    player.spawnLoc.set(startLoc);
                                     //
                                     player.type = Player.Type.REMOTE;
                                     player.network = player.new Network(player.position);
@@ -504,10 +521,10 @@ class ServerBroadcast extends Action {
 //                                    player.currPokemon.attacks[0] = "Ice Beam";
 //                                    player.currPokemon.attacks[1] = "Hydro Pump";
                                     player.pokemon.add(player.currPokemon);
+                                    player.currPokemon.currentStats.put("hp", 2); // TODO: debug, remove
 //                                    Pokemon pokemon = new Pokemon("stantler", 50, Pokemon.Generation.CRYSTAL);
 //                                    player.pokemon.add(pokemon);
                                     // ---
-
                                     game.players.put(playerId, player);
                                 }
                                 Player player = game.players.get(login.playerId);
@@ -618,6 +635,11 @@ class ServerBroadcast extends Action {
                                     turnData.oppFirst = false;
                                     player.numFlees = 0;
                                     turnData.itemName = battleAction.itemName;
+                                    // deduct item from inventory
+                                    player.itemsDict.put(turnData.itemName, player.itemsDict.get(turnData.itemName)-1);
+                                    if (player.itemsDict.get(turnData.itemName) <= 0) {
+                                        player.itemsDict.remove(turnData.itemName);
+                                    }
                                     // For now, just have a bunch of cases for each item
                                     if (turnData.itemName.contains("ball")) {
                                         turnData.numWobbles = Battle.gen2CalcIfCaught(game, battle.oppPokemon,
@@ -706,7 +728,7 @@ class ServerBroadcast extends Action {
                                             for (int i=1; i <= player.currPokemon.level; i++) {
                                                 if (Pokemon.gen2Evos.get(player.currPokemon.name.toLowerCase()).containsKey(String.valueOf(i))) {
                                                     String evolveTo = Pokemon.gen2Evos.get(player.currPokemon.name.toLowerCase()).get(String.valueOf(i));
-                                                    player.currPokemon.Evolve(evolveTo);
+                                                    player.currPokemon.evolveTo(evolveTo);
                                                     break;
                                                 }
                                             }
@@ -750,7 +772,7 @@ class ServerBroadcast extends Action {
                                             for (int i=1; i <= player.currPokemon.level; i++) {
                                                 if (Pokemon.gen2Evos.get(player.currPokemon.name.toLowerCase()).containsKey(String.valueOf(i))) {
                                                     String evolveTo = Pokemon.gen2Evos.get(player.currPokemon.name.toLowerCase()).get(String.valueOf(i));
-                                                    player.currPokemon.Evolve(evolveTo);
+                                                    player.currPokemon.evolveTo(evolveTo);
                                                     break;
                                                 }
                                             }
@@ -766,6 +788,26 @@ class ServerBroadcast extends Action {
                                     player.canMove = true;
                                     player.numFlees = 0;
                                 }
+                                // If player out of pokemon, move them to last spawn location
+                                // ie where they initially spawned, or where they last used a sleeping bag
+                                boolean hasAlivePokemon = false;
+                                for (Pokemon pokemon : player.pokemon) {
+                                    if (pokemon.currentStats.get("hp") > 0) {
+                                        hasAlivePokemon = true;
+                                        break;
+                                    }
+                                }
+                                if (!hasAlivePokemon) {
+                                    battle.oppPokemon.inBattle = false;
+                                    player.canMove = true;
+                                    player.numFlees = 0;
+                                    player.position.set(player.spawnLoc);
+                                    // Restore hp to half
+                                    for (Pokemon pokemon : player.pokemon) {
+                                        pokemon.currentStats.put("hp", pokemon.maxStats.get("hp")/2);
+                                    }
+                                }
+
                                 // debug code
     //                            try {
     //                                Thread.sleep(5000);
@@ -778,6 +820,8 @@ class ServerBroadcast extends Action {
                             }
                             // a client is requesting to change this tile
                             if (object instanceof Network.TileData) {
+                                // TODO: need to check if player has enough wood/grass/etc to build this item.
+                                // as it currently is, player can arbitrarily change tiles.
                                 Network.TileData tileData = (Network.TileData) object;
                                 if (!game.map.tiles.containsKey(tileData.pos)) {
                                     System.out.println("TileData: Invalid tile position " + tileData.pos.toString() + ", sent by: " + connection.getRemoteAddressTCP().toString());
@@ -856,6 +900,42 @@ class ServerBroadcast extends Action {
                                     player.isBuilding = false;
                                     player.isCutting = false;
                                     player.isJumping = true;
+                                }
+                            }
+                            if (object instanceof Network.Sleep) {
+                                Network.Sleep sleep = (Network.Sleep) object;
+                                if (!game.players.containsKey(sleep.playerId)) {
+                                    System.out.println("UseHM: Invalid player id " + sleep.playerId + ", sent by: " + connection.getRemoteAddressTCP().toString());
+                                    throw new Exception();
+                                }
+                                Player player = game.players.get(sleep.playerId);
+                                player.isSleeping = sleep.isSleeping;
+                                player.canMove = !sleep.isSleeping;
+                                if (!player.isSleeping) {
+                                    player.spawnLoc = player.position.cpy();
+                                    // sync pokemon health with remote player
+                                    for (Pokemon pokemon : player.pokemon) {
+                                        Network.PokemonData pokemonData = new Network.PokemonData(pokemon);
+                                        connection.sendTCP(pokemonData);
+                                    }
+                                }
+                            }
+                            if (object instanceof Network.Craft) {
+                                // TODO: test if inventory is really updated.
+                                Network.Craft craft = (Network.Craft) object;
+                                if (!game.players.containsKey(craft.playerId)) {
+                                    System.out.println("UseHM: Invalid player id " + craft.playerId + ", sent by: " + connection.getRemoteAddressTCP().toString());
+                                    throw new Exception();
+                                }
+                                Player player = game.players.get(craft.playerId);
+                                // check requirements
+                                if (player.hasCraftRequirements(craft.craftIndex, craft.amount)) {
+                                    // if passed, update inventory
+                                    player.craftItem(craft.craftIndex, craft.amount);
+                                }
+                                // TODO: debug, delete
+                                for (String item : player.itemsDict.keySet()) {
+                                    System.out.println(player.itemsDict.get(item).toString() + " " + item);
                                 }
                             }
                         } catch (Exception e) {

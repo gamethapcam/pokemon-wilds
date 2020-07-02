@@ -10,8 +10,12 @@ import java.util.Map;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.files.FileHandle;
+import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.TextureData;
 import com.badlogic.gdx.graphics.g2d.Sprite;
+import com.badlogic.gdx.math.Vector2;
 
 public class Pokemon {
     // contains all loaded pkmn textures, so that only one is used for each pkmn. ie don't load duplicate textures.
@@ -19,8 +23,12 @@ public class Pokemon {
     // add to this when loading pokemon
     public static HashMap<String, Map<String, String>> gen2Evos = new HashMap<String, Map<String, String>>();
     public static HashMap<String, Map<Integer, String[]>> gen2Attacks = new HashMap<String, Map<Integer, String[]>>();
+
     public static String nameToIndex(String name) {
         name = name.toLowerCase();
+        if (name.contains("unown")) {
+            name = "unown";
+        }
         if (name.equals("ghost")) {
             return "000";
         }
@@ -112,6 +120,14 @@ public class Pokemon {
     public Pokemon (String name, int level, Generation generation) {
         name = name.toLowerCase();
         this.name = name;
+        if (name.contains("unown")) {
+            this.name = "unown";
+        }
+        // levels have to be >= 1
+        if (level <= 0) {
+            System.out.println("Bad level: " + String.valueOf(level));
+            level = 1;
+        }
         this.level = level;
         this.generation = generation;
 
@@ -121,7 +137,7 @@ public class Pokemon {
         this.angry = 0;
         this.eating = 0;
 
-        this.attacks = new String[]{"-","-","-","-"};
+        this.attacks = new String[]{null, null, null, null};
         this.learnSet = new HashMap<Integer, String[]>();
 
         // TODO: individual avatars
@@ -143,6 +159,7 @@ public class Pokemon {
 
             // Custom attributes - better way to handle this?
             if (name.equals("machop")) {
+                this.hms.add("CUT");
                 this.hms.add("BUILD");
             }
 
@@ -151,10 +168,16 @@ public class Pokemon {
                 this.hms.add("CUT");
             }
 
-            // Custom attributes - better way to handle this?
-            if (name.equals("machop")) {
-                this.hms.add("HEADBUTT");
+            // TODO: for now, all grass types can cut
+            if (this.types.contains("grass")) {
+                this.hms.add("CUT");
             }
+
+            // TODO: different pokemon than machop
+            // Custom attributes - better way to handle this?
+//            if (name.equals("machop")) {
+//                this.hms.add("HEADBUTT");
+//            }
 
             // Custom attributes - better way to handle this?
             if (name.equals("stantler") ||
@@ -734,7 +757,7 @@ public class Pokemon {
     /*
      * Compute changes required by evolution.
      */
-    void Evolve(String targetName) {
+    void evolveTo(String targetName) {
         this.name = targetName;
         this.dexNumber = Pokemon.nameToIndex(this.name);
         // Update base stats and various values.
@@ -751,12 +774,10 @@ public class Pokemon {
         // TODO: probably move this to function somewhere
         if (name.equals("machop")) {
             this.hms.add("BUILD");
+            this.hms.add("HEADBUTT");
         }
         else if (name.equals("sneasel")) {
             this.hms.add("CUT");
-        }
-        else if (name.equals("machop")) {
-            this.hms.add("HEADBUTT");
         }
         else if (name.equals("stantler") ||
             name.equals("ponyta") ||
@@ -774,7 +795,10 @@ public class Pokemon {
             // My current idea is that RIDE increases movement speed and can perform jumps up ledges.
             this.hms.add("JUMP");
         }
-
+        // TODO: for now, all grass types can cut
+        if (this.types.contains("grass")) {
+            this.hms.add("CUT");
+        }
     }
 
     /*
@@ -802,7 +826,6 @@ public class Pokemon {
      // by default
     void getCurrentAttacks() {
         int i = 0;
-
         for (Integer level : this.learnSet.keySet()) {
             for (String attack : this.learnSet.get(level)) {
                 if (level < this.level) {
@@ -823,7 +846,11 @@ public class Pokemon {
 
         // load base stats
         try {
-            FileHandle file = Gdx.files.internal("crystal_pokemon/base_stats/" + name + ".asm");
+            String newName = name;
+            if (name.contains("unown")) {
+                newName = "unown";
+            }
+            FileHandle file = Gdx.files.internal("crystal_pokemon/base_stats/" + newName + ".asm");
             Reader reader = file.reader();
             BufferedReader br = new BufferedReader(reader);
             String line;
@@ -868,7 +895,30 @@ public class Pokemon {
         // load sprite and animation data
         // load front sprite
         if (!Pokemon.textures.containsKey(name+"_front")) {
-            Pokemon.textures.put(name+"_front", new Texture(Gdx.files.internal("crystal_pokemon/pokemon/" + name + "/front.png")));
+            Texture text = new Texture(Gdx.files.internal("crystal_pokemon/pokemon/" + name + "/front.png"));
+            // unown sprites have color data only stored in one channel (alpha)
+            // convert this to regular texture
+            if (name.contains("unown")) {
+                TextureData temp = text.getTextureData();
+                if (!temp.isPrepared()) {
+                    temp.prepare();
+                }
+                Pixmap currPixmap = temp.consumePixmap();
+                Pixmap newPixmap = new Pixmap(text.getWidth(), text.getHeight(), Pixmap.Format.RGBA8888);
+                newPixmap.setColor(new Color(0, 0, 0, 0));
+                newPixmap.fill();
+                for (int i=0, j=0; j < text.getHeight(); i++) {
+                    if (i > text.getWidth()) {
+                        i=-1;
+                        j++;
+                        continue;
+                    }
+                    Color color = new Color(currPixmap.getPixel(i, j));
+                    newPixmap.drawPixel(i, j, Color.rgba8888(color.a, color.a, color.a, 1f));
+                }
+                text = new Texture(newPixmap);
+            }
+            Pokemon.textures.put(name+"_front", text);
         }
 //        Texture pokemonText = new Texture(Gdx.files.internal("crystal_pokemon/pokemon/" + name + "/front.png"));
         Texture pokemonText = Pokemon.textures.get(name+"_front");
@@ -956,7 +1006,7 @@ public class Pokemon {
                         String vals[] = line.split(", ");
                         evos.put(vals[1], vals[2].toLowerCase());
                     }
-                    else if (line.contains("EVOLVE_ITEM") || line.contains("EVOLVE_TRADE")) {
+                    else if (line.contains("EVOLVE_ITEM") || line.contains("EVOLVE_TRADE") || line.contains("EVOLVE_HAPPINESS")) {
                         // TODO
                     }
                     else if (!line.contains("\t")) {
@@ -1192,7 +1242,7 @@ class SpecialMegaGengar1 extends Pokemon {
 //        this.learnSet.put(1, new String[]{"Confusion", "Disable", "Psychic", "Swift"});
 //        this.learnSet.put(1, new String[]{"Psychic", "Psychic", "Psychic", "Psychic"});
 //        this.learnSet.put(1, new String[]{"Night Shade", "Night Shade", "Night Shade", "Night Shade"}); //, "Lick"
-        this.learnSet.put(1, new String[]{"Shadow Claw", "Night Shade", "Lick", "-"}); //, "Lick"
+        this.learnSet.put(1, new String[]{"Shadow Claw", "Night Shade", "Lick", null}); //, "Lick"
         this.types.add("Ghost");
         this.types.add("Poison");
 

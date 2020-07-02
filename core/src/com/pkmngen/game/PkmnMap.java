@@ -62,10 +62,11 @@ class DrawMap extends Action { // /
 
     @Override
     public void step(Game game) {
-        if (Gdx.input.isKeyPressed(Input.Keys.P)) {
-            System.out.println("Camera unproject");
-            System.out.println(java.time.LocalTime.now());
-        }
+        // TODO: debug, remove
+//        if (Gdx.input.isKeyPressed(Input.Keys.P)) {
+//            System.out.println("Camera unproject");
+//            System.out.println(java.time.LocalTime.now());
+//        }
 //        System.out.println(game.currScreen.x);
 //        System.out.println(game.currScreen.y);
 
@@ -84,12 +85,12 @@ class DrawMap extends Action { // /
         this.startPos = worldCoordsTL; // new Vector3(worldCoordsTL.x, worldCoordsTL.y, 0f);
         this.endPos = worldCoordsBR; // new Vector3(worldCoordsBR.x, worldCoordsBR.y, 0f);
 
-        // debug, remove
         int numTiles = 0;
-        if (Gdx.input.isKeyPressed(Input.Keys.P)) {
-            System.out.println("Start draw tiles");
-            System.out.println(java.time.LocalTime.now());
-        }
+        // TODO: debug, remove
+//        if (Gdx.input.isKeyPressed(Input.Keys.P)) {
+//            System.out.println("Start draw tiles");
+//            System.out.println(java.time.LocalTime.now());
+//        }
 
         for (Vector2 currPos = new Vector2(startPos.x, startPos.y); currPos.y > endPos.y;) {
             tile = game.map.tiles.get(currPos);
@@ -248,20 +249,26 @@ class DrawMap extends Action { // /
 //                }
 //            }
         }
-
         // Draw other players
         for (Player player : game.players.values()) {
-            // TODO: could check for player in frustum, not checking for now
-            player.currSprite.setPosition(player.position.x, player.position.y+4);
-//            game.batch.draw(player.currSprite, player.position.x, player.position.y);
-            player.currSprite.draw(game.mapBatch);
+            if (player.isSleeping) {
+                player.zSprite.draw(game.mapBatch);
+                game.mapBatch.draw(player.sleepingSprite, player.position.x, player.position.y);
+            }
+            else {
+                // TODO: could check for player in frustum, not checking for now
+                player.currSprite.setPosition(player.position.x, player.position.y+4);
+//                game.batch.draw(player.currSprite, player.position.x, player.position.y);
+                player.currSprite.draw(game.mapBatch);
+            }
         }
 
-        if (Gdx.input.isKeyPressed(Input.Keys.P)) {
-            System.out.println("Drew tiles");
-            System.out.println(numTiles);
-            System.out.println(java.time.LocalTime.now());
-        }
+        // TODO: debug, remove
+//        if (Gdx.input.isKeyPressed(Input.Keys.P)) {
+//            System.out.println("Drew tiles");
+//            System.out.println(numTiles);
+//            System.out.println(java.time.LocalTime.now());
+//        }
 //        game.batch.draw(this.texture, 5, 5);
     }
 
@@ -739,7 +746,6 @@ public class PkmnMap {
     // ie, passing a new vector to search for a tile is fine
     Map<Vector2, Tile> overworldTiles = new HashMap<Vector2, Tile>();
     Map<Vector2, Tile> tiles = overworldTiles;
-
     ArrayList<HashMap<Vector2, Tile>> interiorTiles = new ArrayList<HashMap<Vector2, Tile>>();
     int interiorTilesIndex = 100;
 
@@ -749,19 +755,23 @@ public class PkmnMap {
 
     // Used to know where to spawn new players
     ArrayList<Vector2> edges = new ArrayList<Vector2>();
-
     // routes on map
     ArrayList<Route> routes;
     // debating whether I should just make tiles have references
     // to route objects, and not have currRoute here
     Route currRoute;
-
     // needed for wild encounters etc
     Random rand;
-
     String timeOfDay = "Day";  // used by cycleDayNight
-
     String id;  // needed for saving to file
+    TrainerTipsTile unownSpawn;
+    ArrayList<String> unownUsed = new ArrayList<String>();
+    {
+        char[] textArray = "abcdefghijklmnopqrstuvwxyz".toCharArray();
+        for (int i=0; i < textArray.length; i++) {
+            unownUsed.add(String.valueOf(textArray[i]));
+        }
+    }
 
     public PkmnMap(String mapName) {
         this.id = mapName;
@@ -939,6 +949,9 @@ public class PkmnMap {
 
             this.currRoute = new Route("Route 1", 20);
         }
+        else {
+            this.currRoute = new Route("Demo_SteelRoute", 20);
+        }
     }
 
     public void loadFromFile(Game game) {
@@ -960,11 +973,7 @@ public class PkmnMap {
                     loadedRoutes.put(tileData.routeBelongsTo, new Route(mapTiles.routes.get(tileData.routeBelongsTo)));
                 }
                 Route tempRoute = loadedRoutes.get(tileData.routeBelongsTo);
-                this.tiles.put(tileData.pos.cpy(), new Tile(tileData.tileName,
-                                                            tileData.tileNameUpper,
-                                                            tileData.pos.cpy(),
-                                                            true,
-                                                            tempRoute));
+                this.tiles.put(tileData.pos.cpy(), Tile.get(tileData, tempRoute));
             }
             // load time of day
             game.map.timeOfDay = mapTiles.timeOfDay;
@@ -975,11 +984,26 @@ public class PkmnMap {
             inputStream = new InflaterInputStream(new FileInputStream(this.id + ".players.sav"));
             input = new com.esotericsoftware.kryo.io.Input(inputStream);
             ArrayList<Network.PlayerData> players = game.server.getKryo().readObject(input, ArrayList.class);
+            input.close();
             for (Network.PlayerData playerData : players) {
                 Player player = new Player(playerData);
                 player.type = Player.Type.REMOTE;  // TODO: store in playerData?
                 game.players.put(playerData.id, player);
             }
+            // Load game.player
+            inputStream = new InflaterInputStream(new FileInputStream(this.id + ".player.sav"));
+            input = new com.esotericsoftware.kryo.io.Input(inputStream);
+            Network.PlayerData playerData = game.server.getKryo().readObject(input, Network.PlayerData.class);
+            input.close();
+            game.player = new Player(playerData);
+            game.cam.position.set(game.player.position.x+16, game.player.position.y, 0);
+            game.player.type = Player.Type.LOCAL;
+            // if this is a server, put player in game.players
+            // this will convert a local save file to a 'hosted' save file
+            //  it won't convert the other way tho.
+//            if (game.type == Game.Type.SERVER && ) {
+//
+//            }
 
         } catch (FileNotFoundException e) {
             System.out.println("No save file found for map: " + this.id);
@@ -993,7 +1017,8 @@ public class PkmnMap {
      */
     public static class PeriodicSave extends Action {
         float timeDelta = 60;
-        float saveInterval = 10; // TODO: debug, was 60  // Every minute for now
+//        float saveInterval = 10; // TODO: debug, was 60  // Every minute for now
+        float saveInterval = 60; // TODO: debug, was 60  // Every minute for now
 
         // TODO: map id's?
         OutputStream outputStream;
@@ -1011,7 +1036,7 @@ public class PkmnMap {
         public void step(Game game) {
             // TODO: this only works for server atm, because I'm using game.server.getKryo() below.
             // Could change to also use game.server.getKryo() if I need for client.
-            if (game.type != Game.Type.SERVER) {
+            if (game.type == Game.Type.CLIENT) {
                 return;
             }
             this.timeDelta += Gdx.graphics.getDeltaTime();
@@ -1053,6 +1078,18 @@ public class PkmnMap {
                 }
                 game.server.getKryo().writeObject(this.output, players);
                 this.output.close();
+
+                // TODO: just have one registered class that contains all 3 of these.
+                // save player to sep file
+                try {
+                    this.outputStream = new DeflaterOutputStream(new FileOutputStream(game.map.id + ".player.sav"));
+                    this.output = new Output(this.outputStream);
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                }
+                game.server.getKryo().writeObject(this.output, new Network.PlayerData(game.player));
+                this.output.close();
+
                 System.out.println("Done.");
             }
         }
@@ -1412,7 +1449,6 @@ class Route {
         for (Pokemon pkmn : this.pokemon) {
             usedPokemon.add(pkmn.name);
         }
-
         // below will add from allowed pkmn based on catchRate
         while (this.pokemon.size() < 4) { // 4 total pokemon in route
             randomNum = rand.nextInt(this.allowedPokemon.size()); // 0, 1, 2
@@ -1423,6 +1459,22 @@ class Route {
                 continue;
             }
             Pokemon tempPokemon = new Pokemon(pokemonName, this.level + randomLevel, Pokemon.Generation.CRYSTAL);
+            // Evolve as high as possible. Notch level up by 10 whenever evolved.
+            // (this makes it so that fully evolved pokemon are 'hazards')
+            String evolveTo = null;
+            int timesEvolved = 0;
+            for (int i=1; i <= tempPokemon.level; i++) {
+                if (Pokemon.gen2Evos.get(tempPokemon.name.toLowerCase()).containsKey(String.valueOf(i)) && 
+                    this.rand.nextInt(2) == 0) {
+                    evolveTo = Pokemon.gen2Evos.get(tempPokemon.name.toLowerCase()).get(String.valueOf(i));
+                    tempPokemon.evolveTo(evolveTo);
+                    timesEvolved++;
+                }
+            }
+            if (evolveTo != null) {
+                tempPokemon.level += 10*timesEvolved;
+                tempPokemon.exp = tempPokemon.gen2CalcExpForLevel(tempPokemon.level);
+            }
             usedPokemon.add(pokemonName);
             this.pokemon.add(tempPokemon);
 
@@ -1437,10 +1489,11 @@ class Route {
 //                this.pokemon.add(tempPokemon);
 //            }
         }
-        for (Pokemon pokemon : this.pokemon) {
-            System.out.println("curr route pokemon: "
-                    + String.valueOf(pokemon.name));
-        }
+        // TODO: debug, remove
+//        for (Pokemon pokemon : this.pokemon) {
+//            System.out.println("curr route pokemon: "
+//                    + String.valueOf(pokemon.name));
+//        }
     }
 
     // get next music. if random == true, get random one that isn't same as current
@@ -1584,6 +1637,7 @@ class Tile {
 
     Sprite sprite;
     Sprite overSprite; // ledges
+    String hasItem;  // if not null, has item on this square
 
     // route that this tile belongs to
     // used to signal movement to new routes
@@ -1605,6 +1659,20 @@ class Tile {
 
     // for when you collect items from this tile
     HashMap<String, Integer> items = new HashMap<String, Integer>();
+
+    /**
+     * Factory method. Useful when loading from file, and need to create Tile subclasses for some Tiles.
+     * @see TrainerTipsTile
+     * 
+     * TODO: I kind of regret doing it this way. Should have just made an 'if' block in Tile's onPressA,
+     * added TrainerTipsTile fields here and called it good.
+     */
+    public static Tile get(Network.TileData tileData, Route routeBelongsTo) {
+        if (tileData.tileNameUpper.contains("sign")) {
+            return new TrainerTipsTile(tileData.pos.cpy(), routeBelongsTo, tileData.isUnown, tileData.message);
+        }
+        return new Tile(tileData.tileName, tileData.tileNameUpper, tileData.pos.cpy(), true, routeBelongsTo);
+    }
 
     public Tile(String tileName, String nameUpper, Vector2 pos) {
         this(tileName, nameUpper, pos, false);
@@ -1987,6 +2055,9 @@ class Tile {
             this.attrs.put("cuttable", true);
             this.attrs.put("headbuttable", true);
             this.items.put("logs", 1);
+            String[] items = {"black apricorn", "blue apricorn", "green apricorn", "pink apricorn",
+                              "red apricorn", "white apricorn", "yellow apricorn"};
+            this.items.put(items[Game.staticGame.map.rand.nextInt(items.length)], 1);
         } else if (tileName.equals("bush2")) {
             Texture playerText;
             playerText = TextureCache.get(Gdx.files.internal("tiles/bush2_color.png"));
@@ -2122,6 +2193,10 @@ class Tile {
             if (this.nameUpper.equals("bush2_color")) {
                 this.attrs.put("headbuttable", true);
             }
+            if (this.nameUpper.equals("pokeball1")) {
+                this.attrs.put("solid", true);
+                this.hasItem = "poké ball";
+            }
         }
 
         this.sprite.setPosition(pos.x, pos.y);
@@ -2129,17 +2204,106 @@ class Tile {
             this.overSprite.setPosition(pos.x, pos.y);
         }
     }
+
     public Tile(String tileName, Vector2 pos) {
         this(tileName, "", pos);
     }
+
     public Tile(String tileName, Vector2 pos, boolean color) {
         this(tileName, "", pos, color, null);
     }
+
     public Tile(String tileName, Vector2 pos, boolean color, Route routeBelongsTo) {
         this(tileName, "", pos, color, routeBelongsTo);
     }
+
     public void onPressA(Game game) {
+        if (this.hasItem != null) {
+            // remove upper part of tile and put pokeball in inventory
+            this.overSprite = null;
+            this.nameUpper = "";
+            this.attrs.put("solid", false);
+            game.playerCanMove = false;
+            int amount = 1;
+            if (game.player.itemsDict.containsKey(this.hasItem)) {
+                amount += game.player.itemsDict.get(this.hasItem);
+            }
+            game.player.itemsDict.put(this.hasItem, amount);
+            game.insertAction(new DisplayText(game, "Found a "+this.hasItem.toUpperCase()+"!", "fanfare1.ogg", null,
+                              new SetField(game, "playerCanMove", true,
+                              null)));
+            this.hasItem = null;
+        }
+
     }
+
     public void onWalkOver() {
+    }
+}
+
+/**
+ * Sign that displays 'trainer tips' text to player.
+ */
+class TrainerTipsTile extends Tile {
+    public static ArrayList<String> messages = new ArrayList<String>();
+    static {
+        TrainerTipsTile.initMessages();
+    }
+    // TODO: hint about foresight making ghosts catchable, once that's done.
+    String message = "";
+    // TODO: current idea is there is always 1 unown sign per map. will need post-processing in 
+    // genforest2 to set one to isUnown=true
+    boolean isUnown;
+
+    public TrainerTipsTile(Vector2 pos, Route route) {
+        // TODO: post-processing to set one tile to be unown tile.
+        // probably should be limited to large maps, or something, otherwise puzzle might be too easy.
+        this(pos, route, false, "");
+    }
+
+    public TrainerTipsTile(Vector2 pos, Route route, boolean isUnown, String message) {
+        super("sand1", "sign1", pos, true, route);
+        this.isUnown = isUnown;
+        this.message = message;
+        if (this.message.equals("")) {
+            // the point of grabbing a message and discarding is to try to reduce the number of repeat messages
+            // located close together.
+            if (TrainerTipsTile.messages.size() <= 0) {
+                TrainerTipsTile.initMessages();
+            }
+            this.message = TrainerTipsTile.messages.get(Game.staticGame.map.rand.nextInt(TrainerTipsTile.messages.size()));
+            TrainerTipsTile.messages.remove(this.message);
+        }
+    }
+
+
+    public static void initMessages() {
+        TrainerTipsTile.messages.clear();
+        TrainerTipsTile.messages.add("You can craft POKéBALLS out of Apricorns at a campfire.");
+        TrainerTipsTile.messages.add("If you white out during battle, you will return to the last place you used a sleeping bag.");
+        TrainerTipsTile.messages.add("Using a sleeping bag will slowly restore your party' hp.");
+        TrainerTipsTile.messages.add("Ghosts will chase you at night, but remember! A campfire will deter them.");
+        TrainerTipsTile.messages.add("Use CUT on trees and tall grass to get building materials.");
+    }
+
+    @Override
+    public void onPressA(Game game) {
+        game.playerCanMove = false;
+        if (this.isUnown) {
+            DisplayText.unownText = true;  // makes text look glitchy
+            game.map.unownSpawn = this;  // TODO: probably don't need this anymore.
+            game.currMusic.pause();
+            Music music = Gdx.audio.newMusic(Gdx.files.internal("music/unown1.ogg"));
+            music.setLooping(true);
+            music.setVolume(1f);
+            game.currMusic = music;
+            game.currMusic.play();
+            this.isUnown = false;
+        }
+        game.insertAction(new DisplayText(game, "TRAINER TIPS!    ", null, null,
+                          new DisplayText.Clear(game,
+                          new DisplayText(game, this.message, null, null,
+                          new SetField(game, "playerCanMove", true,
+                          null)))));
     }
 }

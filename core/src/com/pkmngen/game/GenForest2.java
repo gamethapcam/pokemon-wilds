@@ -1309,7 +1309,7 @@ public class GenForest2 extends Action {
  // from entrance to exit
 
 class GenIsland1 extends Action {
-    public int layer = 120;
+    public int layer = 0;
     ArrayList<Vector2> freePositions;
 
     // ArrayList<Tile> tilesToAdd;
@@ -1329,8 +1329,8 @@ class GenIsland1 extends Action {
     Random rand;
 
     public GenIsland1(Game game, Vector2 origin, int radius) {
-        this.origin = origin;
         this.radius = radius;
+        this.origin = origin;
 
         this.rand = new Random();
         this.tilesToAdd = new HashMap<Vector2, Tile>();
@@ -1350,13 +1350,14 @@ class GenIsland1 extends Action {
         ArrayList<Tile> endPoints = ApplyBlotchMountain(game, originTile, maxDist, mtnTiles);
         for (Tile tile : endPoints) {
               // TODO: this might be fixed, test
-            Route blotchRoute = new Route("forest1", 22); // TODO: mem usage too high
+            Route blotchRoute = new Route("forest1", 40); // TODO: mem usage too high
             // TODO: maxDist/6 is too big I think for some islands.
             // maxDist/6 for 100x100 island, it looked pretty good.
             // maxDist/10 for 100x180 island
             // maxDist/14 for 100x350 island
-            // maxDist/17 for 100x500 island
+            // maxDist/18 for 100x500 island
             // TODO: could try adding more layers to mountains for larger islands.
+            // TODO: maxDist/18 is actually working pretty well for most sizes.
             ApplyBlotch(game, "island", tile, maxDist/18, this.tilesToAdd, 1, true, blotchRoute); 
         }
         this.tilesToAdd.putAll(mtnTiles);
@@ -1570,7 +1571,12 @@ class GenIsland1 extends Action {
 //        int isMaze = 1; // this.rand.nextInt(2);
         isMaze = 1; // this.rand.nextInt(2);
         HashMap<Vector2, Tile> forestMazeTiles = new HashMap<Vector2, Tile>();
-//        Route beachRoute = new Route("beach1", 5);
+
+        //      int newSize = this.rand.nextInt(maxDist + (int)(maxDist/1.5f));  // size varies a lot, but looks good
+          // has a tendency to snake, but looks good
+        //  int newSize = maxDist - this.rand.nextInt((int)Math.ceil(maxDist/4f)); // was doing
+        int newSize = maxDist - this.rand.nextInt((int)Math.ceil(maxDist/4f)) - maxDist/4;
+        //  System.out.println(prevTile.position);
 
         while (!edgeTiles.isEmpty()) {
             for (Tile tile : new ArrayList<Tile>(edgeTiles.values())) {
@@ -1632,10 +1638,21 @@ class GenIsland1 extends Action {
                                         tempRoute.pokemon.add(new Pokemon("Exeggcute", 10+this.rand.nextInt(4), Pokemon.Generation.CRYSTAL));
                                     }
                                     // TODO: probably will just make puddles spawn pokemon, not sure
-//                                    if (this.rand.nextInt(2) == 0) {
-//                                        ApplyBlotch(game, "grass_sand", newTile, 35, grassTiles, 0, false, beachRoute);
-//                                    }
-                                    newTile = new Tile("tree5", edge, true, tempRoute);
+                                    if (this.rand.nextInt(2) == 0) {
+                                        ApplyBlotch(game, "grass_sand", newTile, 35, grassTiles, 0, false, new Route("beach1", 5));
+                                    }
+                                    // small chance this becomes a trainer-tips sign
+                                    // TODO: they are a little too prolific on large maps
+                                    if (this.rand.nextInt(10) == 0) {
+                                        newTile = new TrainerTipsTile(edge, tempRoute);
+                                    }
+                                    else {
+                                        newTile = new Tile("tree5", edge, true, tempRoute);
+                                    }
+                                }
+                                // spawn pokeball items
+                                else if (isRock <= maxDist + maxDist/2 && isGrass < maxDist - maxDist/4 && this.rand.nextInt(200) == 0) {
+                                    newTile = new Tile(newTile.name, "pokeball1", edge, true, currRoute);
                                 }
                                 if (isMaze == 0) {
                                     int isTree = this.rand.nextInt(maxDist/4) + (int)distance;
@@ -1661,7 +1678,20 @@ class GenIsland1 extends Action {
                                     if (maxDist > 600) {
                                         nextSize = 80;
                                     }
-                                    ApplyBlotch(game, "grass", newTile, nextSize, grassTiles, 0, false, currRoute);
+                                    // TODO: debug, remove
+//                                    System.out.println(newTile.position.dst(0, 0));
+//                                    System.out.println(this.radius);
+                                    int level = (int)(60*(1-(newTile.position.dst(this.origin) / (this.radius/12))));
+                                    // If this is right next to the shore, 'nerf' the level
+                                    if (newSize <= 0) {
+                                        level -= 20;
+                                        if (level <= 10) {
+                                            level = 10;
+                                        }
+                                    }
+//                                    System.out.println((1-(newTile.position.dst(this.origin) / (this.radius/12))));
+                                    Route blotchRoute = new Route("forest1", level);
+                                    ApplyBlotch(game, "grass", newTile, nextSize, grassTiles, 0, false, blotchRoute);
                                 }
                                 tilesToAdd.put(newTile.position.cpy(), newTile);
                                 edgeTiles.put(newTile.position.cpy(), newTile);
@@ -1870,11 +1900,6 @@ class GenIsland1 extends Action {
         }
 
         // origin changes to new spot
-//            int newSize = this.rand.nextInt(maxDist + (int)(maxDist/1.5f));  // size varies a lot, but looks good
-        // has a tendency to snake, but looks good
-//        int newSize = maxDist - this.rand.nextInt((int)Math.ceil(maxDist/4f)); // was doing
-        int newSize = maxDist - this.rand.nextInt((int)Math.ceil(maxDist/4f)) - maxDist/4;
-//        System.out.println(prevTile.position);
         System.out.println(newSize);
         if (newSize <= 0) {
             return;
@@ -1883,6 +1908,9 @@ class GenIsland1 extends Action {
         // todo: param
         int randInt = 1;  // previous behavior, keeping for now
 //        int randInt = this.rand.nextInt(3) + 1;
+        // TODO: test
+        int[] vals = {1, 1, 1, 1, 2};
+        randInt = vals[this.rand.nextInt(vals.length)];
         if (prevTiles.size() < randInt) {
             randInt = prevTiles.size();
         }
@@ -1893,7 +1921,14 @@ class GenIsland1 extends Action {
         if (type.equals("island") && doNext) {
             for (int i=0; i < randInt; i++) {
                 tilesToAdd.put(prevTiles.get(next).position.cpy(), prevTiles.get(next));
+                // TODO: remove once tested
                 ApplyBlotch(game, "island", prevTiles.get(next), newSize, nextIslandTiles, 1, true, currRoute);
+//                int level = currRoute.level - (int)(10*(1f-(newSize/maxDist)));
+//                if (level <= 5) {
+//                    level = 5;
+//                }
+//                Route newRoute = new Route("forest1", currRoute.level-10);
+//                ApplyBlotch(game, "island", prevTiles.get(next), newSize, nextIslandTiles, 1, true, newRoute);
                 next += this.rand.nextInt(prevTiles.size() -next) + next;
                 if (next >= prevTiles.size()) {
                     break;
@@ -1907,7 +1942,8 @@ class GenIsland1 extends Action {
             if (tilesToAdd.containsKey(tile.position)) {
                 if ((tilesToAdd.get(tile.position).name.equals("sand1") ||
                      tilesToAdd.get(tile.position).name.equals("rock1") ||
-                     tilesToAdd.get(tile.position).name.equals("tree5")) &&
+                     tilesToAdd.get(tile.position).name.equals("tree5") ||
+                     tilesToAdd.get(tile.position).name.equals("grass_sand1")) &&
                     !tile.name.equals("sand1")) {
                     tilesToAdd.put(tile.position.cpy(), tile);
                 }
@@ -2277,10 +2313,14 @@ class GenIsland1 extends Action {
             if (this.rand.nextInt((int)Math.ceil(1f/(1f/((maxDist)/500f)))) == 1) {
                 float distance = tile.position.dst(originTile.position);
                 if (distance < 1*maxDist/40) {
-                    ApplyBlotch(game, "mtn_snow1", tile, maxDist/200, mtnTiles2, 0, false, snowRoute);
+                    int level = (int)(60*(1-(tile.position.dst(this.origin) / (this.radius/12))));
+                    Route blotchRoute = new Route("snow1", level);
+                    ApplyBlotch(game, "mtn_snow1", tile, maxDist/200, mtnTiles2, 0, false, blotchRoute);
                 }
                 else {
-                    ApplyBlotch(game, "mtn_green1", tile, maxDist/200, mtnTiles2, 0, false, mtnRoute);
+                    int level = (int)(60*(1-(tile.position.dst(this.origin) / (this.radius/12))));
+                    Route blotchRoute = new Route("mountain1", level);
+                    ApplyBlotch(game, "mtn_green1", tile, maxDist/200, mtnTiles2, 0, false, blotchRoute);
                 }
 
             }
@@ -2304,7 +2344,9 @@ class GenIsland1 extends Action {
         return endPoints;
     }
 
-    public int getLayer(){return this.layer;}
+    public int getLayer(){
+        return this.layer;
+    }
 
     @Override
     public void step(Game game) {
@@ -2324,6 +2366,7 @@ class GenIsland1 extends Action {
 //                System.out.println("startLoc");
 //                System.out.println(startLoc);
                 game.player.position.set(startLoc);
+                game.player.spawnLoc.set(startLoc);
                 game.cam.position.set(startLoc.x+16, startLoc.y, 0);
 
                 return;

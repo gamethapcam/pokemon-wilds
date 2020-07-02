@@ -47,20 +47,34 @@ class AfterFriendlyFaint extends Action {
         // TODO: network code for this doesn't work yet.
         if (hasAlivePokemon) {
             game.insertAction(new DisplayText.Clear(game,
-                                             new WaitFrames(game, 3,
-                                             new DrawPokemonMenu.Intro(
-                                             new DrawPokemonMenu(game,
-                                             null)))));
+                              new WaitFrames(game, 3,
+                              new DrawPokemonMenu.Intro(
+                              new DrawPokemonMenu(game,
+                              null)))));
             return;
         }
-        game.insertAction(new DisplayText(game, ""+game.player.name.toUpperCase()+" is out of useable POKéMON!", null, null,
-                                         new DisplayText(game, ""+game.player.name.toUpperCase()+" whited out!", null, null,
-                                         new SplitAction(
-                                             new BattleFadeOut(game,
-                                             new DoneWithDemo(game)),
-//                                         new BattleFadeOutMusic(game,  // TODO: re-enable
-                                         null
-                                         ))));
+        // Restore hp to half
+        for (Pokemon pokemon : game.player.pokemon) {
+            pokemon.currentStats.put("hp", pokemon.maxStats.get("hp")/2);
+        }
+        BattleFadeOut.whiteScreen = true;
+        game.insertAction(new DisplayText.Clear(game,
+                          new WaitFrames(game, 3,new DisplayText(game, ""+game.player.name.toUpperCase()+" is out of useable POKéMON!", null, null,
+                          new DisplayText(game, ""+game.player.name.toUpperCase()+" whited out!", null, null,
+                          // TODO: remove
+//                          new SplitAction(
+//                              new BattleFadeOut(game,
+//                              new DoneWithDemo(game)),
+                          new SetField(game.player, "position", game.player.spawnLoc.cpy(),
+                          new SetField(game.player, "dirFacing", "down",
+                          new SetField(game.player, "currSprite", game.player.standingSprites.get("down"),
+                          new Game.SetCamPos(game.player.spawnLoc.cpy().add(16, 0),
+                          new SplitAction(new BattleFadeOut(game, 4,
+                                                            null),
+                          new BattleFadeOutMusic(game,
+                          new DisplayText(game, "Weary from battle, you flee to the last known safe place...", null, null,
+                          new BattleFadeOut.WhiteScreen(false,
+                          null)))))))))))));
     }
 
 }
@@ -1809,16 +1823,16 @@ public class Battle {
     // dupe of a fn in draw safari menu action, put here bc the one in safari menu has demo code
     @Deprecated
     public static Action calcIfCaught(Game game, Action nextAction) {
-    
+
         // using http:// bulbapedia.bulbagarden.net/wiki/Catch_rate#Capture_method_.28Generation_I.29
          // also use http:// www.dragonflycave.com/safarizone.aspx
         // not sure where 'ball used' will be stored. probly some inventory location, like currItem (in inventory)
-    
+
         int maxRand = 150; // different per-ball
         int randomNum = game.map.rand.nextInt(maxRand+1); //+1 to include upper bound
         int statusValue = 0; // different depending on oppPokemon's status
         boolean breaksFree = false;
-    
+
         int ball = 15; // 8 if great ball
         // demo code
         int adrenaline = game.player.adrenaline;
@@ -1828,9 +1842,9 @@ public class Battle {
         // ball = ball - adrenaline;
         int modFactor = 100;// 128; - want 5 adr to catch all easy, but not medium or hard.
         int f = (int)Math.floor((game.battle.oppPokemon.currentStats.get("catchRate") * 255 * 4) / (modFactor*ball)); // modify 128 to make game harder
-    
+
         // int f = (int)Math.floor((game.battle.oppPokemon.maxStats.get("hp") * 255 * 4) / (game.battle.oppPokemon.currentStats.get("hp") * ball));
-    
+
         // left out calculation here based on status values
          // demo - leave out status value
         // notes - adr seems to take effec too fast. also, pkmn in general are too hard to catch
@@ -1841,11 +1855,11 @@ public class Battle {
         }
         else {
             int randomNum_M = game.map.rand.nextInt(255+1);
-    
-    
+
+
             // randomNum_M = randomNum_M - adrenaline*20;
-    
-    
+
+
             if (f+(adrenaline*10) >= randomNum_M) { // demo code
                 breaksFree = false;
             }
@@ -1854,12 +1868,12 @@ public class Battle {
             }
             System.out.println("(randomNum_M / f / adr): ("+String.valueOf(randomNum_M)+" / "+String.valueOf(f)+" / +"+String.valueOf(adrenaline*10)+")");
         }
-    
+
         // simplify and put above
         if (breaksFree == false) { // ie was caught
             return new CatchPokemonWobblesThenCatch(game, nextAction);
         }
-    
+
         // else, ie breaksFree = true
         int d = game.battle.oppPokemon.currentStats.get("catchRate") * 100 / maxRand;
                 //, where the value of Ball is 255 for the Poké Ball, 200 for the Great Ball, or 150 for other balls
@@ -1867,10 +1881,10 @@ public class Battle {
             // shake 3 times before breaking free
             return new CatchPokemonWobbles3Times(game, new PrintAngryEating(game, new ChanceToRun(game, nextAction) ) );
         }
-    
+
         int s = 0;// status thing again
         int x = d * f / 255 + s;
-    
+
         if (x < 10) {
             // ball misses
             return new CatchPokemonMiss(game, new PrintAngryEating(game, new ChanceToRun(game, nextAction) ) );
@@ -1884,10 +1898,10 @@ public class Battle {
             return new CatchPokemonWobbles2Times(game, new PrintAngryEating(game, new ChanceToRun(game, nextAction) ) );
         }
         // ball shakes three times before pkmn gets free
-    
+
         // System.out.println("x: "+String.valueOf(x));
         // System.out.println("Shake three times: "+String.valueOf(x));
-    
+
         return new CatchPokemonWobbles3Times(game, new PrintAngryEating(game, new ChanceToRun(game, nextAction) ) );
     }
 
@@ -1975,7 +1989,7 @@ public class Battle {
         // TODO: the non-loaded ones are broken now, need to do DisplayText.Clear()
         int power = 40;
         int accuracy = 100;
-    
+
         if (attack.name.equals("Aurora Beam")) {
             // normally return new attack here
             power = 65; accuracy = 100;
@@ -2169,7 +2183,7 @@ public class Battle {
             attackAction.append(nextAction);
             return attackAction;
         }
-    
+
         if (isFriendly) {
             return new Attack.Default(game, power, accuracy, nextAction);
         }
@@ -2189,7 +2203,7 @@ public class Battle {
     public static Action getIntroAction(Game game) {
         // If player has no pokemon, encounter is safari zone style
         if (game.player.pokemon.isEmpty()) {
-    
+
             return new SplitAction(new BattleIntro(
                                    new BattleIntroAnim1(
                                    new SplitAction(new DrawBattle(game),
@@ -2874,8 +2888,9 @@ public class Battle {
                         // Get run result from server
                         numWobbles = turnData.numWobbles;
                     }
-                    System.out.println("numWobbles");
-                    System.out.println(numWobbles);
+                    // TODO: remove
+//                    System.out.println("numWobbles");
+//                    System.out.println(numWobbles);
                     // TODO: refactors, stop using catchAction, catchPokemon_wigglesThenCatch needs to insert nextAction
                     // currently it just ignores nextAction.
                     Action catchAction;
@@ -3012,7 +3027,7 @@ public class Battle {
             if (game.type != Game.Type.CLIENT) {
                 // set up enemy attack
                 String attackChoice = game.battle.oppPokemon.attacks[game.map.rand.nextInt(game.battle.oppPokemon.attacks.length)];
-                if (attackChoice.equals("-")) {
+                if (attackChoice == null) {
                     attackChoice = "Struggle";
                 }
                 enemyAttack = game.battle.attacks.get(attackChoice.toLowerCase());
@@ -3120,7 +3135,7 @@ public class Battle {
         public int layer = 110;
         String name;
         HashMap<Integer, String> metadata = new HashMap<Integer, String>();
-   
+ 
         Music sound;
         int frameNum = 1;
         Texture currText;
@@ -3149,12 +3164,12 @@ public class Battle {
             this.nextAction = nextAction;
         }
         public String getCamera() {return "gui";}
-   
+ 
         public int getLayer(){return this.layer;}
-   
+ 
         @Override
         public void step(Game game) {
-   
+ 
             if (this.firstStep) {
                 // load metadata for each frame
                 // ex: player_healthbar_gone -> means to make player's healthbar transparent during this frame
@@ -3189,7 +3204,7 @@ public class Battle {
                 this.enemySpriteOrigin = new Vector2(game.battle.oppPokemon.sprite.getX(),
                                                      game.battle.oppPokemon.sprite.getY());
             }
-   
+ 
             // reset vars at beginning
             DrawEnemyHealth.shouldDraw = true;
             DrawFriendlyHealth.shouldDraw = true;
@@ -3200,13 +3215,13 @@ public class Battle {
             game.player.currPokemon.backSprite.setPosition(this.playerSpriteOrigin.x, this.playerSpriteOrigin.y);
             game.battle.oppPokemon.sprite.setPosition(this.enemySpriteOrigin.x, this.enemySpriteOrigin.y);
             game.uiBatch.setTransformMatrix(new Matrix4(new Vector3(0,0,0), new Quaternion(), new Vector3(1,1,1)));
-   
+ 
             // if next frame doesn't exist in animation, return
             FileHandle filehandle = Gdx.files.internal("attacks/" + this.name + "/output/frame-" + String.format("%03d", this.frameNum) + ".png");
             if (!filehandle.exists()) {
                 game.actionStack.remove(this);
                 game.insertAction(this.nextAction);
-   
+ 
                 // TODO: need new actions not v effective, super eff, etc
    //                if (this.target == game.player.currPokemon) {
    //                    game.insertAction(new DefaultEnemyAttack(game.battle.oppPokemon, game.player.currPokemon, this.power, this.accuracy, this.nextAction));
@@ -3218,7 +3233,7 @@ public class Battle {
             }
             EvolutionAnim.drawPostEvoBottom = false;
             EvolutionAnim.drawPostEvoTop = false;
-   
+ 
             // draw water effect if present
             if (this.metadata.containsKey(this.frameNum)) {
                 String properties = this.metadata.get(this.frameNum);
@@ -3277,7 +3292,7 @@ public class Battle {
                             newPixmap.drawPixel(x, 144-targetY, Color.rgba8888(color));
                         }
                     }
-   
+ 
                     Sprite drawSprite = new Sprite(new Texture(newPixmap));
                     drawSprite.flip(false, true); // pixmaps are flipped for some reason
    //                    Sprite drawSprite = new Sprite(new Texture(this.pixmap));
@@ -3287,12 +3302,12 @@ public class Battle {
    //                    drawSprite.draw(game.floatingBatch);
                 }
             }
-   
+ 
             // draw current frame
             this.currText = new Texture(filehandle);
             this.currFrame = new Sprite(this.currText, 0, 0, 160, 144);
             this.currFrame.draw(game.uiBatch);
-   
+ 
             // handle metadata
             if (this.metadata.containsKey(this.frameNum)) {
                 String properties = this.metadata.get(this.frameNum);
@@ -3342,10 +3357,10 @@ public class Battle {
                     EvolutionAnim.playSound = true;
                 }
             }
-   
+ 
             this.frameNum++;
         }
-   
+ 
     }
 
     class Network {
@@ -3418,9 +3433,12 @@ class BattleAnimPositionPlayers extends Action {
             moves_relative.add(new Vector2(2,0));
         }
 
-        game.player.battleSprite.setPosition(175+1-8-2,71+1-10);//(3*175+1,3*71+1);
-        // game.player.battleSprite.setScale(6);
-        game.player.battleSprite.setScale(2);
+
+        // TODO: this worked for the gen1 backSprite
+        // somehow preserve this if player is doing Gen 1 style battle?
+//        game.player.battleSprite.setPosition(175+1-8-2, 71+1-10);//(3*175+1,3*71+1);
+//        game.player.battleSprite.setScale(2);
+        game.player.battleSprite.setPosition(162, 49);
 
         game.battle.oppPokemon.sprite.setPosition(-30-4-1-14,106+2-5-15);//(3*-30,3*106+2); // TODO - x and y pos not correct...
         // note - i think my previous x was off by 1/3 a pixel, b/c val wasn't divisible by 3.
@@ -3460,27 +3478,34 @@ class BattleAnimPositionPlayers extends Action {
 class BattleFadeOut extends Action {
     ArrayList<Sprite> frames;
     Sprite frame;
+    int speed = 1;
+    public static boolean whiteScreen = false;
 
     public int layer = 129;
-    public BattleFadeOut(Game game, Action nextAction) {
-        this.nextAction = nextAction;
 
+    public BattleFadeOut(Game game, Action nextAction) {
+        this(game, 1, nextAction);
+    }
+
+    public BattleFadeOut(Game game, int speed, Action nextAction) {
+        this.nextAction = nextAction;
+        this.speed = speed;
         this.frames = new ArrayList<Sprite>();
 
         // fade out from white anim
         Texture text1 = new Texture(Gdx.files.internal("battle/intro_frame6.png"));
         Sprite sprite1 = new Sprite(text1);
-        for (int i=0; i < 14; i++) {
+        for (int i=0; i < 14*this.speed; i++) {
             this.frames.add(sprite1);
         }
         text1 = new Texture(Gdx.files.internal("battle/intro_frame5.png"));
         sprite1 = new Sprite(text1);
-        for (int i=0; i < 8; i++) {
+        for (int i=0; i < 8*this.speed; i++) {
             this.frames.add(sprite1);
         }
         text1 = new Texture(Gdx.files.internal("battle/intro_frame4.png"));
         sprite1 = new Sprite(text1);
-        for (int i=0; i < 8; i++) {
+        for (int i=0; i < 8*this.speed; i++) {
             this.frames.add(sprite1);
         }
     }
@@ -3515,8 +3540,27 @@ class BattleFadeOut extends Action {
             // map version
             // game.batch.draw(this.frame, 16, -16);
         }
+        // Used after player is out of pokemon, and want to draw white screen.
+        if (BattleFadeOut.whiteScreen) {
+            return;
+        }
 
         frames.remove(0);
+    }
+
+    public static class WhiteScreen extends Action {
+        boolean whiteScreen;
+
+        public WhiteScreen(boolean whiteScreen, Action nextAction) {
+            this.whiteScreen = whiteScreen;
+        }
+
+        @Override
+        public void step(Game game) {
+            BattleFadeOut.whiteScreen = this.whiteScreen;
+            game.actionStack.remove(this);
+            game.insertAction(this.nextAction);
+        }
     }
 }
 
@@ -4819,42 +4863,41 @@ class DrawAttacksMenu extends Action {
     public static int curr = 0;
     Sprite arrow;
     Sprite arrowWhite;
-
     Sprite textBox;
     public int layer = 108;
-
-    Map<Integer, Vector2> getCoords;
-
+    Map<Integer, Vector2> coords;
     Vector2 newPos;
     Sprite helperSprite;
     ArrayList<ArrayList<Sprite>> spritesToDraw;
     int cursorDelay; // this is just extra detail. cursor has 2 frame delay before showing in R/B
+
     public DrawAttacksMenu(Action nextAction) {
         this.nextAction = nextAction;
         this.cursorDelay = 0;
-
-        this.getCoords = new HashMap<Integer, Vector2>();
+        this.coords = new HashMap<Integer, Vector2>();
         this.spritesToDraw = new ArrayList<ArrayList<Sprite>>();
-
         Texture text = new Texture(Gdx.files.internal("battle/arrow_right1.png"));
         this.arrow = new Sprite(text, 0, 0, 5, 7);
-        // this.arrow.setScale(3); // post scaling change
 
         // text box bg
         text = new Texture(Gdx.files.internal("attack_menu/attack_screen1.png"));
         this.textBox = new Sprite(text, 0,0, 16*10, 16*9);
 
-        this.getCoords.put(0, new Vector2(41, 32));
-        this.getCoords.put(1, new Vector2(41, 24));
-        this.getCoords.put(2, new Vector2(41, 16));
-        this.getCoords.put(3, new Vector2(41, 8));
+        this.coords.put(0, new Vector2(41, 32));
+        this.coords.put(1, new Vector2(41, 24));
+        this.coords.put(2, new Vector2(41, 16));
+        this.coords.put(3, new Vector2(41, 8));
 
+        // TODO: remove
         // this.newPos =  new Vector2(32, 79); // post scaling change
-        this.newPos =  new Vector2(41, 32);
-        this.arrow.setPosition(newPos.x, newPos.y);
+//        this.newPos =  new Vector2(41, 32);
+//        this.arrow.setPosition(newPos.x, newPos.y);
 
         // convert pokemon attacks to sprites
         for (String attack : Game.staticGame.player.currPokemon.attacks) {
+            if (attack == null) {
+                attack = "-";
+            }
             char[] textArray = attack.toUpperCase().toCharArray(); // iterate elements
             Sprite currSprite;
             int i = 0;
@@ -4889,6 +4932,13 @@ class DrawAttacksMenu extends Action {
 //        text = new Texture(Gdx.files.internal("attack_menu/helper2.png"));
 //        this.helperSprite = new Sprite(text, 0,0, 16*10, 16*9);
     }
+
+    @Override
+    public void firstStep(Game game) {
+        this.newPos = this.coords.get(DrawAttacksMenu.curr);
+        this.arrow.setPosition(this.newPos.x, this.newPos.y);
+    }
+
     public String getCamera() {return "gui";}
 
     public int getLayer(){return this.layer;}
@@ -4901,14 +4951,14 @@ class DrawAttacksMenu extends Action {
         if (InputProcessor.upJustPressed) {
             if (DrawAttacksMenu.curr != 0) {
                 DrawAttacksMenu.curr -= 1;
-                newPos = getCoords.get(DrawAttacksMenu.curr);
+                newPos = coords.get(DrawAttacksMenu.curr);
             }
-
         }
         else if (InputProcessor.downJustPressed) {
-            if (DrawAttacksMenu.curr != 3) {
+            if (DrawAttacksMenu.curr < game.player.currPokemon.attacks.length &&
+                game.player.currPokemon.attacks[DrawAttacksMenu.curr+1] != null) {
                 DrawAttacksMenu.curr += 1;
-                newPos = getCoords.get(DrawAttacksMenu.curr);
+                newPos = coords.get(DrawAttacksMenu.curr);
             }
         }
 
@@ -5659,7 +5709,7 @@ class DrawEnemyHealth extends Action {
             // draw pkmn level bars
             int tensPlace = game.battle.oppPokemon.level/10;
             // System.out.println("level: "+String.valueOf(tensPlace));
-            Sprite tensPlaceSprite = game.textDict.get(Character.forDigit(tensPlace,10));
+            Sprite tensPlaceSprite = game.textDict.get(Character.forDigit(tensPlace, 10));
             game.uiBatch.draw(tensPlaceSprite, 40, 128);
 
             int offset = 0;
@@ -5668,7 +5718,7 @@ class DrawEnemyHealth extends Action {
             }
 
             int onesPlace = game.battle.oppPokemon.level % 10;
-            Sprite onesPlaceSprite = game.textDict.get(Character.forDigit(onesPlace,10));
+            Sprite onesPlaceSprite = game.textDict.get(Character.forDigit(onesPlace, 10));
             game.uiBatch.draw(onesPlaceSprite, 48+offset, 128);
 
             char[] textArray = game.battle.oppPokemon.name.toUpperCase().toCharArray();
@@ -5799,8 +5849,9 @@ class DrawFriendlyHealth extends Action {
     }
 }
 
-// draw item menu, used in overworld and battle
-// current version is just for overworld
+/**
+ * Draw item menu, used in overworld and battle.
+ */
 class DrawItemMenu extends MenuAction {
     // which item the player was viewing last
     public static int lastCurrIndex = 0;
@@ -6069,7 +6120,9 @@ class DrawItemMenu extends MenuAction {
 
 }
 
-// draw player menu, ie pokedex, pokemon, items, etc. only appears in overworld, ie not a battle menu
+/**
+ * Draw player menu, ie pokedex, pokemon, items, etc. only appears in overworld, ie not a battle menu
+ */
 class DrawPlayerMenu extends MenuAction {
     public static int lastIndex = 0;
     Sprite arrow;
@@ -6085,6 +6138,7 @@ class DrawPlayerMenu extends MenuAction {
     ArrayList<ArrayList<Sprite>> spritesToDraw;
     int cursorDelay; // this is just extra detail. cursor has 2 frame delay before showing in R/B
     String[] entries; // pokemon, items etc
+
     public DrawPlayerMenu(Game game, Action nextAction) {
         this.disabled = false;
         this.drawArrowWhite = false;
@@ -6317,9 +6371,7 @@ class DrawPlayerMenu extends MenuAction {
 class DrawPokemonMenu extends MenuAction {
     public static boolean drawChoosePokemonText = true;
     public static int avatarAnimCounter = 12;
-
     public static int currIndex = 0; // currently selected pokemon
-
     public static int lastIndex = 0;
     public int layer = 107;
     Sprite bgSprite;
@@ -6330,6 +6382,7 @@ class DrawPokemonMenu extends MenuAction {
     Sprite healthSprite;
     Vector2 newPos;
     Map<Integer, Vector2> arrowCoords;
+
     public DrawPokemonMenu(Game game, MenuAction prevMenu) {
         this.prevMenu = prevMenu;
 
@@ -6351,22 +6404,13 @@ class DrawPokemonMenu extends MenuAction {
         // cursor position based on lastIndex
         this.newPos = this.arrowCoords.get(DrawPokemonMenu.currIndex);
 
-        // TODO: debug, delete
-//        for (int i=0; i < game.player.pokemon.size(); i++) {
-//            System.out.println(game.player.pokemon.get(i).maxStats.get("hp"));
-//        }
-
         text = new Texture(Gdx.files.internal("battle/health1.png"));
         this.healthSprite = new Sprite(text, 0,0,1,2);
 
         text = new Texture(Gdx.files.internal("battle/battle_bg3.png"));
-        this.bgSprite = new Sprite(text, 0, 0, 16*10, 16*9);
-
-        // helper sprite
-//        text = new Texture(Gdx.files.internal("pokemon_menu/helper1.png"));
-//        Texture text = new Texture(Gdx.files.internal("pokemon_menu/helper2.png"));
-//        this.helperSprite = new Sprite(text, 0,0, 16*10, 16*9);
+        this.bgSprite = new Sprite(text, 8, 8, 16*10, 16*9);
     }
+
     public String getCamera() {return "gui";}
 
     public int getLayer(){return this.layer;}
@@ -6376,19 +6420,12 @@ class DrawPokemonMenu extends MenuAction {
         if (this.prevMenu != null) {
             this.prevMenu.step(game);
         }
-
         this.bgSprite.draw(game.uiBatch);
-
-        // draw helper sprite
-        // debug
-//        this.helperSprite.draw(game.floatingBatch);
-
         // 1 frame delay - delay when switching to new avatar
         // 6 frames first, 6 second
         // draw health bars
         for (int i=0; i < game.player.pokemon.size(); i++) {
             Pokemon currPokemon = game.player.pokemon.get(i);
-
             // animate current pokemon avatar
             if (i == DrawPokemonMenu.currIndex) {
                 if (DrawPokemonMenu.avatarAnimCounter >= 6) {
@@ -6543,11 +6580,13 @@ class DrawPokemonMenu extends MenuAction {
             return;
         }
         // player presses b, ie wants to go back
-        if (InputProcessor.bJustPressed) {
+        // if prevMenu == null that means player pokemon just fainted and player must
+        // send out another
+        // TODO: vgc plays error noise when this happens (attack_anims/test3.avi)
+        if (InputProcessor.bJustPressed && this.prevMenu != null) {
             DrawPokemonMenu.lastIndex = DrawPokemonMenu.currIndex;
             game.actionStack.remove(this);
-            game.insertAction(new DrawPokemonMenu.Outro(
-                                             this.prevMenu));
+            game.insertAction(new DrawPokemonMenu.Outro(this.prevMenu));
             return;
         }
     }
@@ -6639,20 +6678,20 @@ class DrawPokemonMenu extends MenuAction {
 
     static class SelectedMenu extends MenuAction {
         Sprite arrow;
-        Sprite textBox;
+        Sprite textBoxTop;
+        Sprite textBoxMiddle;
+        Sprite textBoxBottom;
         Pokemon pokemon;
-
         public int layer = 106;
         Map<Integer, Vector2> getCoords;
-
         int curr;
-
         Vector2 newPos;
         Sprite helperSprite;
         ArrayList<String> words; // menu items
         int textboxDelay = 0; // this is just extra detail. text box has 1 frame delay before appearing
+
         public SelectedMenu(MenuAction prevMenu, Pokemon pokemon) {
-            this.prevMenu = prevMenu; // previously visiting menu
+            this.prevMenu = prevMenu;
             this.pokemon = pokemon;
 
             this.getCoords = new HashMap<Integer, Vector2>();
@@ -6664,10 +6703,10 @@ class DrawPokemonMenu extends MenuAction {
             this.getCoords.put(2, new Vector2(97, 40-32 +16*numHms));
 
             int i = 3;
-            // add HMs from selected pokemon
+            // Add HMs from selected pokemon
             for (String hm : pokemon.hms) {
                 this.words.add(hm);
-                this.getCoords.put(i, new Vector2(97, 40-32-16 +16*i));
+                this.getCoords.put(i, new Vector2(97, 40-32 -16*(i-3)));
                 i++;
             }
 
@@ -6677,24 +6716,23 @@ class DrawPokemonMenu extends MenuAction {
 
             Texture text = new Texture(Gdx.files.internal("battle/arrow_right1.png"));
             this.arrow = new Sprite(text, 0, 0, 5, 7);
-            // this.arrow.setScale(3); // post scaling change
 
-            // text box bg
-            text = new Texture(Gdx.files.internal("pokemon_menu/selected_menu1.png"));
-            this.textBox = new Sprite(text, 0,0, 16*10, 16*9);
+            // text box background
+            text = new Texture(Gdx.files.internal("pokemon_menu/selected_menu_top.png"));
+            this.textBoxTop = new Sprite(text, 0,0, 71, 19);
+            text = new Texture(Gdx.files.internal("pokemon_menu/selected_menu_middle.png"));
+            this.textBoxMiddle = new Sprite(text, 0,0, 71, 16);
+            text = new Texture(Gdx.files.internal("pokemon_menu/selected_menu_bottom.png"));
+            this.textBoxBottom = new Sprite(text, 0,0, 71, 19);
 
             // this.newPos =  new Vector2(32, 79); // post scaling change
-            this.newPos =  new Vector2(97, 40);
+            this.newPos =  this.getCoords.get(0);
             this.arrow.setPosition(newPos.x, newPos.y);
             this.curr = 0;
-
-            // if you want to customize menu text, add to this.spritesToDraw here
-
-            // helper sprite
-//            text = new Texture(Gdx.files.internal("pokemon_menu/helper3.png"));
-//            this.helperSprite = new Sprite(text, 0,0, 16*10, 16*9);
+            // If you want to customize menu text, add to this.spritesToDraw here
         }
-        // maps menu selection to an action
+
+        // Maps menu selection to an action
         public Action getAction(Game game, String word, MenuAction prevMenu) {
             if (game.type == Game.Type.CLIENT) {
                 game.client.sendTCP(new com.pkmngen.game.Network.UseHM(game.player.network.id,
@@ -6779,36 +6817,41 @@ class DrawPokemonMenu extends MenuAction {
             }
 
             // check user input
-             //'tl' = top left, etc.
-             // modify position by modifying curr to tl, tr, bl or br
+            // 'tl' = top left, etc.
+            // modify position by modifying curr to tl, tr, bl or br
             if (InputProcessor.upJustPressed) {
                 if (curr > 0) {
                     curr -= 1;
-                    newPos = getCoords.get(curr);
+                    newPos = this.getCoords.get(curr);
                 }
             }
             else if (InputProcessor.downJustPressed) {
-                if (curr < 2) {
+                if (curr < this.words.size()-1) {
                     curr += 1;
-                    newPos = getCoords.get(curr);
+                    newPos = this.getCoords.get(curr);
                 }
             }
-
-            // draw text box
-            this.textBox.draw(game.uiBatch);
-
-            // debug
-//            helperSprite.draw(game.floatingBatch);
 
             // draw the menu items (stats, switch, cancel)
             Sprite letterSprite;
             for (int i=0; i < this.words.size(); i++) {
+                // Draw appropriate part of textBox
+                if (i == 0) {
+                    game.uiBatch.draw(this.textBoxTop, 89, 35 +16*(this.words.size()-3));
+                }
+                else if (i == this.words.size()-1) {
+                    game.uiBatch.draw(this.textBoxBottom, 89, 0);
+                }
+                else {
+                    game.uiBatch.draw(this.textBoxMiddle, 89, 19 +16*(this.words.size()-i-2));
+                }
+
                 String word = this.words.get(i);
                 for (int j=0; j < word.length(); j++) {
                     char letter = word.charAt(j);
                     // convert string to text
                     letterSprite = game.textDict.get(letter);
-                    game.uiBatch.draw(letterSprite, 104 +8*j, 40 -16*i);
+                    game.uiBatch.draw(letterSprite, 104 +8*j, 40 -16*(i-this.words.size()+3));
                     // todo: need to modify to shift words up if there are hms
                 }
             }
@@ -6827,19 +6870,17 @@ class DrawPokemonMenu extends MenuAction {
                 if ("CANCEL".equals(word)) {
                     DrawPokemonMenu.avatarAnimCounter = 12;
                     game.insertAction(new PlaySound("click1", null));
-
                     game.actionStack.remove(this);
                     game.insertAction(new DrawPokemonMenu.Outro(
                                                      this.prevMenu.prevMenu));
                     return;
                 }
                 else {
-                    Action action = getAction(game, word, this.prevMenu);
+                    Action action = this.getAction(game, word, this.prevMenu);
                     game.actionStack.remove(this);
                     game.insertAction(action);
                     return;
                 }
-
             }
             // player presses b, ie wants to go back
             else if (InputProcessor.bJustPressed) {
@@ -6976,7 +7017,7 @@ class DrawPokemonMenu extends MenuAction {
 //                text = new Texture(Gdx.files.internal("pokemon_menu/helper3.png"));
 //                this.helperSprite = new Sprite(text, 0,0, 16*10, 16*9);
             }
-public String getCamera() {return "gui";}
+            public String getCamera() {return "gui";}
 
             public int getLayer(){return this.layer;}
 
@@ -7232,7 +7273,7 @@ class DrawUseTossMenu extends MenuAction {
         if (InputProcessor.aJustPressed) {
             // perform the action based on which item selected
             game.actionStack.remove(this);
-            useItem(game, this.itemName);
+            this.useItem(game, this.itemName);
             return;
         }
         // player presses b, ie wants to go back
@@ -7257,19 +7298,58 @@ class DrawUseTossMenu extends MenuAction {
 //            game.insertAction(new DisplayText(game, textString, null, catchAction,
 //                              new ThrowPokeball(game,
 //                              catchAction)));
-//            
+//
 //        }
+        if (itemName.equals("sleeping bag")) {
+            // TODO: 'cant use this' text while in battle.
+            if (game.map.tiles.get(game.player.position.cpy().add(16,0)).attrs.get("solid") ||
+                game.map.tiles.get(game.player.position.cpy().add(16,0)).attrs.get("ledge")) {
+                this.disabled = true;
+                game.actionStack.remove(this);
+                game.insertAction(new DisplayText(game, "Not enough room!", null, false, true,
+                                  new SetField(this.prevMenu, "disabled", false,
+                                  this.prevMenu)));
+                return;
+            }
+            if (game.type == Game.Type.CLIENT) {
+                game.client.sendTCP(new com.pkmngen.game.Network.Sleep(game.player.network.id, true));
+            }
+            // Save this spot as next place to go to if player blacks out
+            // TODO: should require a house for this (probably)
+            game.player.spawnLoc.set(game.player.position);
+            game.playerCanMove = true;
+            game.player.acceptInput = false;
+            game.player.dirFacing = "right";
+            game.player.sleepingBagSprite.setPosition(game.player.position.x, game.player.position.y);
+            game.insertAction(new PlayerMoving(game, game.player, false,
+                              new SetField(game.player, "dirFacing", "left",
+                              new SetField(game.player, "currSprite", game.player.standingSprites.get("left"),
+                              new WaitFrames(game, 24,
+                              new SetField(game.player, "drawSleepingBag", true,
+                              new WaitFrames(game, 24,
+                              new PlayerMoving(game, game.player, true,
+                              new SetField(game.player, "isSleeping", true,
+                              null)))))))));
+            return;
+        }
         this.prevMenu.prevMenu.disabled = false;
         Action action = new SplitAction(new PlaySound("click1", null), null);
         if (game.type == Game.Type.CLIENT) {
             action.append(new Battle.WaitTurnData(game, null));
-            game.client.sendTCP(new com.pkmngen.game.Network.DoBattleAction(game.player.network.id, Battle.DoTurn.Type.ITEM, itemName));
+            game.client.sendTCP(new com.pkmngen.game.Network.DoBattleAction(game.player.network.id,
+                                                                            Battle.DoTurn.Type.ITEM,
+                                                                            itemName));
         }
         else {
             // Battle.DoTurn handles what to do with the item; it looks at game.battle.network.turnData.itemName
             // to know which item is being used.
             game.battle.network.turnData = new BattleTurnData();
             game.battle.network.turnData.itemName = itemName;
+        }
+        // deduct item from inventory
+        game.player.itemsDict.put(itemName, game.player.itemsDict.get(itemName)-1);
+        if (game.player.itemsDict.get(itemName) <= 0) {
+            game.player.itemsDict.remove(itemName);
         }
         action.append(new Battle.DoTurn(game, Battle.DoTurn.Type.ITEM, this.prevMenu.prevMenu));
         game.actionStack.remove(this);
@@ -7606,7 +7686,7 @@ class EvolutionAnim extends Action {
             game.actionStack.remove(this);
             // Actually evolve the pokemon
             // TODO: add this logic to network code
-            this.targetPokemon.Evolve(this.targetName);
+            this.targetPokemon.evolveTo(this.targetName);
         }
         this.timer++;
     }
@@ -8499,7 +8579,7 @@ class SpecialBattleMegaGengar extends Action {
             }
 
             game.player.battleSprite.setPosition(175+1-8-2,71+1-10);
-            game.player.battleSprite.setScale(2);
+//            game.player.battleSprite.setScale(2);  // TODO: this was for black-white sprite... not sure what to do.
             game.battle.oppPokemon.sprite.setPosition(-30-4-1-14,106+2-5-15);
 
             this.vertexShader = "attribute vec4 a_position;\n"
@@ -9009,7 +9089,7 @@ public String getCamera() {return "gui";}
             }
 
             game.player.battleSprite.setPosition(175+1-8-2,71+1-10);
-            game.player.battleSprite.setScale(2);
+//            game.player.battleSprite.setScale(2);
             game.battle.oppPokemon.sprite.setPosition(-30-4-1-14,106+2-5-15);
 
             this.vertexShader = "attribute vec4 a_position;\n"

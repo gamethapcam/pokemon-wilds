@@ -46,9 +46,10 @@ public class Game extends ApplicationAdapter {
     public BitmapFont font;
     public OrthographicCamera cam;
     Vector3 touchLoc = new Vector3();
-    boolean playerCanMove;  // TODO: migrate to game.player.canMove
+    public boolean playerCanMove;  // TODO: migrate to game.player.canMove
     Action displayTextAction;
     Vector2 currScreen;
+    boolean debugInputEnabled = false;  // pass 'dev' arg to enable this.
     Player player;
     PkmnMap map;
     Battle battle;
@@ -69,6 +70,15 @@ public class Game extends ApplicationAdapter {
     public Client client;
     public Server server;
     Type type;
+    
+    public Game(String[] args) {
+        super();
+        for (int i=0; i < args.length; i++) {
+            if (args[i].equals("dev")) {
+                this.debugInputEnabled = true;
+            }
+        }
+    }
 
     @Override
     public void create() {
@@ -95,8 +105,8 @@ public class Game extends ApplicationAdapter {
 
         this.player = new Player();
         this.battle = new Battle();
-        this.map = new PkmnMap("default");
-
+        // TODO: remove
+//        this.map = new PkmnMap("default");
         this.textDict = initTextDict();
 
         this.insertAction(new InputProcessor());  // Mux keyboard/mobile input to common button presses
@@ -112,6 +122,10 @@ public class Game extends ApplicationAdapter {
         uiBatch.dispose();
         for (Music music : this.loadedMusic.values()){
             music.dispose();
+        }
+        // save game
+        if (this.map != null) {
+            new PkmnMap.PeriodicSave(this).step(this);
         }
     }
 
@@ -153,16 +167,31 @@ public class Game extends ApplicationAdapter {
         }
         // Check network type (reset when pressed)
         if (Gdx.input.isKeyJustPressed(Input.Keys.M)) {
+            for (Action action : new ArrayList<Action>(this.actionStack)) {
+                if (DrawSetupMenu.class.isInstance(action)) {
+                    this.actionStack.remove(action);
+                }
+            }
+            this.start();
             // set up networking
             try {
-                initServer();
+                this.initServer();
             } catch (IOException e) {
                 e.printStackTrace();
             }
+            this.map.loadFromFile(this);  // load map if it exists already
+            this.insertAction(new ServerBroadcast(this));
+            this.insertAction(new PkmnMap.PeriodicSave(this));
         } else if (Gdx.input.isKeyJustPressed(Input.Keys.N)) {
+            for (Action action : new ArrayList<Action>(this.actionStack)) {
+                if (DrawSetupMenu.class.isInstance(action)) {
+                    this.actionStack.remove(action);
+                }
+            }
+            this.start();
             // set up networking
             try {
-                initClient("127.0.0.1");
+                this.initClient("127.0.0.1");
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -283,9 +312,10 @@ public class Game extends ApplicationAdapter {
                 e.printStackTrace();
             }
         }
-        this.map.loadFromFile(this);  // load map if it exists already
-        this.insertAction(new ServerBroadcast(this));
-        this.insertAction(new PkmnMap.PeriodicSave(this));
+        // TODO: remove if unused
+//        this.map.loadFromFile(this);  // load map if it exists already
+//        this.insertAction(new ServerBroadcast(this));
+//        this.insertAction(new PkmnMap.PeriodicSave(this));
     }
 
     /**
@@ -352,7 +382,9 @@ public class Game extends ApplicationAdapter {
 
     @Override
     public void render() {
-        this.handleDebuggingInput();
+        if (this.debugInputEnabled) {
+            this.handleDebuggingInput();
+        }
         Gdx.gl.glClearColor(1, 1, 1, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
         this.cam.update();
@@ -422,12 +454,17 @@ public class Game extends ApplicationAdapter {
      */
     public void start() {
         this.insertAction(new DrawMap(this));
-        this.insertAction(new PlayerStanding(this));
-        this.insertAction(new DrawPlayerLower(this));
         this.insertAction(new DrawMapGrass(this));
-        this.insertAction(new DrawPlayerUpper(this));
+        // TODO: test
+        // if player is hosting, no moving player
+        if (this.type != Game.Type.SERVER) {
+            this.insertAction(new PlayerStanding(this));
+            this.insertAction(new DrawPlayerLower(this));
+            this.insertAction(new DrawPlayerUpper(this));
+        }
         this.insertAction(new DrawMapTrees(this));  // Draw tops of trees over player
         this.insertAction(new MoveWater(this));  // Move water tiles around
+        this.insertAction(new DrawBuildRequirements());
 
         // This will 'radio' through a selection of musics for the map (based on current route)
         this.currMusic = Gdx.audio.newMusic(Gdx.files.internal("music/nature1_render.ogg"));
@@ -457,11 +494,6 @@ public class Game extends ApplicationAdapter {
         this.currMusic.setOnCompletionListener(this.musicCompletionListener);
         this.playerCanMove = true;
 
-        // Note reg. full-res screenshot using pixmap:
-        //  Tried 100*800, pixmap save didn't work.
-        //  Tried 100*700, pixmap error loading tiles/water2.png
-        this.insertAction(new GenIsland1(this, new Vector2(0, 0), 100*300)); // 100*300 // 100*500 // 100*180 // 100*100 // 20*30 // 60*100 // 100*120
-
         // This is the special mewtwo battle debug map
         // Comment out the GenIsland1 above to use this
 //        this.map = new PkmnMap("SpecialMewtwo");
@@ -471,15 +503,34 @@ public class Game extends ApplicationAdapter {
 
         // TODO: Some starting pokemon used for debugging
         // If you join a game as a Client, these go away, so only affects local play.
-        this.player.pokemon.add(new Pokemon("Machop", 50, Pokemon.Generation.CRYSTAL));
+        this.player.pokemon.add(new Pokemon("Machop", 6, Pokemon.Generation.CRYSTAL));
 //        this.battle.attacks.get("karate chop").power = 200;  // TODO: debug, remove
 //        this.player.pokemon.add(new Pokemon("Cyndaquil", 50, Pokemon.Generation.CRYSTAL));
 //        this.battle.attacks.get("flamethrower").power = 200;  // TODO: debug, remove
-        this.player.pokemon.add(new Pokemon("sneasel", 50, Pokemon.Generation.CRYSTAL));
+//        this.player.pokemon.add(new Pokemon("sneasel", 50, Pokemon.Generation.CRYSTAL));
 //        this.player.pokemon.get(1).attacks[0] = "Bubblebeam";  // TODO: debug, remove
 //        this.player.pokemon.get(1).attacks[0] = "Ice Beam";  // TODO: debug, remove
-        this.player.pokemon.add(new Pokemon("stantler", 50, Pokemon.Generation.CRYSTAL));
+//        this.player.pokemon.add(new Pokemon("stantler", 50, Pokemon.Generation.CRYSTAL));
         this.player.currPokemon = this.player.pokemon.get(0);
+        
+        // TODO: debug, remove
+//        this.player.currPokemon.currentStats.put("hp", 10);
+    }
+    
+    public static class SetCamPos extends Action {
+        Vector2 pos;
+
+        @Override
+        public void step(Game game) {
+            game.cam.position.set(this.pos.x, this.pos.y, 0);
+            game.actionStack.remove(this);
+            game.insertAction(this.nextAction);
+        }
+        
+        public SetCamPos(Vector2 pos, Action nextAction) {
+            this.pos = pos;
+            this.nextAction = nextAction;
+        }
     }
 
     enum Type {

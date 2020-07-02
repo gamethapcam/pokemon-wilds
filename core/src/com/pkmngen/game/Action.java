@@ -1,5 +1,6 @@
 package com.pkmngen.game;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -15,6 +16,7 @@ import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
+import com.esotericsoftware.kryonet.Server;
 import com.esotericsoftware.minlog.Log;
 
 // TODO: enums
@@ -120,17 +122,18 @@ class DisplayText extends Action {
     boolean persist = false;  // if true, don't clear text after text is finished
     boolean waitInput = true;  // if true, wait for user to press A after text is complete
     boolean firstStep;
+    public static boolean unownText = false;
+    Texture unownTiles1;
+    Texture unownTiles2;
+    Texture unownTiles3;
 
     public DisplayText(Game game, String textString, String playSound, Action triggerAction, Action nextAction) {
         this.nextAction = nextAction;
-
         this.firstStep = true;
-
         // Set end trigger action
         this.triggerAction = triggerAction;
         this.foundTrigger = false;
         this.checkTrigger = false;
-
         this.spritesNotDrawn = new ArrayList<Sprite>();
         this.spritesBeingDrawn = new ArrayList<Sprite>();
 
@@ -165,28 +168,54 @@ class DisplayText extends Action {
             }
         }
         lines+=line;
-
         char[] textArray = lines.toCharArray(); // iterate elements
+        this.unownTiles1 = new Texture(Gdx.files.internal("unownTiles1.png"));
+        this.unownTiles2 = new Texture(Gdx.files.internal("unownTiles2.png"));
+        this.unownTiles3 = new Texture(Gdx.files.internal("unown_font2.png"));
 
         int i = 0;
         int j = 0;  ///, offsetNext = 0; // offsetNext if char sizes are ever different. atm it works.
         Sprite currSprite;
+        Sprite letterSprite;
         for (char letter : textArray) {
-            // offsetNext += spriteWidth*3+2 // how to do this?
-            Sprite letterSprite = game.textDict.get((char)letter);
-            // System.out.println(String.valueOf(letter));
-            if (letterSprite == null) {
-                letterSprite = game.textDict.get(null);
+            if (!DisplayText.unownText) {
+                letterSprite = game.textDict.get((char)letter);
+                if (letterSprite == null) {
+                    letterSprite = game.textDict.get(null);
+                }
+            }
+            else {
+                int randX = game.map.rand.nextInt(128/8);
+                int randY;
+                int rand = game.map.rand.nextInt(3);
+                if (letter == ' ') {
+                    letterSprite = game.textDict.get(' ');
+                }
+                else if (rand == 0) {
+                    randY = game.map.rand.nextInt(80/8) + 48/8;
+                    letterSprite = new Sprite(this.unownTiles1, randX*8, randY*8, 8, 8);
+                }
+                else if (rand == 1) {
+                    if (game.map.rand.nextInt(2) == 0) {
+                        randY = game.map.rand.nextInt(24/8) + 64/8;
+                    }
+                    else {
+                        randY = game.map.rand.nextInt(16/8) + 112/8;
+                    }
+                    letterSprite = new Sprite(this.unownTiles2, randX*8, randY*8, 8, 8);
+                }
+                else {
+                    randX = game.map.rand.nextInt(26);
+                    letterSprite = new Sprite(this.unownTiles3, randX*8, 0, 8, 9);
+                }
             }
             currSprite = new Sprite(letterSprite); // copy sprite from char-to-Sprite dictionary
 
             // currSprite.setPosition(10*3+8*i*3 +2, 26*3-16*j*3 +2); // offset x=8, y=25, spacing x=8, y=8(?)
-            currSprite.setPosition(10+8*i +2-4, 26-16*j +2-4); // post scaling change
-            // currSprite.setScale(3); // post scaling change
-
+            currSprite.setPosition(10+8*i +2-4, 26-16*j +2-4);
             spritesNotDrawn.add(currSprite);
-            // go down a line if needed
-             // TODO - do this for words, not chars. split on space, array
+            // Go down a line if needed
+            // TODO - do this for words, not chars. split on space, array
             if (i >= 17) {
                 i = 0; j++;
             }
@@ -194,15 +223,9 @@ class DisplayText extends Action {
                 i++;
             }
         }
-
-        // why not just every frame draw a new sprite, pop off the sprites list?
-         // when list is empty, display the arrow and wait for user input
-
         Texture text = new Texture(Gdx.files.internal("arrow_down.png"));
         this.arrowSprite = new Sprite(text, 0, 0, 7, 5);
-        // this.arrowSprite.setPosition(147*3-2,12*3-1);
-        this.arrowSprite.setPosition(147-2-1,12-1-1); // post scaling change
-        // this.arrowSprite.setScale(3); // post scaling change
+        this.arrowSprite.setPosition(147-2-1,12-1-1);
 
 //        text = new Texture(Gdx.files.internal("text_helper1.png")); // battle_bg1
         // text = new Texture(Gdx.files.internal("battle/battle_bg1.png"));
@@ -212,7 +235,7 @@ class DisplayText extends Action {
         // this.helperSprite.setScale(3);
         this.timer = 0;
 
-        text = new Texture(Gdx.files.internal("textbox_bg1.png")); // textbox bg1
+        text = new Texture(Gdx.files.internal("textbox_bg1.png"));
         this.bgSprite = new Sprite(text, 0, 0, 160, 144);
     }
 
@@ -1000,9 +1023,8 @@ class DrawSetupMenu extends Action {
     public static boolean drawChoosePokemonText = true;
     public static int avatarAnimCounter = 24;
     public static int currIndex = 0;  // Currently selected menu item
-
     public static int lastIndex = 0;
-    public int layer = 107;
+    public int layer = 5000;
     Sprite bgSprite;
     Sprite helperSprite;
     Sprite arrow;
@@ -1010,9 +1032,16 @@ class DrawSetupMenu extends Action {
     Sprite arrowWhite;
     ArrayList<Sprite> avatarSprites = new ArrayList<Sprite>();
     int avatarColorIndex = 0;
+    int localHostJoinIndex = 0;
+    int newLoadIndex = 0;
+    int sizeIndex = 0;
+    int fileIndex = 0;
+    int offset = 0;
+    int offset2 = 0;
     Vector2 newPos;
     Map<Integer, Vector2> arrowCoords;
     ArrayList<Character> name = new ArrayList<Character>();
+    ArrayList<Character> mapName = new ArrayList<Character>();
     ArrayList<Character> serverIp = new ArrayList<Character>();
 
     HashMap<Integer, Character> alphanumericKeys = new HashMap<Integer, Character>();
@@ -1020,6 +1049,7 @@ class DrawSetupMenu extends Action {
 
     HashMap<Integer, Character> numberKeys = new HashMap<Integer, Character>();
     ArrayList<Color> colors = new ArrayList<Color>();
+    ArrayList<String> fileNames = new ArrayList<String>();
 
     public DrawSetupMenu(Game game, Action nextAction) {
         this.nextAction = nextAction;
@@ -1035,11 +1065,14 @@ class DrawSetupMenu extends Action {
         DrawSetupMenu.currIndex = DrawSetupMenu.lastIndex;
 
         this.arrowCoords = new HashMap<Integer, Vector2>();
-        for (int i=0; i < 3; i++) {
+//        for (int i=0; i < 3; i++) {
+//            this.arrowCoords.put(i, new Vector2(1 +4, 128 - 16*i));
+//        }
+//        for (int i=3; i < 4; i++) {
+//            this.arrowCoords.put(i, new Vector2(1 +4, 128 -16 -16*i));
+//        }
+        for (int i=0; i < 8; i++) {
             this.arrowCoords.put(i, new Vector2(1, 128 - 16*i));
-        }
-        for (int i=3; i < 4; i++) {
-            this.arrowCoords.put(i, new Vector2(1, 128 -16 -16*i));
         }
         // Cursor position based on lastIndex
         this.newPos = this.arrowCoords.get(DrawSetupMenu.currIndex);
@@ -1074,6 +1107,16 @@ class DrawSetupMenu extends Action {
         this.colors.add(Color.RED);
         this.colors.add(Color.PURPLE);
         this.colors.add(new Color(255f/255f, 115f/255f, 200f/255f, 1f));  // pink
+
+        // Get a list of all saved maps
+        File directory = new File("./");
+        File[] files = directory.listFiles();
+        for (File file : files) {
+            String filename = file.getName();
+            if (filename.endsWith(".sav") && !filename.endsWith("players.sav") && !filename.endsWith("player.sav")) {
+                this.fileNames.add(filename);
+            }
+        }
     }
     public String getCamera() {return "gui";}
 
@@ -1081,22 +1124,175 @@ class DrawSetupMenu extends Action {
 
     @Override
     public void step(Game game) {
-        this.bgSprite.draw(game.uiBatch);
+//        this.bgSprite.draw(game.uiBatch);  // TODO: remove
+        newPos = this.arrowCoords.get(DrawSetupMenu.currIndex);
 
-        for (int j=0; j < 4; j++) {
-            // Name: _ (enter name)
+        for (int j=0; j < 8; j++) {
             if (j == 0) {
+                char[] textArray = "LOCAL  HOST   JOIN".toCharArray();
+                Sprite letterSprite;
+                for (int i=0; i < textArray.length; i++) {
+                    letterSprite = game.textDict.get(textArray[i]);
+                    game.uiBatch.draw(letterSprite, 8 +8*i, 128 -16*j);
+                }
+                int offsetX = 0;
+                this.offset = 0;
+                if (this.localHostJoinIndex == 1) {
+                    offsetX = 64-8;
+                }
+                if (this.localHostJoinIndex == 2) {
+                    offsetX = 112;
+                    this.offset = -1;
+                    this.offset2 = 0;
+                    this.newLoadIndex = 0;
+                }
+                if (j == DrawSetupMenu.currIndex) {
+                    if (InputProcessor.leftJustPressed && this.localHostJoinIndex > 0) {
+                        this.localHostJoinIndex--;
+                    }
+                    if (InputProcessor.rightJustPressed && this.localHostJoinIndex < 2) {
+                        this.localHostJoinIndex++;
+                    }
+                    newPos = newPos.cpy().add(offsetX, 0);
+                }
+                game.uiBatch.draw(this.arrowWhite, this.arrowCoords.get(j).x+offsetX, this.arrowCoords.get(j).y);
+            }
+            else if (j == 1+this.offset) {
+                char[] textArray = "NEW    LOAD".toCharArray();
+                Sprite letterSprite;
+                for (int i=0; i < textArray.length; i++) {
+                    letterSprite = game.textDict.get(textArray[i]);
+                    game.uiBatch.draw(letterSprite, 8 +8*i, 128 -16*j);
+                }
+                int offsetX = 0;
+                if (this.newLoadIndex == 1) {
+                    offsetX = 64-24+16;
+                    this.offset2 = -3;
+                }
+                else {
+                    this.offset2 = 0;
+                }
+                if (j == DrawSetupMenu.currIndex) {
+                    if (InputProcessor.leftJustPressed && this.newLoadIndex > 0) {
+                        this.newLoadIndex--;
+                    }
+                    if (InputProcessor.rightJustPressed && this.newLoadIndex < 1) {
+                        this.newLoadIndex++;
+                    }
+                    newPos = newPos.cpy().add(offsetX, 0);
+                }
+                game.uiBatch.draw(this.arrowWhite, this.arrowCoords.get(j).x+offsetX, this.arrowCoords.get(j).y);
+            }
+            // enter map name
+            else if (j == 2+this.offset+this.offset2) {
+                // Server IP address _ (enter ip)
+                if (this.localHostJoinIndex == 2) {
+                    char[] textArray = "Server IP".toCharArray();
+                    Sprite letterSprite;
+                    for (int i=0; i < textArray.length; i++) {
+                        letterSprite = game.textDict.get(textArray[i]);
+                        game.uiBatch.draw(letterSprite, 8 +8*i, 128 -16*j);
+                    }
+                    for (int i=0; i < this.serverIp.size(); i++) {
+                        letterSprite = game.textDict.get(this.serverIp.get(i));
+                        game.uiBatch.draw(letterSprite, 8 +8*i, 128 -16*(j+1));
+                    }
+                    if (j == DrawSetupMenu.currIndex+this.offset) {
+                        if (this.serverIp.size() < 15) {
+                            for (Integer key : this.numberKeys.keySet()) {
+                                if (Gdx.input.isKeyJustPressed(key)) {
+                                    this.serverIp.add(this.numberKeys.get(key));
+                                }
+                            }
+                        }
+                        if (Gdx.input.isKeyJustPressed(Input.Keys.BACKSPACE) && this.serverIp.size() > 0) {
+                            this.serverIp.remove(this.serverIp.size()-1);
+                        }
+                        if (DrawSetupMenu.avatarAnimCounter >= 12) {
+                            letterSprite = game.textDict.get('_');
+                            game.uiBatch.draw(letterSprite, 8 + 8*this.serverIp.size(), 128 -16 -16*j);
+                        }
+                    }
+                }
+                else {
+                    char[] textArray = "File".toCharArray();
+                    Sprite letterSprite;
+                    for (int i=0; i < textArray.length; i++) {
+                        letterSprite = game.textDict.get(textArray[i]);
+                        game.uiBatch.draw(letterSprite, 8 +8*i, 128 -16*j);
+                    }
+                    if (j == DrawSetupMenu.currIndex+this.offset) {
+                        if (this.mapName.size() < 11) {
+                            if (Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT) || Gdx.input.isKeyPressed(Input.Keys.SHIFT_RIGHT)) {
+                                for (Integer key : this.alphanumericKeysShift.keySet()) {
+                                    if (Gdx.input.isKeyJustPressed(key)) {
+                                        this.mapName.add(this.alphanumericKeysShift.get(key));
+                                    }
+                                }
+                            }
+                            else {
+                                for (Integer key : this.alphanumericKeys.keySet()) {
+                                    if (Gdx.input.isKeyJustPressed(key)) {
+                                        this.mapName.add(this.alphanumericKeys.get(key));
+                                    }
+                                }
+                            }
+                        }
+                        if (Gdx.input.isKeyJustPressed(Input.Keys.BACKSPACE) && this.mapName.size() > 0) {
+                            this.mapName.remove(this.mapName.size()-1);
+                        }
+                        if (DrawSetupMenu.avatarAnimCounter >= 12) {
+                            letterSprite = game.textDict.get('_');
+                            game.uiBatch.draw(letterSprite, 8 +5*8 + 8*this.mapName.size(), 128 -16*j);
+                        }
+                    }
+                    for (int i=0; i < this.mapName.size(); i++) {
+                        letterSprite = game.textDict.get(this.mapName.get(i));
+                        game.uiBatch.draw(letterSprite, 8 +5*8 +8*i, 128 -16*j);
+                    }
+                }
+            }
+            // Enter map size
+            else if (j == 3+this.offset+this.offset2 && this.localHostJoinIndex != 2) {
+                char[] textArray = "Size  S M L XL XXL".toCharArray();
+                Sprite letterSprite;
+                for (int i=0; i < textArray.length; i++) {
+                    letterSprite = game.textDict.get(textArray[i]);
+                    game.uiBatch.draw(letterSprite, 8 +8*i, 128 -16*j);
+                }
+                int offsetX = 0;
+                if (this.sizeIndex == 0) {
+                    offsetX = 0;
+                }
+                else if (this.sizeIndex < 5) {
+                    offsetX = 32 + 16*this.sizeIndex;
+                }
+                else  {
+                    offsetX = 40 + 16*this.sizeIndex;
+                }
+                if (j == DrawSetupMenu.currIndex+this.offset) {
+                    if (InputProcessor.leftJustPressed && this.sizeIndex > 0) {
+                        this.sizeIndex--;
+                    }
+                    if (InputProcessor.rightJustPressed && this.sizeIndex < 5) {
+                        this.sizeIndex++;
+                    }
+                    newPos = newPos.cpy().add(offsetX, 0);
+                }
+                game.uiBatch.draw(this.arrowWhite, this.arrowCoords.get(j).x+offsetX, this.arrowCoords.get(j).y);
+            }
+            // Name: _ (enter name)
+            else if (j == 4+this.offset+this.offset2) {
                 char[] textArray = "Name".toCharArray();
                 Sprite letterSprite;
                 for (int i=0; i < textArray.length; i++) {
                     letterSprite = game.textDict.get(textArray[i]);
-                    game.uiBatch.draw(letterSprite, 16 +8*i, 128 -16*j);
+                    game.uiBatch.draw(letterSprite, 8 +8*i, 128 -16*j);
                 }
-
                 // Let the player type their name in via keyboard
                 if (j == DrawSetupMenu.currIndex) {
                     if (this.name.size() < 11) {
-                        if (Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT)) {
+                        if (Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT) || Gdx.input.isKeyPressed(Input.Keys.SHIFT_RIGHT)) {
                             for (Integer key : this.alphanumericKeysShift.keySet()) {
                                 if (Gdx.input.isKeyJustPressed(key)) {
                                     this.name.add(this.alphanumericKeysShift.get(key));
@@ -1116,19 +1312,17 @@ class DrawSetupMenu extends Action {
                     }
                     if (DrawSetupMenu.avatarAnimCounter >= 12) {
                         letterSprite = game.textDict.get('_');
-                        game.uiBatch.draw(letterSprite, 16 +5*8 + 8*this.name.size(), 128 -16*j);
+                        game.uiBatch.draw(letterSprite, 8 +5*8 + 8*this.name.size(), 128 -16*j);
                     }
                 }
-
                 for (int i=0; i < this.name.size(); i++) {
                     letterSprite = game.textDict.get(this.name.get(i));
-                    game.uiBatch.draw(letterSprite, 16 +5*8 +8*i, 128 -16*j);
+                    game.uiBatch.draw(letterSprite, 8 +5*8 +8*i, 128 -16*j);
                 }
-
             }
 
             // < (character sprite) >
-            if (j == 1) {
+            else if (j == 5+this.offset+this.offset2 && this.newLoadIndex != 1) {
                 Sprite avatarSprite;
                 // Animate player avatar
                 if (j == DrawSetupMenu.currIndex) {
@@ -1177,100 +1371,161 @@ class DrawSetupMenu extends Action {
                 game.uiBatch.draw(this.arrowFlipped, 16, 124 -16*j);
                 game.uiBatch.draw(this.arrow, 43, 124 -16*j);
             }
-
-            // Server IP address (or "Local") _ (enter ip)
-            if (j == 2) {
-                char[] textArray = "Server IP".toCharArray();
-                Sprite letterSprite;
-                for (int i=0; i < textArray.length; i++) {
-                    letterSprite = game.textDict.get(textArray[i]);
-                    game.uiBatch.draw(letterSprite, 16 +8*i, 128 -16*j);
+            // or file selector < (file name) >
+            else if (j == 5+this.offset+this.offset2) {
+                if (!this.fileNames.isEmpty()) {
+                    char[] textArray = this.fileNames.get(this.fileIndex).toCharArray();
+                    Sprite letterSprite;
+                    for (int i=0; i < textArray.length; i++) {
+                        letterSprite = game.textDict.get(textArray[i]);
+                        game.uiBatch.draw(letterSprite, 8 +24 +8*i, 124 -16*(j+this.offset));
+                    }
+                    game.uiBatch.draw(this.arrowFlipped, 16, 124 -16*(j+this.offset));
+                    game.uiBatch.draw(this.arrow, 43 + 8*this.fileNames.get(this.fileIndex).length(), 124 -16*j);
                 }
-                for (int i=0; i < this.serverIp.size(); i++) {
-                    letterSprite = game.textDict.get(this.serverIp.get(i));
-                    game.uiBatch.draw(letterSprite, 16 +8*i, 128 -16*(j+1));
-                }
-
                 if (j == DrawSetupMenu.currIndex) {
-                    if (this.serverIp.size() < 15) {
-                        for (Integer key : this.numberKeys.keySet()) {
-                            if (Gdx.input.isKeyJustPressed(key)) {
-                                this.serverIp.add(this.numberKeys.get(key));
-                            }
-                        }
+                    if (InputProcessor.leftJustPressed && this.fileIndex > 0) {
+                        this.fileIndex--;
                     }
-                    if (Gdx.input.isKeyJustPressed(Input.Keys.BACKSPACE) && this.serverIp.size() > 0) {
-                        this.serverIp.remove(this.serverIp.size()-1);
-                    }
-                    if (DrawSetupMenu.avatarAnimCounter >= 12) {
-                        letterSprite = game.textDict.get('_');
-                        game.uiBatch.draw(letterSprite, 16 + 8*this.serverIp.size(), 128 -16 -16*j);
+                    if (InputProcessor.rightJustPressed && this.fileIndex < this.fileNames.size()-1) {
+                        this.fileIndex++;
                     }
                 }
-
             }
             // Go!
-            if (j == 3) {
+            else if (j == 6+this.offset+this.offset2) {
                 char[] textArray = "Go!".toCharArray();
                 Sprite letterSprite;
                 for (int i=0; i < textArray.length; i++) {
                     letterSprite = game.textDict.get(textArray[i]);
-                    game.uiBatch.draw(letterSprite, 16 +8*i, 128 -16 -16*j);
+                    game.uiBatch.draw(letterSprite, 8 +8*i, 128 -16*j);
                 }
                 if (j == DrawSetupMenu.currIndex) {
                     // Set up the map.
                     if (InputProcessor.startJustPressed || InputProcessor.aJustPressed) {
-                        game.actionStack.remove(this);
-                        game.start();
+                        if (this.localHostJoinIndex != 2) {
+                            String mapName = "";
+                            if (this.newLoadIndex == 0) {
+                                for (int i=0; i < this.mapName.size(); i++) {
+                                    mapName += this.mapName.get(i).toString();
+                                }
+                                if (mapName.equals("")) {
+                                    mapName = "default";
+                                }
+                            }
+                            else {
+                                mapName = this.fileNames.get(this.fileIndex).split(".sav")[0];
+                            }
 
-                        // Set player name
-                        String name = "";
-                        for (int i=0; i < this.name.size(); i++) {
-                            name += this.name.get(i).toString();
+                            // if hosting, then start server
+                            if (this.localHostJoinIndex == 1) {
+                                try {
+                                    game.initServer();
+                                } catch (IOException e) {
+                                    e.printStackTrace();
+                                }
+                                game.insertAction(new ServerBroadcast(game));
+                                game.debugInputEnabled = true;  // allow player to look around
+                            }
+                            else {
+                                // required for loading map (getKryo())
+                                game.server = new Server();
+                                Network.register(game.server);
+                            }
+                            game.map = new PkmnMap(mapName);
+                            // player chose new game
+                            if (this.newLoadIndex == 0) {
+                                // TODO: warning text about this
+                                // TODO: uncomment
+//                                if (this.fileNames.contains(mapName+".sav")) {
+//                                    return;
+//                                }
+                                game.actionStack.remove(this);
+                                game.start();
+
+                                // Size
+                                // TODO: uncomment
+//                                if (this.sizeIndex == 0) {
+//                                    this.sizeIndex = 1;
+//                                }
+                                // TODO: would ideally be bigger, like 100*200*this.sizeIndex
+                                int size = 100*100*(this.sizeIndex+2);
+                                // TODO: debug, comment or removee
+//                                size = 100*100;  // 100*300 // 100*500 // 100*180 // 100*100 // 20*30 // 60*100 // 100*120
+
+                                System.out.println("Generating map...");
+                                System.out.println(java.time.LocalTime.now());
+
+                                // Note reg. full-res screenshot using pixmap:
+                                //  Tried 100*800, pixmap save didn't work.
+                                //  Tried 100*700, pixmap error loading tiles/water2.png
+                                Action genIsland = new GenIsland1(game, new Vector2(0, 0), size);
+                                genIsland.step(game);  // fixes issue where player would try to move into tiles that didn't exist yet
+                                game.insertAction(genIsland);
+
+                                System.out.println("Done.");
+                                System.out.println(java.time.LocalTime.now());
+
+                                // Set player name
+                                String name = "";
+                                for (int i=0; i < this.name.size(); i++) {
+                                    name += this.name.get(i).toString();
+                                }
+                                game.player.name = name;
+
+                                // TODO: debug, remove
+    //                            if (Gdx.app.getType() != ApplicationType.Android) {
+    //                                try {
+    //                                    game.initClient("25.8.66.159");
+    //                                } catch (IOException e) {
+    //                                    e.printStackTrace();
+    //                                }
+    //                            }
+    //                            else {
+    //                                Log.set(Log.LEVEL_DEBUG);
+    //                                try {
+    //                                    game.initServer();
+    //                                } catch (IOException e) {
+    //                                    e.printStackTrace();
+    //                                } catch (Exception e) {
+    //                                    e.printStackTrace();
+    //                                    Log.debug("pkmngen", e.getStackTrace().toString());
+    //                                }
+    //                            }
+                            }
+                            else {
+                                game.actionStack.remove(this);
+                                game.start();
+                                game.map.loadFromFile(game);
+                            }
+                            // periodically save game in both host/local cases
+                            game.insertAction(new PkmnMap.PeriodicSave(game));
                         }
-                        game.player.name = name;
-
-                        // Set ip addr
-                        String ipAddr = "";
-                        for (int i=0; i < this.serverIp.size(); i++) {
-                            ipAddr += this.serverIp.get(i).toString();
+                        // join existing server
+                        else {
+                            // Set player name
+                            String name = "";
+                            for (int i=0; i < this.name.size(); i++) {
+                                name += this.name.get(i).toString();
+                            }
+                            game.player.name = name;
+                            // Set ip addr
+                            String ipAddr = "";
+                            for (int i=0; i < this.serverIp.size(); i++) {
+                                ipAddr += this.serverIp.get(i).toString();
+                            }
+                            if (ipAddr.equals("")) {
+                                ipAddr = "127.0.0.1";
+                            }
+                            game.actionStack.remove(this);
+                            game.start();
+                            // set up networking
+                            try {
+                                game.initClient(ipAddr);
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
                         }
-                        // TODO: enable
-//                        if (ipAddr.equals("")) {
-//                            try {
-//                                game.initServer();
-//                            } catch (IOException e) {
-//                                e.printStackTrace();
-//                            }
-//                        }
-//                        else {
-//                            try {
-//                                game.initClient(ipAddr);
-//                            } catch (IOException e) {
-//                                e.printStackTrace();
-//                            }
-//                        }
-
-                        // TODO: debug, remove
-//                        if (Gdx.app.getType() != ApplicationType.Android) {
-//                            try {
-//                                game.initClient("25.8.66.159");
-//                            } catch (IOException e) {
-//                                e.printStackTrace();
-//                            }
-//                        }
-//                        else {
-//                            Log.set(Log.LEVEL_DEBUG);
-//                            try {
-//                                game.initServer();
-//                            } catch (IOException e) {
-//                                e.printStackTrace();
-//                            } catch (Exception e) {
-//                                e.printStackTrace();
-//                                Log.debug("pkmngen", e.getStackTrace().toString());
-//                            }
-//                        }
-
                         EnterBuilding enterBuilding = new EnterBuilding(game, "", null);
                         enterBuilding.slow = 8;
                         game.insertAction(enterBuilding);
@@ -1292,16 +1547,28 @@ class DrawSetupMenu extends Action {
         if (InputProcessor.upJustPressed) {
             if (DrawSetupMenu.currIndex > 0) {
                 DrawSetupMenu.currIndex -= 1;
+                if (this.localHostJoinIndex == 2 && DrawSetupMenu.currIndex == 1) {
+                    DrawSetupMenu.currIndex -= 1;
+                }
                 DrawSetupMenu.avatarAnimCounter = 24; // reset to 12 for 1 extra frame of first frame for avatar anim
             }
         }
         else if (InputProcessor.downJustPressed) {
-            if (DrawSetupMenu.currIndex < 3) {
+            int max = 6;
+            if (this.localHostJoinIndex == 2) {
+                max = 5;
+            }
+            else if (this.newLoadIndex == 1) {
+                max = 3;
+            }
+            if (DrawSetupMenu.currIndex < max) {
                 DrawSetupMenu.currIndex += 1;
+                if (this.localHostJoinIndex == 2 && DrawSetupMenu.currIndex == 1) {
+                    DrawSetupMenu.currIndex += 1;
+                }
                 DrawSetupMenu.avatarAnimCounter = 24; // reset to 12 for 1 extra frame of first frame for avatar anim
             }
         }
-        newPos = this.arrowCoords.get(DrawSetupMenu.currIndex);
         // Draw the arrow sprite
         this.arrow.setPosition(this.newPos.x, this.newPos.y);
         this.arrow.draw(game.uiBatch);
@@ -1496,6 +1763,7 @@ class FadeMusic extends Action {
  */
 class InputProcessor extends Action {
 
+    public static boolean acceptInput = true;
     public static boolean upPressed = false;
     public static boolean downPressed = false;
     public static boolean leftPressed = false;
@@ -1514,8 +1782,11 @@ class InputProcessor extends Action {
 
     @Override
     public void step(Game game) {
+        // Use this when orchestrating button presses (like when auto-moving player)
+        if (!InputProcessor.acceptInput) {
+            return;
+        }
         if (Gdx.input.isTouched()) {
-
 //            int menuHeight = (int)((160*game.currScreen.y)/game.currScreen.x);  // height/width = menuHeight/160
             float scaleX = 160/game.currScreen.x;
 //            float scaleY = 144/game.currScreen.y;
@@ -1627,7 +1898,7 @@ class InputProcessor extends Action {
  * This has the extra 'disabled' variable.
  */
 class MenuAction extends Action {
-    boolean disabled;
+    public boolean disabled;
     boolean drawArrowWhite; // for DrawPlayerMenu
 
     MenuAction prevMenu;
@@ -1971,6 +2242,44 @@ class RemoveDisplayText extends Action {
     public void step(Game game) {
         game.actionStack.remove(game.displayTextAction);
         game.displayTextAction = null;
+        game.actionStack.remove(this);
+        game.insertAction(this.nextAction);
+    }
+}
+
+/**
+ * Set an arbitrary field of an object to a value when step() is called.
+ * 
+ * Example: SetField(game.player, <-- Set a field on this object.
+ *                   "dirFacing", <-- Set this field.
+ *                   "left",      <-- Set the field to this value.
+ *                   null)        <-- (nextAction, inserted immediately after setting field)
+ */
+class SetField extends Action {
+    Object object;
+    String field;
+    Object setTo;
+
+    public SetField(Object object, String field, Object setTo, Action nextAction) {
+        this.nextAction = nextAction;
+        this.object = object;
+        this.field = field;
+        this.setTo = setTo;
+    }
+
+    @Override
+    public void step(Game game) {
+        try {
+            this.object.getClass().getField(this.field).set(this.object, this.setTo);
+        } catch (IllegalArgumentException e) {
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (NoSuchFieldException e) {
+            e.printStackTrace();
+        } catch (SecurityException e) {
+            e.printStackTrace();
+        }
         game.actionStack.remove(this);
         game.insertAction(this.nextAction);
     }

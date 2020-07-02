@@ -16,6 +16,8 @@ import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
+import com.pkmngen.game.DrawPokemonMenu.SelectedMenu;
+import com.pkmngen.game.DrawPokemonMenu.SelectedMenu.Switch;
 
 // contains thing to cycle, number of frames for thing
 // add more in future, like sounds
@@ -371,6 +373,680 @@ class DespawnGhost extends Action {
 }
 
 /**
+ * Draws the requirements for building an object if game.player.isBuilding.
+ */
+class DrawBuildRequirements extends Action {
+    Sprite textBoxTop;
+    Sprite textBoxMiddle;
+    Sprite textBoxBottom;
+    ArrayList<String> words = new ArrayList<String>(); // menu items
+    ArrayList<Color> wordColors = new ArrayList<Color>(); // menu items
+    Vector2 topLeft = new Vector2(89, 144);
+    String currBuilding = "";
+
+    public DrawBuildRequirements() {
+        // text box background
+        Texture text = new Texture(Gdx.files.internal("pokemon_menu/selected_menu_top.png"));
+        this.textBoxTop = new Sprite(text, 0,0, 71, 19);
+        text = new Texture(Gdx.files.internal("pokemon_menu/selected_menu_middle.png"));
+        this.textBoxMiddle = new Sprite(text, 0,0, 71, 16);
+        text = new Texture(Gdx.files.internal("pokemon_menu/selected_menu_bottom.png"));
+        this.textBoxBottom = new Sprite(text, 0,0, 71, 19);
+    }
+
+    public String getCamera() {return "gui";}
+
+    @Override
+    public void firstStep(Game game) {}
+
+    @Override
+    public void step(Game game) {
+        // If player isn't building, don't draw anything
+        if (!game.player.isBuilding) {
+            return;
+        }
+        if (game.player.isBuilding) {
+            if (!game.playerCanMove) {
+                return;
+            }
+            String curr = game.player.buildTiles.get(game.player.buildTileIndex).name;
+            if (curr != null && !this.currBuilding.equals(curr)) {
+                this.currBuilding = curr;
+                this.words.clear();
+                this.wordColors.clear();
+                this.words.add("Need");
+                this.wordColors.add(new Color(1,1,1,1));
+                for (String req : game.player.buildTileRequirements.get(curr).keySet()) {
+                    String text = req.toUpperCase();
+                    int numNeeded = game.player.buildTileRequirements.get(curr).get(req);
+                    for (int i=0; i < 5-req.length(); i++) {
+                        text += " ";
+                    }
+                    text += "x";
+                    text += String.valueOf(numNeeded);
+                    if (game.player.itemsDict.get(req) == null || game.player.itemsDict.get(req) < numNeeded) {
+                        this.wordColors.add(new Color(1, 1, 1, 0.5f));
+                    }
+                    else {
+                        this.wordColors.add(new Color(1,1,1,1));
+                    }
+                    this.words.add(text);
+                }
+            }
+        }
+        // TODO: remove if unused
+//        else if (game.player.isCrafting) {
+//            String curr = Player.crafts.get(DrawCraftsMenu.lastCurrIndex).name;
+//            if (curr != null && !this.currBuilding.equals(curr)) {
+//                this.currBuilding = curr;
+//                this.words.clear();
+//                this.words.add("Need");
+//                this.wordColors.add(new Color(1,1,1,1));
+//                for (Player.Craft craft : Player.crafts.get(DrawCraftsMenu.lastCurrIndex).requirements) {
+//                    String text = craft.name.toUpperCase();
+//                    int numNeeded = craft.amount;
+//                    for (int i=0; i < 5-craft.name.length(); i++) {
+//                        text += " ";
+//                    }
+//                    text += "x";
+//                    text += String.valueOf(numNeeded);
+//                    if (game.player.itemsDict.get(craft.name) == null || game.player.itemsDict.get(craft.name) < numNeeded) {
+//                        this.wordColors.add(new Color(1, 1, 1, 0.5f));
+//                    }
+//                    else {
+//                        this.wordColors.add(new Color(1,1,1,1));
+//                    }
+//                    this.words.add(text);
+//                }
+//            }
+//        }
+        // draw requirements of current item being built
+        Sprite letterSprite;
+        for (int i=0; i < this.words.size(); i++) {
+            // Draw appropriate part of textBox
+            if (i == 0) {
+                game.uiBatch.draw(this.textBoxTop, this.topLeft.x, this.topLeft.y-19);
+            }
+            else if (i == this.words.size()-1) {
+                game.uiBatch.draw(this.textBoxBottom, this.topLeft.x, this.topLeft.y-38 -16*(this.words.size()-2));
+            }
+            else {
+                game.uiBatch.draw(this.textBoxMiddle, this.topLeft.x, this.topLeft.y-19 -16*(this.words.size()-3+i));
+            }
+
+            String word = this.words.get(i);
+            for (int j=0; j < word.length(); j++) {
+                char letter = word.charAt(j);
+                // convert string to text
+                letterSprite = new Sprite(game.textDict.get(letter));
+//                game.uiBatch.draw(letterSprite, this.topLeft.x +8 +8*j, this.topLeft.y -16*(this.words.size()-2+i));
+                letterSprite.setPosition(this.topLeft.x +8 +8*j, this.topLeft.y -16*(this.words.size()-2+i));
+                letterSprite.setColor(this.wordColors.get(i));
+                letterSprite.draw(game.uiBatch);
+            }
+        }
+    }
+}
+
+/**
+ * Draw item menu, used in overworld and battle.
+ */
+class DrawCraftsMenu extends MenuAction {
+    // which item the player was viewing last
+    public static int lastCurrIndex = 0;
+    public static int lastCursorPos = 0;
+    Sprite arrow;
+    Sprite arrowWhite;
+    Sprite textBox;
+    public int layer = 107;
+    Map<Integer, Vector2> arrowCoords;
+    Vector2 newPos;
+    Sprite helperSprite;
+    ArrayList<ArrayList<Sprite>> spritesToDraw;
+    int cursorDelay; // this is just extra detail. cursor has 2 frame delay before showing in R/B
+    int cursorPos;
+    int currIndex;
+    ArrayList<String> craftsList;
+    Sprite downArrow;
+    int downArrowTimer;
+    Sprite craftReqsTextbox;
+    Sprite titleTextbox;
+    String currCraft = "";
+    ArrayList<String> craftReqs = new ArrayList<String>();
+    ArrayList<Color> craftReqColors = new ArrayList<Color>();
+    Vector2 topLeft = new Vector2(0, 26);
+
+    public DrawCraftsMenu(Game game, Action nextAction) {
+        this(game, null);
+        this.nextAction = nextAction;
+    }
+
+    public DrawCraftsMenu(Game game, MenuAction prevMenu) {
+        this.prevMenu = prevMenu;
+        this.disabled = false;
+        this.cursorDelay = 0;
+        this.arrowCoords = new HashMap<Integer, Vector2>();
+        this.spritesToDraw = new ArrayList<ArrayList<Sprite>>();
+
+        Texture text = new Texture(Gdx.files.internal("battle/arrow_right1.png"));
+        this.arrow = new Sprite(text, 0, 0, 5, 7);
+        text = new Texture(Gdx.files.internal("battle/arrow_right_white.png"));
+        this.arrowWhite = new Sprite(text, 0, 0, 5, 7);
+
+        // text box bg
+        text = new Texture(Gdx.files.internal("attack_menu/item_menu1.png"));
+        this.textBox = new Sprite(text, 0,0, 16*10, 16*9);
+
+        // craft requirements text box bg
+        text = new Texture(Gdx.files.internal("textbox_bg1.png"));
+        this.craftReqsTextbox = new Sprite(text, 0,0, 16*10, 16*9);
+        text = new Texture(Gdx.files.internal("title_bg1.png"));
+        this.titleTextbox = new Sprite(text, 0,0, 16*10, 16*9);
+
+        // down arrow for items menu
+        text = new Texture(Gdx.files.internal("arrow_down.png"));
+        this.downArrow = new Sprite(text, 0, 0, 7, 5);
+        this.downArrow.setPosition(144, 50);
+        this.downArrowTimer = 0;
+
+        this.currIndex = DrawCraftsMenu.lastCurrIndex;
+        this.cursorPos = DrawCraftsMenu.lastCursorPos;
+
+        // finite amount of cursor coordinates (4)
+        // this.arrowCoords.put(1, new Vector2(89, 72+16+16)); // example
+        this.arrowCoords.put(0, new Vector2(41, 104 - 16*0));
+        this.arrowCoords.put(1, new Vector2(41, 104 - 16*1));
+        this.arrowCoords.put(2, new Vector2(41, 104 - 16*2));
+        this.arrowCoords.put(3, new Vector2(41, 104 - 16*3));
+
+        newPos = arrowCoords.get(cursorPos);
+        this.arrow.setPosition(newPos.x, newPos.y);
+
+        this.craftsList = new ArrayList<String>();
+        for (Player.Craft craft : Player.crafts) {
+            this.craftsList.add(craft.name);
+        }
+        this.craftsList.add("Cancel");
+        // convert player item list to sprites
+        for (String entry : this.craftsList) {
+            char[] textArray = entry.toUpperCase().toCharArray(); // iterate elements
+            Sprite currSprite;
+            int i = 0;
+            ArrayList<Sprite> word = new ArrayList<Sprite>();
+            for (char letter : textArray) {
+                Sprite letterSprite = game.textDict.get((char)letter);
+                if (letterSprite == null) {
+                    letterSprite = game.textDict.get(null);
+                }
+                currSprite = new Sprite(letterSprite); // copy sprite from char-to-Sprite dictionary
+
+                currSprite.setPosition(48+8*i, 104); // was *j
+                word.add(currSprite);
+                // go down a line if needed
+                 // TODO - do this for words, not chars. split on space, array
+
+                i++;
+            }
+            if (game.player.itemsDict.containsKey(entry)) {
+                char[] numItemsArray = String.format("%02d", game.player.itemsDict.get(entry)).toCharArray();
+                i = 10;
+                for (char letter : numItemsArray) {
+                    i += 1;
+                    if (letter == '0') {
+                        continue;
+                    }
+                    Sprite letterSprite = game.textDict.get((char)letter);
+                    currSprite = new Sprite(letterSprite);
+                    currSprite.setPosition(48+8*i, 104);
+                    word.add(currSprite);
+                }
+            }
+            spritesToDraw.add(word);
+        }
+    }
+
+    public String getCamera() {return "gui";}
+
+    public int getLayer(){return this.layer;}
+
+    @Override
+    public void step(Game game) {
+        if (this.prevMenu != null) {
+            this.prevMenu.step(game);
+        }
+
+        // draw text box
+        this.titleTextbox.draw(game.uiBatch);
+        this.craftReqsTextbox.draw(game.uiBatch);
+        this.textBox.draw(game.uiBatch);
+
+        // draw the menu items
+        int j = 0;
+        for (int i = 0; i < this.spritesToDraw.size(); i++) {
+            if (i >= this.currIndex && i < this.currIndex +4) { // only draw range of 4 starting at currIndex
+                ArrayList<Sprite> word = this.spritesToDraw.get(i);
+                for (Sprite sprite : word) {
+                    // draw this string as text on the screen
+                    game.uiBatch.draw(sprite, sprite.getX(), sprite.getY() - j*16);
+                }
+                j+=1;
+            }
+        }
+        int index = DrawCraftsMenu.lastCurrIndex+DrawCraftsMenu.lastCursorPos;
+        if (index >= Player.crafts.size()) {  // happens when 'cancel' is selected
+            this.craftReqs.clear();
+            this.craftReqColors.clear();
+            this.currCraft = "";
+        }
+        else {
+            String curr = Player.crafts.get(index).name;
+            if (curr != null && !this.currCraft.equals(curr)) {
+                this.currCraft = curr;
+                this.craftReqs.clear();
+                this.craftReqColors.clear();
+//                this.words.add("Need");
+//                this.wordColors.add(new Color(1,1,1,1));
+                for (Player.Craft craft : Player.crafts.get(index).requirements) {
+                    String text = craft.name.toUpperCase();
+                    int numNeeded = craft.amount;
+                    for (int i=0; i < 16-craft.name.length(); i++) {
+                        text += " ";
+                    }
+                    text += "x";
+                    text += String.valueOf(numNeeded);
+                    if (game.player.itemsDict.get(craft.name) == null || game.player.itemsDict.get(craft.name) < numNeeded) {
+                        this.craftReqColors.add(new Color(1, 1, 1, 0.5f));
+                    }
+                    else {
+                        this.craftReqColors.add(new Color(1,1,1,1));
+                    }
+                    this.craftReqs.add(text);
+                }
+            }
+        }
+        // draw requirements of current item being crafted
+        char[] textArray = "CRAFTING MENU".toCharArray(); // iterate elements
+        j=0;
+        for (char letter : textArray) {
+            Sprite letterSprite = game.textDict.get((char)letter);
+            if (letterSprite == null) {
+                letterSprite = game.textDict.get(null);
+            }
+            game.uiBatch.draw(letterSprite, 8 +8*j, 144-16);
+            j++;
+        }
+        Sprite letterSprite;
+        for (int i=0; i < this.craftReqs.size(); i++) {
+            String word = this.craftReqs.get(i);
+            for (int k=0; k < word.length(); k++) {
+                char letter = word.charAt(k);
+                // convert string to text
+                letterSprite = new Sprite(game.textDict.get(letter));
+//                game.uiBatch.draw(letterSprite, this.topLeft.x +8 +8*j, this.topLeft.y -16*(this.words.size()-2+i));
+                letterSprite.setPosition(this.topLeft.x +8 +8*k, this.topLeft.y -16*i);
+                letterSprite.setColor(this.craftReqColors.get(i));
+                letterSprite.draw(game.uiBatch);
+            }
+        }
+
+        // return at this point if this menu is disabled
+        if (this.disabled == true) {
+            this.arrowWhite.setPosition(newPos.x, newPos.y);
+            this.arrowWhite.draw(game.uiBatch);
+            return;
+        }
+        // check user input
+         //'tl' = top left, etc.
+         // modify position by modifying curr to tl, tr, bl or br
+        if (InputProcessor.upJustPressed) {
+            if (cursorPos > 0) {
+                cursorPos -= 1;
+                newPos = arrowCoords.get(cursorPos);
+            }
+            else if (currIndex > 0) {
+                currIndex -= 1;
+            }
+            DrawCraftsMenu.lastCurrIndex = this.currIndex;
+            DrawCraftsMenu.lastCursorPos = this.cursorPos;
+        }
+        else if (InputProcessor.downJustPressed) {
+            if (cursorPos < 2 && cursorPos+1 < this.craftsList.size()) {
+                cursorPos += 1;
+                newPos = arrowCoords.get(cursorPos);
+            }
+            else if (currIndex < this.craftsList.size() - 3) {
+                currIndex += 1;
+            }
+            DrawCraftsMenu.lastCurrIndex = this.currIndex;
+            DrawCraftsMenu.lastCursorPos = this.cursorPos;
+        }
+
+        // draw arrow
+        if (this.cursorDelay >= 5) {
+            this.arrow.setPosition(newPos.x, newPos.y);
+            this.arrow.draw(game.uiBatch);
+        }
+        else {
+            this.cursorDelay+=1;
+        }
+
+        // draw downarrow if applicable
+        if ( (this.craftsList.size() - this.currIndex) > 4 ) {
+            if (this.downArrowTimer < 22) {
+                this.downArrow.draw(game.uiBatch);
+            }
+            this.downArrowTimer++;
+        }
+        else {
+            this.downArrowTimer = 0; // force arrow to start over when scroll up
+        }
+
+        if (this.downArrowTimer > 41) {
+            this.downArrowTimer = 0;
+        }
+
+        // if press a, draw craft/cancel for item
+        if (InputProcessor.aJustPressed) {
+            game.insertAction(new PlaySound("click1", null));
+            String name = this.craftsList.get(currIndex + cursorPos);
+            if ("Cancel".equals(name)) {
+                if (this.prevMenu != null) {
+                    this.prevMenu.disabled = false;
+                }
+                game.insertAction(this.prevMenu);
+                game.insertAction(this.nextAction);
+                game.actionStack.remove(this);
+                return;
+            }
+            else {
+                this.disabled = true;
+                // Draw 'select amount' box
+                game.insertAction(new DrawCraftsMenu.SelectAmount(this));
+                game.actionStack.remove(this);
+                return;
+            }
+        }
+        // player presses b, ie wants to go back
+        else if (InputProcessor.bJustPressed) {
+            DrawCraftsMenu.lastCurrIndex = this.currIndex;
+            DrawCraftsMenu.lastCursorPos = this.cursorPos;
+            if (this.prevMenu != null) {
+                this.prevMenu.disabled = false;
+            }
+            game.actionStack.remove(this);
+            game.insertAction(this.prevMenu);
+            game.insertAction(this.nextAction);
+            game.insertAction(new PlaySound("click1", null));
+            return;
+        }
+    }
+
+    static class Intro extends Action {
+        int length;
+
+        public int layer = 110;
+        MenuAction prevMenu;
+
+        public Intro(MenuAction prevMenu, int length, Action nextAction) {
+            this.prevMenu = prevMenu;
+            this.nextAction = nextAction;
+            this.length = length;
+        }
+
+        public String getCamera() {return "gui";}
+
+        public int getLayer(){return this.layer;}
+
+        @Override
+        public void step(Game game) {
+            if (this.prevMenu != null) {
+                this.prevMenu.step(game);
+            }
+            this.length--;
+            if (this.length <= 0) {
+                game.insertAction(this.nextAction);
+                game.actionStack.remove(this);
+            }
+        }
+    }
+
+    /**
+     * Draw a box where the user selects the amount of an item to craft.
+     */
+    static class SelectAmount extends MenuAction {
+        public int layer = 106;
+        Sprite textbox;
+        public static int amount = 0;
+
+        public SelectAmount(MenuAction prevMenu) {
+            this.prevMenu = prevMenu;
+            Texture text = new Texture(Gdx.files.internal("amount_bg1.png"));
+            this.textbox = new Sprite(text, 0,0, 16*10, 16*9);
+        }
+
+        public String getCamera() {return "gui";}
+
+        public int getLayer(){return this.layer;}
+
+        @Override
+        public void firstStep(Game game) {
+            SelectAmount.amount = 1;
+        }
+
+        @Override
+        public void step(Game game) {
+            // if there is a previous menu, step through it to display text
+            if (prevMenu != null) {
+                prevMenu.step(game);
+            }
+
+            this.textbox.draw(game.uiBatch);
+
+            if (this.disabled == true) {
+                return;
+            }
+
+            if (InputProcessor.upJustPressed) {
+                if (SelectAmount.amount < 99) {
+                    SelectAmount.amount++;
+                }
+            }
+            else if (InputProcessor.downJustPressed) {
+                if (SelectAmount.amount > 1) {
+                    SelectAmount.amount--;
+                }
+            }
+            else if (InputProcessor.rightJustPressed) {
+                SelectAmount.amount += 10;
+                if (SelectAmount.amount >= 99) {
+                    SelectAmount.amount = 99;
+                }
+            }
+            else if (InputProcessor.leftJustPressed) {
+                SelectAmount.amount -= 10;
+                if (SelectAmount.amount <= 1) {
+                    SelectAmount.amount = 1;
+                }
+            }
+
+            Sprite letterSprite;
+            String word = "x"+String.format("%02d", SelectAmount.amount);
+            for (int i=0; i < word.length(); i++) {
+                char letter = word.charAt(i);
+                letterSprite = game.textDict.get(letter);
+                game.uiBatch.draw(letterSprite, 130 +8*i, 56);
+            }
+
+            if (InputProcessor.aJustPressed) {
+                this.disabled = true;
+                // Draw CRAFT/CANCEL
+                game.actionStack.remove(this);
+                game.insertAction(new DrawCraftsMenu.Selected(this));
+            }
+            // player presses b, ie wants to go back
+            else if (InputProcessor.bJustPressed) {
+                game.insertAction(new PlaySound("click1", null));
+                game.actionStack.remove(this);
+                this.prevMenu.disabled = false;
+                game.insertAction(this.prevMenu);
+                return;
+            }
+        }
+    }
+
+    /**
+     * Draw a box where the user confirms whether or not to craft an item.
+     */
+    static class Selected extends MenuAction {
+        Sprite arrow;
+        Sprite textBoxTop;
+        Sprite textBoxMiddle;
+        Sprite textBoxBottom;
+        public int layer = 106;
+        Map<Integer, Vector2> getCoords;
+        int curr;
+        Vector2 newPos;
+        Sprite helperSprite;
+        ArrayList<String> words; // menu items
+        int textboxDelay = 0; // this is just extra detail. text box has 1 frame delay before appearing
+
+        public Selected(MenuAction prevMenu) {
+            this.prevMenu = prevMenu;
+
+            this.getCoords = new HashMap<Integer, Vector2>();
+            this.words = new ArrayList<String>();
+            this.words.add("CRAFT");
+            this.words.add("CANCEL");
+
+            this.getCoords.put(0, new Vector2(97, 40 +16));
+            this.getCoords.put(1, new Vector2(97, 40-16 +16));
+
+            Texture text = new Texture(Gdx.files.internal("battle/arrow_right1.png"));
+            this.arrow = new Sprite(text, 0, 0, 5, 7);
+
+            // text box background
+            text = new Texture(Gdx.files.internal("pokemon_menu/selected_menu_top.png"));
+            this.textBoxTop = new Sprite(text, 0,0, 71, 19);
+            text = new Texture(Gdx.files.internal("pokemon_menu/selected_menu_middle.png"));
+            this.textBoxMiddle = new Sprite(text, 0,0, 71, 16);
+            text = new Texture(Gdx.files.internal("pokemon_menu/selected_menu_bottom.png"));
+            this.textBoxBottom = new Sprite(text, 0,0, 71, 19);
+
+            // this.newPos =  new Vector2(32, 79); // post scaling change
+            this.newPos =  this.getCoords.get(0);
+            this.arrow.setPosition(newPos.x, newPos.y);
+            this.curr = 0;
+            // If you want to customize menu text, add to this.spritesToDraw here
+        }
+
+        public String getCamera() {return "gui";}
+
+        public int getLayer(){return this.layer;}
+
+        @Override
+        public void step(Game game) {
+            // if there is a previous menu, step through it to display text
+            if (prevMenu != null) {
+                prevMenu.step(game);
+            }
+
+            // white arrow only for one frame, then box appears
+            if (this.textboxDelay < 1) {
+                this.textboxDelay+=1;
+                return;
+            }
+
+            // check user input
+            // 'tl' = top left, etc.
+            // modify position by modifying curr to tl, tr, bl or br
+            if (InputProcessor.upJustPressed) {
+                if (curr > 0) {
+                    curr -= 1;
+                    newPos = this.getCoords.get(curr);
+                }
+            }
+            else if (InputProcessor.downJustPressed) {
+                if (curr < this.words.size()-1) {
+                    curr += 1;
+                    newPos = this.getCoords.get(curr);
+                }
+            }
+
+            // draw the menu items (stats, switch, cancel)
+            Sprite letterSprite;
+            for (int i=0; i < this.words.size(); i++) {
+                // Draw appropriate part of textBox
+                if (i == 0) {
+                    game.uiBatch.draw(this.textBoxTop, 89, 35 +33 +16*(this.words.size()-3));
+                }
+                else if (i == this.words.size()-1) {
+                    game.uiBatch.draw(this.textBoxBottom, 89, 33);
+                }
+                else {
+                    game.uiBatch.draw(this.textBoxMiddle, 89, 19 +33 +16*(this.words.size()-i-2));
+                }
+
+                String word = this.words.get(i);
+                for (int j=0; j < word.length(); j++) {
+                    char letter = word.charAt(j);
+                    // convert string to text
+                    letterSprite = game.textDict.get(letter);
+                    game.uiBatch.draw(letterSprite, 104 +8*j, 40 +32 -16*(i-this.words.size()+3));
+                }
+            }
+
+            // draw arrow sprite
+            this.arrow.setPosition(newPos.x, newPos.y);
+            this.arrow.draw(game.uiBatch);
+
+            if (InputProcessor.aJustPressed) {
+                String word = this.words.get(this.curr);
+                if ("CANCEL".equals(word)) {
+                    game.insertAction(new PlaySound("click1", null));
+                    game.actionStack.remove(this);
+                    this.prevMenu.disabled = false;
+                    game.insertAction(this.prevMenu);
+                    return;
+                }
+                else if ("CRAFT".equals(word)) {
+                    int index = DrawCraftsMenu.lastCurrIndex+DrawCraftsMenu.lastCursorPos;
+                    if (game.type == Game.Type.CLIENT) {
+                        game.client.sendTCP(new com.pkmngen.game.Network.Craft(game.player.network.id,
+                                                                               index,
+                                                                               SelectAmount.amount));
+                    }
+                    // Check craft requirements
+                    if (game.player.hasCraftRequirements(index, SelectAmount.amount)) {
+                        // Craft the item if the item requirements are met
+                        game.player.craftItem(index, SelectAmount.amount);
+                        // Display 'you crafted' text
+                        game.actionStack.remove(this);
+                        game.insertAction(this.prevMenu.prevMenu);
+                        String plural = "";
+                        if (SelectAmount.amount > 1) {
+                            plural += "S";
+                        }
+                        game.insertAction(new DisplayText(game, "Crafted "+String.valueOf(SelectAmount.amount)+" "+Player.crafts.get(index).name.toUpperCase()+plural+"!",
+                                                          "fanfare1.ogg", true, true,
+                                          new DisplayText.Clear(game,
+                                          new SetField(this.prevMenu.prevMenu, "disabled", false,
+                                          null))));
+                    }
+                }
+            }
+            // player presses b, ie wants to go back
+            else if (InputProcessor.bJustPressed) {
+                game.insertAction(new PlaySound("click1", null));
+                game.actionStack.remove(this);
+                this.prevMenu.disabled = false;
+                game.insertAction(this.prevMenu);
+                return;
+            }
+        }
+    }
+}
+
+/**
  * Draws the ghost that chases the player.
  */
 class DrawGhost extends Action {
@@ -487,7 +1163,6 @@ class DrawGhost extends Action {
         }
 
         // Check if ghost pokemon is dead. if yes, remove this from AS
-        // TODO: wait 
         if (this.pokemon.currentStats.get("hp") <= 0 && !this.inBattle) {
             this.currSprite.draw(game.mapBatch);
             game.actionStack.remove(this);
@@ -655,31 +1330,22 @@ class DrawPlayerUpper extends Action {
     public int layer = 115;
     Sprite spritePart;
 
-    Sprite zSprite;
-
-    int zsTimer = 0;
-    public DrawPlayerUpper(Game game) {
-        Texture text = new Texture(Gdx.files.internal("tiles/zs1.png"));
-        this.zSprite = new Sprite(text, 0, 0, 16, 16);
-    }
+    public DrawPlayerUpper(Game game) {}
 
     public int getLayer(){return this.layer;}
 
     @Override
     public void step(Game game) {
         if (game.player.isSleeping) {
-            if (this.zsTimer < 64) {
-                this.zSprite.setPosition(game.player.position.x+8, game.player.position.y+18);
-            }
-            else {
-                this.zSprite.setPosition(game.player.position.x+16, game.player.position.y+18);
-            }
-            this.zsTimer++;
-            if (this.zsTimer >= 128) {
-                this.zsTimer = 0;
-            }
-            this.zSprite.draw(game.mapBatch);
+            game.player.zSprite.draw(game.mapBatch);
+            game.mapBatch.draw(game.player.sleepingSprite, game.player.position.x, game.player.position.y);
             return;
+        }
+        // Have draw sleeping bag on ground separately for 'getting into sleeping bag' animation.
+        if (game.player.drawSleepingBag) {
+            game.mapBatch.draw(game.player.sleepingBagSprite,
+                               game.player.sleepingBagSprite.getX(),
+                               game.player.sleepingBagSprite.getY());
         }
 
         // draw building tile if building
@@ -935,11 +1601,12 @@ public class Player {
     Map<String, Sprite> movingSprites = new HashMap<String, Sprite>();
     Map<String, Sprite> altMovingSprites = new HashMap<String, Sprite>();
 
-    Vector2 position;
-
-    Sprite currSprite = new Sprite();
+    public Vector2 position;
+    public Sprite currSprite = new Sprite();
 
     Sprite battleSprite;
+    Sprite sleepingSprite;
+    Sprite sleepingBagSprite;
 
     String name;  // Player display name
     Color color = new Color(0.9137255f, 0.5294118f, 0.1764706f, 1f);  // Used to colorize the player sprite
@@ -969,19 +1636,62 @@ public class Player {
     boolean isCutting = false; // player will try to cut tree on A press
     boolean isHeadbutting = false; // player will try to headbutt tree on A press
     boolean isJumping = false; // player will jump up ledges using 'fast' ledge jump animation.
-    boolean isSleeping = false;
+    public boolean isCrafting = false;
+    public boolean isSleeping = false;
+    public boolean drawSleepingBag = false;
+    public boolean acceptInput = true;
     Tile currBuildTile; // which tile will be built next
     int buildTileIndex = 0;
     ArrayList<Tile> buildTiles = new ArrayList<Tile>();
     HashMap<String, HashMap<String, Integer>> buildTileRequirements = new HashMap<String, HashMap<String, Integer>>();
     boolean canMove = true;  // TODO: migrate to start using this
     int numFlees = 0;  // used in battle run away mechanic
+    Sprite zSprite;
+    int zsTimer = 0;
+    Vector2 spawnLoc = new Vector2(0, 0);
     PlayerStanding standingAction;
 
     public Type type;
     Network network;
 
+    static class Craft {
+        String name;
+        int amount;
+        ArrayList<Craft> requirements = new ArrayList<Craft>();
+        public Craft(String name, int amount) {
+            this.name = name;
+            this.amount = amount;
+        }
+    }
+    // Things that the player can craft
+    public static ArrayList<Craft> crafts = new ArrayList<Craft>();
+    static {
+        Craft craft = new Craft("heavy ball", 1);
+        craft.requirements.add(new Craft("black apricorn", 1));
+        Player.crafts.add(craft);
+        craft = new Craft("lure ball", 1);
+        craft.requirements.add(new Craft("blue apricorn", 1));
+        Player.crafts.add(craft);
+        craft = new Craft("friend ball", 1);
+        craft.requirements.add(new Craft("green apricorn", 1));
+        Player.crafts.add(craft);
+        craft = new Craft("love ball", 1);
+        craft.requirements.add(new Craft("pink apricorn", 1));
+        Player.crafts.add(craft);
+        craft = new Craft("level ball", 1);
+        craft.requirements.add(new Craft("red apricorn", 1));
+        Player.crafts.add(craft);
+        craft = new Craft("fast ball", 1);
+        craft.requirements.add(new Craft("white apricorn", 1));
+        Player.crafts.add(craft);
+        craft = new Craft("moon ball", 1);
+        craft.requirements.add(new Craft("yellow apricorn", 1));
+        Player.crafts.add(craft);
+    }
+
     public Player() {
+        Texture text = new Texture(Gdx.files.internal("tiles/zs1.png"));
+        this.zSprite = new Sprite(text, 0, 0, 16, 16);
         // Set player standing/moving sprites
 //        Texture playerText = new Texture(Gdx.files.internal("player1_sheet1.png"));
         Texture playerText = new Texture(Gdx.files.internal("player1_sheet1_color.png"));
@@ -1019,8 +1729,14 @@ public class Player {
         this.altMovingSprites.put("right_running", new Sprite(playerText, 112, 0, 16, 16));
 
         // battle portrait sprite
-        Texture text = new Texture(Gdx.files.internal("battle/player_back1.png"));
-        this.battleSprite = new Sprite(text, 0, 0, 28, 28);
+//        Texture text = new Texture(Gdx.files.internal("battle/player_back1.png"));
+//        this.battleSprite = new Sprite(text, 0, 0, 28, 28);
+        text = new Texture(Gdx.files.internal("battle/player_back_color1.png"));
+        this.battleSprite = new Sprite(text, 0, 0, 45, 46);
+        text = new Texture(Gdx.files.internal("tiles/sleeping_bag1_using.png"));
+        this.sleepingSprite = new Sprite(text, 0, 0, 24, 16);
+        text = new Texture(Gdx.files.internal("tiles/sleeping_bag1.png"));
+        this.sleepingBagSprite = new Sprite(text, 0, 0, 24, 16);
 
         // set initial position
         this.position = new Vector2(0,0);
@@ -1064,17 +1780,24 @@ public class Player {
         this.buildTiles.add(new Tile("house5_roof_left1", new Vector2(0,0)));
         this.buildTiles.add(new Tile("house5_roof_right1", new Vector2(0,0)));
         this.buildTiles.add(new Tile("campfire1", new Vector2(0,0)));
-        this.buildTiles.add(new Tile("sleeping_bag1", new Vector2(0,0)));
+        // TODO: remove
+//        this.buildTiles.add(new Tile("sleeping_bag1", new Vector2(0,0)));
         this.currBuildTile = this.buildTiles.get(this.buildTileIndex);
 
         // for now, everything requires same amt
+        // TODO: convert this to static Player var.
         for (Tile tile : this.buildTiles) {
             if (tile.nameUpper.equals("sleeping_bag1")) {
                 continue;
             }
             this.buildTileRequirements.put(tile.name, new HashMap<String, Integer>());
-//            this.buildTileRequirements.get(tile.name).put("grass", 1);
-//            this.buildTileRequirements.get(tile.name).put("logs", 1);
+            if (tile.name.contains("campfire")) {
+                this.buildTileRequirements.get(tile.name).put("logs", 4);
+                this.buildTileRequirements.get(tile.name).put("grass", 2);
+                continue;
+            }
+            this.buildTileRequirements.get(tile.name).put("grass", 1);
+            this.buildTileRequirements.get(tile.name).put("logs", 1);
         }
         // can pick up sleeping bag and put back in inventory
         this.buildTileRequirements.put("sleeping_bag1", new HashMap<String, Integer>());
@@ -1091,19 +1814,26 @@ public class Player {
         this.itemsList.add("Safari Ball3");
         this.itemsList.add("Safari Ball4");
         this.itemsDict = new HashMap<String, Integer>();
-//        this.itemsDict.put("Safari Ball", 99);
-        this.itemsDict.put("Ultra Ball", 99);
-        this.itemsDict.put("Poké Ball", 99);
         this.itemsDict.put("Sleeping Bag", 1);
+//        this.itemsDict.put("Safari Ball", 99);
+        // TODO: debug, remove
+//        this.itemsDict.put("grass", 99);
+//        this.itemsDict.put("logs", 99);
+        this.itemsDict.put("ultra ball", 99);
+//        this.itemsDict.put("blue apricorn", 99);
+//        this.itemsDict.put("Poké Ball", 99);
 
         this.network = new Network(this.position);
         this.type = Type.LOCAL;
     }
+
     /**
      * Constructor to load from serialized class (ie data sent over network or loaded from file).
      */
     public Player(com.pkmngen.game.Network.PlayerData playerData) {
         this();
+        this.spawnLoc = playerData.spawnLoc;
+        this.dirFacing = playerData.dirFacing;
         this.position = playerData.position;
         this.name = playerData.name;
         this.pokemon = new ArrayList<Pokemon>();
@@ -1120,6 +1850,48 @@ public class Player {
         this.setColor(playerData.color);  // TODO: when server re-loads player, doesn't seem like this is being rendered.
     }
 
+    /**
+     * Check if player has required materials for a craft.
+     */
+    public boolean hasCraftRequirements(int craftIndex, int amount) {
+        boolean hasRequirements = true;
+        for (Player.Craft req : Player.crafts.get(craftIndex).requirements) {
+            hasRequirements = false;
+            for (String item : this.itemsDict.keySet()) {
+                if (item.equals(req.name) && this.itemsDict.get(item) >= req.amount*amount) {
+                    hasRequirements = true;
+                    break;
+                }
+            }
+            if (!hasRequirements) {
+                break;
+            }
+        }
+        return hasRequirements;
+    }
+
+    /**
+     * Deduct required materials from player inventory and add crafted item to inventory.
+     */
+    public void craftItem(int craftIndex, int amount) {
+        // Remove required materials from player inventory
+        Craft craft = Player.crafts.get(craftIndex);
+        for (Player.Craft req : craft.requirements) {
+            for (String item : this.itemsDict.keySet()) {
+                if (item.equals(req.name)) {
+                    int newAmt = this.itemsDict.get(item)-(req.amount*amount);
+                    this.itemsDict.put(item, newAmt);
+                    break;
+                }
+            }
+        }
+        int newAmt = amount;
+        if (this.itemsDict.containsKey(craft.name)) {
+            newAmt = this.itemsDict.get(craft.name) + newAmt;
+        }
+        this.itemsDict.put(craft.name, newAmt);
+    }
+
     public void setColor(Color newColor) {
         this.color = newColor;
 
@@ -1130,7 +1902,6 @@ public class Player {
         }
         Pixmap pixmap = playerText.getTextureData().consumePixmap();
         Color clearColor = new Color(0, 0, 0, 0);
-        // pixmap of right-leaning sprite
         Pixmap coloredPixmap = new Pixmap(playerText.getWidth(), playerText.getHeight(), Pixmap.Format.RGBA8888);
         coloredPixmap.setColor(clearColor);
         coloredPixmap.fill();
@@ -1167,7 +1938,6 @@ public class Player {
         }
         pixmap = playerText.getTextureData().consumePixmap();
         clearColor = new Color(0, 0, 0, 0);
-        // pixmap of right-leaning sprite
         coloredPixmap = new Pixmap(playerText.getWidth(), playerText.getHeight(), Pixmap.Format.RGBA8888);
         coloredPixmap.setColor(clearColor);
         coloredPixmap.fill();
@@ -1196,6 +1966,49 @@ public class Player {
         this.altMovingSprites.get("up_running").flip(true, false);
         this.altMovingSprites.put("left_running", new Sprite(playerText, 96, 0, 16, 16));
         this.altMovingSprites.put("right_running", new Sprite(playerText, 112, 0, 16, 16));
+
+        playerText = new Texture(Gdx.files.internal("battle/player_back_color1.png"));
+        if (!playerText.getTextureData().isPrepared()) {
+            playerText.getTextureData().prepare();
+        }
+        pixmap = playerText.getTextureData().consumePixmap();
+        clearColor = new Color(0, 0, 0, 0);
+        coloredPixmap = new Pixmap(playerText.getWidth(), playerText.getHeight(), Pixmap.Format.RGBA8888);
+        coloredPixmap.setColor(clearColor);
+        coloredPixmap.fill();
+        for (int i = 0; i < playerText.getWidth(); i++) {
+            for (int j = 0; j < playerText.getHeight(); j++) {
+                Color color = new Color(pixmap.getPixel(i, j));
+                if (color.equals(new Color(0.6901961f, 0.28235295f, 0.15686275f, 1f))) {
+                    color = this.color;
+                }
+                coloredPixmap.drawPixel(i, j, Color.rgba8888(color));
+            }
+        }
+        playerText = new Texture(coloredPixmap);
+        this.battleSprite = new Sprite(playerText, 0, 0, 45, 46);
+
+        // recolor sleeping bag sprite
+        playerText = new Texture(Gdx.files.internal("tiles/sleeping_bag1_using.png"));
+        if (!playerText.getTextureData().isPrepared()) {
+            playerText.getTextureData().prepare();
+        }
+        pixmap = playerText.getTextureData().consumePixmap();
+        clearColor = new Color(0, 0, 0, 0);
+        coloredPixmap = new Pixmap(playerText.getWidth(), playerText.getHeight(), Pixmap.Format.RGBA8888);
+        coloredPixmap.setColor(clearColor);
+        coloredPixmap.fill();
+        for (int i = 0; i < playerText.getWidth(); i++) {
+            for (int j = 0; j < playerText.getHeight(); j++) {
+                Color color = new Color(pixmap.getPixel(i, j));
+                if (color.equals(new Color(0.9137255f, 0.5294118f, 0.1764706f, 1f))) {
+                    color = this.color;
+                }
+                coloredPixmap.drawPixel(i, j, Color.rgba8888(color));
+            }
+        }
+        playerText = new Texture(coloredPixmap);
+        this.sleepingSprite = new Sprite(playerText, 0, 0, 24, 16);
     }
 
     class Network {
@@ -1775,8 +2588,17 @@ class PlayerMoving extends Action {
     }
 
     public PlayerMoving(Game game, Player player, boolean alternate) {
+        this(game, player, alternate, new PlayerStanding(game, !alternate));
+    }
+
+    public PlayerMoving(Game game, Player player, boolean alternate, Action nextAction) {
+        this.nextAction = nextAction;
         this.alternate = alternate;
         this.player = player;
+    }
+
+    @Override
+    public void firstStep(Game game) {
         this.initialPos = new Vector2(this.player.position);
         if (this.player.dirFacing == "up") {
             this.targetPos = new Vector2(this.player.position.x, this.player.position.y+16);
@@ -1835,7 +2657,7 @@ class PlayerMoving extends Action {
 
         // if u remove the below check, youll notice that there's a bit of
          // movement that you don't want
-        if (    (this.yDist < 13 && this.yDist > 2)
+        if ((this.yDist < 13 && this.yDist > 2)
             || (this.xDist < 13 && this.xDist > 2)) {
             if (this.alternate == true) {
                 // game.batch.draw(game.player.altMovingSprites.get(game.player.dirFacing), game.player.position.x, game.player.position.y);
@@ -1888,14 +2710,11 @@ class PlayerMoving extends Action {
                     game.map.currRoute = newRoute;
                 }
             }
-
             game.player.position.set(this.targetPos);
             game.cam.position.set(this.targetPos.x+16, this.targetPos.y,0);
-
-            Action standingAction = new PlayerStanding(game, !this.alternate);
-            game.insertAction(standingAction);
-            standingAction.step(game); // decide where to move // doesn't actually seem to do much
             game.actionStack.remove(this);
+            game.insertAction(this.nextAction);
+            this.nextAction.step(game); // decide where to move // doesn't actually seem to do much
         }
     }
 
@@ -1933,7 +2752,7 @@ class PlayerMoving extends Action {
         if (this.xDist >= 16 || this.yDist >= 16) {
 //            // this.player.currRoute keeps track of which route
 //            if (game.map.tiles.get(this.targetPos) != null && game.map.tiles.get(this.targetPos).routeBelongsTo != null) {
-            
+
             this.player.position.set(this.targetPos);
 //            Action standingAction = new playerStanding(game, this.player, !this.alternate, false);
             this.player.standingAction.alternate = !this.alternate;
@@ -2158,19 +2977,18 @@ class PlayerRunning extends Action {
         }
     }
 }
-// this action is basically the decision-maker for
-//  what to do next when a player presses a button
-//  all moving states come back to here
+
+/**
+ * This action is basically the decision-maker for
+ * what to do next when a player presses a button.
+ * All moving states come back to here.
+ */
 class PlayerStanding extends Action {
     public int layer = 130;
     public float initialWait; // might use this to wait before moving
-
     boolean alternate;
-
     boolean checkWildEncounter = true; // TODO - remove when playWait is implemented
-
     boolean isRunning;
-
     Player player;
 
     /*
@@ -2260,6 +3078,7 @@ class PlayerStanding extends Action {
         }
         return null;
     }
+
     public void detectIsHouseBuilt(Game game, Tile currTile) {
         Vector2 pos = currTile.position.cpy();
         // detect if house is fully built or not
@@ -2325,17 +3144,13 @@ class PlayerStanding extends Action {
             }
         }
     }
-    public int getLayer(){return this.layer;}
+
+    public int getLayer(){
+        return this.layer;
+    }
+
     public void localStep(Game game) {
-        if (game.playerCanMove == false || game.player.isSleeping) {
-            if (InputProcessor.bJustPressed && game.player.isSleeping) {
-                game.player.isSleeping = false;
-                Tile currTile = game.map.tiles.get(game.player.position);
-                Texture text = new Texture(Gdx.files.internal("tiles/sleeping_bag1.png"));
-                Sprite temp = new Sprite(text, 0, 0, 24, 16);
-                temp.setPosition(currTile.overSprite.getX(), currTile.overSprite.getY());
-                currTile.overSprite = temp;
-            }
+        if (!game.playerCanMove) {
             return;
         }
 
@@ -2343,18 +3158,22 @@ class PlayerStanding extends Action {
         Vector2 newPos = new Vector2();
 
         // check wild encounter
-         // TODO - in future, this action will jump to a waiting action after one iteration
+        // TODO - in future, this action will jump to a waiting action after one iteration
         if (this.checkWildEncounter == true && game.type != Game.Type.CLIENT) {
             if (checkWildEncounter(game) == true) {
-                // game.actionStack.remove(this); // now using playerCanMove flag
-
                 game.playerCanMove = false;
+                if (game.map.unownSpawn == null) {
+                    game.currMusic.pause();
+                    game.currMusic = game.battle.music;
+                    game.currMusic.stop();
+                    game.currMusic.play();
+                }
+                else {
+                    String unownLetter = game.map.unownUsed.get(game.map.rand.nextInt(game.map.unownUsed.size()));
+                    game.map.unownUsed.remove(unownLetter);
+                    game.battle.oppPokemon = new Pokemon("unown_"+unownLetter, 13, Pokemon.Generation.CRYSTAL);
+                }
                 game.insertAction(Battle.getIntroAction(game));
-                game.currMusic.pause();
-                game.currMusic = game.battle.music;
-                game.currMusic.stop();
-                game.currMusic.play();
-                // game.battle.music.play(); // would rather have an action that does this?
                 this.checkWildEncounter = false;
                 return;
             }
@@ -2395,6 +3214,39 @@ class PlayerStanding extends Action {
             game.playerCanMove = false;
             return;
         }
+        // If player sleeping, then don't accept movement-related inputs.
+        if (game.player.isSleeping) {
+            if (InputProcessor.bJustPressed) {
+                if (game.type == Game.Type.CLIENT) {
+                    game.client.sendTCP(new com.pkmngen.game.Network.Sleep(game.player.network.id, false));
+                }
+                game.player.isSleeping = false;
+                game.player.dirFacing = "left";
+                game.insertAction(new WaitFrames(game, 24,
+                                  new SetField(game.player, "dirFacing", "right",
+                                  new PlayerMoving(game, game.player, false,
+                                  new SetField(game.player, "dirFacing", "left",
+                                  new SetField(game.player, "currSprite", game.player.standingSprites.get("left"),
+                                  new WaitFrames(game, 24,
+                                  new SetField(game.player, "drawSleepingBag", false,
+                                  new WaitFrames(game, 24,
+                                  new PlayerMoving(game, game.player, true,
+                                  new SetField(game.player, "acceptInput", true,
+                                  new SetField(game.player, "currSprite", game.player.standingSprites.get("down"),
+                                  null))))))))))));
+
+                // TODO: remove
+//                Tile currTile = game.map.tiles.get(game.player.position);
+//                Texture text = new Texture(Gdx.files.internal("tiles/sleeping_bag1.png"));
+//                Sprite temp = new Sprite(text, 0, 0, 24, 16);
+//                temp.setPosition(currTile.overSprite.getX(), currTile.overSprite.getY());
+//                currTile.overSprite = temp;
+            }
+            return;
+        }
+        if (!game.player.acceptInput) {
+            return;
+        }
 
         // check user input
         if (InputProcessor.upPressed) {
@@ -2427,7 +3279,8 @@ class PlayerStanding extends Action {
                 game.player.buildTileIndex = game.player.buildTiles.size() - 1;
             }
             game.player.currBuildTile = game.player.buildTiles.get(game.player.buildTileIndex);
-            game.insertAction(new RequirementNotify(game, game.player.currBuildTile.name));
+            // TODO: remove
+//            game.insertAction(new RequirementNotify(game, game.player.currBuildTile.name));
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.V) && game.player.isBuilding) {
             game.player.buildTileIndex += 1;
@@ -2435,7 +3288,8 @@ class PlayerStanding extends Action {
                 game.player.buildTileIndex = 0;
             }
             game.player.currBuildTile = game.player.buildTiles.get(game.player.buildTileIndex);
-            game.insertAction(new RequirementNotify(game, game.player.currBuildTile.name));
+            // TODO: remove
+//            game.insertAction(new RequirementNotify(game, game.player.currBuildTile.name));
         }
 
         if (InputProcessor.bJustPressed) {
@@ -2479,7 +3333,10 @@ class PlayerStanding extends Action {
                 pos = new Vector2(game.player.position.cpy().add(0,-16));
             }
             Tile currTile = game.map.tiles.get(pos);
-            if (currTile.nameUpper.equals("sleeping_bag1")) {
+            if (currTile == null) {
+
+            }
+            else if (currTile.nameUpper.equals("sleeping_bag1")) {
                 // TODO: yes/no confirm dialogue
                 game.player.isSleeping = true;
                 Texture playerText = new Texture(Gdx.files.internal("tiles/sleeping_bag1_using.png"));
@@ -2529,8 +3386,8 @@ class PlayerStanding extends Action {
                                                      null));
                     game.playerCanMove = false;
                     game.insertAction(new WaitFrames(game, 30,
-                                                     new PlayerCanMove(game,
-                                                     null)));
+                                      new PlayerCanMove(game,
+                                      null)));
                     this.detectIsHouseBuilt(game, currTile);
                     // add tile to interiors
                     if (!game.player.currBuildTile.nameUpper.contains("campfire") && !game.player.currBuildTile.nameUpper.contains("sleeping_bag")) {
@@ -2543,8 +3400,7 @@ class PlayerStanding extends Action {
                         }
                         game.map.interiorTiles.get(game.map.interiorTilesIndex).put(currTile.position.cpy(), interiorTile);
                     }
-
-                    // deduct required materials
+                    // Deduct required materials
                     for (String name : game.player.buildTileRequirements.get(game.player.currBuildTile.name).keySet()) {
                         int value = game.player.buildTileRequirements.get(game.player.currBuildTile.name).get(name);
                         value = game.player.itemsDict.get(name)-value;
@@ -2602,7 +3458,18 @@ class PlayerStanding extends Action {
                 }
                 this.detectIsHouseBuilt(game, currTile);
             }
+            else if (currTile.nameUpper.contains("campfire") && game.playerCanMove) {
+                game.playerCanMove = false;
+                game.player.isCrafting = true;
+                game.insertAction(new DrawCraftsMenu.Intro(null, 9,
+                                  new DrawCraftsMenu(game,
+                                  new SetField(game, "playerCanMove", true,
+                                  new SetField(game.player, "isCrafting", false,
+                                  null)))));
+            }
             else {
+                // TODO: onPressA is deprecated since there are no unique Tile subclasses
+                // because it facilitates serialization. Deprecate this.
                 // calling this will trigger the tiles' onPressA function
                  // might be sign (text), character, etc.
                 Tile temp = game.map.tiles.get(pos);
@@ -2627,7 +3494,7 @@ class PlayerStanding extends Action {
             if (game.type == Game.Type.CLIENT) {
                 game.client.sendTCP(new Network.MovePlayer(game.player.network.id,
                                                            game.player.dirFacing,
-                                                           Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT)));
+                                                           InputProcessor.bPressed));
             }
             Tile currTile = game.map.tiles.get(game.player.position);
             Tile temp = game.map.tiles.get(newPos);
@@ -2653,9 +3520,9 @@ class PlayerStanding extends Action {
             }
             // Check if moving into empty space to avoid temp.attr checks afterwards
             // If player is pressing space key (debug mode), just move through the object.
-            if (temp == null || Gdx.input.isKeyPressed(Input.Keys.SPACE)) {
+            if (temp == null || (Gdx.input.isKeyPressed(Input.Keys.SPACE) && game.debugInputEnabled)) {
                 // No tile here, so just move normally
-                if (Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT)) { // check if player should be running
+                if (InputProcessor.bPressed) { // check if player should be running
                     game.insertAction(new PlayerRunning(game, this.alternate));
                 }
                 else {
@@ -2716,7 +3583,7 @@ class PlayerStanding extends Action {
                 return;
             }
             // Check if player should be running
-            if (Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT)) {
+            if (InputProcessor.bPressed) {
                 game.insertAction(new PlayerRunning(game, this.alternate));
                 return;
             }
@@ -3087,6 +3954,28 @@ class PlayerStanding extends Action {
 
     @Override
     public void step(Game game) {
+        if (this.player.isSleeping) {
+            if (this.player.zsTimer < 64) {
+                this.player.zSprite.setPosition(this.player.position.x+8, this.player.position.y+18);
+            }
+            else {
+                this.player.zSprite.setPosition(this.player.position.x+16, this.player.position.y+18);
+            }
+            this.player.zsTimer++;
+            if (this.player.zsTimer >= 128) {
+                // Restore pokemon hp
+                // TODO: restore player hp
+                // TODO: this needs to go in remoteStep or something for remote player
+                for (Pokemon pokemon : this.player.pokemon) {
+                    pokemon.currentStats.put("hp", pokemon.currentStats.get("hp")+1);
+                    if (pokemon.currentStats.get("hp") >= pokemon.maxStats.get("hp")) {
+                        pokemon.currentStats.put("hp", pokemon.maxStats.get("hp"));
+                    }
+                }
+                this.player.zsTimer = 0;
+            }
+        }
+
         if (this.player.type == Player.Type.LOCAL) {
             this.localStep(game);
         }
