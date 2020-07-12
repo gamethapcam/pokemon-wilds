@@ -23,6 +23,7 @@ import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.esotericsoftware.kryo.io.Output;
+import com.pkmngen.game.util.TextureCache;
 
 import box2dLight.PointLight;
 
@@ -32,12 +33,9 @@ import box2dLight.PointLight;
 // just use two draw actions
 // likely need to mark tile as 'grass',
 // for wild encounters (not positive tho)
-class DrawMap extends Action { // /
-
+class DrawMap extends Action {
     public int layer = 140;
-
     Sprite blankSprite;
-
     Pixmap pixels;
     Texture texture;
     Vector3 startPos;
@@ -46,9 +44,9 @@ class DrawMap extends Action { // /
     Vector3 worldCoordsBR;
     Tile tile;
     Sprite spritePart;
-
     Sprite zSprite;
     int zsTimer = 0;
+
     public DrawMap(Game game) {
         this.pixels = new Pixmap(Gdx.files.internal("tiles/blank2.png"));
         this.texture = new Texture(this.pixels);
@@ -277,9 +275,7 @@ class DrawMap extends Action { // /
 // action is separate because grass in on different layer
 class DrawMapGrass extends Action {
     public int layer = 120;
-
     Sprite blankSprite;
-
     Pixmap pixels;
     Texture texture;
     Vector3 startPos;
@@ -287,8 +283,8 @@ class DrawMapGrass extends Action {
     Vector3 worldCoordsTL;
     Vector3 worldCoordsBR;
     Tile tile;
-    public DrawMapGrass(Game game) {
-    }
+
+    public DrawMapGrass(Game game) {}
 
     public int getLayer() {
         return this.layer;
@@ -474,72 +470,81 @@ class EnteiTile extends Tile {
 
 // TODO: shader method
 class EnterBuilding extends Action {
-  Sprite sprite;
-  String action;
-  Action nextAction;
+    Sprite sprite;
+    String action;
+    Action nextAction;
+    Map<Vector2, Tile> whichTiles;
 
-  public int layer = 114;  // TODO: check
-  int timer = 0;
+    public int layer = 114;  // TODO: check
+    int timer = 0;
 
-  int slow = 1;  // TODO: remove, use some sort of into anim;
+    int slow = 1;  // TODO: remove, use some sort of into anim;
 
-  public EnterBuilding(Game game, Action nextAction) {
-      this(game, "enter", nextAction);
-  }
-  public EnterBuilding(Game game, String action, Action nextAction) {
-      this.nextAction = nextAction;
-      this.action = action;
-      // fade out from white anim
-      Texture text1 = TextureCache.get(Gdx.files.internal("battle/intro_frame6.png"));
-      this.sprite = new Sprite(text1);
-      this.sprite.setPosition(0,0);
-  }
+    public EnterBuilding(Game game, Action nextAction) {
+        this(game, "enter", nextAction);
+    }
 
-  public String getCamera() {return "gui";}
+    public EnterBuilding(Game game, String action, Action nextAction) {
+        this(game, action, null, nextAction);
+    }
+    public EnterBuilding(Game game, String action, Map<Vector2, Tile> whichTiles, Action nextAction) {
+        this.whichTiles = whichTiles;
+        this.nextAction = nextAction;
+        this.action = action;
+        // fade out from white anim
+        Texture text1 = TextureCache.get(Gdx.files.internal("battle/intro_frame6.png"));
+        this.sprite = new Sprite(text1);
+        this.sprite.setPosition(0,0);
+    }
 
-  public int getLayer(){return this.layer;}
+    public String getCamera() {return "gui";}
 
-  @Override
-  public void step(Game game) {
-      if (this.timer < 2*slow) {
-          if (this.timer == 0 && this.action.equals("enter") || this.action.equals("exit")) {
-              game.insertAction(new PlaySound(this.action+"1", null));
-          }
-      }
-      else if (this.timer < 4*slow) {
-          this.sprite.draw(game.uiBatch, .25f);
-      }
-      else if (this.timer < 6*slow) {
-          this.sprite.draw(game.uiBatch, .50f);
-      }
-      else if (this.timer < 12*slow) {
-          if (this.timer == 6*slow) {
-              if (this.action.equals("enter")) {
-                  game.map.tiles = game.map.interiorTiles.get(game.map.interiorTilesIndex);
-              }
-              else if (this.action.equals("exit")){
-                  game.map.tiles = game.map.overworldTiles;
-              }
-          }
-          this.sprite.draw(game.uiBatch, 1f);
-      }
-      else if (this.timer < 14*slow) {
-          this.sprite.draw(game.uiBatch, .75f);
-      }
-      else if (this.timer < 16*slow) {
-          this.sprite.draw(game.uiBatch, .50f);
-      }
-      else if (this.timer < 18*slow) {
-          this.sprite.draw(game.uiBatch, .25f);
-      }
-      else {
-          game.actionStack.remove(this);
-          game.insertAction(this.nextAction);
-      }
+    public int getLayer(){return this.layer;}
 
-      this.timer++;
+    @Override
+    public void step(Game game) {
+        if (this.timer < 2*slow) {
+            if (this.timer == 0 && this.action.equals("enter") || this.action.equals("exit")) {
+                game.insertAction(new PlaySound(this.action+"1", null));
+            }
+        }
+        else if (this.timer < 4*slow) {
+            this.sprite.draw(game.uiBatch, .25f);
+        }
+        else if (this.timer < 6*slow) {
+            this.sprite.draw(game.uiBatch, .50f);
+        }
+        else if (this.timer < 12*slow) {
+            if (this.timer == 6*slow) {
+                if (this.whichTiles != null) {
+                    game.map.tiles = this.whichTiles;
+                }
+                else if (this.action.equals("enter")) {
+                    game.map.tiles = game.map.interiorTiles.get(game.map.interiorTilesIndex);
+                }
+                else if (this.action.equals("exit")){
+                    game.map.tiles = game.map.overworldTiles;
+                }
+            }
+            this.sprite.draw(game.uiBatch, 1f);
+        }
+        else if (this.timer < 14*slow) {
+            this.sprite.draw(game.uiBatch, .75f);
+        }
+        else if (this.timer < 16*slow) {
+            this.sprite.draw(game.uiBatch, .50f);
+        }
+        else if (this.timer < 18*slow) {
+            this.sprite.draw(game.uiBatch, .25f);
+        }
+        else {
+            game.actionStack.remove(this);
+            game.insertAction(this.nextAction);
+        }
 
-  }
+        this.timer++;
+
+    }
 }
 
 class MegaGengarTile extends Tile {
@@ -748,6 +753,9 @@ public class PkmnMap {
     Map<Vector2, Tile> tiles = overworldTiles;
     ArrayList<HashMap<Vector2, Tile>> interiorTiles = new ArrayList<HashMap<Vector2, Tile>>();
     int interiorTilesIndex = 100;
+
+    // locations of all pokemon currently located on the map
+    Map<Vector2, Pokemon> pokemon = new HashMap<Vector2, Pokemon>();
 
     // use this to drop the tops of trees over the player
     //  hopefully makes drawing take less time
@@ -975,12 +983,26 @@ public class PkmnMap {
                 Route tempRoute = loadedRoutes.get(tileData.routeBelongsTo);
                 this.tiles.put(tileData.pos.cpy(), Tile.get(tileData, tempRoute));
             }
-            // load time of day
-            game.map.timeOfDay = mapTiles.timeOfDay;
+            // Load interior tiles
+            this.interiorTiles.clear();
+            for (HashMap<Vector2, Network.TileData> tileDatas : mapTiles.interiorTiles) {
+                HashMap<Vector2, Tile> tiles = null;
+                if (tileDatas != null) {
+                    tiles = new HashMap<Vector2, Tile>();
+                    for (Network.TileData tileData : tileDatas.values()) {
+                        Tile newTile = Tile.get(tileData, null);
+                        tiles.put(newTile.position.cpy(), newTile);
+                    }
+                }
+                this.interiorTiles.add(tiles);
+            }
+            // Load misc map-related values
+            this.interiorTilesIndex = mapTiles.interiorTilesIndex;
+            this.timeOfDay = mapTiles.timeOfDay;
             CycleDayNight.dayTimer = mapTiles.dayTimer;
-            game.map.edges = mapTiles.edges;
+            this.edges = mapTiles.edges;
 
-            // load players
+            // Load players
             inputStream = new InflaterInputStream(new FileInputStream(this.id + ".players.sav"));
             input = new com.esotericsoftware.kryo.io.Input(inputStream);
             ArrayList<Network.PlayerData> players = game.server.getKryo().readObject(input, ArrayList.class);
@@ -998,6 +1020,9 @@ public class PkmnMap {
             game.player = new Player(playerData);
             game.cam.position.set(game.player.position.x+16, game.player.position.y, 0);
             game.player.type = Player.Type.LOCAL;
+            if (playerData.isInterior) {
+                game.map.tiles = game.map.interiorTiles.get(game.map.interiorTilesIndex);
+            }
             // if this is a server, put player in game.players
             // this will convert a local save file to a 'hosted' save file
             //  it won't convert the other way tho.
@@ -1051,13 +1076,26 @@ public class PkmnMap {
                     e.printStackTrace();
                 }
                 Network.MapTiles mapTiles = new Network.MapTiles();
-                for (Tile tile : game.map.tiles.values()) {
+                for (Tile tile : game.map.overworldTiles.values()) {
                     // store unique routes as hashmap ClassID->Route
                     if (tile.routeBelongsTo != null && !mapTiles.routes.containsKey(tile.routeBelongsTo.toString())) {
                         mapTiles.routes.put(tile.routeBelongsTo.toString(), new Network.RouteData(tile.routeBelongsTo));
                     }
                     mapTiles.tiles.add(new Network.TileData(tile));
                 }
+                // Save interior tiles
+                for (HashMap<Vector2, Tile> tiles : game.map.interiorTiles) {
+                    HashMap<Vector2, Network.TileData> tileDatas = null;
+                    if (tiles != null) {
+                        tileDatas  = new HashMap<Vector2, Network.TileData>();
+                        for (Tile tile : tiles.values()) {
+                            tileDatas.put(tile.position, new Network.TileData(tile));
+                        }
+                    }
+                    mapTiles.interiorTiles.add(tileDatas);
+                }
+                // Save time of day, edges.
+                mapTiles.interiorTilesIndex = game.map.interiorTilesIndex;
                 mapTiles.edges = game.map.edges;
                 mapTiles.timeOfDay = game.map.timeOfDay;
                 mapTiles.dayTimer = CycleDayNight.dayTimer;
@@ -1087,9 +1125,10 @@ public class PkmnMap {
                 } catch (FileNotFoundException e) {
                     e.printStackTrace();
                 }
-                game.server.getKryo().writeObject(this.output, new Network.PlayerData(game.player));
+                Network.PlayerData playerData = new Network.PlayerData(game.player);
+                playerData.isInterior = (game.map.tiles != game.map.overworldTiles);
+                game.server.getKryo().writeObject(this.output, playerData);
                 this.output.close();
-
                 System.out.println("Done.");
             }
         }
@@ -1200,7 +1239,8 @@ class Route {
     ArrayList<String> musics = new ArrayList<String>();
     int musicsIndex = 0;
 
-    Random rand;
+    // TODO: remove
+//    Random rand;
 
     /*
      * Constructor for loading from file or loading over network.
@@ -1224,7 +1264,7 @@ class Route {
         this.pokemon = new ArrayList<Pokemon>();
         this.allowedPokemon = new ArrayList<String>();
 
-        this.rand = new Random();
+//        this.rand = new Random();
 
         if (name == "Route 1") {
             this.allowedPokemon.add("Electabuzz");
@@ -1309,10 +1349,11 @@ class Route {
             this.allowedPokemon.add("oddish");
             this.allowedPokemon.add("gloom");
             this.allowedPokemon.add("pidgey");
+            this.allowedPokemon.add("spearow");
             this.allowedPokemon.add("hoppip");
             this.allowedPokemon.add("machop");
             this.allowedPokemon.add("stantler");
-            this.allowedPokemon.add("tauros");
+//            this.allowedPokemon.add("tauros");
             this.allowedPokemon.add("bulbasaur");
             this.allowedPokemon.add("charmander");
             this.allowedPokemon.add("chikorita");
@@ -1322,10 +1363,46 @@ class Route {
             this.allowedPokemon.add("caterpie");
             this.allowedPokemon.add("spinarak");
             this.allowedPokemon.add("ledyba");
+            this.allowedPokemon.add("hoothoot");
+            this.allowedPokemon.add("mankey");
+            for (int i = 0; i < 2; i++) {
+                this.allowedPokemon.add("bulbasaur");
+                this.allowedPokemon.add("charmander");
+                this.allowedPokemon.add("chikorita");
+            }
             // TODO: remove
 //            this.music = Gdx.audio.newMusic(Gdx.files.internal("route1_1.ogg"));
 //            this.music.setLooping(true);
 //            this.music.setVolume(.3f);
+        }
+        else if (name.equals("savanna1")) {
+            this.allowedPokemon.add("tauros");
+            this.allowedPokemon.add("miltank");
+            for (int i = 0; i < 2; i++) {
+                this.allowedPokemon.add("oddish");
+                this.allowedPokemon.add("pidgey");
+                for (int j = 0; j < 2; j++) {
+                    this.allowedPokemon.add("charmander");
+                    this.allowedPokemon.add("cyndaquil");
+                }
+                this.allowedPokemon.add("mareep");
+                this.allowedPokemon.add("ekans");
+                this.allowedPokemon.add("doduo");
+                this.allowedPokemon.add("sentret");
+                this.allowedPokemon.add("rattata");
+            }
+            // feels like it's getting too diluted
+//            this.allowedPokemon.add("snubbul");
+//            this.allowedPokemon.add("meowth");
+            // nidoran, murkro, natu, 
+
+            // TODO: might need savanna2 biome, which has it's own dedicated blotch area
+//            this.allowedPokemon.add("kangaskan");  // only if high-level?
+//            this.allowedPokemon.add("scyther");  // only if high-level?
+//            this.allowedPokemon.add("pinsir");  // only if high-level?
+//            this.allowedPokemon.add("lickitung");  // only if high-level?
+//            this.allowedPokemon.add("drowzee");
+//            this.allowedPokemon.add("eevee");  // TODO: after evolutionary stones added
         }
         else if (name.equals("beach1")) {
             this.allowedPokemon.add("squirtle");
@@ -1335,6 +1412,7 @@ class Route {
             this.allowedPokemon.add("wooper");
             this.allowedPokemon.add("shuckle");
             this.allowedPokemon.add("staryu");
+            this.allowedPokemon.add("marill");
         }
         else if (name.equals("desert1")) {
             // TODO: these are just some ideas
@@ -1437,7 +1515,9 @@ class Route {
         // if less than needed pokemon for randomization, just use them all.
         if (this.allowedPokemon.size() < 4) {
             for (String pokemonName : this.allowedPokemon) {
-                this.pokemon.add(new Pokemon(pokemonName, this.level + rand.nextInt(3), Pokemon.Generation.CRYSTAL));
+                this.pokemon.add(new Pokemon(pokemonName,
+                                             this.level + Game.rand.nextInt(3),
+                                             Pokemon.Generation.CRYSTAL));
             }
             return;
         }
@@ -1451,8 +1531,12 @@ class Route {
         }
         // below will add from allowed pkmn based on catchRate
         while (this.pokemon.size() < 4) { // 4 total pokemon in route
-            randomNum = rand.nextInt(this.allowedPokemon.size()); // 0, 1, 2
-            randomLevel = rand.nextInt(3); // 0, 1, 2
+            // TODO: debug, remove
+//            System.out.println("debug:");
+//            System.out.println(this.allowedPokemon);
+//            System.out.println(Game.staticGame.map.rand);
+            randomNum = Game.rand.nextInt(this.allowedPokemon.size()); // 0, 1, 2
+            randomLevel = Game.rand.nextInt(3); // 0, 1, 2
             pokemonName = this.allowedPokemon.get(randomNum);
             // this breaks if less than 5 available pokemon in route
             if (usedPokemon.contains(pokemonName) && this.allowedPokemon.size() > 4) {
@@ -1465,7 +1549,7 @@ class Route {
             int timesEvolved = 0;
             for (int i=1; i <= tempPokemon.level; i++) {
                 if (Pokemon.gen2Evos.get(tempPokemon.name.toLowerCase()).containsKey(String.valueOf(i)) && 
-                    this.rand.nextInt(2) == 0) {
+                    Game.rand.nextInt(2) == 0) {
                     evolveTo = Pokemon.gen2Evos.get(tempPokemon.name.toLowerCase()).get(String.valueOf(i));
                     tempPokemon.evolveTo(evolveTo);
                     timesEvolved++;
@@ -1632,12 +1716,12 @@ class Tile {
     // temp fix to ledge direction thing
     // can't think of another place to put this.
     String ledgeDir;
-
     Vector2 position;
-
     Sprite sprite;
     Sprite overSprite; // ledges
-    String hasItem;  // if not null, has item on this square
+    // if not null, has item on this square that can be pick up by pressing A on the tile
+    String hasItem;  
+    int hasItemAmount = 0;
 
     // route that this tile belongs to
     // used to signal movement to new routes
@@ -1671,7 +1755,11 @@ class Tile {
         if (tileData.tileNameUpper.contains("sign")) {
             return new TrainerTipsTile(tileData.pos.cpy(), routeBelongsTo, tileData.isUnown, tileData.message);
         }
-        return new Tile(tileData.tileName, tileData.tileNameUpper, tileData.pos.cpy(), true, routeBelongsTo);
+        Tile tile = new Tile(tileData.tileName, tileData.tileNameUpper, tileData.pos.cpy(), true, routeBelongsTo);
+        tile.items = tileData.items;
+        tile.hasItem = tileData.hasItem;
+        tile.hasItemAmount = tileData.hasItemAmount;
+        return tile;
     }
 
     public Tile(String tileName, String nameUpper, Vector2 pos) {
@@ -1732,13 +1820,16 @@ class Tile {
             playerText = TextureCache.get(Gdx.files.internal("tiles/grass3_over.png"));
             this.overSprite = new Sprite(playerText, 0, 0, 16, 16);
             this.attrs.put("grass", true);
-
+            this.attrs.put("cuttable", true);
+            this.items.put("grass", 1);
         } else if (tileName.equals("grass_sand1")) {
             Texture playerText = TextureCache.get(Gdx.files.internal("tiles/sand1.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
             playerText = TextureCache.get(Gdx.files.internal("tiles/grass2_over.png"));
             this.overSprite = new Sprite(playerText, 0, 0, 16, 16);
             this.attrs.put("grass", true);
+            this.attrs.put("cuttable", true);
+            this.items.put("grass", 1);
         } else if (tileName.equals("flower1")) {
             Texture playerText = TextureCache.get(
                     Gdx.files.internal("tiles/flower1.png"));
@@ -2054,10 +2145,12 @@ class Tile {
             this.attrs.put("solid", true);
             this.attrs.put("cuttable", true);
             this.attrs.put("headbuttable", true);
-            this.items.put("logs", 1);
+            this.items.put("log", 1);
             String[] items = {"black apricorn", "blue apricorn", "green apricorn", "pink apricorn",
                               "red apricorn", "white apricorn", "yellow apricorn"};
-            this.items.put(items[Game.staticGame.map.rand.nextInt(items.length)], 1);
+            if (Game.staticGame.map.rand.nextInt(2) == 0) {
+                this.items.put(items[Game.staticGame.map.rand.nextInt(items.length)], 1);
+            }
         } else if (tileName.equals("bush2")) {
             Texture playerText;
             playerText = TextureCache.get(Gdx.files.internal("tiles/bush2_color.png"));
@@ -2154,6 +2247,11 @@ class Tile {
             this.sprite = new Sprite(playerText, 0, 0, 16, 20);
             this.attrs.put("solid", true);
         }
+        else if (tileName.equals("fence1")) {
+            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/fence1.png"));
+            this.sprite = new Sprite(playerText, 0, 0, 16, 20);
+            this.attrs.put("solid", true);
+        }
         else if (tileName.equals("sleeping_bag1")) {
             Texture playerText = TextureCache.get(Gdx.files.internal("tiles/sleeping_bag1.png"));
             this.sprite = new Sprite(playerText, 0, 0, 24, 16);
@@ -2162,7 +2260,7 @@ class Tile {
             // just load from image file
             Texture playerText = TextureCache.get(Gdx.files.internal("tiles/buildings/"+tileName+".png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
-            if (!tileName.contains("door") && !tileName.contains("floor")) {
+            if (!tileName.contains("door") && !tileName.contains("floor") && !tileName.contains("rug")) {
                 this.attrs.put("solid", true);
             }
         }
@@ -2184,11 +2282,16 @@ class Tile {
                 text = TextureCache.get(Gdx.files.internal("tiles/"+this.nameUpper+".png"));
             }
             this.overSprite = new Sprite(text, 0, 0, 16, 16);
-            if (!this.nameUpper.contains("door") && !this.nameUpper.contains("floor")) {
+            if (!this.nameUpper.contains("door") &&
+                !this.nameUpper.contains("floor") &&
+                !this.nameUpper.contains("tree_planted")) {
                 this.attrs.put("solid", true);
             }
-            if (!this.nameUpper.contains("floor")) {
+            if (!this.nameUpper.contains("floor") && !this.nameUpper.contains("pokeball")) {
                 this.attrs.put("cuttable", true);
+                // TODO: test
+                this.items.put("grass", 1);
+                this.items.put("log", 1);
             }
             if (this.nameUpper.equals("bush2_color")) {
                 this.attrs.put("headbuttable", true);
@@ -2196,6 +2299,7 @@ class Tile {
             if (this.nameUpper.equals("pokeball1")) {
                 this.attrs.put("solid", true);
                 this.hasItem = "pokÈ ball";
+                this.hasItemAmount = 1;
             }
         }
 
@@ -2224,17 +2328,60 @@ class Tile {
             this.nameUpper = "";
             this.attrs.put("solid", false);
             game.playerCanMove = false;
-            int amount = 1;
+            int amount = this.hasItemAmount;
             if (game.player.itemsDict.containsKey(this.hasItem)) {
                 amount += game.player.itemsDict.get(this.hasItem);
             }
             game.player.itemsDict.put(this.hasItem, amount);
-            game.insertAction(new DisplayText(game, "Found a "+this.hasItem.toUpperCase()+"!", "fanfare1.ogg", null,
+            String number = "a";
+            String plural = "";
+            if (this.hasItemAmount > 1) {
+                number = String.valueOf(this.hasItemAmount);
+                plural = "S";
+                if (this.hasItem.endsWith("s")) {
+                    plural = "ES";
+                }
+            }
+            game.insertAction(new DisplayText(game, "Found "+number+" "+this.hasItem.toUpperCase()+plural+"!", "fanfare1.ogg", null,
                               new SetField(game, "playerCanMove", true,
                               null)));
             this.hasItem = null;
+            this.hasItemAmount = 0;
         }
-
+        else if (this.nameUpper.contains("bush") || this.name.contains("grass")) {  // && !this.name.contains("large")
+            game.playerCanMove = false;
+            game.insertAction(new DisplayText(game, "A Grass-type POKÈMON can CUT this.", null, null,
+                              new SetField(game, "playerCanMove", true,
+                              null)));
+        }
+        else if (game.map.pokemon.containsKey(this.position)) { 
+//            game.map.pokemon.get(this.position)
+            // TODO: play animation
+            game.playerCanMove = false;
+            Pokemon pokemon = game.map.pokemon.get(this.position);
+            pokemon.canMove = false;
+            String oppDir = "down";  // TODO: need a map for this.
+            if (game.player.dirFacing.equals("up")) {
+                oppDir = "down";
+            }
+            else if (game.player.dirFacing.equals("down")) {
+                oppDir = "up";
+            }
+            else if (game.player.dirFacing.equals("right")) {
+                oppDir = "left";
+            }
+            else if (game.player.dirFacing.equals("left")) {
+                oppDir = "right";
+            }
+            game.insertAction(new SetField(pokemon, "dirFacing", oppDir,
+                              new WaitFrames(game, 20,
+                              new SplitAction(pokemon.new Emote("happy", null),
+                              new WaitFrames(game, 20,
+                              new PlaySound(pokemon,
+                              pokemon.new AddToInventory(
+                              new SetField(game, "playerCanMove", true,
+                              null))))))));
+        }
     }
 
     public void onWalkOver() {
@@ -2284,6 +2431,7 @@ class TrainerTipsTile extends Tile {
         TrainerTipsTile.messages.add("Using a sleeping bag will slowly restore your party' hp.");
         TrainerTipsTile.messages.add("Ghosts will chase you at night, but remember! A campfire will deter them.");
         TrainerTipsTile.messages.add("Use CUT on trees and tall grass to get building materials.");
+        TrainerTipsTile.messages.add("You can build fences to prevent your pokemon from running away when you let them out of their POKÈBALL.");
     }
 
     @Override

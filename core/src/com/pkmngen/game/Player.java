@@ -19,12 +19,12 @@ import com.badlogic.gdx.math.Vector2;
 import com.pkmngen.game.DrawPokemonMenu.SelectedMenu;
 import com.pkmngen.game.DrawPokemonMenu.SelectedMenu.Switch;
 
-// contains thing to cycle, number of frames for thing
-// add more in future, like sounds
+/*
+ * TODO: remove this, not using.
+ */
 class AnimationContainer<E> {
     ArrayList<E> animateThese;
     ArrayList<Integer> numFrames;
-
     int index;
 
     public AnimationContainer() {
@@ -34,7 +34,7 @@ class AnimationContainer<E> {
     }
 
     public void add(E thing, int numFrames) {
-        animateThese.add(thing);;
+        animateThese.add(thing);
         this.numFrames.add(numFrames);
     }
 
@@ -47,13 +47,12 @@ class AnimationContainer<E> {
     }
 }
 
-// draw character action
-//  need to build in 'button press delay'
-
+/**
+ * Animation of player cutting tree in overworld.
+ */
 class CutTreeAnim extends Action {
     int index = 0;
     Tile tile;
-    Action nextAction;
     Sprite left, right;
 
     public CutTreeAnim(Game game, Tile tile, Action nextAction) {
@@ -78,8 +77,18 @@ class CutTreeAnim extends Action {
 ////                game.map.tiles.put(this.tile.position.cpy(), new Tile("bush2", this.tile.position.cpy()));
 //                this.tile = new Tile("bush2", this.tile.position.cpy());
 //            }
+            String name = this.tile.name;
+            if (name.equals("grass2")) {
+                name = "green1";
+            }
+            else if (name.equals("grass3")) {
+                name = "snow1";
+            }
+            else if (name.equals("grass_sand1")) {
+                name = "sand1";
+            }
             game.map.tiles.put(this.tile.position.cpy(),
-                               new Tile(this.tile.name, this.tile.position.cpy(),
+                               new Tile(name, this.tile.position.cpy(),
                                         true, this.tile.routeBelongsTo));
 
             game.mapBatch.draw(this.tile.sprite, this.tile.sprite.getX(), this.tile.sprite.getY());
@@ -136,7 +145,7 @@ class CutTreeAnim extends Action {
         }
         else {
 //            game.map.tiles.put(this.tile.position.cpy(), this.tile);
-            game.playerCanMove = true;
+//            game.playerCanMove = true;
             game.actionStack.remove(this);
             game.insertAction(this.nextAction);
         }
@@ -144,8 +153,10 @@ class CutTreeAnim extends Action {
     }
 }
 
-// for keeping track of day night
- // pops up cycle change notif, changes shader, etc
+/**
+ * Keeps track of current time of day, handles day/night transition animation.
+ * Keeps track of when ghosts should spawn.
+ */
 class CycleDayNight extends Action {
     public static int dayTimer;
     public int layer = 114;
@@ -168,6 +179,9 @@ class CycleDayNight extends Action {
 
     int signCounter;
     int day, night; // number of days/nights that has passed
+    
+    Vector2 startPos;
+    Vector2 endPos;
 
     public CycleDayNight(Game game) {
         this.day = 1;
@@ -200,7 +214,7 @@ class CycleDayNight extends Action {
         this.bgSprite = new Sprite(text, 0, 0, 160, 144);
         this.bgSprite.setPosition(0,24);
 
-        this.text = game.map.timeOfDay+": "; // String.valueOf(this.numMain)
+        this.text = game.map.timeOfDay+": ";
     }
     public String getCamera() {return "gui";}
 
@@ -208,16 +222,15 @@ class CycleDayNight extends Action {
 
     @Override
     public void step(Game game) {
+        // TODO: remove this (required by network play)
         if (game.playerCanMove == true) {
             dayTimer--;
         }
 
         if (dayTimer <= 0) {
-            // TODO - time of day is part of map
-             //
             if (game.map.timeOfDay == "Day") {
                 this.fadeToNight = true;
-                dayTimer = 10000; // debug
+                dayTimer = 3000; // debug  // was 10000
             }
             else if (game.map.timeOfDay == "Night") {
                 this.fadeToDay = true;
@@ -225,9 +238,8 @@ class CycleDayNight extends Action {
             }
         }
 
-        if (fadeToDay == true) {
+        if (this.fadeToDay) {
             game.mapBatch.setColor(this.fadeToDayAnim.currentThing());
-
             animIndex++;
 
             if (animIndex >= this.fadeToDayAnim.currentFrame()) {
@@ -240,26 +252,42 @@ class CycleDayNight extends Action {
                 game.map.timeOfDay = "Day";
                 this.fadeToDayAnim.index = 0;
 
-                // TODO - fade day music
-                game.currMusic.pause();
-                // start night music
-                Music music = Gdx.audio.newMusic(Gdx.files.internal("route1_1.ogg"));
-                music.setLooping(true);
-                music.setVolume(.7f);
-                game.currMusic = music;
-                game.map.currRoute.music = music; // TODO - how to switch to normal after defeating
-                game.currMusic.play();
+//                // TODO - fade day music
+//                game.currMusic.pause();
+//                // start night music
+//                Music music = Gdx.audio.newMusic(Gdx.files.internal("route1_1.ogg"));
+//                music.setLooping(true);
+//                music.setVolume(.7f);
+//                game.currMusic = music;
+//                game.map.currRoute.music = music; // TODO - how to switch to normal after defeating
+//                game.currMusic.play();
+                
+                String nextMusicName = game.map.currRoute.getNextMusic(true);
+                BattleFadeOutMusic.playerFainted = true;  // TODO: this is just a hack around issues with FadeMusic
+                Action nextMusic = new BattleFadeOutMusic(game,
+                                   new WaitFrames(game, 360,
+                                   new FadeMusic(nextMusicName, "in", "", 0.2f, true, 1f, game.musicCompletionListener,
+                                   null)));
+                game.insertAction(nextMusic);
 
                 // state which day it is
                 day++;
                 signCounter = 300;
                 this.bgSprite.setPosition(0,24);
+
+                // All planted trees become full size trees
+                if (game.type != Game.Type.CLIENT) {
+                    for (Tile tile : game.map.overworldTiles.values()) {
+                        if (tile.nameUpper.equals("tree_planted")) {
+                            game.map.overworldTiles.put(tile.position, new Tile("bush1", "", tile.position.cpy(), true, tile.routeBelongsTo));
+                        }
+                    }
+                }
             }
         }
 
-        if (fadeToNight == true) {
+        if (this.fadeToNight) {
             game.mapBatch.setColor(this.animContainer.currentThing());
-
             animIndex++;
 
             if (animIndex >= this.animContainer.currentFrame()) {
@@ -273,8 +301,10 @@ class CycleDayNight extends Action {
                 this.countDownToGhost = 150; // this.rand.nextInt(5000) + 150;  // debug: 150;
                 this.animContainer.index = 0;
 
-                // TODO - fade day music
-                game.currMusic.pause();
+                // TODO test
+//                game.currMusic.pause();
+                game.currMusic.stop();
+                game.currMusic.dispose();
                 // start night music
                 Music music = Gdx.audio.newMusic(Gdx.files.internal("night1.ogg"));
                 music.setLooping(true);
@@ -291,45 +321,47 @@ class CycleDayNight extends Action {
         }
 
         // check player can move so don't spawn in middle of battle or when looking at ghost
-        if (game.map.timeOfDay == "Night" && game.playerCanMove == true) {
-            // chance to spawn ghost
+        // if player is near a campfire, don't deduct from ghost spawn timer
+        if (game.map.timeOfDay == "Night" && game.playerCanMove == true && !game.player.isNearCampfire) {
             countDownToGhost--;
             if (game.player.currState != "Running") {
                 countDownToGhost--;
             }
 
-            if (countDownToGhost == 0) {
+            if (countDownToGhost <= 0) {
                 Vector2 randPos = game.player.position.cpy().add(this.rand.nextInt(5)*16 - 48, this.rand.nextInt(5)*16 - 48);
                 game.insertAction(new SpawnGhost(game, new Vector2(randPos)) );
-                this.countDownToGhost = this.rand.nextInt(4000) + 1000; // debug: 1000;
+                // TODO: mess with this.
+//                this.countDownToGhost = this.rand.nextInt(4000) + 1000; // debug: 1000;
+                this.countDownToGhost = this.rand.nextInt(2000) + 1000; // debug: 1000;
             }
-
         }
 
-        if (signCounter > 0) {
-            signCounter--;
-
-            if (signCounter > 100) {
-            }
-            else if (signCounter > 78) {
-                this.bgSprite.setPosition(this.bgSprite.getX(), this.bgSprite.getY()-1);
-            }
-            else if (signCounter > 22) {
-            }
-            else {
-                this.bgSprite.setPosition(this.bgSprite.getX(), this.bgSprite.getY()+1);
-            }
-
-            this.bgSprite.draw(game.uiBatch);
-            String temp="";
-            if (game.map.timeOfDay == "Day") {
-                    temp = String.valueOf(this.day);
-            }
-            else {
-                    temp = String.valueOf(this.night);
-            }
-            game.font.draw(game.uiBatch, game.map.timeOfDay+": "+temp, 60, this.bgSprite.getY()+134); // Gdx.graphics.getHeight()-
-        }
+        // TODO: move to unused code
+//        if (signCounter > 0) {
+//            signCounter--;
+//
+//            if (signCounter > 100) {
+//            }
+//            else if (signCounter > 78) {
+//                this.bgSprite.setPosition(this.bgSprite.getX(), this.bgSprite.getY()-1);
+//            }
+//            else if (signCounter > 22) {
+//            }
+//            else {
+//                this.bgSprite.setPosition(this.bgSprite.getX(), this.bgSprite.getY()+1);
+//            }
+//
+//            this.bgSprite.draw(game.uiBatch);
+//            String temp="";
+//            if (game.map.timeOfDay == "Day") {
+//                    temp = String.valueOf(this.day);
+//            }
+//            else {
+//                    temp = String.valueOf(this.night);
+//            }
+//            game.font.draw(game.uiBatch, game.map.timeOfDay+": "+temp, 60, this.bgSprite.getY()+134); // Gdx.graphics.getHeight()-
+//        }
 
     }
 }
@@ -817,8 +849,10 @@ class DrawCraftsMenu extends MenuAction {
         public int layer = 106;
         Sprite textbox;
         public static int amount = 0;
+        int maxAmount = 1;
 
         public SelectAmount(MenuAction prevMenu) {
+//            this.maxAmount = maxAmount;
             this.prevMenu = prevMenu;
             Texture text = new Texture(Gdx.files.internal("amount_bg1.png"));
             this.textbox = new Sprite(text, 0,0, 16*10, 16*9);
@@ -847,7 +881,8 @@ class DrawCraftsMenu extends MenuAction {
             }
 
             if (InputProcessor.upJustPressed) {
-                if (SelectAmount.amount < 99) {
+                int index = DrawCraftsMenu.lastCurrIndex+DrawCraftsMenu.lastCursorPos;
+                if (game.player.hasCraftRequirements(index, SelectAmount.amount+1)) {
                     SelectAmount.amount++;
                 }
             }
@@ -857,7 +892,12 @@ class DrawCraftsMenu extends MenuAction {
                 }
             }
             else if (InputProcessor.rightJustPressed) {
-                SelectAmount.amount += 10;
+                int index = DrawCraftsMenu.lastCurrIndex+DrawCraftsMenu.lastCursorPos;
+                for (int i = 0; i < 10; i++) {
+                    if (game.player.hasCraftRequirements(index, SelectAmount.amount+1)) {
+                        SelectAmount.amount++;
+                    }
+                }
                 if (SelectAmount.amount >= 99) {
                     SelectAmount.amount = 99;
                 }
@@ -1155,15 +1195,27 @@ class DrawGhost extends Action {
                 this.currSprite.draw(game.mapBatch);
                 game.actionStack.remove(this);
                 game.insertAction(new DespawnGhost(this.basePos.cpy()));
-                game.currMusic.pause();
+                // TODO: test
+//                game.currMusic.pause();
+                game.currMusic.stop();
+                game.currMusic.dispose();
                 game.currMusic = game.map.currRoute.music;
                 game.currMusic.play();
                 return;
             }
         }
 
+        // Check if player's party has fainted. if yes, remove this from AS
+        boolean hasAlivePokemon = false;
+        for (Pokemon pokemon : game.player.pokemon) {
+            if (pokemon.currentStats.get("hp") > 0) {
+                hasAlivePokemon = true;
+                break;
+            }
+        }
+
         // Check if ghost pokemon is dead. if yes, remove this from AS
-        if (this.pokemon.currentStats.get("hp") <= 0 && !this.inBattle) {
+        if (!hasAlivePokemon || (this.pokemon.currentStats.get("hp") <= 0 && !this.inBattle)) {
             this.currSprite.draw(game.mapBatch);
             game.actionStack.remove(this);
             game.insertAction(new DespawnGhost(this.basePos.cpy()));
@@ -1175,8 +1227,10 @@ class DrawGhost extends Action {
                     break;
                 }
             }
-            if (!foundGhost) {
-                game.currMusic.pause();
+            if (!foundGhost && hasAlivePokemon) {
+//                game.currMusic.pause();
+                game.currMusic.stop();
+                game.currMusic.dispose();
                 game.currMusic = game.map.currRoute.music;
                 game.currMusic.play();
             }
@@ -1194,14 +1248,14 @@ class DrawGhost extends Action {
 
         // Wait for a while if you just exited battle
         if (inBattle == true) {
-            if (noEncounterTimer % 4 >= 2) {
+            if (this.noEncounterTimer % 4 >= 2) {
                 this.currSprite.draw(game.mapBatch);
             }
             this.noEncounterTimer++;
             if (this.noEncounterTimer < 128) {
                 return;
             }
-            inBattle = false;
+            this.inBattle = false;
         }
 
         // Pause if player can't move
@@ -1590,6 +1644,64 @@ class ItemPickupNotify extends Action {
 }
 
 /**
+ * Plants a tree at the tile specified by pos.
+ * Note: based off of leech seed anim, which uses five frames per sprite.
+ */
+class PlantTree extends Action {
+    public int layer = 0;
+    Vector2 pos;
+    ArrayList<Sprite> sprites = new ArrayList<Sprite>();
+    int timer = 0;
+    Tile currTile;
+
+    public PlantTree(Vector2 pos, Action nextAction) {
+        this.pos = pos;
+        this.nextAction = nextAction;
+        Texture text = new Texture(Gdx.files.internal("sprout_sheet2.png"));
+        for (int i = 0; i < 5; i++) {
+            Sprite sprite = new Sprite(text, 16*i, 0, 16, 16);
+            sprite.setPosition(pos.x, pos.y+2);
+            this.sprites.add(sprite);
+        }
+    }
+
+    public String getCamera() {return "gui";}
+
+    public int getLayer(){return this.layer;}
+
+    @Override
+    public void firstStep(Game game) {
+        this.currTile = game.map.tiles.get(this.pos);
+    }
+
+    @Override
+    public void step(Game game) {
+        if (this.timer == 0) {
+            this.currTile.overSprite = this.sprites.get(0);
+        }
+        else if (this.timer == 12) {
+            this.currTile.overSprite = this.sprites.get(1);
+        }
+        else if (this.timer == 15) {
+            this.currTile.overSprite = this.sprites.get(2);
+        }
+        else if (this.timer == 18) {
+            this.currTile.overSprite = this.sprites.get(3);
+        }
+        else if (this.timer == 21) {
+            this.currTile.overSprite = this.sprites.get(4);
+        }
+        else if (this.timer == 24) {
+            game.map.tiles.put(this.pos.cpy(), new Tile(currTile.name, "tree_planted2",
+                                                        this.pos.cpy(), true, currTile.routeBelongsTo));
+            game.actionStack.remove(this);
+            game.insertAction(this.nextAction);
+        }
+        this.timer++;
+    }
+}
+
+/**
  * Self-explanatory Player class.
  */
 public class Player {
@@ -1640,6 +1752,7 @@ public class Player {
     public boolean isSleeping = false;
     public boolean drawSleepingBag = false;
     public boolean acceptInput = true;
+    boolean isNearCampfire = false;
     Tile currBuildTile; // which tile will be built next
     int buildTileIndex = 0;
     ArrayList<Tile> buildTiles = new ArrayList<Tile>();
@@ -1754,7 +1867,7 @@ public class Player {
 //        this.buildTiles.add(new Tile("house1_middle1", new Vector2(0,0)));
 //        this.buildTiles.add(new Tile("house1_left1", new Vector2(0,0)));
 //        this.buildTiles.add(new Tile("house1_right1", new Vector2(0,0)));
-        this.buildTiles.add(new Tile("house1_door1_dark", new Vector2(0,0)));
+//        this.buildTiles.add(new Tile("house1_door1_dark", new Vector2(0,0)));
 //        this.buildTiles.add(new Tile("house1_roof_middle1", new Vector2(0,0)));
 //        this.buildTiles.add(new Tile("house1_roof_left1", new Vector2(0,0)));
 //        this.buildTiles.add(new Tile("house1_roof_right1", new Vector2(0,0)));
@@ -1773,13 +1886,14 @@ public class Player {
 
 //        this.buildTiles.add(new Tile("house4_middle1", new Vector2(0,0)));
         this.buildTiles.add(new Tile("house5_door1", new Vector2(0,0)));
-        this.buildTiles.add(new Tile("house5_left1", new Vector2(0,0)));
+//        this.buildTiles.add(new Tile("house5_left1", new Vector2(0,0)));
         this.buildTiles.add(new Tile("house5_middle1", new Vector2(0,0)));
-        this.buildTiles.add(new Tile("house5_right1", new Vector2(0,0)));
+//        this.buildTiles.add(new Tile("house5_right1", new Vector2(0,0)));
         this.buildTiles.add(new Tile("house5_roof_middle1", new Vector2(0,0)));
-        this.buildTiles.add(new Tile("house5_roof_left1", new Vector2(0,0)));
-        this.buildTiles.add(new Tile("house5_roof_right1", new Vector2(0,0)));
+//        this.buildTiles.add(new Tile("house5_roof_left1", new Vector2(0,0)));
+//        this.buildTiles.add(new Tile("house5_roof_right1", new Vector2(0,0)));
         this.buildTiles.add(new Tile("campfire1", new Vector2(0,0)));
+        this.buildTiles.add(new Tile("fence1", new Vector2(0,0)));
         // TODO: remove
 //        this.buildTiles.add(new Tile("sleeping_bag1", new Vector2(0,0)));
         this.currBuildTile = this.buildTiles.get(this.buildTileIndex);
@@ -1792,12 +1906,12 @@ public class Player {
             }
             this.buildTileRequirements.put(tile.name, new HashMap<String, Integer>());
             if (tile.name.contains("campfire")) {
-                this.buildTileRequirements.get(tile.name).put("logs", 4);
+                this.buildTileRequirements.get(tile.name).put("log", 4);
                 this.buildTileRequirements.get(tile.name).put("grass", 2);
                 continue;
             }
             this.buildTileRequirements.get(tile.name).put("grass", 1);
-            this.buildTileRequirements.get(tile.name).put("logs", 1);
+            this.buildTileRequirements.get(tile.name).put("log", 1);
         }
         // can pick up sleeping bag and put back in inventory
         this.buildTileRequirements.put("sleeping_bag1", new HashMap<String, Integer>());
@@ -1817,9 +1931,10 @@ public class Player {
         this.itemsDict.put("Sleeping Bag", 1);
 //        this.itemsDict.put("Safari Ball", 99);
         // TODO: debug, remove
-//        this.itemsDict.put("grass", 99);
-//        this.itemsDict.put("logs", 99);
-        this.itemsDict.put("ultra ball", 99);
+        this.itemsDict.put("grass", 99);
+        this.itemsDict.put("log", 99);
+        this.itemsDict.put("blue apricorn", 99);
+//        this.itemsDict.put("ultra ball", 99);
 //        this.itemsDict.put("blue apricorn", 99);
 //        this.itemsDict.put("Poké Ball", 99);
 
@@ -1868,6 +1983,33 @@ public class Player {
             }
         }
         return hasRequirements;
+    }
+
+    /**
+     * Check if player is near campfire (needed to know if ghost can spawn or not).
+     */
+    public boolean checkNearCampfire() {
+        Vector2 startPos = this.position.cpy().add(-64, -64);
+        startPos.x = (int)startPos.x - (int)startPos.x % 16;
+        startPos.y = (int)startPos.y - (int)startPos.y % 16;
+        Vector2 endPos = this.position.cpy().add(64, 64);
+        endPos.x = (int)endPos.x - (int)endPos.x % 16;
+        endPos.y = (int)endPos.y - (int)endPos.y % 16;
+        for (Vector2 currPos = new Vector2(startPos.x, startPos.y); currPos.y < endPos.y;) {
+            Tile tile = Game.staticGame.map.tiles.get(currPos);
+            currPos.x += 16;
+            if (currPos.x > endPos.x) {
+                currPos.x = startPos.x;
+                currPos.y += 16;
+            }
+            if (tile == null) {
+                continue;
+            }
+            if (tile.nameUpper.contains("campfire")) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -2296,6 +2438,7 @@ class PlayerLedgeJump extends Action {
         if (this.timer1 >= 38) {
             game.player.position.set(this.targetPos);
             game.cam.position.set(this.targetPos.x+16, this.targetPos.y,0);
+            game.player.isNearCampfire = game.player.checkNearCampfire();
 
             Action playerStanding = new PlayerStanding(game);
             game.insertAction(playerStanding);
@@ -2492,6 +2635,7 @@ class PlayerLedgeJumpFast extends Action {
 
             game.player.position.set(this.targetPos);
             game.cam.position.set(this.targetPos.x+16, this.targetPos.y, 0);
+            game.player.isNearCampfire = game.player.checkNearCampfire();
 
 //            if (currTile != null && temp != null && currTile.attrs.get("ledge")) {
 //                game.insertAction(new PlayerLedgeJumpFast(game, this.player));
@@ -2711,6 +2855,7 @@ class PlayerMoving extends Action {
                 }
             }
             game.player.position.set(this.targetPos);
+            game.player.isNearCampfire = game.player.checkNearCampfire();
             game.cam.position.set(this.targetPos.x+16, this.targetPos.y,0);
             game.actionStack.remove(this);
             game.insertAction(this.nextAction);
@@ -2875,8 +3020,6 @@ class PlayerRunning extends Action {
             game.player.currSprite = game.player.standingSprites.get(spriteString);
         }
 
-        // System.out.println("Debug: " + String.valueOf(game.player.position.y));
-
         // when we've moved 16 pixels
         // if button pressed, change dir and move that direction
         // else, stand still again
@@ -2911,11 +3054,11 @@ class PlayerRunning extends Action {
             game.cam.update();                                     // this line fixes jittering bug
             game.mapBatch.setProjectionMatrix(game.cam.combined);    // same
 
+            game.player.isNearCampfire = game.player.checkNearCampfire();
             Action standingAction = new PlayerStanding(game, !this.alternate, true); // pass true to keep running animation going
             game.insertAction(standingAction);
             standingAction.step(game); // decide where to move // doesn't actually seem to do much
             game.actionStack.remove(this);
-
         }
     }
 
@@ -2981,15 +3124,18 @@ class PlayerRunning extends Action {
 /**
  * This action is basically the decision-maker for
  * what to do next when a player presses a button.
- * All moving states come back to here.
+ * All moving Actions come back to here.
  */
 class PlayerStanding extends Action {
     public int layer = 130;
+    // TODO: is this used.
     public float initialWait; // might use this to wait before moving
     boolean alternate;
     boolean checkWildEncounter = true; // TODO - remove when playWait is implemented
     boolean isRunning;
     Player player;
+    // TODO: doesn't need to be public-static when local PlayerStanding keeps track of this.player
+    public static int moveTimer = 0;  // used to prevent player from moving until held down key long enough
 
     /*
      * TODO: correct constructors, ie this one should call this(game, something); instead.
@@ -3040,9 +3186,10 @@ class PlayerStanding extends Action {
         // no encounters at night (subject to change)
         // TODO: need to enable this. shaders shouldn't be active on floatingbatch so should be fine. not sure abt ghost
         // timer though.
-        if (game.map.timeOfDay == "Night") {
-            return null;
-        }
+        // TODO: test without.
+//        if (game.map.timeOfDay == "Night") {
+//            return null;
+//        }
 
         Tile currTile = game.map.tiles.get(position);
 
@@ -3079,6 +3226,10 @@ class PlayerStanding extends Action {
         return null;
     }
 
+    /**
+     * Check all tiles next to currTile for a completed house.
+     * If house is complete, change door to solid=false so that player can enter.
+     */
     public void detectIsHouseBuilt(Game game, Tile currTile) {
         Vector2 pos = currTile.position.cpy();
         // detect if house is fully built or not
@@ -3149,6 +3300,199 @@ class PlayerStanding extends Action {
         return this.layer;
     }
 
+    /**
+     * TODO: move this to map, non-static function.
+     * Fix surrounding tiles based on the tile just added
+     * Ex: fence tile touching another fence above and below
+     */
+    public static void adjustSurroundingTiles(Tile currTile) {
+        Game game = Game.staticGame;
+        Vector2 pos = new Vector2();
+        Tile tile;
+        for (int i = -16; i < 17; i+=16) {
+            for (int j = -16; j < 17; j+=16) {
+                pos.set(currTile.position.cpy().add(i, j));
+                tile = game.map.tiles.get(pos);
+                PlayerStanding.adjustTile(tile);
+            }
+        }
+    }
+
+    /**
+     * Find which sides surrounded on. Replace overSprite based on that.
+     * Ex: fence surrounded by 4 fence posts becomes a 4-cross fence.
+     */
+    public static void adjustTile(Tile currTile) {
+        Game game = Game.staticGame;
+        Tile up = game.map.tiles.get(currTile.position.cpy().add(0, 16));
+        Tile down = game.map.tiles.get(currTile.position.cpy().add(0, -16));
+        Tile right = game.map.tiles.get(currTile.position.cpy().add(16, 0));
+        Tile left = game.map.tiles.get(currTile.position.cpy().add(-16, 0));
+//        String path = "tiles/";
+//        if (currTile.name.contains("house")) {
+//            path = "tiles/buildings/";
+//        }
+        String[] tokens = currTile.nameUpper.split("_");
+        String name;
+        name = tokens[0];
+        for (int i = 1; i < tokens.length-1; i++) {
+            name += "_" + tokens[i];
+        }
+//        String name = currTile.nameUpper.split("_", 2)[0];
+//        String name = currTile.nameUpper.split("_")[0];
+//        System.out.println(name);
+        boolean touchUp = up.nameUpper.contains(name);
+        boolean touchDown = down.nameUpper.contains(name);
+        boolean touchRight = right.nameUpper.contains(name);
+        boolean touchLeft = left.nameUpper.contains(name);
+        String ext = "_";
+        if (currTile.nameUpper.contains("fence") && !currTile.nameUpper.contains("house")) {
+            // bend fences towards houses?
+            if (up.nameUpper.contains("house") && !up.nameUpper.contains("roof")) {
+                touchUp = true;
+            }
+            if (down.nameUpper.contains("house") && !down.nameUpper.contains("roof")) {
+                touchDown = true;
+            }
+            if (left.nameUpper.contains("house") && !left.nameUpper.contains("roof")) {
+                touchLeft = true;
+            }
+            if (right.nameUpper.contains("house") && !right.nameUpper.contains("roof")) {
+                touchRight = true;
+            }
+            if (!touchUp && !touchDown && !touchLeft && !touchRight) {
+                return;
+            }
+            if (touchUp) {
+                ext += "N";
+            }
+            if (touchDown) {
+                ext += "S";
+            }
+            if (touchRight) {
+                ext += "E";
+            }
+            if (touchLeft) {
+                ext += "W";
+            }
+            if (touchLeft && touchRight && !touchUp && !touchDown) {
+                ext = "";
+            }
+            if ((touchUp || touchDown) && !touchLeft && !touchRight) {
+                ext = "_NS";
+            }
+            if (ext.length() == 2) {
+                ext = "";
+            }
+            game.map.tiles.put(currTile.position.cpy(),
+                               new Tile(currTile.name, name+ext, 
+                                        currTile.position.cpy(), true, currTile.routeBelongsTo));
+    //        text = TextureCache.get(Gdx.files.internal(path+currTile.nameUpper+ext+".png"));
+    //        Vector2 pos = new Vector2(currTile.overSprite.getX(), currTile.overSprite.getY());
+    //        currTile.overSprite = new Sprite(text, 0, 0, 16, 16);
+    //        currTile.overSprite.setPosition(pos.x, pos.y);
+        }
+        else if (currTile.nameUpper.contains("house")
+                 && !currTile.nameUpper.contains("roof")
+                 && !currTile.nameUpper.contains("door")) {
+            if (currTile.nameUpper.equals("house5_middle1") && down.nameUpper.contains("fence1") &&
+                !(touchUp ^ touchDown)) {
+                game.map.tiles.put(currTile.position.cpy(),
+                                   new Tile(currTile.name, "house5_middle1_fence1", 
+                                            currTile.position.cpy(), true, currTile.routeBelongsTo));
+                return;
+            }
+            if (!touchLeft && !touchRight) {
+                return;
+            }
+            if (touchRight && touchLeft) {
+                ext += "middle1";
+            }
+            else if (touchRight && touchDown) {
+                ext += "E";
+            }
+            else if (touchLeft &&touchDown) {
+                ext += "W";
+            }
+            else if (touchRight) {
+                ext += "left1";
+            }
+            else if (touchLeft) {
+                ext += "right1";
+            }
+            game.map.tiles.put(currTile.position.cpy(),
+                               new Tile(currTile.name, name+ext, 
+                                        currTile.position.cpy(), true, currTile.routeBelongsTo));
+            // Add to interiors
+            Tile interiorTile = new Tile("house5_floor1", currTile.position.cpy());
+            game.map.interiorTiles.get(game.map.interiorTilesIndex).put(currTile.position.cpy(), interiorTile);
+        }
+        else if (currTile.nameUpper.contains("house") && currTile.nameUpper.contains("roof")) {
+            if (!touchUp && !touchDown && !touchLeft && !touchRight) {
+                return;
+            }
+            if (touchUp) {
+                ext += "N";
+            }
+            if (touchDown) {
+                ext += "S";
+            }
+            if (touchRight) {
+                ext += "E";
+            }
+            if (touchLeft) {
+                ext += "W";
+            }
+            if (touchLeft && touchRight && !touchUp && !touchDown) {
+                ext = "_middle1";
+            }
+            if ((touchUp || touchDown) && !touchLeft && !touchRight) {
+                ext = "_NSEW";
+            }
+            if (ext.length() == 2) {
+                ext = "";
+                if (touchLeft) {
+                    ext = "_right1";
+                }
+                else if (touchRight) {
+                    ext = "_left1";
+                }
+            }
+            game.map.tiles.put(currTile.position.cpy(),
+                               new Tile(currTile.name, name+ext, 
+                                        currTile.position.cpy(), true, currTile.routeBelongsTo));
+            // Add to interiors
+            HashMap<Vector2, Tile> currInterior = game.map.interiorTiles.get(game.map.interiorTilesIndex);
+            Tile interiorTile = new Tile("house5_floor1", currTile.position.cpy());
+            currInterior.put(currTile.position.cpy(), interiorTile);
+            if (!currInterior.containsKey(up.position) || currInterior.get(up.position).name.equals("black1")) {
+                currInterior.put(up.position.cpy(), new Tile("house5_wall1", up.position.cpy()));
+            }
+        }
+        else if (currTile.nameUpper.contains("door")) {
+            // handle case where player puts a door on the roof, which should
+            // make a 'back door' (red carpet on back of house that acts as door).
+            if ((left.nameUpper.contains("roof") || left.nameUpper.contains("door")) &&
+                (right.nameUpper.contains("roof") || right.nameUpper.contains("door"))) {
+                game.map.tiles.put(currTile.position.cpy(),
+                                   new Tile(currTile.name, "house5_roof_middle1", 
+                                            currTile.position.cpy(), true, currTile.routeBelongsTo));
+                PlayerStanding.adjustSurroundingTiles(currTile);
+                if (!up.attrs.get("solid")) {
+                    game.map.tiles.put(up.position.cpy(),
+                                       new Tile("rug2", "", up.position.cpy(), true, up.routeBelongsTo));
+                    // Add to interiors
+                    Tile interiorTile = new Tile("house5_door1", up.position.cpy());
+                    game.map.interiorTiles.get(game.map.interiorTilesIndex).put(up.position.cpy(), interiorTile);
+                }
+                return;
+            }
+            // Add to interiors
+            Tile interiorTile = new Tile("house5_floor_rug1", currTile.position.cpy());
+            game.map.interiorTiles.get(game.map.interiorTilesIndex).put(currTile.position.cpy(), interiorTile);
+        }
+    }
+
     public void localStep(Game game) {
         if (!game.playerCanMove) {
             return;
@@ -3159,14 +3503,26 @@ class PlayerStanding extends Action {
 
         // check wild encounter
         // TODO - in future, this action will jump to a waiting action after one iteration
-        if (this.checkWildEncounter == true && game.type != Game.Type.CLIENT) {
-            if (checkWildEncounter(game) == true) {
+        if (this.checkWildEncounter && game.type != Game.Type.CLIENT) {
+            if (this.checkWildEncounter(game) == true) {
                 game.playerCanMove = false;
                 if (game.map.unownSpawn == null) {
-                    game.currMusic.pause();
-                    game.currMusic = game.battle.music;
-                    game.currMusic.stop();
-                    game.currMusic.play();
+                    // if night, no music transition
+                    if (!game.map.timeOfDay.equals("Night")) {
+                        game.currMusic.pause();
+                        game.currMusic = game.battle.music; 
+//                        game.battle.music2.stop();
+//                        game.battle.music2.setVolume(0.3f);
+                        game.battle.music.stop();
+//                        game.battle.music.setVolume(0.3f);
+                        BattleFadeOutMusic.stop = true;
+                        // TODO: debug, remove
+//                        game.currMusic.play();
+//                        game.currMusic.pause();
+//                        game.currMusic.setPosition(11f);  
+                        game.currMusic.play();
+//                        game.insertAction(new FadeMusic("currMusic", "in", "", 1f, false, game.battle.music.getVolume(), null));
+                    }
                 }
                 else {
                     String unownLetter = game.map.unownUsed.get(game.map.rand.nextInt(game.map.unownUsed.size()));
@@ -3179,8 +3535,15 @@ class PlayerStanding extends Action {
             }
 
             // TODO: idk where the right place for this is.
-            if (game.map.tiles.get(game.player.position) != null && game.map.tiles.get(game.player.position).nameUpper.contains("door")) {
-                game.insertAction(new EnterBuilding(game, null));
+            if (game.map.tiles.get(game.player.position) != null &&
+                (game.map.tiles.get(game.player.position).nameUpper.contains("door") ||
+                 game.map.tiles.get(game.player.position).name.contains("door"))) {
+                if (game.map.tiles == game.map.overworldTiles) {
+                    game.insertAction(new EnterBuilding(game, null));
+                }
+                else {
+                    game.insertAction(new EnterBuilding(game, "exit", null));
+                }
             }
 
             this.checkWildEncounter = false;
@@ -3254,22 +3617,37 @@ class PlayerStanding extends Action {
             // exec down move
             game.player.dirFacing = "up";
             newPos = new Vector2(game.player.position.x, game.player.position.y+16);
-            shouldMove = true;
+            if (PlayerStanding.moveTimer > 2) {
+                shouldMove = true;
+            }
+            PlayerStanding.moveTimer++;
         }
         else if (InputProcessor.downPressed) {
             game.player.dirFacing = "down";
             newPos = new Vector2(game.player.position.x, game.player.position.y-16);
-            shouldMove = true;
+            if (PlayerStanding.moveTimer > 2) {
+                shouldMove = true;
+            }
+            PlayerStanding.moveTimer++;
         }
         else if (InputProcessor.leftPressed) {
             game.player.dirFacing = "left";
             newPos = new Vector2(game.player.position.x-16, game.player.position.y);
-            shouldMove = true;
+            if (PlayerStanding.moveTimer > 2) {
+                shouldMove = true;
+            }
+            PlayerStanding.moveTimer++;
         }
         else if (InputProcessor.rightPressed) {
             game.player.dirFacing = "right";
             newPos = new Vector2(game.player.position.x+16, game.player.position.y);
-            shouldMove = true;
+            if (PlayerStanding.moveTimer > 2) {
+                shouldMove = true;
+            }
+            PlayerStanding.moveTimer++;
+        }
+        else {
+            PlayerStanding.moveTimer = 0;
         }
 
         // check if input pressed
@@ -3364,41 +3742,39 @@ class PlayerStanding extends Action {
                         break;
                     }
                 }
-                if (currTile.attrs.containsKey("solid") && !currTile.attrs.get("solid") && requirementsMet) {
+                if (!currTile.attrs.get("solid") && requirementsMet) {
                     // TODO: remove commented lines
 //                    currTile.overSprite = new Sprite(game.player.currBuildTile.sprite);
 //                    currTile.name = game.player.currBuildTile.name;
 //                    currTile.overSprite.setPosition(pos.x, pos.y);
 //                    currTile.attrs.put("cuttable", true); // test this
 //                    currTile.attrs.put("solid", true);
+
                     Tile newTile = new Tile(currTile.name, game.player.currBuildTile.name,
                                             currTile.position.cpy(), true, currTile.routeBelongsTo);
+                    // Tile may change orientation depending on surrounding tiles
+                    // ie, fence will rotate, house piece might be corner, etc
                     if (game.type != Game.Type.CLIENT) {
                         game.map.tiles.remove(currTile.position.cpy());
                         game.map.tiles.put(currTile.position.cpy(), newTile);
+                        PlayerStanding.adjustSurroundingTiles(newTile);
                     }
                     else {
                         // Send request to build new tile to server
                         // Don't update locally yet, server will send back TileData if it succeeds.
                         game.client.sendTCP(new Network.TileData(newTile));
                     }
-                    game.insertAction(new PlaySound("strength1",
-                                                     null));
+                    game.insertAction(new PlaySound("strength1", null));
                     game.playerCanMove = false;
                     game.insertAction(new WaitFrames(game, 30,
-                                      new PlayerCanMove(game,
+                                      new SetField(game, "playerCanMove", true,
                                       null)));
-                    this.detectIsHouseBuilt(game, currTile);
-                    // add tile to interiors
-                    if (!game.player.currBuildTile.nameUpper.contains("campfire") && !game.player.currBuildTile.nameUpper.contains("sleeping_bag")) {
-                        Tile interiorTile;
-                        if (currTile.nameUpper.contains("door")) {
-                            interiorTile = new Tile("house5_floor_rug1", currTile.position.cpy());
-                        }
-                        else {
-                            interiorTile = new Tile("house5_floor1", currTile.position.cpy());
-                        }
-                        game.map.interiorTiles.get(game.map.interiorTilesIndex).put(currTile.position.cpy(), interiorTile);
+
+                    // TODO: server also needs to do this
+                    // Add 'opening' to interiors if the player is building a house
+                    if (game.player.currBuildTile.name.contains("house")) {
+                        // TODO: place window(s) and chimney
+                        this.detectIsHouseBuilt(game, currTile);
                     }
                     // Deduct required materials
                     for (String name : game.player.buildTileRequirements.get(game.player.currBuildTile.name).keySet()) {
@@ -3413,7 +3789,7 @@ class PlayerStanding extends Action {
             }
             else if (game.player.isHeadbutting) {
                 if (currTile.attrs.containsKey("headbuttable") && currTile.attrs.get("headbuttable")) {
-                    // choose if found anything
+                    // Choose if found anything
                     Action nextAction = new PlayerCanMove(game, null);
 //                    int randInt = game.map.rand.nextInt(4);
                     if (currTile.routeBelongsTo != null && !currTile.routeBelongsTo.pokemon.isEmpty()) {
@@ -3434,18 +3810,23 @@ class PlayerStanding extends Action {
             }
             else if (game.player.isCutting) {
                 if (currTile.attrs.containsKey("cuttable") && currTile.attrs.get("cuttable")) {
-                    game.insertAction(new CutTreeAnim(game, game.map.tiles.get(pos),
-                                                     null));
+                    Action action = new CutTreeAnim(game, game.map.tiles.get(pos), null);
                     // place black tile at location
                     // TODO: if there are ever interior objects, how do you preserve those?
                     Tile interiorTile = new Tile("black1", currTile.position.cpy());
                     game.map.interiorTiles.get(game.map.interiorTilesIndex).put(currTile.position.cpy(), interiorTile);
                     game.playerCanMove = false;
-
                     // get items from tile
                     if (!currTile.items.isEmpty()) {
                         for (String item : currTile.items.keySet()) {
-                            game.insertAction(new ItemPickupNotify(game, item, currTile.items.get(item)));
+                            System.out.println(item);
+//                            game.insertAction(new ItemPickupNotify(game, item, currTile.items.get(item)));
+                            String plural = "";
+                            if (currTile.items.get(item) > 1) {
+                                plural = "s";
+                            }
+                            action.append(new DisplayText(game, "Picked up "+currTile.items.get(item)+" "+item.toUpperCase()+plural+".", null, null, //"fanfare1.ogg", null,
+                                          null));
                             if (game.player.itemsDict.containsKey(item)) {
                                 int currQuantity = game.player.itemsDict.get(item);
                                 game.player.itemsDict.put(item, currQuantity+currTile.items.get(item));
@@ -3454,7 +3835,10 @@ class PlayerStanding extends Action {
                                 game.player.itemsDict.put(item, currTile.items.get(item));
                             }
                         }
+                        currTile.items.clear();
                     }
+                    action.append(new SetField(game, "playerCanMove", true, null));
+                    game.insertAction(action);
                 }
                 this.detectIsHouseBuilt(game, currTile);
             }
@@ -3513,9 +3897,16 @@ class PlayerStanding extends Action {
             }
             // Check if traveling through interior door.
             if (game.player.dirFacing.equals("down") && currTile.name.contains("rug")) {
-                // do leave building anim, then player travels down one space
-                game.insertAction(new EnterBuilding(game, "exit",
-                                  new PlayerMoving(game, this.alternate)));
+                if (game.map.tiles == game.map.overworldTiles) {
+                    // do enter building anim, then player travels down one space
+                    game.insertAction(new EnterBuilding(game, "enter", game.map.interiorTiles.get(game.map.interiorTilesIndex),
+                                      new PlayerMoving(game, this.alternate)));
+                }
+                else {
+                    // do leave building anim, then player travels down one space
+                    game.insertAction(new EnterBuilding(game, "exit", game.map.overworldTiles,
+                                      new PlayerMoving(game, this.alternate)));
+                }
                 return;
             }
             // Check if moving into empty space to avoid temp.attr checks afterwards
@@ -3531,6 +3922,10 @@ class PlayerStanding extends Action {
                 return;
             }
             if (temp.attrs.get("solid")) {
+                game.insertAction(new PlayerBump(game));
+                return;
+            }
+            if (game.map.pokemon.containsKey(newPos)) {
                 game.insertAction(new PlayerBump(game));
                 return;
             }
@@ -4127,7 +4522,12 @@ class SpawnGhost extends Action {
         }
 
         // TODO - start frantic music (? best place? better in ghost draw?)
-        game.currMusic.pause();
+//        game.currMusic.pause();
+        // TODO: test
+        // this should stop and dispose the night1_alert1 music.
+        // was having issues where the game would not play sounds because too many were loaded.
+        game.currMusic.stop();  
+        game.currMusic.dispose();
         Music music = Gdx.audio.newMusic(Gdx.files.internal("night1_chase1.ogg"));
         music.setLooping(true);
         music.setVolume(.7f);

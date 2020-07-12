@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 
 import com.badlogic.gdx.Application.ApplicationType;
 import com.badlogic.gdx.ApplicationAdapter;
@@ -55,7 +56,7 @@ public class Game extends ApplicationAdapter {
     Battle battle;
     // Try this for overworld music, etc
     // May have to replace this with a string
-    Music currMusic;
+    public Music currMusic;
     Music.OnCompletionListener musicCompletionListener;
     // When want to play a music file, put in here. Call dispose and remove elements when done.
     HashMap<String, Music> loadedMusic =  new HashMap<String, Music>();
@@ -70,9 +71,14 @@ public class Game extends ApplicationAdapter {
     public Client client;
     public Server server;
     Type type;
-    
-    public Game(String[] args) {
+    public static Random rand = new Random();
+
+    public Game() {
         super();
+    }
+
+    public Game(String[] args) {
+        this();
         for (int i=0; i < args.length; i++) {
             if (args[i].equals("dev")) {
                 this.debugInputEnabled = true;
@@ -471,8 +477,8 @@ public class Game extends ApplicationAdapter {
         this.map.currRoute.music = this.currMusic;
         this.currMusic.setLooping(false);
         this.currMusic.setVolume(1f);
-        this.currMusic.play();
-        this.currMusic.pause();
+//        this.currMusic.play();
+//        this.currMusic.pause();
 //        this.currMusic.setPosition(130f);  // TODO: debug, delete
         this.currMusic.play();
         this.musicCompletionListener = new Music.OnCompletionListener() {
@@ -504,15 +510,18 @@ public class Game extends ApplicationAdapter {
         // TODO: Some starting pokemon used for debugging
         // If you join a game as a Client, these go away, so only affects local play.
         this.player.pokemon.add(new Pokemon("Machop", 6, Pokemon.Generation.CRYSTAL));
-//        this.battle.attacks.get("karate chop").power = 200;  // TODO: debug, remove
+//        this.battle.attacks.get("low kick").power = 200;  // TODO: debug, remove
 //        this.player.pokemon.add(new Pokemon("Cyndaquil", 50, Pokemon.Generation.CRYSTAL));
 //        this.battle.attacks.get("flamethrower").power = 200;  // TODO: debug, remove
 //        this.player.pokemon.add(new Pokemon("sneasel", 50, Pokemon.Generation.CRYSTAL));
 //        this.player.pokemon.get(1).attacks[0] = "Bubblebeam";  // TODO: debug, remove
 //        this.player.pokemon.get(1).attacks[0] = "Ice Beam";  // TODO: debug, remove
 //        this.player.pokemon.add(new Pokemon("stantler", 50, Pokemon.Generation.CRYSTAL));
+        this.player.pokemon.add(new Pokemon("Mewtwo", 6, Pokemon.Generation.CRYSTAL));
+        this.player.pokemon.add(new Pokemon("Ditto", 6, Pokemon.Generation.CRYSTAL));
+        this.player.pokemon.add(new Pokemon("Magmortar", 6, Pokemon.Generation.CRYSTAL));
         this.player.currPokemon = this.player.pokemon.get(0);
-        
+
         // TODO: debug, remove
 //        this.player.currPokemon.currentStats.put("hp", 10);
     }

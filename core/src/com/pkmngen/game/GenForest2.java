@@ -1230,8 +1230,9 @@ public class GenForest2 extends Action {
              // just make this a square
 
             // TODO: scale with size
-            addPond();
-            addPond();
+            // TODO: fix this and re-enable at some point.
+//            addPond();
+//            addPond();
 
             // for everything between bottomLeft and topRight
             // add solid sprites
@@ -1279,13 +1280,14 @@ public class GenForest2 extends Action {
 
             // plant grass in random areas
             // TODO: scale with size
-            plantGrass();
-            plantGrass();
-            plantGrass();
-            plantGrass();
-            plantGrass();
-            plantGrass();
-            plantGrass();
+            // TODO: not sure what to do here.
+//            plantGrass();
+//            plantGrass();
+//            plantGrass();
+//            plantGrass();
+//            plantGrass();
+//            plantGrass();
+//            plantGrass();
 
             // TODO - put berry tree
 
@@ -1393,13 +1395,16 @@ class GenIsland1 extends Action {
 //                    Vector2 br = tile.position.cpy().add(0,16);
 //                    Vector2 bl = tile.position.cpy().add(16,-16);
 //
-                    if ((this.tilesToAdd.containsKey(tile.position.cpy().add(16,-16)) && !this.tilesToAdd.get(tile.position.cpy().add(16,0)).name.equals("tree_large1_noSprite") ||
+                    if ((this.tilesToAdd.containsKey(tile.position.cpy().add(16,-16)) && this.tilesToAdd.get(tile.position.cpy().add(16,-16)) != null && 
+                         !this.tilesToAdd.get(tile.position.cpy().add(16,0)).name.equals("tree_large1_noSprite") ||
                          !this.tilesToAdd.get(tile.position.cpy().add(0,-16)).name.equals("tree_large1") ||
                          !this.tilesToAdd.get(tile.position.cpy().add(16,-16)).name.equals("tree_large1_noSprite")) &&
-                        (this.tilesToAdd.containsKey(tile.position.cpy().add(-16,-16)) && !this.tilesToAdd.get(tile.position.cpy().add(-16,0)).name.equals("tree_large1_noSprite") ||
+                        (this.tilesToAdd.containsKey(tile.position.cpy().add(-16,-16)) && this.tilesToAdd.get(tile.position.cpy().add(-16,-16)) != null &&
+                         !this.tilesToAdd.get(tile.position.cpy().add(-16,0)).name.equals("tree_large1_noSprite") ||
                          !this.tilesToAdd.get(tile.position.cpy().add(-16,-16)).name.equals("tree_large1") ||
                          !this.tilesToAdd.get(tile.position.cpy().add(0,-16)).name.equals("tree_large1_noSprite")) &&
-                        (this.tilesToAdd.containsKey(tile.position.cpy().add(-16,16)) && !this.tilesToAdd.get(tile.position.cpy().add(-16,16)).name.equals("tree_large1_noSprite") ||
+                        (this.tilesToAdd.containsKey(tile.position.cpy().add(-16,16)) && this.tilesToAdd.get(tile.position.cpy().add(-16,16)) != null &&
+                         !this.tilesToAdd.get(tile.position.cpy().add(-16,16)).name.equals("tree_large1_noSprite") ||
                          !this.tilesToAdd.get(tile.position.cpy().add(-16,0)).name.equals("tree_large1") ||
                          !this.tilesToAdd.get(tile.position.cpy().add(0,16)).name.equals("tree_large1_noSprite"))) {
                         this.tilesToAdd.put(tile.position, new Tile("bush1", tile.position.cpy(), true, tile.routeBelongsTo));
@@ -1425,8 +1430,8 @@ class GenIsland1 extends Action {
                 minPos.y = tile.position.y;
             }
         }
-        maxPos.add(16*3, 16*3);
-        minPos.sub(16*3, 16*3);
+        maxPos.add(16*14, 16*14);
+        minPos.sub(16*14, 16*14);
         Vector2 pos;
         for (float i=minPos.x; i < maxPos.x; i+=16) {
             for (float j=minPos.y; j < maxPos.y; j+=16) {
@@ -1462,7 +1467,7 @@ class GenIsland1 extends Action {
                             waterTiles.add(this.tilesToAdd.get(newPos));
                             currTiles.add(this.tilesToAdd.get(newPos));
                         }
-                        else {
+                        else if (!this.tilesToAdd.get(newPos).attrs.get("solid")) {
                             this.edges.add(this.tilesToAdd.get(newPos));
                         }
                     }
@@ -1596,7 +1601,18 @@ class GenIsland1 extends Action {
                                 Tile newTile = new Tile("sand1", edge);
                                 int isRock = this.rand.nextInt(maxDist) + (int)distance;
                                 if (isRock > maxDist + maxDist/2) {
-                                    newTile = new Tile("rock1", edge);
+                                    // TODO: corners also matter
+//                                    Vector2 left = edge.cpy().add(-16f, 0f);
+//                                    Vector2 right = edge.cpy().add(16f, 0f);
+//                                    Vector2 up = edge.cpy().add(0f, 16f);
+//                                    Vector2 down = edge.cpy().add(0f, -16f);
+//                                    boolean touchLeft = tilesToAdd.containsKey(left) && tilesToAdd.get(left).attrs.get("solid");
+//                                    boolean touchRight = tilesToAdd.containsKey(right) && tilesToAdd.get(right).attrs.get("solid");
+//                                    boolean touchUp = tilesToAdd.containsKey(up) && tilesToAdd.get(up).attrs.get("solid");
+//                                    boolean touchDown = tilesToAdd.containsKey(down) && tilesToAdd.get(down).attrs.get("solid");
+//                                    if (!(touchLeft && touchRight) && !(touchUp && touchDown)) {
+                                        newTile = new Tile("rock1", edge);
+//                                    }
                                 }
                                 // grass isn't as solid as i want
                                 int isGrass = this.rand.nextInt(maxDist/8) + (int)distance;
@@ -1667,7 +1683,9 @@ class GenIsland1 extends Action {
                                 int grassBlotchHere2 = this.rand.nextInt(maxDist);
                                 int grassBlotchHere3 = this.rand.nextInt(maxDist);
                                 if ( //(int)distance > 1*maxDist/4 &&  // TODO: what was this for? test.
-                                    (int)distance < maxDist - maxDist/5
+                                     // TODO: test. was causing grass in middle of water
+                                    (int)distance < maxDist - maxDist/5  
+//                                    (int)distance < 3*maxDist/5
                                     && grassBlotchHere < 3*maxDist/7
                                     && grassBlotchHere2 < maxDist/4
                                     && (maxDist < 300 || grassBlotchHere3 < maxDist/8)) {
@@ -1675,22 +1693,47 @@ class GenIsland1 extends Action {
                                     if (maxDist > 300) {
                                         nextSize = (int)Math.ceil(maxDist/12f);
                                     }
-                                    if (maxDist > 600) {
-                                        nextSize = 80;
+                                    if (maxDist > 1000) {
+//                                        nextSize = (int)Math.ceil(maxDist/24f);
+                                        nextSize = (int)Math.ceil(maxDist/32f);
                                     }
                                     // TODO: debug, remove
 //                                    System.out.println(newTile.position.dst(0, 0));
 //                                    System.out.println(this.radius);
-                                    int level = (int)(60*(1-(newTile.position.dst(this.origin) / (this.radius/12))));
-                                    // If this is right next to the shore, 'nerf' the level
-                                    if (newSize <= 0) {
-                                        level -= 20;
-                                        if (level <= 10) {
-                                            level = 10;
-                                        }
+//                                    int centerLevel = (int)(60*(1-(newTile.position.dst(this.origin) / (this.radius/10))));
+                                    int centerLevel;
+                                    if (maxDist > 300) {
+                                        centerLevel = 30;
                                     }
+                                    else {
+                                        centerLevel = 15;
+                                    }
+                                    int level = (int)(centerLevel*(1-(distance / (2*maxDist/5))));
+                                    if (level < 4) {
+                                        level = 4;
+                                    }
+//                                    System.out.println("origin dist: "+String.valueOf(newTile.position.dst(this.origin)));
+//                                    System.out.println("dist: "+String.valueOf(distance));
+//                                    System.out.println("radius/10: "+String.valueOf(this.radius/10));
+//                                    System.out.println("maxDist/2: "+String.valueOf(maxDist/2));
+//                                    System.out.println("centerLevel: "+String.valueOf(centerLevel));
+//                                    System.out.println("level: "+String.valueOf(level));
+                                    // TODO: test without
+                                    // If this is right next to the shore, 'nerf' the level
+//                                    if (newSize <= 0) {
+//                                        level -= 20;
+//                                        if (level <= 10) {
+//                                            level = 10;
+//                                        }
+//                                    }
 //                                    System.out.println((1-(newTile.position.dst(this.origin) / (this.radius/12))));
-                                    Route blotchRoute = new Route("forest1", level);
+                                    Route blotchRoute;
+                                    if ((int)distance < 3*maxDist/8) {
+                                        blotchRoute = new Route("forest1", level);
+                                    }
+                                    else {
+                                        blotchRoute = new Route("savanna1", level);
+                                    }
                                     ApplyBlotch(game, "grass", newTile, nextSize, grassTiles, 0, false, blotchRoute);
                                 }
                                 tilesToAdd.put(newTile.position.cpy(), newTile);
@@ -1790,7 +1833,8 @@ class GenIsland1 extends Action {
             }
         }
         for (Tile tile : grassTiles.values()) {
-            if (tilesToAdd.containsKey(tile.position) && !tilesToAdd.get(tile.position).attrs.get("solid")) {
+            if (tilesToAdd.containsKey(tile.position) &&
+                !tilesToAdd.get(tile.position).attrs.get("solid")) {
                 tilesToAdd.put(tile.position.cpy(), tile);
             }
         }
@@ -1900,7 +1944,7 @@ class GenIsland1 extends Action {
         }
 
         // origin changes to new spot
-        System.out.println(newSize);
+//        System.out.println(newSize);
         if (newSize <= 0) {
             return;
         }
@@ -1909,7 +1953,7 @@ class GenIsland1 extends Action {
         int randInt = 1;  // previous behavior, keeping for now
 //        int randInt = this.rand.nextInt(3) + 1;
         // TODO: test
-        int[] vals = {1, 1, 1, 1, 2};
+        int[] vals = {1, 1, 1, 1, 2};  //   1, 1,  // TODO: not sure about this.
         randInt = vals[this.rand.nextInt(vals.length)];
         if (prevTiles.size() < randInt) {
             randInt = prevTiles.size();
@@ -2312,13 +2356,15 @@ class GenIsland1 extends Action {
             // randomly place grass blotches
             if (this.rand.nextInt((int)Math.ceil(1f/(1f/((maxDist)/500f)))) == 1) {
                 float distance = tile.position.dst(originTile.position);
+                int level = (int)(60*(1-(tile.position.dst(this.origin) / (this.radius/12))));
+                if (level < 4) {
+                    level = 4;
+                }
                 if (distance < 1*maxDist/40) {
-                    int level = (int)(60*(1-(tile.position.dst(this.origin) / (this.radius/12))));
                     Route blotchRoute = new Route("snow1", level);
                     ApplyBlotch(game, "mtn_snow1", tile, maxDist/200, mtnTiles2, 0, false, blotchRoute);
                 }
                 else {
-                    int level = (int)(60*(1-(tile.position.dst(this.origin) / (this.radius/12))));
                     Route blotchRoute = new Route("mountain1", level);
                     ApplyBlotch(game, "mtn_green1", tile, maxDist/200, mtnTiles2, 0, false, blotchRoute);
                 }

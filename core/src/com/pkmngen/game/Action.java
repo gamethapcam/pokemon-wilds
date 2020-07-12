@@ -18,6 +18,7 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.esotericsoftware.kryonet.Server;
 import com.esotericsoftware.minlog.Log;
+import com.pkmngen.game.util.LinkedMusic;
 
 // TODO: enums
 // layers
@@ -1123,6 +1124,18 @@ class DrawSetupMenu extends Action {
     public int getLayer(){return this.layer;}
 
     @Override
+    public void firstStep(Game game) {
+        // TODO: needs work
+//        game.currMusic = Gdx.audio.newMusic(Gdx.files.internal("music/shore3.ogg"));
+//        game.currMusic.setLooping(true);
+//        game.currMusic.setVolume(0.6f);
+//        game.currMusic.play();
+        game.currMusic = new LinkedMusic("music/follow_me1_intro", "music/follow_me1");
+        game.currMusic.setVolume(0.8f);
+        game.currMusic.play();
+    }
+
+    @Override
     public void step(Game game) {
 //        this.bgSprite.draw(game.uiBatch);  // TODO: remove
         newPos = this.arrowCoords.get(DrawSetupMenu.currIndex);
@@ -1403,6 +1416,13 @@ class DrawSetupMenu extends Action {
                 if (j == DrawSetupMenu.currIndex) {
                     // Set up the map.
                     if (InputProcessor.startJustPressed || InputProcessor.aJustPressed) {
+//                        game.currMusic.stop();
+//                        game.currMusic.dispose();
+//                        game.playerCanMove = true;  // TODO: ideally not here, but required to make this
+                        // fademusic work.
+                        Action fadeMusic = new FadeMusic("currMusic", "out", "stop", .0125f, null);
+                        fadeMusic.step(game);
+                        game.insertAction(fadeMusic);
                         if (this.localHostJoinIndex != 2) {
                             String mapName = "";
                             if (this.newLoadIndex == 0) {
@@ -1445,9 +1465,10 @@ class DrawSetupMenu extends Action {
 
                                 // Size
                                 // TODO: uncomment
-//                                if (this.sizeIndex == 0) {
+                                if (this.sizeIndex == 0) {
 //                                    this.sizeIndex = 1;
-//                                }
+                                    this.sizeIndex = -1;
+                                }
                                 // TODO: would ideally be bigger, like 100*200*this.sizeIndex
                                 int size = 100*100*(this.sizeIndex+2);
                                 // TODO: debug, comment or removee
@@ -1518,6 +1539,7 @@ class DrawSetupMenu extends Action {
                                 ipAddr = "127.0.0.1";
                             }
                             game.actionStack.remove(this);
+                            game.map = new PkmnMap("default"); // TODO: ideally shouldn't have to do this.
                             game.start();
                             // set up networking
                             try {
@@ -1544,6 +1566,13 @@ class DrawSetupMenu extends Action {
         }
 
         // Handle arrow input
+        int max = 6;
+        if (this.localHostJoinIndex == 2) {
+            max = 5;
+        }
+        else if (this.newLoadIndex == 1) {
+            max = 3;
+        }
         if (InputProcessor.upJustPressed) {
             if (DrawSetupMenu.currIndex > 0) {
                 DrawSetupMenu.currIndex -= 1;
@@ -1552,21 +1581,20 @@ class DrawSetupMenu extends Action {
                 }
                 DrawSetupMenu.avatarAnimCounter = 24; // reset to 12 for 1 extra frame of first frame for avatar anim
             }
+            else {
+                DrawSetupMenu.currIndex = max;
+            }
         }
         else if (InputProcessor.downJustPressed) {
-            int max = 6;
-            if (this.localHostJoinIndex == 2) {
-                max = 5;
-            }
-            else if (this.newLoadIndex == 1) {
-                max = 3;
-            }
             if (DrawSetupMenu.currIndex < max) {
                 DrawSetupMenu.currIndex += 1;
                 if (this.localHostJoinIndex == 2 && DrawSetupMenu.currIndex == 1) {
                     DrawSetupMenu.currIndex += 1;
                 }
                 DrawSetupMenu.avatarAnimCounter = 24; // reset to 12 for 1 extra frame of first frame for avatar anim
+            }
+            else {
+                DrawSetupMenu.currIndex = 0;
             }
         }
         // Draw the arrow sprite
@@ -1585,6 +1613,7 @@ class FadeMusic extends Action {
     boolean firstStep = true;
     boolean switchCurrMusic = false;
     Music.OnCompletionListener onCompleteListener;
+    public static Action currFadeMusic;
 
     public FadeMusic(String musicName, String direction, String shouldPause, float rate, Action nextAction) {
         this.musicName = musicName;
@@ -1621,13 +1650,9 @@ class FadeMusic extends Action {
 
     public FadeMusic(String musicName, String direction, String shouldPause, float rate, boolean switchCurrMusic, float maxVol, Action nextAction) {
         this.maxVol = maxVol;
-
         this.musicName = musicName;
-
         this.shouldPause = shouldPause;
-
         this.switchCurrMusic = switchCurrMusic;
-
         this.direction = direction;
         if (direction.equals("out")) {
             this.amt = -rate;
@@ -1645,11 +1670,21 @@ class FadeMusic extends Action {
     }
 
     public void step(Game game) {
-        if (!game.playerCanMove) {
+        // The reason that this is hear is to prevent a fadeout->fadein chain from overwriting battle music
+        // ie, music starts transitioning in overworld, player enters battle (changes game.currMusic), then fademusic(in)
+        // overwrites the battle music.
+        // This should be handled better somehow, not sure how though.
+        //  - still want the fademusic to continue after the battle (which this accomplishes).
+//        System.out.println(game.playerCanMove);
+//        if (!game.playerCanMove) {
+//            return;
+//        }
+        if (game.battle.drawAction != null) {
             return;
         }
 
         if (this.firstStep == true) {
+            FadeMusic.currFadeMusic = this;
             if (this.direction.equals("in")) {
                 if (this.musicName.equals("currMusic")) {
                     game.currMusic.play();
@@ -1698,13 +1733,13 @@ class FadeMusic extends Action {
                         game.currMusic.pause();
                     }
                 }
-
                 game.currMusic = game.loadedMusic.get(this.musicName);
                 game.map.currRoute.music = game.currMusic; // TODO: shouldn't be doing this probably
             }
 
             // set this.music for reference
             if (this.musicName.equals("currMusic")) {
+                // TODO: issue here if game.currMusic changes after this point, won't fade anymore.
                 this.music = game.currMusic;
             }
             else {
@@ -1721,6 +1756,19 @@ class FadeMusic extends Action {
             this.firstStep = false;
         }
 
+        // TODO: test
+        // if another FadeMusic got inserted, then stop doing stuff.
+        if (FadeMusic.currFadeMusic != this) {
+            if (this.direction.equals("in")) {
+                this.music.setVolume(this.maxVol);
+            }
+            else if (this.direction.equals("out")) {
+                this.music.setVolume(0f);
+            }
+            game.actionStack.remove(this);
+            return;
+        }
+
         this.music.setVolume(this.music.getVolume()+this.amt);
 
         if (this.direction.equals("out")) {
@@ -1731,9 +1779,6 @@ class FadeMusic extends Action {
                     this.music.pause();
                 }
                 else if (this.shouldPause.equals("stop")) {
-//                  this.music.setPosition(0); // TODO - remove
-//                  this.music.pause();
-
                     // dispose and remove from loadedMusic
                     this.music.setVolume(0.1f);
                     this.music.stop();
@@ -2221,8 +2266,8 @@ class PlaySound extends Action {
             this.music.play();
             this.playedYet = true;
         }
-
         if (!this.music.isPlaying()) {
+            // TODO: getting stuck here occasionally?
             this.music.dispose();
             game.actionStack.remove(this);
             game.insertAction(this.nextAction);

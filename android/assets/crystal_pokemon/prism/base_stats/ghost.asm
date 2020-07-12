@@ -1,17 +1,17 @@
-	db ANORITH
-	db 45, 95, 50, 75, 40, 50
-	db ROCK, BUG
-	db 45 ;catch rate
-	db 99 ;exp rate
+	db ABSOL
+	db 65, 130, 60, 75, 75, 60
+	db GHOST, GHOST
+	db 1 ;catch rate
+	db 174 ;exp rate
 	db NO_ITEM
-	db SMOOTH_ROCK
-	db 31 ;gender
+	db LEPPA_BERRY
+	db 127 ;gender
 	db 100 ;unknown
-	db 31 ;egg cycles
+	db 26 ;egg cycles
 	db 5 ;unknown
-	dn 6, 6 ;picture dimensions
-	db ABILITY_BATTLE_ARMOR, ABILITY_BATTLE_ARMOR ;abilities
+	dn 7, 7 ;picture dimensions
+	db ABILITY_PRESSURE, ABILITY_SUPER_LUCK ;abilities
 	db 0, 0 ;padding
-	db ERRATIC ;growth rate
-	dn INVERTEBRATE, INVERTEBRATE ;egg groups
+	db MEDIUM_SLOW ;growth rate
+	dn FIELD, FIELD ;egg groups
 

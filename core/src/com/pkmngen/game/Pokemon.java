@@ -16,6 +16,7 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.TextureData;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.math.Vector2;
+import com.pkmngen.game.util.TextureCache;
 
 public class Pokemon {
     // contains all loaded pkmn textures, so that only one is used for each pkmn. ie don't load duplicate textures.
@@ -77,10 +78,18 @@ public class Pokemon {
     String growthRateGroup = "";
 
     Sprite sprite;
-
     Sprite backSprite;
 
-    // Music cry; // unused atm, using PlaySound
+    // overworld movement sprites
+    public Map<String, Sprite> standingSprites = new HashMap<String, Sprite>();
+    public Map<String, Sprite> movingSprites = new HashMap<String, Sprite>();
+    public Map<String, Sprite> altMovingSprites = new HashMap<String, Sprite>();
+    public String dirFacing = "down";
+    public Vector2 position = new Vector2(); // position in overworld
+    public Action standingAction = null;
+    public Sprite currOwSprite = null;
+    public int spriteOffsetY = 0;
+    public boolean canMove = true;
 
     // this reference is used when needing to stop drawing pokemon in battle screen
      // could also just be oppPokemonDrawAction in battle, I think
@@ -156,12 +165,13 @@ public class Pokemon {
             } else {
                 this.loadPrismPokemon(name);
             }
+            this.loadOverworldSprites(name);
 
             // Custom attributes - better way to handle this?
-            if (name.equals("machop")) {
-                this.hms.add("CUT");
-                this.hms.add("BUILD");
-            }
+//            if (name.equals("machop")) {
+////                this.hms.add("CUT");  // TODO: debug, remove
+//                this.hms.add("BUILD");
+//            }
 
             // Custom attributes - better way to handle this?
             if (name.equals("sneasel")) {
@@ -169,8 +179,11 @@ public class Pokemon {
             }
 
             // TODO: for now, all grass types can cut
-            if (this.types.contains("grass")) {
+            if (this.types.contains("GRASS")) {
                 this.hms.add("CUT");
+            }
+            if (this.types.contains("FIGHTING")) {
+                this.hms.add("BUILD");
             }
 
             // TODO: different pokemon than machop
@@ -770,6 +783,8 @@ public class Pokemon {
             this.loadPrismPokemon(this.name);
         }
         this.calcMaxStats();
+        // restore hp to full
+        this.currentStats.put("hp", this.maxStats.get("hp"));
 
         // TODO: probably move this to function somewhere
         if (name.equals("machop")) {
@@ -796,7 +811,7 @@ public class Pokemon {
             this.hms.add("JUMP");
         }
         // TODO: for now, all grass types can cut
-        if (this.types.contains("grass")) {
+        if (this.types.contains("GRASS")) {
             this.hms.add("CUT");
         }
     }
@@ -1038,6 +1053,102 @@ public class Pokemon {
         this.learnSet = Pokemon.gen2Attacks.get(name);
     }
 
+    void loadOverworldSprites(String name) {
+        name = name.toLowerCase();
+        // load overworld sprites from file
+        try {
+            FileHandle file = Gdx.files.internal("crystal_pokemon/prism/pokemon_names.asm");
+            Reader reader = file.reader();
+            BufferedReader br = new BufferedReader(reader);
+            String line;
+            ArrayList<String> lines = new ArrayList<String>();
+            while ((line = br.readLine()) != null)   {
+                lines.add(line);
+            }
+            boolean found = false;
+            for (int i=0; i < lines.size(); ) {
+                line = lines.get(i);
+                String currName = line.split("db \"")[1].split("\"")[0].toLowerCase();
+                if (currName.contains(name)) {
+                    found = true;
+                    // TODO: Credits to Megaman-Omega on Deviantart for prism overworld sprites
+                    Texture text = TextureCache.get(Gdx.files.internal("crystal_pokemon/prism-overworld-sprites2.png"));
+                    // These aren't consistent because sprite sheet is also inconsistent in ordering
+                    int col = (i*6) % 156;
+                    int row = (int)((i*6) / 156);
+                    this.spriteOffsetY = row*16;
+                    if (row == 5) {
+                        System.out.println(name);
+                    }
+//                    if (name.contains("bronzor")) {
+//                        System.out.println("bronzor");
+//                        System.out.println(i);
+//                        System.out.println(col);
+//                        System.out.println(row);
+//                    }
+                    this.movingSprites.put("left", new Sprite(text, col*16, row*16, 16, 16));
+                    this.altMovingSprites.put("left", new Sprite(text, col*16, row*16, 16, 16));
+                    this.standingSprites.put("left", new Sprite(text, col*16 +16, row*16, 16, 16));
+
+                    this.movingSprites.put("right", new Sprite(text, col*16, row*16, 16, 16));
+                    this.movingSprites.get("right").flip(true, false);
+                    this.altMovingSprites.put("right", new Sprite(text, col*16, row*16, 16, 16));
+                    this.altMovingSprites.get("right").flip(true, false);
+                    this.standingSprites.put("right", new Sprite(text, col*16 +16, row*16, 16, 16));
+                    this.standingSprites.get("right").flip(true, false);
+                    
+                    // TODO: some of these probably need to be flipped in the sprite sheet
+                    this.movingSprites.put("up", new Sprite(text, col*16 +32, row*16, 16, 16));
+                    this.altMovingSprites.put("up", new Sprite(text, col*16 +32, row*16, 16, 16));
+                    this.altMovingSprites.get("up").flip(true, false);
+                    this.standingSprites.put("up", new Sprite(text, col*16 +48, row*16, 16, 16));
+
+                    this.standingSprites.put("down", new Sprite(text, col*16 +64, row*16, 16, 16));
+                    this.movingSprites.put("down", new Sprite(text, col*16 +80, row*16, 16, 16));
+                    this.altMovingSprites.put("down", new Sprite(text, col*16 +80, row*16, 16, 16));
+                    this.altMovingSprites.get("down").flip(true, false);
+
+                    // TODO: debug, remove
+//                    if (name.contains("machop")) {
+//                        System.out.println("machop");
+//                        System.out.println(text.getWidth());
+//                        System.out.println(text.getHeight());
+//                        System.out.println(this.altMovingSprites.get("up").getWidth());
+//                    }
+                    
+                    break;
+                }
+                i++;
+            }
+            reader.close();
+
+            if (found) {
+                return;
+            }
+            // If failed to load from prism animations, load from crystal
+            Texture text = TextureCache.get(Gdx.files.internal("crystal_pokemon/crystal-overworld-sprites1.png"));
+            int dexNumber = Integer.valueOf(this.dexNumber)-1;
+//            if (dexNumber > 123) {
+//                dexNumber += 3;
+//            }
+            int col = (dexNumber % 15) * 2;
+            int row = (int)((dexNumber) / 15);
+            this.spriteOffsetY = row*16;
+            for (String dir : new String[]{"up", "down", "left", "right"}) {
+                this.standingSprites.put(dir, new Sprite(text, 1 +col*17, 31 +row*25, 16, 16));
+                this.movingSprites.put(dir, new Sprite(text, 1 +col*17 +17, 31 +row*25, 16, 16));
+                this.altMovingSprites.put(dir, new Sprite(text, 1 +col*17 +17, 31 +row*25, 16, 16));
+            }
+            // TODO: load ghost overworld sprite from ghost sheet.
+            
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+    }
+
     void loadPrismPokemon(String name) {
         name = name.toLowerCase();
 
@@ -1134,6 +1245,7 @@ public class Pokemon {
                 i++;
             }
             reader.close();
+            
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {
@@ -1204,7 +1316,312 @@ public class Pokemon {
         this.learnSet = Pokemon.gen2Attacks.get(name);
     }
 
-    // specific, ie GOLD, RED, CRYSTAL
+    /**
+     * Add pokemon to inventory, remove standingAction from actionStack,
+     * and remove pokemon from game.map.pokemon.
+     */
+    public class AddToInventory extends Action {
+        public int layer = 130;
+        int moveTimer = 0;
+        
+        public AddToInventory(Action nextAction) {
+            this.nextAction = nextAction;
+        }
+
+        public int getLayer(){
+            return this.layer;
+        }
+
+        @Override
+        public void firstStep(Game game) {
+            game.player.pokemon.add(Pokemon.this);
+            game.map.pokemon.remove(Pokemon.this.position);
+            game.actionStack.remove(Pokemon.this.standingAction);
+            game.actionStack.remove(this);
+            game.insertAction(this.nextAction);
+        }
+    }
+
+    /**
+     * Draw pokemon lower (below grass).
+     */
+    public class DrawLower extends Action {
+        public int layer = 130;
+        Sprite spritePart;
+
+        public int getLayer(){return this.layer;}
+
+        @Override
+        public void step(Game game) {
+            if (!game.actionStack.contains(Pokemon.this.standingAction)) {
+                game.actionStack.remove(this);
+                return;
+            }
+            this.spritePart = new Sprite(Pokemon.this.currOwSprite);
+            this.spritePart.setRegionY(Pokemon.this.spriteOffsetY+8);
+            this.spritePart.setRegionHeight(8);
+            game.mapBatch.draw(this.spritePart, Pokemon.this.position.x, Pokemon.this.position.y+4);
+        }
+    }
+
+    /**
+     * Draw pokemon upper (above grass).
+     */
+    public class DrawUpper extends Action {
+        public int layer = 115;
+        Sprite spritePart;
+
+        public int getLayer(){return this.layer;}
+
+        @Override
+        public void step(Game game) {
+            if (!game.actionStack.contains(Pokemon.this.standingAction)) {
+                game.actionStack.remove(this);
+                return;
+            }
+            this.spritePart = new Sprite(Pokemon.this.currOwSprite);
+            this.spritePart.setRegionY(Pokemon.this.spriteOffsetY);
+            this.spritePart.setRegionHeight(8);
+            game.mapBatch.draw(this.spritePart, Pokemon.this.position.x, Pokemon.this.position.y+12);
+            // TODO: remove if unused
+//            Pokemon.this.currOwSprite.setPosition(Pokemon.this.position.x, Pokemon.this.position.y);
+        }
+    }
+
+    /**
+     * Draw emote animation above pokemon.
+     */
+    public class Emote extends Action {
+        public int layer = 114;
+        String type;
+        Sprite sprite;
+        HashMap<String, Sprite> sprites = new HashMap<String, Sprite>();
+        int timer = 0;
+
+        public int getLayer(){return this.layer;}
+        
+        public Emote(String type, Action nextAction) {
+            this.type = type;
+            Texture text = TextureCache.get(Gdx.files.internal("emotes.png"));
+            int i = 0;
+            for (String name : new String[]{"!", "?", "happy", "skull", "heart", "bolt", "sleep", "fish"}) {
+                sprites.put(name, new Sprite(text, 16*i, 0, 16, 16));
+                i++;
+            }
+            this.nextAction = nextAction;
+        }
+
+        @Override
+        public void firstStep(Game game) {
+            this.sprite = this.sprites.get(this.type);
+        }
+
+        @Override
+        public void step(Game game) {
+            game.mapBatch.draw(this.sprite, Pokemon.this.position.x, Pokemon.this.position.y +4 +16);
+            if (this.timer >= 60) {
+                game.actionStack.remove(this);
+                game.insertAction(this.nextAction);
+            }
+            this.timer++;
+        }
+    }
+
+    /**
+     * Pokemon moving in overworld.
+     */
+    public class Moving extends Action {
+        public int layer = 130;
+        Vector2 initialPos; // track distance of movement
+        Vector2 targetPos;
+        float xDist, yDist;
+        boolean alternate;
+        int delay = 1;
+        int timer = 1;
+        
+        public Moving(int delay, boolean alternate, Action nextAction) {
+            this.delay = delay;
+            this.alternate = alternate;
+            this.nextAction = nextAction;
+        }
+
+        public String getCamera() {
+            return "map";
+        }
+
+        public int getLayer(){
+            return this.layer;
+        }
+
+        @Override
+        public void firstStep(Game game) {
+            this.initialPos = new Vector2(Pokemon.this.position);
+            if (Pokemon.this.dirFacing == "up") {
+                this.targetPos = new Vector2(Pokemon.this.position.x, Pokemon.this.position.y+16);
+            }
+            else if (Pokemon.this.dirFacing == "down") {
+                this.targetPos = new Vector2(Pokemon.this.position.x, Pokemon.this.position.y-16);
+            }
+            else if (Pokemon.this.dirFacing == "left") {
+                this.targetPos = new Vector2(Pokemon.this.position.x-16, Pokemon.this.position.y);
+            }
+            else if (Pokemon.this.dirFacing == "right") {
+                this.targetPos = new Vector2(Pokemon.this.position.x+16, Pokemon.this.position.y);
+            }
+            game.map.pokemon.remove(Pokemon.this.position);
+            game.map.pokemon.put(this.targetPos.cpy(), Pokemon.this);
+            Pokemon.this.canMove = true;
+        }
+
+        @Override
+        public void step(Game game) {
+            if (!Pokemon.this.canMove) {
+                return;
+            }
+            this.timer--;
+            if (this.timer <= 0) {
+                this.timer = this.delay;
+                if (Pokemon.this.dirFacing == "up") {
+                    Pokemon.this.position.y +=1;
+                }
+                else if (Pokemon.this.dirFacing == "down") {
+                    Pokemon.this.position.y -=1;
+                }
+                else if (Pokemon.this.dirFacing == "left") {
+                    Pokemon.this.position.x -=1;
+                }
+                else if (Pokemon.this.dirFacing == "right") {
+                    Pokemon.this.position.x +=1;
+                }
+            }
+            this.xDist = Math.abs(this.initialPos.x - Pokemon.this.position.x);
+            this.yDist = Math.abs(this.initialPos.y - Pokemon.this.position.y);
+
+            if ((this.yDist < 13 && this.yDist > 2)
+                || (this.xDist < 13 && this.xDist > 2)) {
+                if (this.alternate == true) {
+                    Pokemon.this.currOwSprite = Pokemon.this.altMovingSprites.get(Pokemon.this.dirFacing);
+                }
+                else {
+                    Pokemon.this.currOwSprite = Pokemon.this.movingSprites.get(Pokemon.this.dirFacing);
+                }
+            }
+            else {
+                Pokemon.this.currOwSprite = Pokemon.this.standingSprites.get(Pokemon.this.dirFacing);
+            }
+            if (this.xDist >= 16 || this.yDist >= 16) {
+                Pokemon.this.position.set(this.targetPos);
+                game.actionStack.remove(this);
+                game.insertAction(this.nextAction);
+                Pokemon.this.standingAction = this.nextAction;
+            }
+        }
+    }
+
+    /**
+     * Self-explanatory.
+     */
+    public class RemoveFromInventory extends Action {
+        public int layer = 130;
+        int moveTimer = 0;
+
+        public int getLayer(){
+            return this.layer;
+        }
+
+        @Override
+        public void firstStep(Game game) {
+            game.player.pokemon.remove(Pokemon.this);
+            if (game.player.currPokemon == Pokemon.this) {
+                game.player.currPokemon = game.player.pokemon.get(0);
+            }
+            game.actionStack.remove(this);
+            game.insertAction(Pokemon.this.new Standing());
+        }
+    }
+
+    /**
+     * Pokemon standing in place (overworld), moving periodically.
+     * TODO: consider just making Pokemon extend Action, then move this stuff out one level.
+     */
+    public class Standing extends Action {
+        public int layer = 130;
+        int moveTimer = 0;
+        
+        public Standing() {}
+
+        public String getCamera() {
+            return "map";
+        }
+
+        public int getLayer(){
+            return this.layer;
+        }
+
+        @Override
+        public void firstStep(Game game) {
+            this.moveTimer = game.map.rand.nextInt(180) + 60;
+            game.map.pokemon.put(Pokemon.this.position.cpy(), Pokemon.this);
+            Pokemon.this.standingAction = this;
+            Pokemon.this.currOwSprite = Pokemon.this.standingSprites.get(Pokemon.this.dirFacing);
+            game.insertAction(Pokemon.this.new DrawLower());
+            game.insertAction(Pokemon.this.new DrawUpper());
+        }
+
+        @Override
+        public void step(Game game) {
+            Pokemon.this.currOwSprite = Pokemon.this.standingSprites.get(Pokemon.this.dirFacing);
+            if (!Pokemon.this.canMove) {
+                return;
+            }
+//            game.mapBatch.draw(Pokemon.this.standingSprites.get(Pokemon.this.dirFacing),
+//                               Pokemon.this.position.x, Pokemon.this.position.y+4);
+            if (this.moveTimer <= 0) {
+                this.moveTimer = game.map.rand.nextInt(180) + 60;
+                int randDir = game.map.rand.nextInt(4);
+                Vector2 newPos;
+                if (randDir == 0) {
+                    Pokemon.this.dirFacing = "up";
+                    newPos = new Vector2(Pokemon.this.position.x, Pokemon.this.position.y+16);
+                }
+                else if (randDir == 1) {
+                    Pokemon.this.dirFacing = "down";
+                    newPos = new Vector2(Pokemon.this.position.x, Pokemon.this.position.y-16);
+                }
+                else if (randDir == 2) {
+                    Pokemon.this.dirFacing = "right";
+                    newPos = new Vector2(Pokemon.this.position.x+16, Pokemon.this.position.y);
+                }
+                else {
+                    Pokemon.this.dirFacing = "left";
+                    newPos = new Vector2(Pokemon.this.position.x-16, Pokemon.this.position.y);
+                }
+                Tile temp = game.map.tiles.get(newPos);
+                if (temp == null || temp.attrs.get("solid") || 
+                    temp.attrs.get("ledge") || 
+                    game.map.pokemon.containsKey(newPos) ||
+                    game.player.position.equals(newPos) ||
+                    game.players.containsKey(newPos)) {
+                    return;
+                }
+//                Tile currTile = game.map.tiles.get(Pokemon.this.position);
+
+                game.actionStack.remove(this);
+                Action action = Pokemon.this.new Moving(2, true, null);
+//                if (game.map.rand.nextInt(2) == 0) {
+//                    action.append(Pokemon.this.new Moving(false, null));
+//                }
+                action.append(this);
+                game.insertAction(action);
+                Pokemon.this.standingAction = action;
+            }
+            this.moveTimer--;
+        }
+    }
+
+    /**
+     * Specifies Generation from, ie RED, CRYSTAL (only those two currently).
+     */
     // sprites, stats, attacks etc differ depending
     public enum Generation {
         RED,

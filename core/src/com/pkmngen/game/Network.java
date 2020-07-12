@@ -122,9 +122,12 @@ class ClientBroadcast extends Action {
                             // A server is changing a tile (ie player built or cut something within this player's loading zone)
                             if (object instanceof Network.TileData) {
                                 Network.TileData tileData = (Network.TileData) object;
-                                game.map.tiles.put(tileData.pos.cpy(),
-                                                   new Tile(tileData.tileName, tileData.tileNameUpper,
-                                                            tileData.pos.cpy(), true, null));
+                                Tile newTile = new Tile(tileData.tileName, tileData.tileNameUpper,
+                                                        tileData.pos.cpy(), true, null);
+                                newTile.hasItem = tileData.hasItem;
+                                newTile.hasItemAmount = tileData.hasItemAmount;
+                                game.map.tiles.put(tileData.pos.cpy(), newTile);
+                                PlayerStanding.adjustSurroundingTiles(newTile);
                             }
                             if (object instanceof Network.PokemonData) {
                                 Network.PokemonData pokemonData = (Network.PokemonData) object;
@@ -185,6 +188,7 @@ public class Network {
         kryo.register(UseHM.class);
         kryo.register(Sleep.class);
         kryo.register(Craft.class);
+        kryo.register(DropItem.class);
     }
 
     static public class BattleData {
@@ -247,6 +251,25 @@ public class Network {
         }
     }
 
+    /**
+     * Sent client->server to notify that the player has dropped an item.
+     */
+    static public class DropItem {
+        String playerId;
+        String itemName;
+        int amount;
+        Vector2 pos;
+
+        public DropItem(){}
+
+        public DropItem(String playerId, String itemName, int amount, Vector2 pos) {
+            this.playerId = playerId;
+            this.itemName = itemName;
+            this.amount = amount;
+            this.pos = pos;
+        }
+    }
+
     static public class Login {
         public String playerId = "";
         Color color;
@@ -264,6 +287,9 @@ public class Network {
         // store routes as classId->Route
         public HashMap<String, RouteData> routes = new HashMap<String, RouteData>();
         public ArrayList<Vector2> edges = new ArrayList<Vector2>();
+        
+        public ArrayList<HashMap<Vector2, TileData>> interiorTiles = new ArrayList<HashMap<Vector2, TileData>>();
+        int interiorTilesIndex;
 
         // used to sync time with server
         String timeOfDay;
@@ -302,6 +328,7 @@ public class Network {
         Color color;
         String dirFacing;
         public Vector2 spawnLoc;
+        boolean isInterior;
 
         public PlayerData(){}
 
@@ -391,6 +418,13 @@ public class Network {
         }
     }
 
+    /**
+     * Used when serializing all game data to file (saving the game).
+     */
+    static public class SaveData {
+        // TODO
+    }
+
     static public class ServerPlayerData {
         public Vector2 position;
         public String name;
@@ -427,6 +461,9 @@ public class Network {
         public String tileName;
         public String tileNameUpper;
         String routeBelongsTo;  // this is a string of the route's class id
+        HashMap<String, Integer> items;
+        public String hasItem;
+        public int hasItemAmount;
 
         // TrainerTipsTile stuff
         boolean isUnown;
@@ -446,6 +483,9 @@ public class Network {
                 this.isUnown = tTile.isUnown;
                 this.message = tTile.message;
             }
+            this.items = tile.items;
+            this.hasItem = tile.hasItem;
+            this.hasItemAmount = tile.hasItemAmount;
         }
     }
 
@@ -827,7 +867,7 @@ class ServerBroadcast extends Action {
                                     System.out.println("TileData: Invalid tile position " + tileData.pos.toString() + ", sent by: " + connection.getRemoteAddressTCP().toString());
                                     throw new Exception();
                                 }
-                                if (game.map.tiles.get(tileData.pos).attrs.containsKey("solid") && game.map.tiles.get(tileData.pos).attrs.get("solid")) {
+                                if (game.map.tiles.get(tileData.pos).attrs.get("solid")) {
                                     throw new Exception();  // may be trying to build on a tile that was just built on.
                                 }
                                 for (Player player : game.players.values()) {
@@ -837,9 +877,11 @@ class ServerBroadcast extends Action {
                                 }
                                 Tile oldTile = game.map.tiles.get(tileData.pos);
                                 // preserve route from previous tile here.
-                                game.map.tiles.put(tileData.pos.cpy(),
-                                                   new Tile(tileData.tileName, tileData.tileNameUpper,
-                                                            tileData.pos.cpy(), true, oldTile.routeBelongsTo));
+                                Tile newTile = new Tile(tileData.tileName, tileData.tileNameUpper,
+                                                        tileData.pos.cpy(), true, oldTile.routeBelongsTo);
+                                newTile.hasItem = tileData.hasItem;
+                                newTile.hasItemAmount = tileData.hasItemAmount;
+                                game.map.tiles.put(tileData.pos.cpy(), newTile);
                                 // Send the change to clients (including the one that requested the change.)
                                 // Only send to clients that have this tile in their loading zone
 
@@ -924,7 +966,7 @@ class ServerBroadcast extends Action {
                                 // TODO: test if inventory is really updated.
                                 Network.Craft craft = (Network.Craft) object;
                                 if (!game.players.containsKey(craft.playerId)) {
-                                    System.out.println("UseHM: Invalid player id " + craft.playerId + ", sent by: " + connection.getRemoteAddressTCP().toString());
+                                    System.out.println("Craft: Invalid player id " + craft.playerId + ", sent by: " + connection.getRemoteAddressTCP().toString());
                                     throw new Exception();
                                 }
                                 Player player = game.players.get(craft.playerId);
@@ -933,7 +975,25 @@ class ServerBroadcast extends Action {
                                     // if passed, update inventory
                                     player.craftItem(craft.craftIndex, craft.amount);
                                 }
-                                // TODO: debug, delete
+//                                // TODO: debug, delete
+//                                for (String item : player.itemsDict.keySet()) {
+//                                    System.out.println(player.itemsDict.get(item).toString() + " " + item);
+//                                }
+                            }
+                            if (object instanceof Network.DropItem) {
+                                // TODO: test if inventory is really updated.
+                                Network.DropItem dropItem = (Network.DropItem) object;
+                                if (!game.players.containsKey(dropItem.playerId)) {
+                                    System.out.println("DropItem: Invalid player id " + dropItem.playerId + ", sent by: " + connection.getRemoteAddressTCP().toString());
+                                    throw new Exception();
+                                }
+                                Player player = game.players.get(dropItem.playerId);
+                                // deduct from inventory. if player has 0 or less, remove.
+                                player.itemsDict.put(dropItem.itemName, player.itemsDict.get(dropItem.itemName)-dropItem.amount);
+                                if (player.itemsDict.get(dropItem.itemName) <= 0) {
+                                    player.itemsDict.remove(dropItem.itemName);
+                                }
+//                              // TODO: debug, delete
                                 for (String item : player.itemsDict.keySet()) {
                                     System.out.println(player.itemsDict.get(item).toString() + " " + item);
                                 }

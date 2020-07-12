@@ -25,7 +25,9 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.GdxRuntimeException;
 import com.badlogic.gdx.utils.ScreenUtils;
+import com.pkmngen.game.DrawCraftsMenu.SelectAmount;
 import com.pkmngen.game.Network.BattleTurnData;
+import com.pkmngen.game.util.LinkedMusic;
 
 class AfterFriendlyFaint extends Action {
     public int layer = 129;
@@ -58,6 +60,7 @@ class AfterFriendlyFaint extends Action {
             pokemon.currentStats.put("hp", pokemon.maxStats.get("hp")/2);
         }
         BattleFadeOut.whiteScreen = true;
+        BattleFadeOutMusic.playerFainted = true;
         game.insertAction(new DisplayText.Clear(game,
                           new WaitFrames(game, 3,new DisplayText(game, ""+game.player.name.toUpperCase()+" is out of useable POKéMON!", null, null,
                           new DisplayText(game, ""+game.player.name.toUpperCase()+" whited out!", null, null,
@@ -70,13 +73,35 @@ class AfterFriendlyFaint extends Action {
                           new SetField(game.player, "currSprite", game.player.standingSprites.get("down"),
                           new Game.SetCamPos(game.player.spawnLoc.cpy().add(16, 0),
                           new SplitAction(new BattleFadeOut(game, 4,
-                                                            null),
+                                          null),
                           new BattleFadeOutMusic(game,
                           new DisplayText(game, "Weary from battle, you flee to the last known safe place...", null, null,
                           new BattleFadeOut.WhiteScreen(false,
-                          null)))))))))))));
+                          new SplitAction(new SetField(game, "currMusic", game.map.currRoute.music,
+                                          new FadeMusic("currMusic", "in", "", 0.2f, false, 1f,
+                                          null)),
+//                          new SplitAction(new FadeIn(),
+                          null))))))))))))));
     }
-
+    // TODO: remove
+//    static class FadeIn extends Action {
+//        public int layer = 129;
+//
+//        public FadeIn() {}
+//
+//        public int getLayer(){return this.layer;}
+//
+//        @Override
+//        public void step(Game game) {
+//            System.out.println(game.map.currRoute.music);
+//            System.out.println(game.currMusic);
+//            System.out.println(game.map.currRoute.music.getVolume());
+//            System.out.println(game.currMusic.getVolume());
+//            game.currMusic = game.map.currRoute.music;
+//            game.currMusic.play();
+//            game.actionStack.remove(this);
+//        }
+//    }
 }
 
 class Attack {
@@ -2303,6 +2328,7 @@ public class Battle {
      // this reference is used to stop drawing battle once it's complete
     DrawBattle drawAction;
     Music music;
+    Music music2;
 
     Music victoryFanfare;
 
@@ -2312,15 +2338,42 @@ public class Battle {
     HashMap<String, Attack> attacks = new HashMap<String, Attack>();
 
     Network network = new Network();
+    Runnable runnable;
 
     public Battle() {
-        this.music = Gdx.audio.newMusic(Gdx.files.internal("battle/battle-vs-wild-pokemon.ogg"));
-        this.music.setLooping(true);
+        
+        // TODO: remove if unused
+//        this.music = Gdx.audio.newMusic(Gdx.files.internal("battle/battle-vs-wild-pokemon3.ogg"));
+//        this.music.setLooping(false);
+//        this.music.setVolume(0.3f);
+//
+//        // This is required to pre-load the looped part of the audio
+//        // best method of looping that I could find (all other methods cause hanging)
+//        this.music2 = Gdx.audio.newMusic(Gdx.files.internal("battle/battle-vs-wild-pokemon2.ogg"));
+//        this.music2.setLooping(true);
+//        this.music2.setVolume(0.3f);
+//        this.music2.play();
+//        this.music2.pause();
+//        this.music2.setPosition(0f);
+//        this.music.setOnCompletionListener(new Music.OnCompletionListener() {
+//            @Override
+//            public void onCompletion(final Music music) {
+//                // TODO: didn't end up needing this.
+//                // Restarting the music in a separate thread will at least prevent game from hanging
+////                Thread thread = new Thread(runnable);
+////                thread.start();
+//                music2.play();
+//                Game.staticGame.currMusic = music2;
+//            }
+//        });
+        this.music = new LinkedMusic("battle/battle-vs-wild-pokemon3", "battle/battle-vs-wild-pokemon2");
         this.music.setVolume(0.3f);
 
-        this.victoryFanfare = Gdx.audio.newMusic(Gdx.files.internal("victory_fanfare2.ogg"));
-        this.victoryFanfare.setLooping(true);
-        this.victoryFanfare.setVolume(0.3f);
+//        this.victoryFanfare = Gdx.audio.newMusic(Gdx.files.internal("victory_fanfare2.ogg"));
+//        this.victoryFanfare.setLooping(true);
+//        this.victoryFanfare.setVolume(0.3f);
+        this.victoryFanfare = new LinkedMusic("victory_fanfare1_intro", "victory_fanfare1");
+        this.victoryFanfare.setVolume(1f);
 
         // TODO: this could have been a string table, converted to map
 //                normal fire water ...
@@ -2765,23 +2818,26 @@ public class Battle {
         return (a*t*b*e*l)/(7*s);
     }
 
-    /*
+    /**
      * Determine if run from battle is successful or not.
      *
-     * https:// web.archive.org/web/20140712063943/http:// www.upokecenter.com/content/pokemon-gold-version-silver-version-and-crystal-version-timing-notes
-     * Whether current run attempt is counted or not is contradicted here: https:// pokemondb.net/pokebase/71124/how-is-cant-escape-determined
+     * https://web.archive.org/web/20140712063943/http://www.upokecenter.com/content/pokemon-gold-version-silver-version-and-crystal-version-timing-notes
+     * Whether current run attempt is counted or not is contradicted here: https://pokemondb.net/pokebase/71124/how-is-cant-escape-determined
+     * https://bulbapedia.bulbagarden.net/wiki/Escape#Generation_I_and_II
      */
     boolean calcIfRunSuccessful(Game game, Player player) {
         int currSpeed = player.currPokemon.currentStats.get("speed");
-        int b = (this.oppPokemon.currentStats.get("speed")/4) % 256;
+        int b = (int)(this.oppPokemon.currentStats.get("speed")/4) % 256;
+//        System.out.println("opp speed:" + String.valueOf(this.oppPokemon.currentStats.get("speed")));
+//        System.out.println("b:" + String.valueOf(b));
         if (b == 0) {
             return true;
         }
-        int x = (int)(currSpeed*32/b)+(30*player.numFlees);
+        int x = (int)(currSpeed*32/b)+(30*(player.numFlees+1));
         if (x > 255) {
             return true;
         }
-        if (game.map.rand.nextInt(256) >= x) {
+        if (game.map.rand.nextInt(256) < x) {
             return true;
         }
         return false;
@@ -3518,7 +3574,7 @@ class BattleFadeOut extends Action {
     public void step(Game game) {
         // should only happen once. not sure that repeat matters
         game.actionStack.remove(game.battle.drawAction); // stop drawing the battle
-        game.battle.drawAction = null; // this is used as a flag in ThrowOutPokemon
+        game.battle.drawAction = null;
 
         // if done with anim, do nextAction
         if (frames.isEmpty()) {
@@ -3553,6 +3609,7 @@ class BattleFadeOut extends Action {
 
         public WhiteScreen(boolean whiteScreen, Action nextAction) {
             this.whiteScreen = whiteScreen;
+            this.nextAction = nextAction;
         }
 
         @Override
@@ -3568,24 +3625,17 @@ class BattleFadeOutMusic extends Action {
     ArrayList<Float> frames;
     Float frame;
     float originalVolume;
-
     Music music;
-    boolean firstStep;
-    boolean isNight;
+    boolean firstStep = true;
+    // flag this true if player fainted, required when player faints at night
+    // and normally the fade out would be skipped.
+    public static boolean playerFainted = false;
+    public static boolean stop = false;
 
     public int layer = 129;
     public BattleFadeOutMusic(Game game, Action nextAction) {
         this.nextAction = nextAction;
-
-        this.firstStep = true;
-
         this.frames = new ArrayList<Float>();
-
-        this.isNight = false;
-        if (game.map.timeOfDay.equals("Night")) {
-            this.isNight = true;
-        }
-
         // fade out from white anim
         for (int i=0; i < 14; i++) {
             this.frames.add(0.3f);
@@ -3616,38 +3666,41 @@ class BattleFadeOutMusic extends Action {
 
     @Override
     public void step(Game game) {
-        if (this.isNight == true) {
+        if (game.map.timeOfDay.equals("Night") && !BattleFadeOutMusic.playerFainted) {
             game.actionStack.remove(this);
             game.insertAction(this.nextAction);
             return;
         }
 
         if (this.firstStep == true) {
+//            FadeMusic.currFadeMusic = this;  // prevents 2 fade musics from happening at same time
             this.originalVolume = game.currMusic.getVolume();
             this.music = game.currMusic;
+            BattleFadeOutMusic.stop = false;
             this.firstStep = false;
         }
+//        this.music = game.currMusic;
 
         // if done with anim, do nextAction
-        if (frames.isEmpty()) {
+        if (frames.isEmpty() || BattleFadeOutMusic.stop) {  // || FadeMusic.currFadeMusic != this
             game.insertAction(this.nextAction);
             game.actionStack.remove(this);
-            this.music.stop();
+            if (!BattleFadeOutMusic.stop) {
+                this.music.stop();
+            }
             this.music.setVolume(this.originalVolume);
-            // game.map.music.start();
             // make sure we are out of battle before resetting map music
-            if (game.battle.drawAction == null) {
+            if (game.battle.drawAction == null && !BattleFadeOutMusic.playerFainted) {
                 game.currMusic = game.map.currRoute.music;
                 game.currMusic.play();
             }
+            BattleFadeOutMusic.playerFainted = false;
+            BattleFadeOutMusic.stop = false;
             return;
         }
-
         // get next frame
         this.frame = frames.get(0);
-
         this.music.setVolume(frame);
-
         frames.remove(0);
     }
 }
@@ -3739,28 +3792,25 @@ class BattleIntro extends Action {
 
 }
 
-// TODO - i think this needs to call .step() for next b/c there is a missing frame before battle
 class BattleIntroAnim1 extends Action {
     ArrayList<Sprite> frames;
     Sprite frame;
+    Sprite bgSprite;
 
     public int layer = 139;
     public BattleIntroAnim1(Action nextAction) {
         this.nextAction = nextAction;
-
         this.frames = new ArrayList<Sprite>();
-
-        Texture text1 = new Texture(Gdx.files.internal("battle/battle_intro_anim1_sheet1.png"));
-
+        Texture text = new Texture(Gdx.files.internal("battle/battle_intro_anim1_sheet1.png"));
         // animation to play
         for (int i = 0; i < 28; i++) {
-            frames.add(new Sprite(text1, i*160, 0, 160, 144));
+            frames.add(new Sprite(text, i*160, 0, 160, 144));
         }
-
         for (int i = 0; i < 42; i++) {
-            frames.add(new Sprite(text1, 27*160, 0, 160, 144));
+            frames.add(new Sprite(text, 27*160, 0, 160, 144));
         }
-
+        text = new Texture(Gdx.files.internal("battle/intro_frame3.png"));
+        this.bgSprite = new Sprite(text, 0, 0, 160, 144);
     }
 
     public String getCamera() {return "gui";}
@@ -3789,8 +3839,13 @@ class BattleIntroAnim1 extends Action {
             // map version
             // game.batch.draw(this.frame, 16, -16);
         }
-
         frames.remove(0);
+        
+        // Needed for fullscreen
+        game.uiBatch.draw(this.bgSprite, -160, 0);
+        game.uiBatch.draw(this.bgSprite, 160, 0);
+        game.uiBatch.draw(this.bgSprite, 0, -144);
+        game.uiBatch.draw(this.bgSprite, 0, 144);
     }
 
 }
@@ -3871,7 +3926,8 @@ class CatchPokemonWobbles1Time extends Action {
     public CatchPokemonWobbles1Time(Game game, Action nextAction) {
         this.nextAction = nextAction;
 
-        Texture text = new Texture(Gdx.files.internal("throw_pokeball_anim/pokeball1.png"));
+//        Texture text = new Texture(Gdx.files.internal("throw_pokeball_anim/pokeball1.png"));
+        Texture text = new Texture(Gdx.files.internal("throw_pokeball_anim/pokeball1_color.png"));
 
         // initial sprite position
         this.position = new Vector2(114,88); // post scaling change
@@ -3891,7 +3947,8 @@ class CatchPokemonWobbles1Time extends Action {
         this.sprites =  new ArrayList<Sprite>();
         this.sprites.add(null); // draw nothing for 13 frames
 
-        text = new Texture(Gdx.files.internal("throw_pokeball_anim/pokeball_wiggleSheet1.png"));
+//        text = new Texture(Gdx.files.internal("throw_pokeball_anim/pokeball_wiggleSheet1.png"));
+        text = new Texture(Gdx.files.internal("throw_pokeball_anim/pokeball_wiggleSheet1_color.png"));
         this.sprites.add(new Sprite(text, 12*0, 0, 12, 12)); // middle
         this.sprites.add(new Sprite(text, 12*1, 0, 12, 12)); // left tilt
         this.sprites.add(new Sprite(text, 12*0, 0, 12, 12)); // middle
@@ -4029,7 +4086,8 @@ class CatchPokemonWobbles2Times extends Action {
     public CatchPokemonWobbles2Times(Game game, Action nextAction) {
         this.nextAction = nextAction;
 
-        Texture text = new Texture(Gdx.files.internal("throw_pokeball_anim/pokeball1.png"));
+//        Texture text = new Texture(Gdx.files.internal("throw_pokeball_anim/pokeball1.png"));
+        Texture text = new Texture(Gdx.files.internal("throw_pokeball_anim/pokeball1_color.png"));
 
         // initial sprite position
         this.position = new Vector2(114,88); // post scaling change
@@ -4055,7 +4113,8 @@ class CatchPokemonWobbles2Times extends Action {
         this.sprites =  new ArrayList<Sprite>();
         this.sprites.add(null); // draw nothing for 13 frames
 
-        text = new Texture(Gdx.files.internal("throw_pokeball_anim/pokeball_wiggleSheet1.png"));
+//        text = new Texture(Gdx.files.internal("throw_pokeball_anim/pokeball_wiggleSheet1.png"));
+        text = new Texture(Gdx.files.internal("throw_pokeball_anim/pokeball_wiggleSheet1_color.png"));
         this.sprites.add(new Sprite(text, 12*0, 0, 12, 12)); // middle
         this.sprites.add(new Sprite(text, 12*1, 0, 12, 12)); // left tilt
         this.sprites.add(new Sprite(text, 12*0, 0, 12, 12)); // middle
@@ -4207,7 +4266,8 @@ class CatchPokemonWobbles3Times extends Action {
 
         this.nextAction = nextAction;
 
-        Texture text = new Texture(Gdx.files.internal("throw_pokeball_anim/pokeball1.png"));
+//        Texture text = new Texture(Gdx.files.internal("throw_pokeball_anim/pokeball1.png"));
+        Texture text = new Texture(Gdx.files.internal("throw_pokeball_anim/pokeball1_color.png"));
 
         // initial sprite position
         this.position = new Vector2(114,88); // post scaling change
@@ -4233,7 +4293,8 @@ class CatchPokemonWobbles3Times extends Action {
         this.sprites =  new ArrayList<Sprite>();
         this.sprites.add(null); // draw nothing for 13 frames
 
-        text = new Texture(Gdx.files.internal("throw_pokeball_anim/pokeball_wiggleSheet1.png"));
+//        text = new Texture(Gdx.files.internal("throw_pokeball_anim/pokeball_wiggleSheet1.png"));
+        text = new Texture(Gdx.files.internal("throw_pokeball_anim/pokeball_wiggleSheet1_color.png"));
         this.sprites.add(new Sprite(text, 12*0, 0, 12, 12)); // middle
         this.sprites.add(new Sprite(text, 12*1, 0, 12, 12)); // left tilt
         this.sprites.add(new Sprite(text, 12*0, 0, 12, 12)); // middle
@@ -4409,7 +4470,8 @@ class CatchPokemonWobblesThenCatch extends Action {
     public CatchPokemonWobblesThenCatch(Game game, Action nextAction) {
         this.nextAction = nextAction;
 
-        Texture text = new Texture(Gdx.files.internal("throw_pokeball_anim/pokeball1.png"));
+//        Texture text = new Texture(Gdx.files.internal("throw_pokeball_anim/pokeball1.png"));
+        Texture text = new Texture(Gdx.files.internal("throw_pokeball_anim/pokeball1_color.png"));
 
         // initial sprite position
         this.position = new Vector2(114,88); // post scaling change
@@ -4428,7 +4490,8 @@ class CatchPokemonWobblesThenCatch extends Action {
         this.sprites =  new ArrayList<Sprite>();
         this.sprites.add(null); // draw nothing for 13 frames
 
-        text = new Texture(Gdx.files.internal("throw_pokeball_anim/pokeball_wiggleSheet1.png"));
+//        text = new Texture(Gdx.files.internal("throw_pokeball_anim/pokeball_wiggleSheet1.png"));
+        text = new Texture(Gdx.files.internal("throw_pokeball_anim/pokeball_wiggleSheet1_color.png"));
         this.sprites.add(new Sprite(text, 12*0, 0, 12, 12)); // middle
         this.sprites.add(new Sprite(text, 12*1, 0, 12, 12)); // left tilt
         this.sprites.add(new Sprite(text, 12*0, 0, 12, 12)); // middle
@@ -4740,7 +4803,6 @@ class DepleteEnemyHealth extends Action {
 
         if (size <= targetSize) {
             game.actionStack.remove(this);
-
             // If enemy health is 0, do EnemyFaint
             if (game.battle.oppPokemon.currentStats.get("hp") <= 0) {
                 int exp = game.battle.calcFaintExp();
@@ -4755,12 +4817,10 @@ class DepleteEnemyHealth extends Action {
                                                     null, true, true,
                                     new GainExpAnimation(
                                     null)))))));
-
-                nextAction.append(new SplitAction(
-                                            new BattleFadeOut(game,
-                                            null),
-                                        new BattleFadeOutMusic(game,
-                                        null)));
+                nextAction.append(new SplitAction(new BattleFadeOut(game,
+                                                  null),
+                                  new BattleFadeOutMusic(game,
+                                  null)));
                 game.insertAction(nextAction);
             }
             // else, insert nextAction
@@ -4776,17 +4836,16 @@ class DepleteEnemyHealth extends Action {
 class DepleteFriendlyHealth extends Action {
     public int layer = 129;
     Pokemon pokemon;
-
     boolean firstStep;
-
     int timer;
-
     int removeNumber;
     int targetSize; // reduce enemy health bar to this number
     int damage = 0;
+
     public DepleteFriendlyHealth(Pokemon friendlyPokemon, Action nextAction) {
         this(friendlyPokemon, 0, nextAction);
     }
+
     public DepleteFriendlyHealth(Pokemon friendlyPokemon, int damage, Action nextAction) {
         this.pokemon = friendlyPokemon;
         this.nextAction = nextAction;
@@ -4841,47 +4900,56 @@ class DepleteFriendlyHealth extends Action {
             game.actionStack.remove(this);
             if (this.pokemon.currentStats.get("hp") <= 0) {
                 game.insertAction(new FriendlyFaint(game,
-                                                 new RemoveDisplayText(
-                                                 new WaitFrames(game, 3,
-                                                 new DisplayText(game, this.pokemon.name.toUpperCase()+" fainted!",
-                                                                 null, null,
-                                                 // TODO: decide whether to switch pkmn, send out player, or end game
-                                                 new AfterFriendlyFaint()
-                                                 )))));
+                                  new RemoveDisplayText(
+                                  new WaitFrames(game, 3,
+                                  new DisplayText(game, this.pokemon.name.toUpperCase()+" fainted!",
+                                                  null, null,
+                                  // TODO: decide whether to switch pkmn, send out player, or end game
+                                  new AfterFriendlyFaint())))));
             }
             // else, insert nextAction
             else {
                 game.insertAction(this.nextAction);
             }
         }
-
     }
 }
 
-// draw menu buttons (fight, run, etc)
+/**
+ * Draw Pokemon attacks menu.
+ */
 class DrawAttacksMenu extends Action {
     public static int curr = 0;
     Sprite arrow;
     Sprite arrowWhite;
     Sprite textBox;
     public int layer = 108;
-    Map<Integer, Vector2> coords;
+    Map<Integer, Vector2> coords = new HashMap<Integer, Vector2>();
     Vector2 newPos;
     Sprite helperSprite;
-    ArrayList<ArrayList<Sprite>> spritesToDraw;
+    ArrayList<ArrayList<Sprite>> spritesToDraw = new ArrayList<ArrayList<Sprite>>();
     int cursorDelay; // this is just extra detail. cursor has 2 frame delay before showing in R/B
+    String attackLearning = null;  // if this has a value, this is just being used by player to select attack to forget.
+    Vector2 offset = new Vector2(0, 0);
 
     public DrawAttacksMenu(Action nextAction) {
+        this(null, nextAction);
+    }
+
+    public DrawAttacksMenu(String attackLearning, Action nextAction) {
+        this.attackLearning = attackLearning;
+        if (this.attackLearning != null) {
+            this.offset.add(0, 48);
+        }
         this.nextAction = nextAction;
         this.cursorDelay = 0;
-        this.coords = new HashMap<Integer, Vector2>();
-        this.spritesToDraw = new ArrayList<ArrayList<Sprite>>();
         Texture text = new Texture(Gdx.files.internal("battle/arrow_right1.png"));
         this.arrow = new Sprite(text, 0, 0, 5, 7);
 
         // text box bg
         text = new Texture(Gdx.files.internal("attack_menu/attack_screen1.png"));
         this.textBox = new Sprite(text, 0,0, 16*10, 16*9);
+        this.textBox.setPosition(this.offset.x, this.offset.y);
 
         this.coords.put(0, new Vector2(41, 32));
         this.coords.put(1, new Vector2(41, 24));
@@ -4893,7 +4961,17 @@ class DrawAttacksMenu extends Action {
 //        this.newPos =  new Vector2(41, 32);
 //        this.arrow.setPosition(newPos.x, newPos.y);
 
-        // convert pokemon attacks to sprites
+        // helper sprite
+//        text = new Texture(Gdx.files.internal("attack_menu/helper2.png"));
+//        this.helperSprite = new Sprite(text, 0,0, 16*10, 16*9);
+    }
+
+    @Override
+    public void firstStep(Game game) {
+        this.newPos = this.coords.get(DrawAttacksMenu.curr);
+        this.arrow.setPosition(this.newPos.x, this.newPos.y);
+
+        // Convert pokemon attacks to sprites
         for (String attack : Game.staticGame.player.currPokemon.attacks) {
             if (attack == null) {
                 attack = "-";
@@ -4912,7 +4990,7 @@ class DrawAttacksMenu extends Action {
                 currSprite = new Sprite(letterSprite); // copy sprite from char-to-Sprite dictionary
 
                 // currSprite.setPosition(10*3+8*i*3 +2, 26*3-16*j*3 +2); // offset x=8, y=25, spacing x=8, y=8(?)
-                currSprite.setPosition(10+8*i +2-4, 26-16*j +2-4); // post scaling change
+                currSprite.setPosition(10+8*i +2-4, this.offset.y + 26-16*j +2-4); // post scaling change
                 // currSprite.setScale(3); // post scaling change
 
                 word.add(currSprite);
@@ -4927,16 +5005,6 @@ class DrawAttacksMenu extends Action {
             }
             spritesToDraw.add(word);
         }
-
-        // helper sprite
-//        text = new Texture(Gdx.files.internal("attack_menu/helper2.png"));
-//        this.helperSprite = new Sprite(text, 0,0, 16*10, 16*9);
-    }
-
-    @Override
-    public void firstStep(Game game) {
-        this.newPos = this.coords.get(DrawAttacksMenu.curr);
-        this.arrow.setPosition(this.newPos.x, this.newPos.y);
     }
 
     public String getCamera() {return "gui";}
@@ -4955,7 +5023,7 @@ class DrawAttacksMenu extends Action {
             }
         }
         else if (InputProcessor.downJustPressed) {
-            if (DrawAttacksMenu.curr < game.player.currPokemon.attacks.length &&
+            if (DrawAttacksMenu.curr+1 < game.player.currPokemon.attacks.length &&
                 game.player.currPokemon.attacks[DrawAttacksMenu.curr+1] != null) {
                 DrawAttacksMenu.curr += 1;
                 newPos = coords.get(DrawAttacksMenu.curr);
@@ -4964,6 +5032,20 @@ class DrawAttacksMenu extends Action {
 
         // if press a, do attack
         if (InputProcessor.aJustPressed) {
+            if (this.attackLearning != null) {
+                game.actionStack.remove(this);
+                game.insertAction(new DisplayText.Clear(game,
+                                  new WaitFrames(game, 3,
+                                  new DisplayText(game, "And one... two... three... POOF!",
+                                                  null, null,
+                                  new DisplayText(game, game.player.currPokemon.name.toUpperCase() + " forgot " + game.player.currPokemon.attacks[DrawAttacksMenu.curr].toUpperCase()+" and...",
+                                                  null, null,
+                                  new DisplayText(game, game.player.currPokemon.name.toUpperCase() + " learned " + this.attackLearning.toUpperCase()+"!",
+                                                  "fanfare1.ogg", true, true,
+                                  this.nextAction))))));
+                game.player.currPokemon.attacks[DrawAttacksMenu.curr] = this.attackLearning;
+                return;
+            }
             // Reset counter keeping track of number flees done by player this battle (used in run away mechanic).
             game.player.numFlees = 0;
 
@@ -4985,8 +5067,17 @@ class DrawAttacksMenu extends Action {
             game.insertAction(attack);
             return;
         }
-        // player presses b, ie wants to go back
+        // Player presses b, ie wants to go back
         else if (InputProcessor.bJustPressed) {
+            if (this.attackLearning != null) {
+                game.actionStack.remove(this);
+                game.insertAction(new DisplayText.Clear(game,
+                                  new WaitFrames(game, 3,
+                                  new DisplayText(game, game.player.currPokemon.name.toUpperCase()+" did not learn " + this.attackLearning.toUpperCase()+".",
+                                                  null, null,
+                                  this.nextAction))));
+                return;
+            }
             game.actionStack.remove(this);
             game.insertAction(this.nextAction);
         }
@@ -5011,7 +5102,7 @@ class DrawAttacksMenu extends Action {
 
         // draw arrow
         if (this.cursorDelay >= 2) {
-            this.arrow.setPosition(newPos.x, newPos.y);
+            this.arrow.setPosition(newPos.x+this.offset.x, newPos.y+this.offset.y);
             this.arrow.draw(game.uiBatch);
         }
         else {
@@ -5026,7 +5117,6 @@ class DrawAttacksMenu extends Action {
 class DrawBattle extends Action {
     public static boolean shouldDrawOppPokemon = true;
     Sprite bgSprite;
-
     Sprite bgSprite2;
     DrawFriendlyHealth drawFriendlyHealthAction;
     DrawEnemyHealth drawEnemyHealthAction;
@@ -5034,26 +5124,12 @@ class DrawBattle extends Action {
     Action drawFriendlyPokemonAction;
     public int layer = 130;
 
-    Sprite helperSprite;
-
     public DrawBattle(Game game) {
         Texture text = new Texture(Gdx.files.internal("battle/battle_bg3.png"));
-        // Texture text = new Texture(Gdx.files.internal("battle/helper1.png"));
         this.bgSprite = new Sprite(text, 0, 0, 176, 160);
-        // this.bgSprite.setPosition(16*10,16*9);
-        // this.bgSprite.setScale(3);
-        // TODO - make bg the text box.(?)
-
         game.battle.drawAction = this;
-
-//        text = new Texture(Gdx.files.internal("attack_menu/helper4.png"));
-//        this.helperSprite = new Sprite(text, 0, 0, 160, 144);
-
-        // sprite is bigger than bg, needed for screen shake
         this.bgSprite.setPosition(-8, -8);
-
         text = new Texture(Gdx.files.internal("battle/intro_frame6.png"));
-        // Texture text = new Texture(Gdx.files.internal("battle/helper1.png"));
         this.bgSprite2 = new Sprite(text, 0, 0, 160, 144);
     }
 
@@ -5062,7 +5138,15 @@ class DrawBattle extends Action {
     public int getLayer(){return this.layer;}
 
     @Override
+    public void firstStep(Game game) {
+        if (game.map.timeOfDay.equals("Night")) {
+            game.insertAction(this.new DrawNightOverlay());
+        }
+    }
+
+    @Override
     public void step(Game game) {
+
         this.bgSprite.draw(game.uiBatch);
 //        game.floatingBatch.draw(this.bgSprite,
 //                                this.bgSprite.getX(),
@@ -5079,8 +5163,17 @@ class DrawBattle extends Action {
         }
         game.player.battleSprite.draw(game.uiBatch);
 
-        game.uiBatch.draw(this.bgSprite2, -160-8, 0);
-        game.uiBatch.draw(this.bgSprite2, 160+8, 0);
+        for (int i = -1; i < 2; i+= 1) {
+            for (int j = -1; j < 2; j+= 1) {
+                if (i == 0 && j == 0) {
+                    continue;
+                }
+                game.uiBatch.draw(this.bgSprite2, 160*i, 144*j);
+            }
+        }
+//        game.uiBatch.draw(this.bgSprite2, -160-8, 0);
+//        game.uiBatch.draw(this.bgSprite2, 160+8, 0);
+        
 
 //        game.floatingBatch.draw(game.player.battleSprite, game.player.battleSprite.getX(), game.player.battleSprite.getY());
 
@@ -5108,7 +5201,35 @@ class DrawBattle extends Action {
 //            letterSprite = game.textDict.get(textArray[i]);
 //            game.floatingBatch.draw(letterSprite, 8+8*i, 136);
 //        }
+    }
+    
+    class DrawNightOverlay extends Action {
+        public int layer = 0;
+        Sprite bgSprite;
 
+        public DrawNightOverlay() {
+            Texture text = new Texture(Gdx.files.internal("battle/intro_frame1.png"));
+            this.bgSprite = new Sprite(text, 0, 0, 160, 144);
+        }
+
+        public String getCamera() {return "gui";}
+
+        public int getLayer(){return this.layer;}
+
+        @Override
+        public void step(Game game) {
+            if (!game.actionStack.contains(DrawBattle.this)) {
+                game.actionStack.remove(this);
+                return;
+            }
+            // draw 3x3 grid including outside of screen
+            // needed for camera shake effects in ui batch (friendly pokemon damaged, etc)
+            for (int i = -1; i < 2; i+= 1) {
+                for (int j = -1; j < 2; j+= 1) {
+                    game.uiBatch.draw(this.bgSprite, 160*i, 144*j);
+                }
+            }
+        }
     }
 }
 
@@ -5189,10 +5310,9 @@ class DrawBattleMenu1 extends Action {
                  // also need a 'stop playing music' thing here
                  // also need 'stop drawing battle' here
                 game.insertAction(new BattleFadeOut(game,
-                                                 new WaitFrames(game, 18,
-                                                 new DisplayText(game, "Got away safely!", null, null,
-                                                 null// new playerStanding(game)
-                                                 ))));
+                                  new WaitFrames(game, 18,
+                                  new DisplayText(game, "Got away safely!", null, null,
+                                  null))));
                 game.insertAction(new BattleFadeOutMusic(game, null));
                 game.insertAction(new PlaySound("click1", new PlaySound("run1", null)));
                 game.actionStack.remove(this);
@@ -5628,25 +5748,18 @@ class DrawBattleMenuSafariZone extends Action {
 
                 game.actionStack.remove(this);
             }
-
-            // user selected 'run'
+            // User selected 'run'
             else if (curr.equals("br")) {
-                // TODO: network code
-
-                 // also need a 'stop playing music' thing here
-                 // also need 'stop drawing battle' here
-                game.insertAction(new WaitFrames(game, 18,
-                                                 new DisplayText(game, "Got away safely!", null, null,
-                                                 new SplitAction(
-                                                         new BattleFadeOut(game,
-                                                         null), // new playerStanding(game)),
-                                                 new BattleFadeOutMusic(game,
-                                                 null)))));
-
-                game.insertAction(new PlaySound("click1",
-                                                 new PlaySound("run1",
-                                                 null)));
                 game.actionStack.remove(this);
+                game.insertAction(new WaitFrames(game, 18,
+                                  new DisplayText(game, "Got away safely!", null, null,
+                                  new SplitAction(new BattleFadeOut(game,
+                                                  null),
+                                  new BattleFadeOutMusic(game,
+                                  null)))));
+                game.insertAction(new PlaySound("click1",
+                                  new PlaySound("run1",
+                                  null)));
             }
         }
 
@@ -6710,8 +6823,9 @@ class DrawPokemonMenu extends MenuAction {
                 i++;
             }
 
-            this.words.add("STATS");
+//            this.words.add("STATS");
             this.words.add("SWITCH");
+            this.words.add("DROP");  // OPEN, FREE, DROP,
             this.words.add("CANCEL");
 
             Texture text = new Texture(Gdx.files.internal("battle/arrow_right1.png"));
@@ -6739,8 +6853,47 @@ class DrawPokemonMenu extends MenuAction {
                                                                        DrawPokemonMenu.currIndex,
                                                                        word));
             }
-            if (word.equals("STATS")) {
-                return new SelectedMenu.Switch(prevMenu); // TODO - Stats menu
+//            if (word.equals("STATS")) {
+//                return new SelectedMenu.Switch(prevMenu); // TODO - Stats menu
+//            }
+            if (word.equals("DROP")) {
+                Vector2 pos = new Vector2(0,0);
+                if (game.player.dirFacing == "right") {
+                    pos = game.player.position.cpy().add(16, 0);
+                }
+                else if (game.player.dirFacing == "left") {
+                    pos = game.player.position.cpy().add(-16, 0);
+                }
+                else if (game.player.dirFacing == "up") {
+                    pos = game.player.position.cpy().add(0, 16);
+                }
+                else if (game.player.dirFacing == "down") {
+                    pos = game.player.position.cpy().add(0, -16);
+                }
+                else {
+                    pos = game.player.position.cpy().add(0, -16);
+                }
+                if (game.map.tiles.get(pos).attrs.get("solid") || game.map.tiles.get(pos).attrs.get("ledge")) {
+                    this.disabled = true;
+                    return new DisplayText(game, "Canì place here - something is in the way.", null, null,
+                               new SetField(this.prevMenu, "disabled", false,
+                               this.prevMenu));
+                }
+                if (game.player.pokemon.size() <= 1) {
+                    this.disabled = true;
+                    game.insertAction(this.prevMenu);
+                    return new DisplayText(game, "You need at least 1 POKéMON in your party.", null, null,
+                               new SetField(this.prevMenu, "disabled", false,
+                               null));
+                }
+                    
+                // TODO: can't do if would remove last pokemon.
+                // TODO: can't place in solid tiles
+                Pokemon pokemon = game.player.pokemon.get(DrawPokemonMenu.currIndex);
+                pokemon.position = pos;
+                return new SelectedMenu.ExitAfterActions(this.prevMenu,
+                       new PlaySound(pokemon,
+                       pokemon.new RemoveFromInventory()));
             }
             else if (word.equals("SWITCH")) {
                 return new SelectedMenu.Switch(prevMenu);
@@ -6896,6 +7049,7 @@ class DrawPokemonMenu extends MenuAction {
         static class ExitAfterActions extends MenuAction {
             public int layer = 107;
             boolean firstStep = true;
+
             public ExitAfterActions(MenuAction prevMenu, Action nextAction) {
                 this.prevMenu = prevMenu; // previously visiting menu
                 this.nextAction = nextAction;
@@ -7167,36 +7321,28 @@ class DrawPokemonMenu extends MenuAction {
 class DrawUseTossMenu extends MenuAction {
     Sprite arrow;
     Sprite textBox;
-
     public int layer = 106;
-    Map<Integer, Vector2> getCoords;
-
+    Map<Integer, Vector2> getCoords = new HashMap<Integer, Vector2>();
     int curr;
-
     Vector2 newPos;
     Sprite helperSprite;
-    ArrayList<ArrayList<Sprite>> spritesToDraw;
     int cursorDelay; // this is just extra detail. cursor has 2 frame delay before showing in R/B
     String itemName;
     MenuAction prevMenu;
+    ArrayList<String> words = new ArrayList<String>();
 
     // constructor for when this was called by the item menu
      // probably will create separate constructor for other cases
     public DrawUseTossMenu(Game game, MenuAction prevMenu, String itemName) {
         this.prevMenu = prevMenu; // previously visiting menu
         this.itemName = itemName; // which item was selected from previous menu
-
         this.cursorDelay = 0;
-
-        this.getCoords = new HashMap<Integer, Vector2>();
-        this.spritesToDraw = new ArrayList<ArrayList<Sprite>>();
 
         Texture text = new Texture(Gdx.files.internal("battle/arrow_right1.png"));
         this.arrow = new Sprite(text, 0, 0, 5, 7);
-        // this.arrow.setScale(3); // post scaling change
 
         // text box bg
-        text = new Texture(Gdx.files.internal("attack_menu/usetoss_menu1.png"));
+        text = new Texture(Gdx.files.internal("attack_menu/usetoss_menu2.png"));
         this.textBox = new Sprite(text, 0,0, 16*10, 16*9);
 
         this.getCoords.put(0, new Vector2(113, 48));
@@ -7206,12 +7352,8 @@ class DrawUseTossMenu extends MenuAction {
         this.newPos =  new Vector2(113, 48);
         this.arrow.setPosition(newPos.x, newPos.y);
         this.curr = 0;
-
-        // if you want to customize menu text, add to this.spritesToDraw here
-
-        // helper sprite
-//        text = new Texture(Gdx.files.internal("attack_menu/helper8.png"));
-//        this.helperSprite = new Sprite(text, 0,0, 16*10, 16*9);
+        this.words.add("USE");
+        this.words.add("DROP");
     }
 
     public String getCamera() {return "gui";}
@@ -7224,40 +7366,38 @@ class DrawUseTossMenu extends MenuAction {
         if (prevMenu != null) {
             prevMenu.step(game);
         }
+        // draw text box
+        this.textBox.draw(game.uiBatch);
+
+        // Draw use/drop
+        for (int i=0; i < this.words.size(); i++) {
+            String word = this.words.get(i);
+            for (int j=0; j < word.length(); j++) {
+                // Convert character to sprite and draw
+                char letter = word.charAt(j);
+                game.uiBatch.draw(game.textDict.get(letter), 120 +8*j, 48 -16*i);
+            }
+        }
+
+        if (this.disabled){
+            return;
+        }
 
         // check user input
          //'tl' = top left, etc.
          // modify position by modifying curr to tl, tr, bl or br
         if (InputProcessor.upJustPressed) {
-            if (curr > 0) {
-                curr -= 1;
-                newPos = getCoords.get(curr);
+            if (this.curr > 0) {
+                this.curr -= 1;
+                newPos = getCoords.get(this.curr);
             }
 
         }
         else if (InputProcessor.downJustPressed) {
-            if (curr < 1) {
-                curr += 1;
-                newPos = getCoords.get(curr);
+            if (this.curr < 1) {
+                this.curr += 1;
+                newPos = getCoords.get(this.curr);
             }
-        }
-
-        // System.out.println("curr: " + curr);
-
-        // draw text box
-        this.textBox.draw(game.uiBatch);
-
-        // debug
-//        helperSprite.draw(game.floatingBatch);
-
-        // draw the attack strings
-        int j = 0;
-        for (ArrayList<Sprite> word : this.spritesToDraw) {
-            for (Sprite sprite : word) {
-                // convert string to text
-                game.uiBatch.draw(sprite, sprite.getX() + 40, sprite.getY() - j*8 + 8);
-            }
-            j+=1;
         }
 
         // draw arrow
@@ -7271,10 +7411,38 @@ class DrawUseTossMenu extends MenuAction {
 
         // if press a, do attack
         if (InputProcessor.aJustPressed) {
-            // perform the action based on which item selected
             game.actionStack.remove(this);
-            this.useItem(game, this.itemName);
-            return;
+            if (this.curr == 0) {
+                // perform the action based on which item selected
+                this.useItem(game, this.itemName);
+                return;
+            }
+            else {
+                // Perform this action on the tile in from of the player.
+                Vector2 pos = game.player.position.cpy();
+                if (game.player.dirFacing.equals("up")) {
+                    pos.add(0, 16);
+                }
+                else if (game.player.dirFacing.equals("down")) {
+                    pos.add(0, -16);
+                }
+                else if (game.player.dirFacing.equals("right")) {
+                    pos.add(16, 0);
+                }
+                else if (game.player.dirFacing.equals("left")) {
+                    pos.add(-16, 0);
+                }
+                if (game.map.tiles.get(pos).attrs.get("solid")) {
+                    this.disabled = true;
+                    game.insertAction(new DisplayText(game, "Not enough room!", null, false, true,
+                                      new SetField(this.prevMenu, "disabled", false,
+                                      this.prevMenu)));
+                    return;
+                }
+                this.disabled = true;
+                game.insertAction(new DrawUseTossMenu.SelectAmount(this.itemName, pos, this));
+                return;
+            }
         }
         // player presses b, ie wants to go back
         else if (InputProcessor.bJustPressed) {
@@ -7311,6 +7479,14 @@ class DrawUseTossMenu extends MenuAction {
                                   this.prevMenu)));
                 return;
             }
+            if (game.map.tiles.get(game.player.position.cpy().add(0,0)).attrs.get("grass")) {
+                this.disabled = true;
+                game.actionStack.remove(this);
+                game.insertAction(new DisplayText(game, "Canì use this while in tall grass!", null, false, true,
+                                  new SetField(this.prevMenu, "disabled", false,
+                                  this.prevMenu)));
+                return;
+            }
             if (game.type == Game.Type.CLIENT) {
                 game.client.sendTCP(new com.pkmngen.game.Network.Sleep(game.player.network.id, true));
             }
@@ -7332,6 +7508,47 @@ class DrawUseTossMenu extends MenuAction {
                               null)))))))));
             return;
         }
+        if (itemName.contains("apricorn")) {
+            // Perform this action on the tile in from of the player.
+            Vector2 pos = game.player.position.cpy();
+            if (game.player.dirFacing.equals("up")) {
+                pos.add(0, 16);
+            }
+            else if (game.player.dirFacing.equals("down")) {
+                pos.add(0, -16);
+            }
+            else if (game.player.dirFacing.equals("right")) {
+                pos.add(16, 0);
+            }
+            else if (game.player.dirFacing.equals("left")) {
+                pos.add(-16, 0);
+            }
+            if (!game.map.tiles.get(pos).name.equals("green1")) {
+                this.disabled = true;
+                game.actionStack.remove(this);
+                game.insertAction(new DisplayText(game, "Seeds must be planted in good soil!", null, false, true,  //Canì plant here!
+                                  new SetField(this.prevMenu, "disabled", false,
+                                  this.prevMenu)));
+                return;
+            }
+            game.playerCanMove = false;
+            game.insertAction(new WaitFrames(game, 10,
+                              new SplitAction(new PlantTree(pos, null),
+                              new PlaySound("seed1", //new SplitAction(null),
+                              new WaitFrames(game, 4,
+                              new PlaySound("ledge2",
+                              new WaitFrames(game, 10,
+                              new SetField(game, "playerCanMove", true,
+                              null))))))));
+            return;
+        }
+        // If not in battle, return here
+        if (game.battle.drawAction == null) {
+            this.prevMenu.disabled = false;
+            game.insertAction(this.prevMenu);
+            return;
+        }
+
         this.prevMenu.prevMenu.disabled = false;
         Action action = new SplitAction(new PlaySound("click1", null), null);
         if (game.type == Game.Type.CLIENT) {
@@ -7354,6 +7571,155 @@ class DrawUseTossMenu extends MenuAction {
         action.append(new Battle.DoTurn(game, Battle.DoTurn.Type.ITEM, this.prevMenu.prevMenu));
         game.actionStack.remove(this);
         game.insertAction(action);
+    }
+
+    /**
+     * Drops a number of items on the Tile specified by pos.
+     */
+    public static class DropItem extends Action {
+        public int layer = 0;
+        Vector2 pos;
+        Tile currTile;
+        String item;
+        int amount;
+
+        public DropItem(String item, int amount, Vector2 pos, Action nextAction) {
+            this.item = item;
+            this.amount = amount;
+            this.pos = pos;
+            this.nextAction = nextAction;
+        }
+
+        public String getCamera() {return "gui";}
+
+        public int getLayer(){return this.layer;}
+
+        @Override
+        public void firstStep(Game game) {
+            this.currTile = game.map.tiles.get(this.pos);
+        }
+
+        @Override
+        public void step(Game game) {
+            // deduct items from player inventory
+            game.player.itemsDict.put(this.item, game.player.itemsDict.get(this.item)-this.amount);
+            if (game.player.itemsDict.get(this.item) <= 0) {
+                game.player.itemsDict.remove(this.item);
+            }
+            Tile newTile = new Tile(this.currTile.name, "pokeball1", this.pos.cpy(), true, this.currTile.routeBelongsTo);
+            newTile.hasItem = this.item;
+            newTile.hasItemAmount = this.amount;
+            if (game.type != Game.Type.CLIENT) {
+                game.map.tiles.put(this.pos.cpy(), newTile);
+            }
+            else {
+                game.client.sendTCP(new Network.TileData(newTile));
+            }
+            game.actionStack.remove(this);
+            game.insertAction(this.nextAction);
+        }
+    }
+
+    /**
+     * Draw a box where the user selects the amount of an item to drop.
+     */
+    static class SelectAmount extends MenuAction {
+        public int layer = 106;
+        Sprite textbox;
+        String itemName;
+        public static int amount = 0;
+        int maxAmount = 1;
+        Vector2 pos;
+
+        public SelectAmount(String itemName, Vector2 pos, MenuAction prevMenu) {
+//            this.maxAmount = maxAmount;
+            this.pos = pos;
+            this.itemName = itemName;
+            this.prevMenu = prevMenu;
+            Texture text = new Texture(Gdx.files.internal("amount_bg1.png"));
+            this.textbox = new Sprite(text, 0,0, 16*10, 16*9);
+        }
+
+        public String getCamera() {return "gui";}
+
+        public int getLayer(){return this.layer;}
+
+        @Override
+        public void firstStep(Game game) {
+            SelectAmount.amount = 1;
+        }
+
+        @Override
+        public void step(Game game) {
+            // if there is a previous menu, step through it to display text
+            if (prevMenu != null) {
+                prevMenu.step(game);
+            }
+
+            this.textbox.draw(game.uiBatch);
+
+            if (this.disabled) {
+                return;
+            }
+
+            if (InputProcessor.upJustPressed) {
+                if (SelectAmount.amount+1 <= game.player.itemsDict.get(this.itemName)) {
+                    SelectAmount.amount++;
+                }
+            }
+            else if (InputProcessor.downJustPressed) {
+                if (SelectAmount.amount > 1) {
+                    SelectAmount.amount--;
+                }
+            }
+            else if (InputProcessor.rightJustPressed) {
+                SelectAmount.amount += 10;
+                if (SelectAmount.amount > game.player.itemsDict.get(this.itemName)) {
+                    SelectAmount.amount = game.player.itemsDict.get(this.itemName);
+                }
+            }
+            else if (InputProcessor.leftJustPressed) {
+                SelectAmount.amount -= 10;
+                if (SelectAmount.amount <= 1) {
+                    SelectAmount.amount = 1;
+                }
+            }
+
+            Sprite letterSprite;
+            String word = "x"+String.format("%02d", SelectAmount.amount);
+            for (int i=0; i < word.length(); i++) {
+                char letter = word.charAt(i);
+                letterSprite = game.textDict.get(letter);
+                game.uiBatch.draw(letterSprite, 130 +8*i, 56);
+            }
+
+            if (InputProcessor.aJustPressed) {
+                if (game.type == Game.Type.CLIENT) {
+                    game.client.sendTCP(new com.pkmngen.game.Network.DropItem(game.player.network.id,
+                                                                              this.itemName,
+                                                                              SelectAmount.amount,
+                                                                              this.pos));
+                }
+                
+                this.disabled = true;
+                game.actionStack.remove(this);
+                game.playerCanMove = false;
+                game.insertAction(new WaitFrames(game, 10,
+                                  new SplitAction(new DrawUseTossMenu.DropItem(this.itemName, SelectAmount.amount, this.pos, null),
+                                  new PlaySound("seed1",
+                                  new WaitFrames(game, 10,
+                                  new SetField(game, "playerCanMove", true,
+                                  null))))));
+            }
+            // player presses b, ie wants to go back
+            else if (InputProcessor.bJustPressed) {
+                game.insertAction(new PlaySound("click1", null));
+                game.actionStack.remove(this);
+                this.prevMenu.disabled = false;
+                game.insertAction(this.prevMenu);
+                return;
+            }
+        }
     }
 }
 
@@ -7748,14 +8114,10 @@ class FriendlyFaint extends Action {
     ArrayList<Integer> repeats;
     ArrayList<Boolean> playSound;
     Vector2 move;
-
     Vector2 position;
     Sprite sprite;
-
     public int layer = 120;
     boolean firstStep;
-
-    Sprite helperSprite;
 
     public FriendlyFaint(Game game, Action nextAction) {
         this.nextAction = nextAction;
@@ -7796,20 +8158,18 @@ class FriendlyFaint extends Action {
 //        repeats.add(2);
 
         this.playSound = new ArrayList<Boolean>();
-        if (!game.map.timeOfDay.equals("Night")) {
+        // TODO: why was this here?
+//        if (!game.map.timeOfDay.equals("Night")) {
             this.playSound.add(true);
-        }
-        else {
-            this.playSound.add(false);
-        }
+//        }
+//        else {
+//            this.playSound.add(false);
+//        }
         for (int i = 0; i < 15; i++) {
             this.playSound.add(false);
         }
 
         this.sprite = new Sprite(game.player.currPokemon.backSprite);
-
-//        Texture text = new Texture(Gdx.files.internal("attack_menu/helper5.png"));
-//        this.helperSprite = new Sprite(text, 0,0, 16*10, 16*9);
     }
 
     public String getCamera() {return "gui";}
@@ -7818,7 +8178,7 @@ class FriendlyFaint extends Action {
 
     @Override
     public void step(Game game) {
-        if (this.firstStep == true) {
+        if (this.firstStep) {
             // stop drawing friendly healthbar
             game.actionStack.remove(game.battle.drawAction.drawFriendlyHealthAction);
             game.battle.drawAction.drawFriendlyHealthAction = null;
@@ -7829,16 +8189,12 @@ class FriendlyFaint extends Action {
 
             this.firstStep = false;
         }
-
         // if done with anim, do nextAction
         if (positions.isEmpty() || repeats.isEmpty()) {
             // game.insertAction(this.nextAction); // doing after sound is played instead; remove this
             game.actionStack.remove(this);
             return;
         }
-
-        // debug
-//        this.helperSprite.draw(game.floatingBatch);
 
         this.sprite.draw(game.uiBatch);
 
@@ -7866,14 +8222,11 @@ class FriendlyFaint extends Action {
 //                game.insertAction(new PlaySound(game.player.currPokemon.name, this.nextAction));
                 game.insertAction(new PlaySound(game.player.currPokemon, this.nextAction));
             }
-
             positions.remove(0);
             repeats.remove(0);
             playSound.remove(0);
         }
-
     }
-
 }
 
 /*
@@ -7890,15 +8243,45 @@ class GainExpAnimation extends Action {
     public void step(Game game) {
         if (game.player.currPokemon.level < 100 && game.player.currPokemon.gen2CalcExpForLevel(game.player.currPokemon.level+1) <= game.player.currPokemon.exp) {
             // TODO: debug, remove
-            System.out.println("Curr exp: " + String.valueOf(game.player.currPokemon.exp));
-            System.out.println("Needed for next level: " + String.valueOf(game.player.currPokemon.gen2CalcExpForLevel(game.player.currPokemon.level+1)));
+//            System.out.println("Curr exp: " + String.valueOf(game.player.currPokemon.exp));
+//            System.out.println("Needed for next level: " + String.valueOf(game.player.currPokemon.gen2CalcExpForLevel(game.player.currPokemon.level+1)));
             game.player.currPokemon.level += 1;
             game.actionStack.remove(this);
-            game.insertAction(new DisplayText.Clear(game,
-                              new WaitFrames(game, 3,
-                              new DisplayText(game, game.player.currPokemon.name.toUpperCase() + " grew to level " + game.player.currPokemon.level+"!",
-                                              "fanfare1.ogg", true, true,
-                              this))));
+            Action action = new DisplayText.Clear(game,
+                            new WaitFrames(game, 3,
+                            new DisplayText(game, game.player.currPokemon.name.toUpperCase() + " grew to level " + game.player.currPokemon.level+"!",
+                                            "fanfare1.ogg", true, true,
+                            null)));
+            // Check if any moves learned
+            if (game.player.currPokemon.learnSet.containsKey(game.player.currPokemon.level)) {
+                for (String attack : game.player.currPokemon.learnSet.get(game.player.currPokemon.level)) {
+                    boolean learned = false;
+                    for (int i = 0; i < 4; i++) {
+                        if (game.player.currPokemon.attacks[i] == null) {
+                            action.append(new DisplayText.Clear(game,
+                                          new WaitFrames(game, 3,
+                                          new DisplayText(game, game.player.currPokemon.name.toUpperCase() + " learned " + attack.toUpperCase()+"!",
+                                                          "fanfare1.ogg", true, true,
+                                          null))));
+                            game.player.currPokemon.attacks[i] = attack;
+                            learned = true;
+                            break;
+                        }
+                    }
+                    if (!learned) {
+                        action.append(new DisplayText.Clear(game,
+                                      new WaitFrames(game, 3,
+                                      new DisplayText(game, game.player.currPokemon.name.toUpperCase() + " is trying to learn " + attack.toUpperCase()+".",
+                                                      null, null,
+                                      new DisplayText(game, "Which move should be forgotten?",
+                                                      null, true, false,
+                                      new DrawAttacksMenu(attack,
+                                      null))))));
+                    }
+                }
+            }
+            action.append(this);
+            game.insertAction(action);
             this.gainedLevel = true;
             return;
         }
@@ -8145,7 +8528,8 @@ class PokemonCaughtEvents extends Action {
 
         game.insertAction(firstTextAction);
 
-        Texture text = new Texture(Gdx.files.internal("throw_pokeball_anim/pokeball_wiggleSheet1.png"));
+//        Texture text = new Texture(Gdx.files.internal("throw_pokeball_anim/pokeball_wiggleSheet1.png"));
+        Texture text = new Texture(Gdx.files.internal("throw_pokeball_anim/pokeball_wiggleSheet1_color.png"));
         this.pokeballSprite = new Sprite(text, 12*2, 0, 12, 12); // right tilt
         this.pokeballSprite.setPosition(115,88);
     }
@@ -10667,7 +11051,10 @@ class ThrowPokeball extends Action {
     public ThrowPokeball(Game game, Action nextAction) {
         this.nextAction = nextAction;
 
-        Texture text = new Texture(Gdx.files.internal("throw_pokeball_anim/pokeball1.png"));
+        // Note - throw_pokeball_anim/pokeball1.png is r/b pokeball
+        // uncomment and use this for gen 1 pokeball throw animation
+//        Texture text = new Texture(Gdx.files.internal("throw_pokeball_anim/pokeball1.png"));
+        Texture text = new Texture(Gdx.files.internal("throw_pokeball_anim/pokeball1_color.png"));
         this.pokeballSprite = new Sprite(text, 0, 0, 12, 12);
 
         // consider doing relative positions from now on
@@ -10892,20 +11279,18 @@ class ThrowRock extends Action {
             if (game.battle.oppPokemon.currentStats.get("catchRate") > 255) { // cap at 255
                 game.battle.oppPokemon.currentStats.put("catchRate", 255);
             }
-
             // random between 1 and 5, add to angry counter
             int randomNum = game.map.rand.nextInt(5)+1;
             game.battle.oppPokemon.angry += randomNum;
             if (game.battle.oppPokemon.angry > 255) { // cap at 255
                 game.battle.oppPokemon.angry = 255;
             }
-
             // set eating counter to 0
             game.battle.oppPokemon.eating = 0;
 
-            // debug
-            System.out.println("angry counter: "+String.valueOf(game.battle.oppPokemon.angry));
-            System.out.println("Catch Rate: "+String.valueOf(game.battle.oppPokemon.currentStats.get("catchRate")));
+            // TODO: debug, remove
+//            System.out.println("angry counter: "+String.valueOf(game.battle.oppPokemon.angry));
+//            System.out.println("Catch Rate: "+String.valueOf(game.battle.oppPokemon.currentStats.get("catchRate")));
 
             // wait 3 frames before menu draw
              // allows text box to be blank for 3 frames (drawText is already blank 1 frame by default)
@@ -10913,30 +11298,19 @@ class ThrowRock extends Action {
             game.actionStack.remove(this);
             return;
         }
-
         // get next sound, play it
         this.sound = this.sounds.get(0);
         if (this.sound != null) {
             game.insertAction(new PlaySound(this.sound, null));
             this.sounds.set(0, null); // don't play same sound over again
         }
-
         // get next frame
         this.sprite = sprites.get(0);
-
-        // debug
-        // this.helperSprite.draw(game.floatingBatch); // debug
-
         if (this.sprite != null) {
             // this.sprite.setScale(3); // post scaling change
             this.sprite.setPosition(position.x, position.y);
             this.sprite.draw(game.uiBatch);
         }
-
-//        if (this.frames.size() == 1) { // debug
-//            return;
-//        }
-
         // repeat sprite/pos for current object for 'frames[0]' number of frames.
         if (this.frames.get(0) > 0) {
             this.frames.set(0, this.frames.get(0) - 1);

@@ -1,22 +1,22 @@
-AnorithEvosAttacks:
-	db EVOLVE_LEVEL, 40, ARMALDO
+AbsolEvosAttacks:
 	db 0 ; no more evolutions
 	db 1, SCRATCH
-	db 4, HARDEN
-	db 7, ANCIENTPOWER
-	db 10, WATER_GUN
-	db 13, METAL_CLAW
-	db 16, STRING_SHOT
-	db 19, DUST_DEVIL
-	db 22, FURY_CUTTER
-	db 25, EARTH_POWER
-	db 28, SLASH
-	db 31, METALLURGY
-	db 34, X_SCISSOR
-	db 37, ROCK_SLIDE
-	db 41, SCREECH
-	db 44, AQUA_JET
-	db 47, IRON_DEFENSE
+	db 5, LEER
+	db 9, SPITE
+	db 13, SLASH
+	db 20, PURSUIT
+	db 21, DOUBLE_TEAM
+	db 26, FEINT_ATTACK
+	db 29, PSYCHO_CUT
+	db 32, SLASH
+	db 35, BITE
+	db 38, MEAN_LOOK
+	db 41, BATON_PASS
+	db 44, X_SCISSOR
+	db 48, NIGHT_SLASH
+	db 53, PERISH_SONG
+	db 58, SWORDS_DANCE
+	db 63, PLAY_ROUGH
 	db 0 ; no more level-up moves
 
-	; ED - I added this, probably will go unused but need to update if used.
+	;
