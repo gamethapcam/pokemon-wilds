@@ -4558,57 +4558,28 @@ class CatchPokemonWobblesThenCatch extends Action {
         // set opp pokemon sprite alpha
         game.battle.oppPokemon.sprite.setAlpha(0);
 
-        // set sprite position
+        // Set sprite position
         // if done with anim, do nextAction
         if (positions.isEmpty() || sprites.isEmpty()) {
-            // demo code - add to player adrenaline
-            int adrenaline = (int)Math.ceil((256 - game.battle.oppPokemon.baseStats.get("catchRate"))/100.0f);
-            game.player.adrenaline += adrenaline;
-//            System.out.println("adrenaline: " + String.valueOf(adrenaline));
-
-            // PokemonCaught_Events - sprite and text
-            // new DisplayText(game, string)
-            Action newAction = new PokemonCaughtEvents(
-                                    game, adrenaline, new SplitAction( // demo code
-                                        new BattleFadeOut(game,
-                                                null // new playerStanding(game)
-                                        ),
-                                        new BattleFadeOutMusic(game, null)
-                                    )
-                                );
-
-            game.insertAction(newAction);
-            newAction.step(game);// need to draw the pokeball
-
-            // game.insertAction(new BattleFadeOut(game, new playerStanding(game)));
-            // game.insertAction(new BattleFadeOutMusic(game, null));
-
-            // since pkmn was caught, add to players pokemon
+            // Since pkmn was caught, add to players pokemon
             game.player.pokemon.add(game.battle.oppPokemon);
             // remove this pokemon from the map
             game.map.currRoute.pokemon.remove(game.battle.oppPokemon);
-            // TODO - bug if all pokemon removed from route
-             // is this a good way to handle it?
-            // game.map.currRoute.pokemon.add(new Pokemon(game.battle.oppPokemon.name, game.battle.oppPokemon.level));
 
-            // demo code - add random pkmn with less or equal catch rate from route.
-            /* TODO - remove this
-            String pokemonName = null;
-            while (pokemonName == null) { // should eventually resolve, b/c can always at least find same pkmn
-                int index = game.map.rand.nextInt(game.map.currRoute.allowedPokemon.size());
-                Pokemon temp = new Pokemon(game.map.currRoute.allowedPokemon.get(index), 1);
-                if ( temp.baseStats.get("catchRate") <= game.battle.oppPokemon.baseStats.get("catchRate")) {
-                    pokemonName = game.map.currRoute.allowedPokemon.get(index);
-                }
+            Action newAction = new PokemonCaughtEvents(game,
+                               new SplitAction(new BattleFadeOut(game, null),
+                               new BattleFadeOutMusic(game,
+                               null)));
+            if (game.player.pokemon.size() >= 6 && !game.player.displayedMaxPartyText) {
+                game.player.displayedMaxPartyText = true;
+                newAction.append(new SetField(game, "playerCanMove", false,
+                                 new DisplayText(game, "Your party is full! You will need to DROP some of them in order to catch more.", null, null,
+                                 new SetField(game, "playerCanMove", true,
+                                 null))));
             }
-            // TODO -level?
-            game.map.currRoute.pokemon.add(new Pokemon(pokemonName, game.battle.oppPokemon.level));
-            System.out.println("New pkmn: " + pokemonName);
-            */
-            // brings pokemon count back up to max
-
+            game.insertAction(newAction);
+            newAction.step(game);  // need to draw the pokeball
             game.map.currRoute.genPokemon(game.battle.oppPokemon.baseStats.get("catchRate"));
-
             game.actionStack.remove(this);
             return;
         }
@@ -5895,7 +5866,6 @@ class DrawFriendlyHealth extends Action {
             temp2.setPosition(96 + i, 67);
             this.healthBar.add(temp2);
         }
-
     }
 
     public String getCamera() {return "gui";}
@@ -5991,20 +5961,14 @@ class DrawItemMenu extends MenuAction {
 
     public DrawItemMenu(Game game, MenuAction prevMenu) {
         this.prevMenu = prevMenu;
-
         this.disabled = false;
-
         this.cursorDelay = 0;
-
         this.arrowCoords = new HashMap<Integer, Vector2>();
         this.spritesToDraw = new ArrayList<ArrayList<Sprite>>();
-
         Texture text = new Texture(Gdx.files.internal("battle/arrow_right1.png"));
         this.arrow = new Sprite(text, 0, 0, 5, 7);
-
         text = new Texture(Gdx.files.internal("battle/arrow_right_white.png"));
         this.arrowWhite = new Sprite(text, 0, 0, 5, 7);
-
         // text box bg
         text = new Texture(Gdx.files.internal("attack_menu/item_menu1.png"));
         this.textBox = new Sprite(text, 0,0, 16*10, 16*9);
@@ -6068,11 +6032,6 @@ class DrawItemMenu extends MenuAction {
             }
             spritesToDraw.add(word);
         }
-
-        // helper sprite
-//        text = new Texture(Gdx.files.internal("attack_menu/helper7.png"));
-//        text = new Texture(Gdx.files.internal("attack_menu/helper9.png"));
-//        this.helperSprite = new Sprite(text, 0,0, 16*10, 16*9);
     }
     public String getCamera() {return "gui";}
 
@@ -6163,12 +6122,12 @@ class DrawItemMenu extends MenuAction {
 
         // button interaction is below drawing b/c I want to be able to return here
         // if press a, draw use/toss for item
-        if (InputProcessor.aJustPressed) { // using isKeyJustPressed rather than isKeyPressed
-
+        if (InputProcessor.aJustPressed) {
             game.insertAction(new PlaySound("click1", null));
-
-            // if name == 'cancel', go back. else, get action for selected name
             String name = this.itemsList.get(currIndex + cursorPos);
+            // save last position
+            DrawItemMenu.lastCurrIndex = this.currIndex;
+            DrawItemMenu.lastCursorPos = this.cursorPos;
 
             if ("Cancel".equals(name)) {
                 this.prevMenu.disabled = false;
@@ -6183,9 +6142,6 @@ class DrawItemMenu extends MenuAction {
                 game.actionStack.remove(this);
                 return;
             }
-
-            // selected name = currPos + currIndex
-
         }
         // player presses b, ie wants to go back
         else if (InputProcessor.bJustPressed) {
@@ -6375,11 +6331,13 @@ class DrawPlayerMenu extends MenuAction {
             // we also need to create an 'action' that each of these items goes to
             if (currEntry.equals("POKéMON")) {
                 game.insertAction(new DrawPokemonMenu.Intro(
-                                                 new DrawPokemonMenu(game, this)));
+                                  new DrawPokemonMenu(game,
+                                  this)));
             }
             else if (currEntry.equals("ITEM")) {
                 game.insertAction(new DrawItemMenu.Intro(this, 9,
-                                                 new DrawItemMenu(game, this)));
+                                  new DrawItemMenu(game,
+                                  this)));
             }
 
             game.actionStack.remove(this);
@@ -6483,7 +6441,7 @@ class DrawPlayerMenu extends MenuAction {
 // pokemon menu, used in battle and overworld
 class DrawPokemonMenu extends MenuAction {
     public static boolean drawChoosePokemonText = true;
-    public static int avatarAnimCounter = 12;
+    public static int avatarAnimCounter = 24;
     public static int currIndex = 0; // currently selected pokemon
     public static int lastIndex = 0;
     public int layer = 107;
@@ -6541,11 +6499,17 @@ class DrawPokemonMenu extends MenuAction {
             Pokemon currPokemon = game.player.pokemon.get(i);
             // animate current pokemon avatar
             if (i == DrawPokemonMenu.currIndex) {
-                if (DrawPokemonMenu.avatarAnimCounter >= 6) {
+                if (DrawPokemonMenu.avatarAnimCounter >= 18) {
                     game.uiBatch.draw(currPokemon.avatarSprites.get(0), 8, 128 -16*i);
                 }
-                else {
+                else if (DrawPokemonMenu.avatarAnimCounter >= 12) {
                     game.uiBatch.draw(currPokemon.avatarSprites.get(1), 8, 128 -16*i);
+                }
+                else if (DrawPokemonMenu.avatarAnimCounter >= 6) {
+                    game.uiBatch.draw(currPokemon.avatarSprites.get(2), 8, 128 -16*i);
+                }
+                else {
+                    game.uiBatch.draw(currPokemon.avatarSprites.get(3), 8, 128 -16*i);
                 }
             }
             else {
@@ -6638,20 +6602,20 @@ class DrawPokemonMenu extends MenuAction {
         // decrement avatar anim counter
         DrawPokemonMenu.avatarAnimCounter--;
         if (DrawPokemonMenu.avatarAnimCounter <= 0) {
-            DrawPokemonMenu.avatarAnimCounter = 11;
+            DrawPokemonMenu.avatarAnimCounter = 23;
         }
 
         // handle arrow input
         if (InputProcessor.upJustPressed) {
             if (DrawPokemonMenu.currIndex > 0) {
                 DrawPokemonMenu.currIndex -= 1;
-                DrawPokemonMenu.avatarAnimCounter = 12; // reset to 12 for 1 extra frame of first frame for avatar anim
+                DrawPokemonMenu.avatarAnimCounter = 24; // reset to 12 for 1 extra frame of first frame for avatar anim
             }
         }
         else if (InputProcessor.downJustPressed) {
             if (DrawPokemonMenu.currIndex < game.player.pokemon.size()-1) {
                 DrawPokemonMenu.currIndex += 1;
-                DrawPokemonMenu.avatarAnimCounter = 12; // reset to 12 for 1 extra frame of first frame for avatar anim
+                DrawPokemonMenu.avatarAnimCounter = 24; // reset to 12 for 1 extra frame of first frame for avatar anim
             }
         }
         newPos = this.arrowCoords.get(DrawPokemonMenu.currIndex);
@@ -6882,9 +6846,10 @@ class DrawPokemonMenu extends MenuAction {
                 if (game.player.pokemon.size() <= 1) {
                     this.disabled = true;
                     game.insertAction(this.prevMenu);
-                    return new DisplayText(game, "You need at least 1 POKéMON in your party.", null, null,
-                               new SetField(this.prevMenu, "disabled", false,
-                               null));
+                    return new PlaySound("error1",
+                           new DisplayText(game, "You need at least 1 POKéMON in your party.", null, null,
+                           new SetField(this.prevMenu, "disabled", false,
+                           null)));
                 }
                     
                 // TODO: can't do if would remove last pokemon.
@@ -7021,7 +6986,7 @@ class DrawPokemonMenu extends MenuAction {
 
                 String word = this.words.get(this.curr);
                 if ("CANCEL".equals(word)) {
-                    DrawPokemonMenu.avatarAnimCounter = 12;
+                    DrawPokemonMenu.avatarAnimCounter = 24;
                     game.insertAction(new PlaySound("click1", null));
                     game.actionStack.remove(this);
                     game.insertAction(new DrawPokemonMenu.Outro(
@@ -7039,7 +7004,7 @@ class DrawPokemonMenu extends MenuAction {
             else if (InputProcessor.bJustPressed) {
                 game.insertAction(new PlaySound("click1", null));
                 // reset avatar anim
-                DrawPokemonMenu.avatarAnimCounter = 12;
+                DrawPokemonMenu.avatarAnimCounter = 24;
                 game.actionStack.remove(this);
                 game.insertAction(new SelectedMenu.Outro(this.prevMenu));
                 return;
@@ -7257,7 +7222,7 @@ class DrawPokemonMenu extends MenuAction {
                         this.disabled = true;
                         game.insertAction(new PlaySound("click1", null));
                         // reset avatar anim
-                        DrawPokemonMenu.avatarAnimCounter = 12;
+                        DrawPokemonMenu.avatarAnimCounter = 24;
                         game.actionStack.remove(this);
                         game.insertAction(new Switch.Outro(this));
                         return;
@@ -7267,7 +7232,7 @@ class DrawPokemonMenu extends MenuAction {
                         this.disabled = true;
                         game.insertAction(new PlaySound("click1", null));
                         // reset avatar anim
-                        DrawPokemonMenu.avatarAnimCounter = 12;
+                        DrawPokemonMenu.avatarAnimCounter = 24;
                         game.actionStack.remove(this);
                         game.insertAction(new Switch.Outro(this));
                         return;
@@ -7306,7 +7271,7 @@ class DrawPokemonMenu extends MenuAction {
                         DrawPokemonMenu.drawChoosePokemonText = true;
                     }
                     else if (this.timer >= 7) {
-                        DrawPokemonMenu.avatarAnimCounter = 13; // one extra avatar frame
+                        DrawPokemonMenu.avatarAnimCounter = 25; // one extra avatar frame
                         game.actionStack.remove(this);
                         game.insertAction(this.prevMenu);
                         this.prevMenu.disabled = false;
@@ -7317,7 +7282,9 @@ class DrawPokemonMenu extends MenuAction {
     }
 }
 
-// menu displays 'use' and 'toss'
+/**
+ * Self-explanatory.
+ */
 class DrawUseTossMenu extends MenuAction {
     Sprite arrow;
     Sprite textBox;
@@ -7409,16 +7376,16 @@ class DrawUseTossMenu extends MenuAction {
             this.cursorDelay+=1;
         }
 
-        // if press a, do attack
+        // If player presses A, use the item
         if (InputProcessor.aJustPressed) {
             game.actionStack.remove(this);
             if (this.curr == 0) {
-                // perform the action based on which item selected
+                // Perform the action based on which item selected
                 this.useItem(game, this.itemName);
                 return;
             }
             else {
-                // Perform this action on the tile in from of the player.
+                // Drop this item on the tile in front of the player.
                 Vector2 pos = game.player.position.cpy();
                 if (game.player.dirFacing.equals("up")) {
                     pos.add(0, 16);
@@ -7546,6 +7513,13 @@ class DrawUseTossMenu extends MenuAction {
         if (game.battle.drawAction == null) {
             this.prevMenu.disabled = false;
             game.insertAction(this.prevMenu);
+            return;
+        }
+        if (itemName.contains("ball") && game.player.pokemon.size() >= 6) {
+            game.insertAction(this.prevMenu);
+            game.insertAction(new DisplayText(game, "Not enough room in your party!", null, false, true,
+                              new SetField(this.prevMenu, "disabled", false,
+                              null)));
             return;
         }
 
@@ -7718,6 +7692,125 @@ class DrawUseTossMenu extends MenuAction {
                 this.prevMenu.disabled = false;
                 game.insertAction(this.prevMenu);
                 return;
+            }
+        }
+    }
+}
+
+/**
+ * Self-explanatory.
+ */
+class DrawYesNoMenu extends MenuAction {
+    Action nextAction2;
+    Sprite arrow;
+    Sprite textBox;
+    public int layer = 105;
+    Map<Integer, Vector2> getCoords = new HashMap<Integer, Vector2>();
+    int curr;
+    Vector2 newPos;
+    Sprite helperSprite;
+    int cursorDelay; // this is just extra detail. cursor has 2 frame delay before showing in R/B
+    String itemName;
+    MenuAction prevMenu;
+    ArrayList<String> words = new ArrayList<String>();
+
+    // constructor for when this was called by the item menu
+     // probably will create separate constructor for other cases
+    public DrawYesNoMenu(MenuAction prevMenu, Action yesAction, Action noAction) {
+        this.prevMenu = prevMenu;
+        this.nextAction = yesAction;
+        this.nextAction2 = noAction;
+        this.cursorDelay = 0;
+
+        Texture text = new Texture(Gdx.files.internal("battle/arrow_right1.png"));
+        this.arrow = new Sprite(text, 0, 0, 5, 7);
+
+        // text box bg
+        text = new Texture(Gdx.files.internal("attack_menu/yesno_bg1.png"));
+        this.textBox = new Sprite(text, 0,0, 16*10, 16*9);
+
+        this.getCoords.put(0, new Vector2(113+8, 48+24));
+        this.getCoords.put(1, new Vector2(113+8, 48-16+24));
+
+        // this.newPos =  new Vector2(32, 79); // post scaling change
+        this.newPos =  this.getCoords.get(0);
+        this.arrow.setPosition(newPos.x, newPos.y);
+        this.curr = 0;
+        this.words.add("YES");
+        this.words.add("NO");
+    }
+
+    public String getCamera() {return "gui";}
+
+    public int getLayer(){return this.layer;}
+
+    @Override
+    public void step(Game game) {
+        // if there is a previous menu, step through it to display text
+        if (prevMenu != null) {
+            prevMenu.step(game);
+        }
+        // draw text box
+        this.textBox.draw(game.uiBatch);
+
+        // Draw use/drop
+        for (int i=0; i < this.words.size(); i++) {
+            String word = this.words.get(i);
+            for (int j=0; j < word.length(); j++) {
+                // Convert character to sprite and draw
+                char letter = word.charAt(j);
+                game.uiBatch.draw(game.textDict.get(letter), 120 +8 +8*j, 48 +23 -16*i);
+            }
+        }
+
+        if (this.disabled){
+            return;
+        }
+
+        // check user input
+         //'tl' = top left, etc.
+         // modify position by modifying curr to tl, tr, bl or br
+        if (InputProcessor.upJustPressed) {
+            if (this.curr > 0) {
+                this.curr -= 1;
+                newPos = getCoords.get(this.curr);
+            }
+
+        }
+        else if (InputProcessor.downJustPressed) {
+            if (this.curr < 1) {
+                this.curr += 1;
+                newPos = getCoords.get(this.curr);
+            }
+        }
+
+        // draw arrow
+        if (this.cursorDelay >= 2) {
+            this.arrow.setPosition(newPos.x, newPos.y);
+            this.arrow.draw(game.uiBatch);
+        }
+        else {
+            this.cursorDelay+=1;
+        }
+
+        if (InputProcessor.aJustPressed) {
+            game.actionStack.remove(this);
+            if (this.curr == 0) {
+                game.insertAction(this.nextAction);
+            }
+            else {
+                game.insertAction(this.nextAction2);
+            }
+        }
+        // player presses b, ie wants to go back
+        else if (InputProcessor.bJustPressed) {
+            game.actionStack.remove(this);
+            if (this.prevMenu != null) {
+                this.prevMenu.disabled = false;
+                game.insertAction(this.prevMenu);
+            }
+            else {
+                game.insertAction(this.nextAction2);
             }
         }
     }
@@ -8503,13 +8596,11 @@ class OppPokemonFlee extends Action {
  */
 class PokemonCaughtEvents extends Action {
     Action displayTextAction;
-
     Sprite pokeballSprite;
-
     public int layer = 120;
     boolean startLooking;
 
-    public PokemonCaughtEvents(Game game, int adrenaline, Action nextAction) {
+    public PokemonCaughtEvents(Game game, Action nextAction) {
         this.nextAction = nextAction;
 
         this.startLooking = false;

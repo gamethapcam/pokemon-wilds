@@ -477,9 +477,10 @@ public class Game extends ApplicationAdapter {
         this.map.currRoute.music = this.currMusic;
         this.currMusic.setLooping(false);
         this.currMusic.setVolume(1f);
-//        this.currMusic.play();
-//        this.currMusic.pause();
-//        this.currMusic.setPosition(130f);  // TODO: debug, delete
+        // TODO: not sure if deleting or not
+        this.currMusic.play();
+        this.currMusic.pause();
+        this.currMusic.setPosition(130f);  
         this.currMusic.play();
         this.musicCompletionListener = new Music.OnCompletionListener() {
             @Override
@@ -517,9 +518,10 @@ public class Game extends ApplicationAdapter {
 //        this.player.pokemon.get(1).attacks[0] = "Bubblebeam";  // TODO: debug, remove
 //        this.player.pokemon.get(1).attacks[0] = "Ice Beam";  // TODO: debug, remove
 //        this.player.pokemon.add(new Pokemon("stantler", 50, Pokemon.Generation.CRYSTAL));
-        this.player.pokemon.add(new Pokemon("Mewtwo", 6, Pokemon.Generation.CRYSTAL));
-        this.player.pokemon.add(new Pokemon("Ditto", 6, Pokemon.Generation.CRYSTAL));
-        this.player.pokemon.add(new Pokemon("Magmortar", 6, Pokemon.Generation.CRYSTAL));
+//        this.player.pokemon.add(new Pokemon("Ditto", 6, Pokemon.Generation.CRYSTAL));
+//        this.player.pokemon.add(new Pokemon("Lunatone", 6, Pokemon.Generation.CRYSTAL));
+//        this.player.pokemon.add(new Pokemon("Celebi", 6, Pokemon.Generation.CRYSTAL));
+//        this.player.pokemon.add(new Pokemon("Mareep", 6, Pokemon.Generation.CRYSTAL));
         this.player.currPokemon = this.player.pokemon.get(0);
 
         // TODO: debug, remove

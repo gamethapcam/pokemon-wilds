@@ -768,6 +768,7 @@ public class PkmnMap {
     // debating whether I should just make tiles have references
     // to route objects, and not have currRoute here
     Route currRoute;
+    String currBiome = "";
     // needed for wild encounters etc
     Random rand;
     String timeOfDay = "Day";  // used by cycleDayNight
@@ -971,21 +972,22 @@ public class PkmnMap {
             InputStream inputStream = new InflaterInputStream(new FileInputStream(this.id + ".sav"));
             com.esotericsoftware.kryo.io.Input input = new com.esotericsoftware.kryo.io.Input(inputStream);
 //            com.esotericsoftware.kryo.io.Input input = new com.esotericsoftware.kryo.io.Input(new FileInputStream(this.id + ".sav"));  // uncompressed
-            Network.MapTiles mapTiles = game.server.getKryo().readObject(input, Network.MapTiles.class);
+            
+            Network.SaveData saveData = game.server.getKryo().readObject(input, Network.SaveData.class);
             input.close();
             this.tiles.clear();
             HashMap<String, Route> loadedRoutes = new HashMap<String, Route>();
-            for (Network.TileData tileData : mapTiles.tiles) {
+            for (Network.TileData tileData : saveData.mapTiles.tiles) {
                 // store unique routes as hashmap ClassID->Route
                 if (tileData.routeBelongsTo != null && !loadedRoutes.containsKey(tileData.routeBelongsTo)) {
-                    loadedRoutes.put(tileData.routeBelongsTo, new Route(mapTiles.routes.get(tileData.routeBelongsTo)));
+                    loadedRoutes.put(tileData.routeBelongsTo, new Route(saveData.mapTiles.routes.get(tileData.routeBelongsTo)));
                 }
                 Route tempRoute = loadedRoutes.get(tileData.routeBelongsTo);
                 this.tiles.put(tileData.pos.cpy(), Tile.get(tileData, tempRoute));
             }
             // Load interior tiles
             this.interiorTiles.clear();
-            for (HashMap<Vector2, Network.TileData> tileDatas : mapTiles.interiorTiles) {
+            for (HashMap<Vector2, Network.TileData> tileDatas : saveData.mapTiles.interiorTiles) {
                 HashMap<Vector2, Tile> tiles = null;
                 if (tileDatas != null) {
                     tiles = new HashMap<Vector2, Tile>();
@@ -997,38 +999,91 @@ public class PkmnMap {
                 this.interiorTiles.add(tiles);
             }
             // Load misc map-related values
-            this.interiorTilesIndex = mapTiles.interiorTilesIndex;
-            this.timeOfDay = mapTiles.timeOfDay;
-            CycleDayNight.dayTimer = mapTiles.dayTimer;
-            this.edges = mapTiles.edges;
-
+            this.interiorTilesIndex = saveData.mapTiles.interiorTilesIndex;
+            this.timeOfDay = saveData.mapTiles.timeOfDay;
+            CycleDayNight.dayTimer = saveData.mapTiles.dayTimer;
+            this.edges = saveData.mapTiles.edges;
             // Load players
-            inputStream = new InflaterInputStream(new FileInputStream(this.id + ".players.sav"));
-            input = new com.esotericsoftware.kryo.io.Input(inputStream);
-            ArrayList<Network.PlayerData> players = game.server.getKryo().readObject(input, ArrayList.class);
-            input.close();
-            for (Network.PlayerData playerData : players) {
+            for (Network.PlayerData playerData : saveData.players) {
                 Player player = new Player(playerData);
                 player.type = Player.Type.REMOTE;  // TODO: store in playerData?
                 game.players.put(playerData.id, player);
             }
             // Load game.player
-            inputStream = new InflaterInputStream(new FileInputStream(this.id + ".player.sav"));
-            input = new com.esotericsoftware.kryo.io.Input(inputStream);
-            Network.PlayerData playerData = game.server.getKryo().readObject(input, Network.PlayerData.class);
-            input.close();
-            game.player = new Player(playerData);
+            game.player = new Player(saveData.playerData);
             game.cam.position.set(game.player.position.x+16, game.player.position.y, 0);
             game.player.type = Player.Type.LOCAL;
-            if (playerData.isInterior) {
+            if (saveData.playerData.isInterior) {
                 game.map.tiles = game.map.interiorTiles.get(game.map.interiorTilesIndex);
             }
-            // if this is a server, put player in game.players
-            // this will convert a local save file to a 'hosted' save file
-            //  it won't convert the other way tho.
-//            if (game.type == Game.Type.SERVER && ) {
-//
+            // Load overworld pokemon
+            game.map.pokemon.clear();
+            for (Vector2 pos : saveData.overworldPokemon.keySet()) {
+                Network.PokemonData pokemonData = saveData.overworldPokemon.get(pos);
+                Pokemon pokemon = new Pokemon(pokemonData);
+                game.map.pokemon.put(pos, pokemon);
+                game.insertAction(pokemon.new Standing());
+            }
+            
+            //TODO: remove if unused
+//            Network.MapTiles mapTiles = game.server.getKryo().readObject(input, Network.MapTiles.class);
+//            input.close();
+//            this.tiles.clear();
+//            HashMap<String, Route> loadedRoutes = new HashMap<String, Route>();
+//            for (Network.TileData tileData : mapTiles.tiles) {
+//                // store unique routes as hashmap ClassID->Route
+//                if (tileData.routeBelongsTo != null && !loadedRoutes.containsKey(tileData.routeBelongsTo)) {
+//                    loadedRoutes.put(tileData.routeBelongsTo, new Route(mapTiles.routes.get(tileData.routeBelongsTo)));
+//                }
+//                Route tempRoute = loadedRoutes.get(tileData.routeBelongsTo);
+//                this.tiles.put(tileData.pos.cpy(), Tile.get(tileData, tempRoute));
 //            }
+//            // Load interior tiles
+//            this.interiorTiles.clear();
+//            for (HashMap<Vector2, Network.TileData> tileDatas : mapTiles.interiorTiles) {
+//                HashMap<Vector2, Tile> tiles = null;
+//                if (tileDatas != null) {
+//                    tiles = new HashMap<Vector2, Tile>();
+//                    for (Network.TileData tileData : tileDatas.values()) {
+//                        Tile newTile = Tile.get(tileData, null);
+//                        tiles.put(newTile.position.cpy(), newTile);
+//                    }
+//                }
+//                this.interiorTiles.add(tiles);
+//            }
+//            // Load misc map-related values
+//            this.interiorTilesIndex = mapTiles.interiorTilesIndex;
+//            this.timeOfDay = mapTiles.timeOfDay;
+//            CycleDayNight.dayTimer = mapTiles.dayTimer;
+//            this.edges = mapTiles.edges;
+//
+//            // Load players
+//            inputStream = new InflaterInputStream(new FileInputStream(this.id + ".players.sav"));
+//            input = new com.esotericsoftware.kryo.io.Input(inputStream);
+//            ArrayList<Network.PlayerData> players = game.server.getKryo().readObject(input, ArrayList.class);
+//            input.close();
+//            for (Network.PlayerData playerData : players) {
+//                Player player = new Player(playerData);
+//                player.type = Player.Type.REMOTE;  // TODO: store in playerData?
+//                game.players.put(playerData.id, player);
+//            }
+//            // Load game.player
+//            inputStream = new InflaterInputStream(new FileInputStream(this.id + ".player.sav"));
+//            input = new com.esotericsoftware.kryo.io.Input(inputStream);
+//            Network.PlayerData playerData = game.server.getKryo().readObject(input, Network.PlayerData.class);
+//            input.close();
+//            game.player = new Player(playerData);
+//            game.cam.position.set(game.player.position.x+16, game.player.position.y, 0);
+//            game.player.type = Player.Type.LOCAL;
+//            if (playerData.isInterior) {
+//                game.map.tiles = game.map.interiorTiles.get(game.map.interiorTilesIndex);
+//            }
+//            // if this is a server, put player in game.players
+//            // this will convert a local save file to a 'hosted' save file
+//            //  it won't convert the other way tho.
+////            if (game.type == Game.Type.SERVER && ) {
+////
+////            }
 
         } catch (FileNotFoundException e) {
             System.out.println("No save file found for map: " + this.id);
@@ -1067,7 +1122,7 @@ public class PkmnMap {
             this.timeDelta += Gdx.graphics.getDeltaTime();
             if (this.timeDelta >= this.saveInterval) {
                 this.timeDelta = 0f;
-                System.out.println("Saving map tiles to file...");
+                System.out.println("Saving game to file...");
                 try {
                     this.outputStream = new DeflaterOutputStream(new FileOutputStream(game.map.id + ".sav"));
 //                    this.output = new Output(new FileOutputStream(game.map.id + ".sav"));  // uncompressed
@@ -1075,59 +1130,7 @@ public class PkmnMap {
                 } catch (FileNotFoundException e) {
                     e.printStackTrace();
                 }
-                Network.MapTiles mapTiles = new Network.MapTiles();
-                for (Tile tile : game.map.overworldTiles.values()) {
-                    // store unique routes as hashmap ClassID->Route
-                    if (tile.routeBelongsTo != null && !mapTiles.routes.containsKey(tile.routeBelongsTo.toString())) {
-                        mapTiles.routes.put(tile.routeBelongsTo.toString(), new Network.RouteData(tile.routeBelongsTo));
-                    }
-                    mapTiles.tiles.add(new Network.TileData(tile));
-                }
-                // Save interior tiles
-                for (HashMap<Vector2, Tile> tiles : game.map.interiorTiles) {
-                    HashMap<Vector2, Network.TileData> tileDatas = null;
-                    if (tiles != null) {
-                        tileDatas  = new HashMap<Vector2, Network.TileData>();
-                        for (Tile tile : tiles.values()) {
-                            tileDatas.put(tile.position, new Network.TileData(tile));
-                        }
-                    }
-                    mapTiles.interiorTiles.add(tileDatas);
-                }
-                // Save time of day, edges.
-                mapTiles.interiorTilesIndex = game.map.interiorTilesIndex;
-                mapTiles.edges = game.map.edges;
-                mapTiles.timeOfDay = game.map.timeOfDay;
-                mapTiles.dayTimer = CycleDayNight.dayTimer;
-                game.server.getKryo().writeObject(this.output, mapTiles);
-                this.output.close();
-
-                // Save players to separate file
-                System.out.println("Saving players to file...");
-                try {
-                    this.outputStream = new DeflaterOutputStream(new FileOutputStream(game.map.id + ".players.sav"));
-                    this.output = new Output(this.outputStream);
-                } catch (FileNotFoundException e) {
-                    e.printStackTrace();
-                }
-                ArrayList<Network.PlayerData> players = new ArrayList<Network.PlayerData>();
-                for (Player player : game.players.values()) {
-                    players.add(new Network.PlayerData(player));
-                }
-                game.server.getKryo().writeObject(this.output, players);
-                this.output.close();
-
-                // TODO: just have one registered class that contains all 3 of these.
-                // save player to sep file
-                try {
-                    this.outputStream = new DeflaterOutputStream(new FileOutputStream(game.map.id + ".player.sav"));
-                    this.output = new Output(this.outputStream);
-                } catch (FileNotFoundException e) {
-                    e.printStackTrace();
-                }
-                Network.PlayerData playerData = new Network.PlayerData(game.player);
-                playerData.isInterior = (game.map.tiles != game.map.overworldTiles);
-                game.server.getKryo().writeObject(this.output, playerData);
+                game.server.getKryo().writeObject(this.output, new Network.SaveData(game));
                 this.output.close();
                 System.out.println("Done.");
             }
@@ -1345,15 +1348,28 @@ class Route {
 //            this.music.setLooping(true);
 //            this.music.setVolume(.3f);
         }
+        else if (name.equals("deep_forest")) {
+            // TODO: this is just an idea
+            // zubat, houndour, murkrow, nidorana/o, scyther, pinsir, stantler, tangela, teddiursa, weepinbell, 
+            // absol, growlithe, vulpix,
+          this.allowedPokemon.add("zubat");
+          this.allowedPokemon.add("houndour");
+          this.allowedPokemon.add("stantler");
+          this.allowedPokemon.add("murkrow");
+          this.allowedPokemon.add("nidorina");
+          this.allowedPokemon.add("nidorino");
+          this.allowedPokemon.add("scyther");
+          this.allowedPokemon.add("pinsir");
+          this.allowedPokemon.add("growlithe");
+          this.allowedPokemon.add("vulpix");
+        }
         else if (name.equals("forest1")) {
             this.allowedPokemon.add("oddish");
-            this.allowedPokemon.add("gloom");
+//            this.allowedPokemon.add("gloom");  // TODO: remove, no evos.
             this.allowedPokemon.add("pidgey");
             this.allowedPokemon.add("spearow");
             this.allowedPokemon.add("hoppip");
-            this.allowedPokemon.add("machop");
-            this.allowedPokemon.add("stantler");
-//            this.allowedPokemon.add("tauros");
+//            this.allowedPokemon.add("machop");
             this.allowedPokemon.add("bulbasaur");
             this.allowedPokemon.add("charmander");
             this.allowedPokemon.add("chikorita");
@@ -1740,6 +1756,8 @@ class Tile {
     // Needed to store which object is above the 'terrain'. Like a tree, rock, house piece, etc.
     // This must be stored because it needs to be sent over the network, and saved locally.
     String nameUpper = "";
+
+    String biome = "";
 
     // for when you collect items from this tile
     HashMap<String, Integer> items = new HashMap<String, Integer>();
@@ -2287,7 +2305,7 @@ class Tile {
                 !this.nameUpper.contains("tree_planted")) {
                 this.attrs.put("solid", true);
             }
-            if (!this.nameUpper.contains("floor") && !this.nameUpper.contains("pokeball")) {
+            if (!this.nameUpper.contains("floor") && !this.nameUpper.contains("pokeball") && !this.nameUpper.contains("bush")) {
                 this.attrs.put("cuttable", true);
                 // TODO: test
                 this.items.put("grass", 1);
@@ -2378,9 +2396,19 @@ class Tile {
                               new SplitAction(pokemon.new Emote("happy", null),
                               new WaitFrames(game, 20,
                               new PlaySound(pokemon,
-                              pokemon.new AddToInventory(
-                              new SetField(game, "playerCanMove", true,
-                              null))))))));
+                              new DisplayText(game, "Put "+pokemon.name.toUpperCase()+" in it' POKÈBALL?", null, true, false,
+                              new DrawYesNoMenu(null,
+                                  new DisplayText.Clear(game,
+                                  new WaitFrames(game, 3,
+                                  pokemon.new AddToInventory(
+                                  new SetField(game, "playerCanMove", true,
+                                  new SetField(pokemon, "canMove", true,
+                                  null))))),
+                              new DisplayText.Clear(game,
+                              new WaitFrames(game, 3,
+                              new SetField(game, "playerCanMove", true, 
+                              new SetField(pokemon, "canMove", true,
+                              null))))))))))));
         }
     }
 
@@ -2429,9 +2457,12 @@ class TrainerTipsTile extends Tile {
         TrainerTipsTile.messages.add("You can craft POKÈBALLS out of Apricorns at a campfire.");
         TrainerTipsTile.messages.add("If you white out during battle, you will return to the last place you used a sleeping bag.");
         TrainerTipsTile.messages.add("Using a sleeping bag will slowly restore your party' hp.");
-        TrainerTipsTile.messages.add("Ghosts will chase you at night, but remember! A campfire will deter them.");
+//        TrainerTipsTile.messages.add("Ghosts will chase you at night, but remember! A campfire will deter them.");
+        TrainerTipsTile.messages.add("Ghosts are lurking in the woods at night. A campfire will ward them off.");
         TrainerTipsTile.messages.add("Use CUT on trees and tall grass to get building materials.");
-        TrainerTipsTile.messages.add("You can build fences to prevent your pokemon from running away when you let them out of their POKÈBALL.");
+//        TrainerTipsTile.messages.add("Build fences to prevent your pokemon from running away when you let them out of their POKÈBALL.");
+        TrainerTipsTile.messages.add("Build fences to prevent your pokemon from wandering when you let them out of their POKÈBALL.");
+        TrainerTipsTile.messages.add("You can build a door between two roof tiles to build a back door to your house.");
     }
 
     @Override

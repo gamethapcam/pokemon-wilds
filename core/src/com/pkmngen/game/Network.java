@@ -189,6 +189,7 @@ public class Network {
         kryo.register(Sleep.class);
         kryo.register(Craft.class);
         kryo.register(DropItem.class);
+        kryo.register(SaveData.class);
     }
 
     static public class BattleData {
@@ -329,6 +330,7 @@ public class Network {
         String dirFacing;
         public Vector2 spawnLoc;
         boolean isInterior;
+        boolean displayedMaxPartyText;
 
         public PlayerData(){}
 
@@ -350,6 +352,7 @@ public class Network {
             this.color = player.color;
             this.dirFacing = player.dirFacing;
             this.spawnLoc = player.spawnLoc;
+            this.displayedMaxPartyText = player.displayedMaxPartyText;
         }
     }
 
@@ -360,6 +363,9 @@ public class Network {
         int hp;
         String[] attacks = new String[4];
         int index;  // index in player inventory
+        
+        // overworld-related
+        Vector2 position;
 
         public PokemonData() {}
 
@@ -373,6 +379,8 @@ public class Network {
             this.attacks[2] = pokemon.attacks[2];
             this.attacks[3] = pokemon.attacks[3];
             // TODO: psn, para etc status
+
+            this.position = pokemon.position;
         }
 
         public PokemonData(Pokemon pokemon, int index) {
@@ -423,6 +431,51 @@ public class Network {
      */
     static public class SaveData {
         // TODO
+        MapTiles mapTiles = new Network.MapTiles();
+        ArrayList<Network.PlayerData> players = new ArrayList<Network.PlayerData>();
+        Network.PlayerData playerData;
+        HashMap<Vector2, PokemonData> overworldPokemon = new HashMap<Vector2, PokemonData>();
+
+        public SaveData() {}
+
+        public SaveData(Game game) {
+            for (Tile tile : game.map.overworldTiles.values()) {
+                // store unique routes as hashmap ClassID->Route
+                if (tile.routeBelongsTo != null && !this.mapTiles.routes.containsKey(tile.routeBelongsTo.toString())) {
+                    this.mapTiles.routes.put(tile.routeBelongsTo.toString(), new RouteData(tile.routeBelongsTo));
+                }
+                this.mapTiles.tiles.add(new TileData(tile));
+            }
+            // Save interior tiles
+            for (HashMap<Vector2, Tile> tiles : game.map.interiorTiles) {
+                HashMap<Vector2, TileData> tileDatas = null;
+                if (tiles != null) {
+                    tileDatas  = new HashMap<Vector2, TileData>();
+                    for (Tile tile : tiles.values()) {
+                        tileDatas.put(tile.position, new TileData(tile));
+                    }
+                }
+                this.mapTiles.interiorTiles.add(tileDatas);
+            }
+            // Save time of day, edges.
+            this.mapTiles.interiorTilesIndex = game.map.interiorTilesIndex;
+            this.mapTiles.edges = game.map.edges;
+            this.mapTiles.timeOfDay = game.map.timeOfDay;
+            this.mapTiles.dayTimer = CycleDayNight.dayTimer;
+            
+            // Save players to file
+            for (Player player : game.players.values()) {
+                this.players.add(new PlayerData(player));
+            }
+            this.playerData =  new PlayerData(game.player);
+            this.playerData.isInterior = (game.map.tiles != game.map.overworldTiles);
+            Pokemon currPokemon;
+            for (Vector2 pos : game.map.pokemon.keySet()) {
+                currPokemon = game.map.pokemon.get(pos);
+                this.overworldPokemon.put(pos, new PokemonData(currPokemon));
+            }
+        }
+        
     }
 
     static public class ServerPlayerData {
@@ -526,7 +579,10 @@ class ServerBroadcast extends Action {
 //                    // TODO Auto-generated catch block
 //                    e.printStackTrace();
 //                }
-
+//                if (object instanceof String) {
+//                    String getData = (String) object;
+//                }
+                
                 // annoying, but need to handle the received object in the Gdx thread
                 // because only Gdx thread can make OpenGL calls
                 Runnable runnable = new Runnable() {

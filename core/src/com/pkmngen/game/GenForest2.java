@@ -1728,7 +1728,10 @@ class GenIsland1 extends Action {
 //                                    }
 //                                    System.out.println((1-(newTile.position.dst(this.origin) / (this.radius/12))));
                                     Route blotchRoute;
-                                    if ((int)distance < 3*maxDist/8) {
+                                    if ((int)distance < 2*maxDist/8 && maxDist > 600) {
+                                        blotchRoute = new Route("deep_forest", level);
+                                    }
+                                    else if ((int)distance < 3*maxDist/8) {
                                         blotchRoute = new Route("forest1", level);
                                     }
                                     else {
@@ -1736,11 +1739,17 @@ class GenIsland1 extends Action {
                                     }
                                     ApplyBlotch(game, "grass", newTile, nextSize, grassTiles, 0, false, blotchRoute);
                                 }
+                                if ((int)distance < 2*maxDist/8 && maxDist > 300) {
+                                    newTile.biome = "deep_forest";
+                                }
                                 tilesToAdd.put(newTile.position.cpy(), newTile);
                                 edgeTiles.put(newTile.position.cpy(), newTile);
                             // grass blotch
                             } else if (type.equals("grass")) {
                                 Tile newTile = new Tile("grass2", edge, false, currRoute);
+                                if ((int)distance < 2*maxDist/8 && maxDist > 300) {
+                                    newTile.biome = "deep_forest";
+                                }
                                 tilesToAdd.put(newTile.position.cpy(), newTile);
                                 edgeTiles.put(newTile.position.cpy(), newTile);
                             } else if (type.equals("grass_sand")) {

@@ -322,7 +322,7 @@ class CycleDayNight extends Action {
 
         // check player can move so don't spawn in middle of battle or when looking at ghost
         // if player is near a campfire, don't deduct from ghost spawn timer
-        if (game.map.timeOfDay == "Night" && game.playerCanMove == true && !game.player.isNearCampfire) {
+        if (game.map.timeOfDay == "Night" && game.playerCanMove == true && !game.player.isNearCampfire && game.map.currBiome.equals("deep_forest")) {
             countDownToGhost--;
             if (game.player.currState != "Running") {
                 countDownToGhost--;
@@ -1763,6 +1763,7 @@ public class Player {
     int zsTimer = 0;
     Vector2 spawnLoc = new Vector2(0, 0);
     PlayerStanding standingAction;
+    public boolean displayedMaxPartyText = false;
 
     public Type type;
     Network network;
@@ -1931,9 +1932,9 @@ public class Player {
         this.itemsDict.put("Sleeping Bag", 1);
 //        this.itemsDict.put("Safari Ball", 99);
         // TODO: debug, remove
-        this.itemsDict.put("grass", 99);
-        this.itemsDict.put("log", 99);
-        this.itemsDict.put("blue apricorn", 99);
+//        this.itemsDict.put("grass", 99);
+//        this.itemsDict.put("log", 99);
+//        this.itemsDict.put("blue apricorn", 99);
 //        this.itemsDict.put("ultra ball", 99);
 //        this.itemsDict.put("blue apricorn", 99);
 //        this.itemsDict.put("Poké Ball", 99);
@@ -1963,6 +1964,7 @@ public class Player {
         this.network.id = playerData.id;
         this.network.number = playerData.number;
         this.setColor(playerData.color);  // TODO: when server re-loads player, doesn't seem like this is being rendered.
+        this.displayedMaxPartyText = playerData.displayedMaxPartyText;
     }
 
     /**
@@ -2828,6 +2830,7 @@ class PlayerMoving extends Action {
             // TODO: that will be a problem if game has to load all pokemon sprites on the map
             if (game.map.tiles.get(this.targetPos) != null && game.map.tiles.get(this.targetPos).routeBelongsTo != null) {
                 Route newRoute = game.map.tiles.get(this.targetPos).routeBelongsTo;
+                String newBiome = game.map.tiles.get(this.targetPos).biome;
                 if (game.map.currRoute != newRoute) {
                     // TODO: testing
                     // only fade to new music if route is different name
@@ -2853,6 +2856,8 @@ class PlayerMoving extends Action {
                     }
                     game.map.currRoute = newRoute;
                 }
+                game.map.currBiome = newBiome;
+//                System.out.println("New Biome: " + newBiome);
             }
             game.player.position.set(this.targetPos);
             game.player.isNearCampfire = game.player.checkNearCampfire();
@@ -3026,6 +3031,7 @@ class PlayerRunning extends Action {
         if (this.xDist >= 16 || this.yDist >= 16) {
             if (game.map.tiles.get(this.targetPos) != null && game.map.tiles.get(this.targetPos).routeBelongsTo != null) {
                 Route newRoute = game.map.tiles.get(this.targetPos).routeBelongsTo;
+                String newBiome = game.map.tiles.get(this.targetPos).biome;
                 if (game.map.currRoute != newRoute) {
                     // TODO: testing
                     // only fade to new music if route is different name
@@ -3047,6 +3053,7 @@ class PlayerRunning extends Action {
                     }
                     game.map.currRoute = newRoute;
                 }
+                game.map.currBiome = newBiome;
             }
 
             game.player.position.set(this.targetPos);
