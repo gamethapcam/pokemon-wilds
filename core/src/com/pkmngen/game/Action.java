@@ -1039,6 +1039,7 @@ class DrawSetupMenu extends Action {
     int fileIndex = 0;
     int offset = 0;
     int offset2 = 0;
+    int offset3 = 0;
     Vector2 newPos;
     Map<Integer, Vector2> arrowCoords;
     ArrayList<Character> name = new ArrayList<Character>();
@@ -1159,6 +1160,14 @@ class DrawSetupMenu extends Action {
                     this.offset2 = 0;
                     this.newLoadIndex = 0;
                 }
+
+                if (this.localHostJoinIndex == 1 && this.newLoadIndex == 0) {
+                    this.offset3 = -2;
+                }
+                else {
+                    this.offset3 = 0;
+                }
+
                 if (j == DrawSetupMenu.currIndex) {
                     if (InputProcessor.leftJustPressed && this.localHostJoinIndex > 0) {
                         this.localHostJoinIndex--;
@@ -1295,7 +1304,7 @@ class DrawSetupMenu extends Action {
                 game.uiBatch.draw(this.arrowWhite, this.arrowCoords.get(j).x+offsetX, this.arrowCoords.get(j).y);
             }
             // Name: _ (enter name)
-            else if (j == 4+this.offset+this.offset2) {
+            else if (j == 4+this.offset+this.offset2+this.offset3) {
                 char[] textArray = "Name".toCharArray();
                 Sprite letterSprite;
                 for (int i=0; i < textArray.length; i++) {
@@ -1335,7 +1344,7 @@ class DrawSetupMenu extends Action {
             }
 
             // < (character sprite) >
-            else if (j == 5+this.offset+this.offset2 && this.newLoadIndex != 1) {
+            else if (j == 5+this.offset+this.offset2+this.offset3 && this.newLoadIndex != 1) {
                 Sprite avatarSprite;
                 // Animate player avatar
                 if (j == DrawSetupMenu.currIndex) {
@@ -1385,7 +1394,7 @@ class DrawSetupMenu extends Action {
                 game.uiBatch.draw(this.arrow, 43, 124 -16*j);
             }
             // or file selector < (file name) >
-            else if (j == 5+this.offset+this.offset2) {
+            else if (j == 5+this.offset+this.offset2+this.offset3) {
                 if (!this.fileNames.isEmpty()) {
                     char[] textArray = this.fileNames.get(this.fileIndex).toCharArray();
                     Sprite letterSprite;
@@ -1406,7 +1415,7 @@ class DrawSetupMenu extends Action {
                 }
             }
             // Go!
-            else if (j == 6+this.offset+this.offset2) {
+            else if (j == 6+this.offset+this.offset2+this.offset3) {
                 char[] textArray = "Go!".toCharArray();
                 Sprite letterSprite;
                 for (int i=0; i < textArray.length; i++) {
@@ -1446,6 +1455,12 @@ class DrawSetupMenu extends Action {
                                 }
                                 game.insertAction(new ServerBroadcast(game));
                                 game.debugInputEnabled = true;  // allow player to look around
+                                game.insertAction(new DisplayText(game, "Welcome to host mode!           WASD moves camera     Q and E zooms",
+                                                                  null, null, 
+                                                  null));
+//                                game.insertAction(new WaitFrames(game, 340,
+//                                                  new SetField(game, "displayTextAction", null,
+//                                                  null)));
                             }
                             else {
                                 // required for loading map (getKryo())
@@ -1570,7 +1585,10 @@ class DrawSetupMenu extends Action {
         if (this.localHostJoinIndex == 2) {
             max = 5;
         }
-        else if (this.newLoadIndex == 1) {
+        if (this.localHostJoinIndex == 1) {
+            max = 4;
+        }
+        if (this.newLoadIndex == 1) {
             max = 3;
         }
         if (InputProcessor.upJustPressed) {

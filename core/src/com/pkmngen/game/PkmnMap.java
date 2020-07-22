@@ -249,6 +249,9 @@ class DrawMap extends Action {
         }
         // Draw other players
         for (Player player : game.players.values()) {
+            if (player.network.tiles != game.map.tiles) {
+                continue;
+            }
             if (player.isSleeping) {
                 player.zSprite.draw(game.mapBatch);
                 game.mapBatch.draw(player.sleepingSprite, player.position.x, player.position.y);
@@ -541,9 +544,7 @@ class EnterBuilding extends Action {
             game.actionStack.remove(this);
             game.insertAction(this.nextAction);
         }
-
         this.timer++;
-
     }
 }
 
@@ -747,6 +748,7 @@ class MoveWater extends Action {
 }
 
 public class PkmnMap {
+
     // it looks like .equals() is called here, so this method is valid.
     // ie, passing a new vector to search for a tile is fine
     Map<Vector2, Tile> overworldTiles = new HashMap<Vector2, Tile>();
@@ -781,6 +783,9 @@ public class PkmnMap {
             unownUsed.add(String.valueOf(textArray[i]));
         }
     }
+
+    // TODO: test
+    SyncedHashMap<Vector2, Tile> testTiles = new SyncedHashMap<Vector2, Tile>("game.map.tiles");
 
     public PkmnMap(String mapName) {
         this.id = mapName;
@@ -1021,6 +1026,8 @@ public class PkmnMap {
             for (Vector2 pos : saveData.overworldPokemon.keySet()) {
                 Network.PokemonData pokemonData = saveData.overworldPokemon.get(pos);
                 Pokemon pokemon = new Pokemon(pokemonData);
+                System.out.println(pokemon.mapTiles == game.map.overworldTiles);
+                pokemon.position = pos.cpy();
                 game.map.pokemon.put(pos, pokemon);
                 game.insertAction(pokemon.new Standing());
             }
@@ -2182,8 +2189,7 @@ class Tile {
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
             this.attrs.put("solid", true);
         } else if (tileName.equals("rock1")) {
-            Texture playerText = TextureCache.get(
-                    Gdx.files.internal("tiles/rock1.png"));
+            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/rock1.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
             this.attrs.put("solid", true);
         } else if (tileName.equals("rock2")) {
@@ -2324,6 +2330,10 @@ class Tile {
         this.sprite.setPosition(pos.x, pos.y);
         if (this.overSprite != null) {
             this.overSprite.setPosition(pos.x, pos.y);
+
+            if (this.nameUpper.equals("rock1_color")) {
+                this.overSprite.setPosition(pos.x, pos.y+4);
+            }
         }
     }
 
@@ -2339,18 +2349,26 @@ class Tile {
         this(tileName, "", pos, color, routeBelongsTo);
     }
 
+    /**
+     * Remove upper part of tile and put pokeball in inventory.
+     * @param player
+     */
+    public void pickUpItem(Player player) {
+        this.overSprite = null;
+        this.nameUpper = "";
+        this.attrs.put("solid", false);
+        int amount = this.hasItemAmount;
+        if (player.itemsDict.containsKey(this.hasItem)) {
+            amount += player.itemsDict.get(this.hasItem);
+        }
+        player.itemsDict.put(this.hasItem, amount);
+        this.hasItem = null;
+        this.hasItemAmount = 0;
+    }
+
     public void onPressA(Game game) {
         if (this.hasItem != null) {
-            // remove upper part of tile and put pokeball in inventory
-            this.overSprite = null;
-            this.nameUpper = "";
-            this.attrs.put("solid", false);
             game.playerCanMove = false;
-            int amount = this.hasItemAmount;
-            if (game.player.itemsDict.containsKey(this.hasItem)) {
-                amount += game.player.itemsDict.get(this.hasItem);
-            }
-            game.player.itemsDict.put(this.hasItem, amount);
             String number = "a";
             String plural = "";
             if (this.hasItemAmount > 1) {
@@ -2360,11 +2378,15 @@ class Tile {
                     plural = "ES";
                 }
             }
-            game.insertAction(new DisplayText(game, "Found "+number+" "+this.hasItem.toUpperCase()+plural+"!", "fanfare1.ogg", null,
-                              new SetField(game, "playerCanMove", true,
-                              null)));
-            this.hasItem = null;
-            this.hasItemAmount = 0;
+            if (game.type == Game.Type.CLIENT) {
+                game.client.sendTCP(new Network.PickupItem(game.player.network.id, game.player.dirFacing));
+            }
+            else {
+                game.insertAction(new DisplayText(game, "Found "+number+" "+this.hasItem.toUpperCase()+plural+"!", "fanfare1.ogg", null,
+                                                  new SetField(game, "playerCanMove", true,
+                                                  null)));
+                this.pickUpItem(game.player);
+            }
         }
         else if (this.nameUpper.contains("bush") || this.name.contains("grass")) {  // && !this.name.contains("large")
             game.playerCanMove = false;
@@ -2391,12 +2413,14 @@ class Tile {
             else if (game.player.dirFacing.equals("left")) {
                 oppDir = "right";
             }
+
             game.insertAction(new SetField(pokemon, "dirFacing", oppDir,
                               new WaitFrames(game, 20,
                               new SplitAction(pokemon.new Emote("happy", null),
                               new WaitFrames(game, 20,
                               new PlaySound(pokemon,
-                              new DisplayText(game, "Put "+pokemon.name.toUpperCase()+" in it' POKÈBALL?", null, true, false,
+//                              new DisplayText(game, "Put "+pokemon.name.toUpperCase()+" in it' POKÈBALL?", null, true, false,
+                              new DisplayText(game, "Add "+pokemon.name.toUpperCase()+" to your party?", null, true, false,
                               new DrawYesNoMenu(null,
                                   new DisplayText.Clear(game,
                                   new WaitFrames(game, 3,

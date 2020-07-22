@@ -1364,6 +1364,38 @@ class GenIsland1 extends Action {
         }
         this.tilesToAdd.putAll(mtnTiles);
 
+        // find max/min x and y tiles, add padding and add water tiles
+        Vector2 maxPos = this.origin.cpy();
+        Vector2 minPos = this.origin.cpy();
+        for (Tile tile : new ArrayList<Tile>(this.tilesToAdd.values())) {
+            if (maxPos.x < tile.position.x) {
+                maxPos.x = tile.position.x;
+            }
+            if (maxPos.y < tile.position.y) {
+                maxPos.y = tile.position.y;
+            }
+            if (minPos.x > tile.position.x) {
+                minPos.x = tile.position.x;
+            }
+            if (minPos.y > tile.position.y) {
+                minPos.y = tile.position.y;
+            }
+        }
+        maxPos.add(16*14, 16*14);
+        minPos.sub(16*14, 16*14);
+        Vector2 pos;
+        for (float i=minPos.x; i < maxPos.x; i+=16) {
+            for (float j=minPos.y; j < maxPos.y; j+=16) {
+                pos = new Vector2(i, j);
+                if (!this.tilesToAdd.containsKey(pos)) {
+                    this.tilesToAdd.put(pos.cpy(), new Tile("water2", pos.cpy()));
+                }
+                // TODO: remove if unused
+                // add black tiles to interior
+//                game.map.interiorTiles.get(game.map.interiorTilesIndex).put(pos.cpy(), new Tile("black1", pos.cpy()));
+            }
+        }
+
         // post-process - remove stray trees
         // TODO: there's still some white tiles
         // TODO: this occasionally causes crash (when tile == null)
@@ -1410,37 +1442,32 @@ class GenIsland1 extends Action {
                         this.tilesToAdd.put(tile.position, new Tile("bush1", tile.position.cpy(), true, tile.routeBelongsTo));
                     }
                 }
-            }
-        }
-
-        // find max/min x and y tiles, add padding and add water tiles
-        Vector2 maxPos = this.origin.cpy();
-        Vector2 minPos = this.origin.cpy();
-        for (Tile tile : new ArrayList<Tile>(this.tilesToAdd.values())) {
-            if (maxPos.x < tile.position.x) {
-                maxPos.x = tile.position.x;
-            }
-            if (maxPos.y < tile.position.y) {
-                maxPos.y = tile.position.y;
-            }
-            if (minPos.x > tile.position.x) {
-                minPos.x = tile.position.x;
-            }
-            if (minPos.y > tile.position.y) {
-                minPos.y = tile.position.y;
-            }
-        }
-        maxPos.add(16*14, 16*14);
-        minPos.sub(16*14, 16*14);
-        Vector2 pos;
-        for (float i=minPos.x; i < maxPos.x; i+=16) {
-            for (float j=minPos.y; j < maxPos.y; j+=16) {
-                pos = new Vector2(i, j);
-                if (!this.tilesToAdd.containsKey(pos)) {
-                    this.tilesToAdd.put(pos.cpy(), new Tile("water2", pos.cpy()));
+                // Remove rocks that block in areas around the edges.
+                else if (tile.name.equals("rock1")) {
+                    Vector2 left = tile.position.cpy().add(-16f, 0f);
+                    Vector2 tl = tile.position.cpy().add(-16f, 16f);
+                    Vector2 bl = tile.position.cpy().add(-16f, -16f);
+                    Vector2 right = tile.position.cpy().add(16f, 0f);
+                    Vector2 tr = tile.position.cpy().add(16f, 16f);
+                    Vector2 br = tile.position.cpy().add(16f, -16f);
+                    Vector2 up = tile.position.cpy().add(0f, 16f);
+                    Vector2 down = tile.position.cpy().add(0f, -16f);
+                    boolean touchLeft = (tilesToAdd.containsKey(left) && tilesToAdd.get(left).attrs.get("solid")) ||
+                                        (tilesToAdd.containsKey(tl) && tilesToAdd.get(tl).attrs.get("solid")) ||
+                                        (tilesToAdd.containsKey(bl) && tilesToAdd.get(bl).attrs.get("solid"));
+                    boolean touchRight = (tilesToAdd.containsKey(right) && tilesToAdd.get(right).attrs.get("solid")) ||
+                                        (tilesToAdd.containsKey(tr) && tilesToAdd.get(tr).attrs.get("solid")) ||
+                                        (tilesToAdd.containsKey(br) && tilesToAdd.get(br).attrs.get("solid"));
+                    boolean touchUp = (tilesToAdd.containsKey(up) && tilesToAdd.get(up).attrs.get("solid")) || 
+                                        (tilesToAdd.containsKey(tl) && tilesToAdd.get(tl).attrs.get("solid")) || 
+                                        (tilesToAdd.containsKey(tr) && tilesToAdd.get(tr).attrs.get("solid"));
+                    boolean touchDown = (tilesToAdd.containsKey(down) && tilesToAdd.get(down).attrs.get("solid")) ||
+                                        (tilesToAdd.containsKey(bl) && tilesToAdd.get(bl).attrs.get("solid")) ||
+                                        (tilesToAdd.containsKey(br) && tilesToAdd.get(br).attrs.get("solid"));
+                    if ((touchLeft && touchRight) || (touchUp && touchDown)) {
+                        this.tilesToAdd.put(tile.position, new Tile("sand1", tile.position.cpy(), true, tile.routeBelongsTo));
+                    }
                 }
-                // add black tiles to interior
-                game.map.interiorTiles.get(game.map.interiorTilesIndex).put(pos.cpy(), new Tile("black1", pos.cpy()));
             }
         }
 
@@ -1601,18 +1628,32 @@ class GenIsland1 extends Action {
                                 Tile newTile = new Tile("sand1", edge);
                                 int isRock = this.rand.nextInt(maxDist) + (int)distance;
                                 if (isRock > maxDist + maxDist/2) {
-                                    // TODO: corners also matter
 //                                    Vector2 left = edge.cpy().add(-16f, 0f);
+//                                    Vector2 tl = edge.cpy().add(-16f, 16f);
+//                                    Vector2 bl = edge.cpy().add(-16f, -16f);
 //                                    Vector2 right = edge.cpy().add(16f, 0f);
+//                                    Vector2 tr = edge.cpy().add(16f, 16f);
+//                                    Vector2 br = edge.cpy().add(16f, -16f);
 //                                    Vector2 up = edge.cpy().add(0f, 16f);
 //                                    Vector2 down = edge.cpy().add(0f, -16f);
-//                                    boolean touchLeft = tilesToAdd.containsKey(left) && tilesToAdd.get(left).attrs.get("solid");
-//                                    boolean touchRight = tilesToAdd.containsKey(right) && tilesToAdd.get(right).attrs.get("solid");
-//                                    boolean touchUp = tilesToAdd.containsKey(up) && tilesToAdd.get(up).attrs.get("solid");
-//                                    boolean touchDown = tilesToAdd.containsKey(down) && tilesToAdd.get(down).attrs.get("solid");
+//                                    
+//                                    !!!
+//                                    boolean touchLeft = (tilesToAdd.containsKey(left) && tilesToAdd.get(left).attrs.get("solid")) ||
+//                                                        (tilesToAdd.containsKey(tl) && tilesToAdd.get(tl).attrs.get("solid")) ||
+//                                                        (tilesToAdd.containsKey(bl) && tilesToAdd.get(bl).attrs.get("solid"));
+//                                    boolean touchRight = (tilesToAdd.containsKey(right) && tilesToAdd.get(right).attrs.get("solid")) ||
+//                                                         (tilesToAdd.containsKey(tr) && tilesToAdd.get(tr).attrs.get("solid")) ||
+//                                                         (tilesToAdd.containsKey(br) && tilesToAdd.get(br).attrs.get("solid"));
+//                                    boolean touchUp = (tilesToAdd.containsKey(up) && tilesToAdd.get(up).attrs.get("solid")) || 
+//                                                      (tilesToAdd.containsKey(tl) && tilesToAdd.get(tl).attrs.get("solid")) || 
+//                                                      (tilesToAdd.containsKey(tr) && tilesToAdd.get(tr).attrs.get("solid"));
+//                                    boolean touchDown = (tilesToAdd.containsKey(down) && tilesToAdd.get(down).attrs.get("solid")) ||
+//                                                        (tilesToAdd.containsKey(bl) && tilesToAdd.get(bl).attrs.get("solid")) ||
+//                                                        (tilesToAdd.containsKey(br) && tilesToAdd.get(br).attrs.get("solid"));
 //                                    if (!(touchLeft && touchRight) && !(touchUp && touchDown)) {
-                                        newTile = new Tile("rock1", edge);
+//                                        newTile = new Tile("rock1", edge);
 //                                    }
+                                    newTile = new Tile("rock1", edge);
                                 }
                                 // grass isn't as solid as i want
                                 int isGrass = this.rand.nextInt(maxDist/8) + (int)distance;
@@ -1779,18 +1820,20 @@ class GenIsland1 extends Action {
                                 }
                                 else if (this.rand.nextInt(10) == 0) {
                                     if (type.equals("mtn_snow1")) {
-                                        newTile = new Tile("snow1", edge);
-                                        Texture text = new Texture(Gdx.files.internal("tiles/rock1_color.png"));
-                                        newTile.overSprite = new Sprite(text, 0, 0, 16, 16);
-                                        newTile.overSprite.setPosition(newTile.position.x, newTile.position.y+4);
-                                        newTile.attrs.put("solid", true);
+//                                        newTile = new Tile("snow1", edge);
+//                                        Texture text = new Texture(Gdx.files.internal("tiles/rock1_color.png"));
+//                                        newTile.overSprite = new Sprite(text, 0, 0, 16, 16);
+//                                        newTile.overSprite.setPosition(newTile.position.x, newTile.position.y+4);
+//                                        newTile.attrs.put("solid", true);
+                                        newTile = new Tile("snow1", "rock1_color", edge.cpy(), true, currRoute);
                                     }
                                     else {
-                                        newTile = new Tile("green1", edge);
-                                        Texture text = new Texture(Gdx.files.internal("tiles/rock1_color.png"));
-                                        newTile.overSprite = new Sprite(text, 0, 0, 16, 16);
-                                        newTile.overSprite.setPosition(newTile.position.x, newTile.position.y+4);
-                                        newTile.attrs.put("solid", true);
+//                                        newTile = new Tile("green1", edge);
+//                                        Texture text = new Texture(Gdx.files.internal("tiles/rock1_color.png"));
+//                                        newTile.overSprite = new Sprite(text, 0, 0, 16, 16);
+//                                        newTile.overSprite.setPosition(newTile.position.x, newTile.position.y+4);
+//                                        newTile.attrs.put("solid", true);
+                                        newTile = new Tile("green1", "rock1_color", edge.cpy(), true, currRoute);
                                     }
                                 }
                                 else if (this.rand.nextInt(8) == 0) {
@@ -2383,11 +2426,12 @@ class GenIsland1 extends Action {
         for (Tile tile : new ArrayList<Tile>(mtnTiles.values())) {
             // randomly place rocks
             if (this.rand.nextInt((int)Math.ceil(1f/(1f/((maxDist)/500f)))) == 1 && !mtnTiles2.containsKey(tile.position)) {
-                Tile newTile = new Tile(tile.name, tile.position.cpy());
-                Texture text = new Texture(Gdx.files.internal("tiles/rock1_color.png"));
-                newTile.overSprite = new Sprite(text, 0, 0, 16, 16);
-                newTile.overSprite.setPosition(newTile.position.x, newTile.position.y+4);
-                newTile.attrs.put("solid", true);
+//                Tile newTile = new Tile(tile.name, tile.position.cpy());
+//                Texture text = new Texture(Gdx.files.internal("tiles/rock1_color.png"));
+//                newTile.overSprite = new Sprite(text, 0, 0, 16, 16);
+//                newTile.overSprite.setPosition(newTile.position.x, newTile.position.y+4);
+//                newTile.attrs.put("solid", true);
+                Tile newTile = new Tile(tile.name, "rock1_color", tile.position.cpy(), true, tile.routeBelongsTo);
                 mtnTiles2.put(tile.position.cpy(), newTile);
             }
         }

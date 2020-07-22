@@ -48,7 +48,7 @@ public class Game extends ApplicationAdapter {
     public OrthographicCamera cam;
     Vector3 touchLoc = new Vector3();
     public boolean playerCanMove;  // TODO: migrate to game.player.canMove
-    Action displayTextAction;
+    public Action displayTextAction;
     Vector2 currScreen;
     boolean debugInputEnabled = false;  // pass 'dev' arg to enable this.
     Player player;
@@ -120,6 +120,9 @@ public class Game extends ApplicationAdapter {
             this.insertAction(new DrawMobileControls(this));
         }
         this.insertAction(new DrawSetupMenu(this, null));
+
+        Gdx.gl.glClearColor(1, 1, 1, 1);
+//        Gdx.gl.glClearColor(0, 0, 0, 1);
     }
 
     @Override
@@ -391,7 +394,6 @@ public class Game extends ApplicationAdapter {
         if (this.debugInputEnabled) {
             this.handleDebuggingInput();
         }
-        Gdx.gl.glClearColor(1, 1, 1, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
         this.cam.update();
         this.mapBatch.setProjectionMatrix(cam.combined);
@@ -467,38 +469,40 @@ public class Game extends ApplicationAdapter {
             this.insertAction(new PlayerStanding(this));
             this.insertAction(new DrawPlayerLower(this));
             this.insertAction(new DrawPlayerUpper(this));
+            this.insertAction(new DrawBuildRequirements());
         }
         this.insertAction(new DrawMapTrees(this));  // Draw tops of trees over player
         this.insertAction(new MoveWater(this));  // Move water tiles around
-        this.insertAction(new DrawBuildRequirements());
 
-        // This will 'radio' through a selection of musics for the map (based on current route)
-        this.currMusic = Gdx.audio.newMusic(Gdx.files.internal("music/nature1_render.ogg"));
-        this.map.currRoute.music = this.currMusic;
-        this.currMusic.setLooping(false);
-        this.currMusic.setVolume(1f);
-        // TODO: not sure if deleting or not
-        this.currMusic.play();
-        this.currMusic.pause();
-        this.currMusic.setPosition(130f);  
-        this.currMusic.play();
-        this.musicCompletionListener = new Music.OnCompletionListener() {
-            @Override
-            public void onCompletion(Music aMusic) {
-                String nextMusicName = Game.staticGame.map.currRoute.getNextMusic(true);
-                // TODO: would it be good to also accept music instance here?
-                // TODO: These fade-ins don't even work. Will need for route musics
-                // TODO: there's def a bug here if you run into a wild
-                // pokemon while waiting frames, the next music will start anyway
-                Action nextMusic = new FadeMusic("currMusic", "out", "", 0.025f,
-                                   new WaitFrames(Game.staticGame, 360,
-                                   new FadeMusic(nextMusicName, "in", "", 0.2f, true, 1f, this,
-                                   null)));
-                Game.staticGame.insertAction(nextMusic);
-                nextMusic.step(Game.staticGame);
-            }
-        };
-        this.currMusic.setOnCompletionListener(this.musicCompletionListener);
+        if (this.type != Game.Type.SERVER) {
+            // This will 'radio' through a selection of musics for the map (based on current route)
+            this.currMusic = Gdx.audio.newMusic(Gdx.files.internal("music/nature1_render.ogg"));
+            this.map.currRoute.music = this.currMusic;
+            this.currMusic.setLooping(false);
+            this.currMusic.setVolume(1f);
+            // TODO: not sure if deleting or not
+            this.currMusic.play();
+            this.currMusic.pause();
+            this.currMusic.setPosition(130f);  
+            this.currMusic.play();
+            this.musicCompletionListener = new Music.OnCompletionListener() {
+                @Override
+                public void onCompletion(Music aMusic) {
+                    String nextMusicName = Game.staticGame.map.currRoute.getNextMusic(true);
+                    // TODO: would it be good to also accept music instance here?
+                    // TODO: These fade-ins don't even work. Will need for route musics
+                    // TODO: there's def a bug here if you run into a wild
+                    // pokemon while waiting frames, the next music will start anyway
+                    Action nextMusic = new FadeMusic("currMusic", "out", "", 0.025f,
+                                       new WaitFrames(Game.staticGame, 360,
+                                       new FadeMusic(nextMusicName, "in", "", 0.2f, true, 1f, this,
+                                       null)));
+                    Game.staticGame.insertAction(nextMusic);
+                    nextMusic.step(Game.staticGame);
+                }
+            };
+            this.currMusic.setOnCompletionListener(this.musicCompletionListener);
+        }
         this.playerCanMove = true;
 
         // This is the special mewtwo battle debug map
@@ -519,9 +523,9 @@ public class Game extends ApplicationAdapter {
 //        this.player.pokemon.get(1).attacks[0] = "Ice Beam";  // TODO: debug, remove
 //        this.player.pokemon.add(new Pokemon("stantler", 50, Pokemon.Generation.CRYSTAL));
 //        this.player.pokemon.add(new Pokemon("Ditto", 6, Pokemon.Generation.CRYSTAL));
-//        this.player.pokemon.add(new Pokemon("Lunatone", 6, Pokemon.Generation.CRYSTAL));
-//        this.player.pokemon.add(new Pokemon("Celebi", 6, Pokemon.Generation.CRYSTAL));
-//        this.player.pokemon.add(new Pokemon("Mareep", 6, Pokemon.Generation.CRYSTAL));
+        this.player.pokemon.add(new Pokemon("Lunatone", 6, Pokemon.Generation.CRYSTAL));
+        this.player.pokemon.add(new Pokemon("Celebi", 6, Pokemon.Generation.CRYSTAL));
+        this.player.pokemon.add(new Pokemon("Mareep", 6, Pokemon.Generation.CRYSTAL));
         this.player.currPokemon = this.player.pokemon.get(0);
 
         // TODO: debug, remove

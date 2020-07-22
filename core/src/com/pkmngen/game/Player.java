@@ -18,6 +18,7 @@ import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.pkmngen.game.DrawPokemonMenu.SelectedMenu;
 import com.pkmngen.game.DrawPokemonMenu.SelectedMenu.Switch;
+import com.pkmngen.game.util.LoadingZone;
 
 /*
  * TODO: remove this, not using.
@@ -303,16 +304,17 @@ class CycleDayNight extends Action {
 
                 // TODO test
 //                game.currMusic.pause();
-                game.currMusic.stop();
-                game.currMusic.dispose();
-                // start night music
-                Music music = Gdx.audio.newMusic(Gdx.files.internal("night1.ogg"));
-                music.setLooping(true);
-                music.setVolume(.7f);
-                game.currMusic = music;
-                game.map.currRoute.music = music; // TODO - how to switch to normal after defeating
-                game.currMusic.play();
-
+                if (game.type != Game.Type.SERVER) {
+                    game.currMusic.stop();
+                    game.currMusic.dispose();
+                    // start night music
+                    Music music = Gdx.audio.newMusic(Gdx.files.internal("night1.ogg"));
+                    music.setLooping(true);
+                    music.setVolume(.7f);
+                    game.currMusic = music;
+                    game.map.currRoute.music = music; // TODO - how to switch to normal after defeating
+                    game.currMusic.play();
+                }
                 // state which night it is
                 night++;
                 signCounter = 150;
@@ -1932,10 +1934,10 @@ public class Player {
         this.itemsDict.put("Sleeping Bag", 1);
 //        this.itemsDict.put("Safari Ball", 99);
         // TODO: debug, remove
-//        this.itemsDict.put("grass", 99);
-//        this.itemsDict.put("log", 99);
-//        this.itemsDict.put("blue apricorn", 99);
-//        this.itemsDict.put("ultra ball", 99);
+        this.itemsDict.put("grass", 99);
+        this.itemsDict.put("log", 99);
+        this.itemsDict.put("blue apricorn", 99);
+        this.itemsDict.put("ultra ball", 99);
 //        this.itemsDict.put("blue apricorn", 99);
 //        this.itemsDict.put("Poké Ball", 99);
 
@@ -1965,6 +1967,13 @@ public class Player {
         this.network.number = playerData.number;
         this.setColor(playerData.color);  // TODO: when server re-loads player, doesn't seem like this is being rendered.
         this.displayedMaxPartyText = playerData.displayedMaxPartyText;
+//        this.network.isInterior = playerData.isInterior;
+        if (playerData.isInterior) {
+            this.network.tiles = Game.staticGame.map.interiorTiles.get(Game.staticGame.map.interiorTilesIndex);
+        }
+        else {
+            this.network.tiles = Game.staticGame.map.overworldTiles;
+        }
     }
 
     /**
@@ -2034,6 +2043,33 @@ public class Player {
             newAmt = this.itemsDict.get(craft.name) + newAmt;
         }
         this.itemsDict.put(craft.name, newAmt);
+    }
+
+    /**
+     * Get position that player is facing towards.
+     */
+    public Vector2 facingPos() {
+        return this.facingPos(this.dirFacing);
+    }
+
+    /**
+     * Get position that player is facing towards.
+     */
+    public Vector2 facingPos(String dirFacing) {
+        Vector2 pos = null;
+        if (dirFacing.equals("right")) {
+            pos = this.position.cpy().add(16, 0);
+        }
+        else if (dirFacing.equals("left")) {
+            pos = this.position.cpy().add(-16, 0);
+        }
+        else if (dirFacing.equals("up")) {
+            pos = this.position.cpy().add(0, 16);
+        }
+        else if (dirFacing.equals("down")) {
+            pos = this.position.cpy().add(0, -16);
+        }
+        return pos;
     }
 
     public void setColor(Color newColor) {
@@ -2156,8 +2192,9 @@ public class Player {
     }
 
     class Network {
-        Vector2 loadingZoneBL = new Vector2();
-        Vector2 loadingZoneTR = new Vector2();
+//        Vector2 loadingZoneBL = new Vector2();
+//        Vector2 loadingZoneTR = new Vector2();
+        LoadingZone loadingZone = new LoadingZone();
         String id;  // when this is a remote player, this is an index number
         boolean shouldMove = false;
         String dirFacing = "down";
@@ -2167,10 +2204,14 @@ public class Player {
         com.pkmngen.game.Network.BattleData doEncounter;  // acts as flag that battle has been entered
 
         int syncTimer = 0;  // used to know when to re-send player location to client
+        Map<Vector2, Tile> tiles;  // where player is located, ie interior, exterior etc.
+        boolean isInterior;
 
         public Network(Vector2 position) {
-            loadingZoneBL = position.cpy().add(-128*2, -128*2);
-            loadingZoneTR = position.cpy().add(128*2, 128*2);
+//            loadingZoneBL = position.cpy().add(-128*2, -128*2);
+//            loadingZoneTR = position.cpy().add(128*2, 128*2);
+            this.loadingZone.setSize(128*4, 128*4);
+            this.loadingZone.setCenter(position);
         }
     }
 
@@ -3303,10 +3344,6 @@ class PlayerStanding extends Action {
         }
     }
 
-    public int getLayer(){
-        return this.layer;
-    }
-
     /**
      * TODO: move this to map, non-static function.
      * Fix surrounding tiles based on the tile just added
@@ -3472,7 +3509,7 @@ class PlayerStanding extends Action {
             HashMap<Vector2, Tile> currInterior = game.map.interiorTiles.get(game.map.interiorTilesIndex);
             Tile interiorTile = new Tile("house5_floor1", currTile.position.cpy());
             currInterior.put(currTile.position.cpy(), interiorTile);
-            if (!currInterior.containsKey(up.position) || currInterior.get(up.position).name.equals("black1")) {
+            if (!currInterior.containsKey(up.position) || currInterior.get(up.position) == null) {
                 currInterior.put(up.position.cpy(), new Tile("house5_wall1", up.position.cpy()));
             }
         }
@@ -3508,8 +3545,7 @@ class PlayerStanding extends Action {
         boolean shouldMove = false;
         Vector2 newPos = new Vector2();
 
-        // check wild encounter
-        // TODO - in future, this action will jump to a waiting action after one iteration
+        // Check wild encounter
         if (this.checkWildEncounter && game.type != Game.Type.CLIENT) {
             if (this.checkWildEncounter(game) == true) {
                 game.playerCanMove = false;
@@ -3540,19 +3576,6 @@ class PlayerStanding extends Action {
                 this.checkWildEncounter = false;
                 return;
             }
-
-            // TODO: idk where the right place for this is.
-            if (game.map.tiles.get(game.player.position) != null &&
-                (game.map.tiles.get(game.player.position).nameUpper.contains("door") ||
-                 game.map.tiles.get(game.player.position).name.contains("door"))) {
-                if (game.map.tiles == game.map.overworldTiles) {
-                    game.insertAction(new EnterBuilding(game, null));
-                }
-                else {
-                    game.insertAction(new EnterBuilding(game, "exit", null));
-                }
-            }
-
             this.checkWildEncounter = false;
         }
         // else, check if the server sent an encounter
@@ -3572,7 +3595,23 @@ class PlayerStanding extends Action {
             this.player.network.doEncounter = null;
             return;
         }
-
+        // If player is standing on a door, stop moving and move player to interior.
+        if (game.map.tiles.get(game.player.position) != null &&
+            (game.map.tiles.get(game.player.position).nameUpper.contains("door") ||
+             game.map.tiles.get(game.player.position).name.contains("door"))) {
+            game.playerCanMove = false;
+            if (game.map.tiles == game.map.overworldTiles) {
+                game.insertAction(new EnterBuilding(game, 
+                                  new SetField(game, "playerCanMove", true,
+                                  null)));
+            }
+            else {
+                game.insertAction(new EnterBuilding(game, "exit",
+                                  new SetField(game, "playerCanMove", true,
+                                  null)));
+            }
+            return;
+        }
         // Check if player wants to access the menu
         if (InputProcessor.startJustPressed) {
             game.insertAction(new DrawPlayerMenu.Intro(game,
@@ -3820,10 +3859,11 @@ class PlayerStanding extends Action {
                     Action action = new CutTreeAnim(game, game.map.tiles.get(pos), null);
                     // place black tile at location
                     // TODO: if there are ever interior objects, how do you preserve those?
-                    Tile interiorTile = new Tile("black1", currTile.position.cpy());
-                    game.map.interiorTiles.get(game.map.interiorTilesIndex).put(currTile.position.cpy(), interiorTile);
+//                    Tile interiorTile = new Tile("black1", currTile.position.cpy());
+//                    game.map.interiorTiles.get(game.map.interiorTilesIndex).put(currTile.position.cpy(), interiorTile);
+                    game.map.interiorTiles.get(game.map.interiorTilesIndex).remove(currTile.position.cpy());
                     game.playerCanMove = false;
-                    // get items from tile
+                    // Get items from tile
                     if (!currTile.items.isEmpty()) {
                         for (String item : currTile.items.keySet()) {
                             System.out.println(item);
@@ -3832,7 +3872,7 @@ class PlayerStanding extends Action {
                             if (currTile.items.get(item) > 1) {
                                 plural = "s";
                             }
-                            action.append(new DisplayText(game, "Picked up "+currTile.items.get(item)+" "+item.toUpperCase()+plural+".", null, null, //"fanfare1.ogg", null,
+                            action.append(new DisplayText(game, "Picked up "+currTile.items.get(item)+" "+item.toUpperCase()+plural+".", null, null,
                                           null));
                             if (game.player.itemsDict.containsKey(item)) {
                                 int currQuantity = game.player.itemsDict.get(item);
@@ -3846,6 +3886,10 @@ class PlayerStanding extends Action {
                     }
                     action.append(new SetField(game, "playerCanMove", true, null));
                     game.insertAction(action);
+
+                    if (game.type == Game.Type.CLIENT) {
+                        game.client.sendTCP(new Network.UseHM(game.player.network.id, 0, "CUT"));
+                    }
                 }
                 this.detectIsHouseBuilt(game, currTile);
             }
@@ -3918,7 +3962,11 @@ class PlayerStanding extends Action {
             }
             // Check if moving into empty space to avoid temp.attr checks afterwards
             // If player is pressing space key (debug mode), just move through the object.
-            if (temp == null || (Gdx.input.isKeyPressed(Input.Keys.SPACE) && game.debugInputEnabled)) {
+            if (temp == null) {
+                game.insertAction(new PlayerBump(game));
+                return;
+            }
+            if (Gdx.input.isKeyPressed(Input.Keys.SPACE) && game.debugInputEnabled) {
                 // No tile here, so just move normally
                 if (InputProcessor.bPressed) { // check if player should be running
                     game.insertAction(new PlayerRunning(game, this.alternate));
@@ -4052,13 +4100,82 @@ class PlayerStanding extends Action {
 //                game.server.sendToTCP(this.player.network.connectionId, new Network.RelocatePlayer(this.player.position));
             }
 
-            // if player is at edge of loading zone, send more tiles to client
-            if (this.player.position.x <= this.player.network.loadingZoneBL.x+96) {
-                this.player.network.loadingZoneBL.add(-128, 0);
-                this.player.network.loadingZoneTR.add(-128, 0);
+            // TODO: this didn't work, remove if unused.
+//            boolean updateTiles = false;
+//            Vector2 bottomLeft = new Vector2();
+//            Vector2 topRight = new Vector2();
+//            if (this.player.position.x <= this.player.network.loadingZone.x+96) {
+//                topRight.x = this.player.network.loadingZone.x;
+//                this.player.network.loadingZone.translate(-128f, 0f);
+//                bottomLeft.x = this.player.network.loadingZone.x;
+//                topRight.y = this.player.network.loadingZone.topRight().y;
+//                bottomLeft.y = this.player.network.loadingZone.y;
+//                updateTiles = true;
+//            }
+//            else if (this.player.position.x >= this.player.network.loadingZone.topRight().x-96) {
+//                bottomLeft.x = this.player.network.loadingZone.topRight().x;
+//                this.player.network.loadingZone.translate(128f, 0f);
+//                topRight.x = this.player.network.loadingZone.topRight().x;
+//                topRight.y = this.player.network.loadingZone.topRight().y;
+//                bottomLeft.y = this.player.network.loadingZone.y;
+//                updateTiles = true;
+//            }
+//            else if (this.player.position.y <= this.player.network.loadingZone.y+96) {
+//                topRight.y = this.player.network.loadingZone.y;
+//                this.player.network.loadingZone.translate(0, -128f);
+//                bottomLeft.y = this.player.network.loadingZone.y;
+//                topRight.x = this.player.network.loadingZone.topRight().x;
+//                bottomLeft.x = this.player.network.loadingZone.x;
+//                updateTiles = true;
+//            }
+//            else if (this.player.position.y >= this.player.network.loadingZone.topRight().y-96) {
+//                bottomLeft.y = this.player.network.loadingZone.topRight().y;
+//                this.player.network.loadingZone.translate(0f, 128f);
+//                topRight.y = this.player.network.loadingZone.topRight().y;
+//                topRight.x = this.player.network.loadingZone.topRight().x;
+//                bottomLeft.x = this.player.network.loadingZone.x;
+//                updateTiles = true;
+//            }
+//            if (updateTiles) {
+//                Network.MapTiles mapTiles = new Network.MapTiles();
+//                for (Vector2 position = bottomLeft; position.y < topRight.y; position.add(16, 0)) {
+//                    if (position.x > topRight.x) {
+//                        position.add(0, 16);
+//                        position.x = bottomLeft.x-16;
+//                        continue;
+//                    }
+//                    Tile tile = game.map.tiles.get(position);
+//                    if (tile == null) {
+//                        continue;
+//                    }
+//                    mapTiles.tiles.add(new Network.TileData(tile));
+//                    if (mapTiles.tiles.size() >= 16) {
+//                        game.server.sendToTCP(this.player.network.connectionId, mapTiles);
+//                        mapTiles.tiles.clear();
+//                    }
+//                }
+//                game.server.sendToTCP(this.player.network.connectionId, mapTiles);
+//                for (Player otherPlayer : game.players.values()) {
+//                    if (otherPlayer == this.player) {
+//                        continue;
+//                    }
+//                    if (this.player.network.loadingZone.contains(otherPlayer.position)) {
+//                        Network.ServerPlayerData serverPlayerData = new Network.ServerPlayerData(otherPlayer);
+//                        game.server.sendToTCP(this.player.network.connectionId, serverPlayerData);
+//                    }
+//                }
+//            }
+            
+            // TODO: also send interior tiles that are in loading zone
+            // If player is at edge of loading zone, send more tiles to client
+            if (this.player.position.x <= this.player.network.loadingZone.x+96) {
+                this.player.network.loadingZone.translate(-128f, 0f);
                 Network.MapTiles mapTiles = new Network.MapTiles();
-                for (Vector2 position = this.player.network.loadingZoneBL.cpy();
-                     position.y < this.player.network.loadingZoneTR.y; position.add(16, 0)) {
+//                for (Vector2 position = this.player.network.loadingZoneBL.cpy();
+//                     position.y < this.player.network.loadingZoneTR.y; position.add(16, 0)) {
+                for (Vector2 position = this.player.network.loadingZone.bottomLeft();
+                     position.y < this.player.network.loadingZone.topRight().y;
+                     position.add(16, 0)) {
                     Tile tile = game.map.tiles.get(position);
                     if (tile == null) {
                         continue;
@@ -4066,7 +4183,7 @@ class PlayerStanding extends Action {
                     mapTiles.tiles.add(new Network.TileData(tile));
                     if (position.x >= player.position.x) {
                         position.add(0, 16);
-                        position.x = player.network.loadingZoneBL.x;
+                        position.x = player.network.loadingZone.x;
                     }
                     // the larger the number, the more the client hangs when receiving.
                     // 16 seemed to cause little hangup.
@@ -4074,21 +4191,47 @@ class PlayerStanding extends Action {
                         game.server.sendToTCP(this.player.network.connectionId, mapTiles);
                         mapTiles.tiles.clear();
                     }
+                    // TODO: test
+                    if (game.map.pokemon.containsKey(position)) {
+                        Pokemon pokemon = game.map.pokemon.get(position);
+                        game.server.sendToTCP(this.player.network.connectionId,
+                                              new Network.OverworldPokemonData(pokemon, position));
+                    }
+                    
                 }
                 game.server.sendToTCP(this.player.network.connectionId, mapTiles);
+                for (Player otherPlayer : game.players.values()) {
+                    if (otherPlayer == this.player) {
+                        continue;
+                    }
+                    if (this.player.network.loadingZone.contains(otherPlayer.position)) {
+                        Network.ServerPlayerData serverPlayerData = new Network.ServerPlayerData(otherPlayer);
+                        game.server.sendToTCP(this.player.network.connectionId, serverPlayerData);
+                    }
+                }
+                for (Vector2 pos : game.map.pokemon.keySet()) {
+                    if (!this.player.network.loadingZone.contains(pos)) {
+                        Pokemon pokemon = game.map.pokemon.get(pos);
+                        game.server.sendToTCP(this.player.network.connectionId,
+                                              new Network.OverworldPokemonData(pokemon, pos));
+                        
+                    }
+                }
             }
-            if (this.player.position.x >= this.player.network.loadingZoneTR.x-96) {
-                this.player.network.loadingZoneBL.add(128, 0);
-                this.player.network.loadingZoneTR.add(128, 0);
+            if (this.player.position.x >= this.player.network.loadingZone.topRight().x-96) {
+                // TODO: remove
+//                this.player.network.loadingZoneBL.add(128, 0);
+//                this.player.network.loadingZoneTR.add(128, 0);
+                this.player.network.loadingZone.translate(128f, 0f);
                 Network.MapTiles mapTiles = new Network.MapTiles();
-                for (Vector2 position = new Vector2(this.player.position.x, this.player.network.loadingZoneBL.y);
-                     position.y < this.player.network.loadingZoneTR.y; position.add(16, 0)) {
+                for (Vector2 position = new Vector2(this.player.position.x, this.player.network.loadingZone.y);
+                     position.y < this.player.network.loadingZone.topRight().y; position.add(16, 0)) {
                     Tile tile = game.map.tiles.get(position);
                     if (tile == null) {
                         continue;
                     }
                     mapTiles.tiles.add(new Network.TileData(tile));
-                    if (position.x >= this.player.network.loadingZoneTR.x) {
+                    if (position.x >= this.player.network.loadingZone.topRight().x) {
                         position.add(0, 16);
                         position.x = this.player.position.x;
                     }
@@ -4096,52 +4239,125 @@ class PlayerStanding extends Action {
                         game.server.sendToTCP(this.player.network.connectionId, mapTiles);
                         mapTiles.tiles.clear();
                     }
+                    // TODO: test
+                    if (game.map.pokemon.containsKey(position)) {
+                        Pokemon pokemon = game.map.pokemon.get(position);
+                        game.server.sendToTCP(this.player.network.connectionId,
+                                              new Network.OverworldPokemonData(pokemon, position));
+                    }
                 }
                 game.server.sendToTCP(this.player.network.connectionId, mapTiles);
+                for (Player otherPlayer : game.players.values()) {
+                    if (otherPlayer == this.player) {
+                        continue;
+                    }
+                    if (this.player.network.loadingZone.contains(otherPlayer.position)) {
+                        Network.ServerPlayerData serverPlayerData = new Network.ServerPlayerData(otherPlayer);
+                        game.server.sendToTCP(this.player.network.connectionId, serverPlayerData);
+                    }
+                }
+                for (Vector2 pos : game.map.pokemon.keySet()) {
+                    if (!this.player.network.loadingZone.contains(pos)) {
+                        Pokemon pokemon = game.map.pokemon.get(pos);
+                        game.server.sendToTCP(this.player.network.connectionId,
+                                              new Network.OverworldPokemonData(pokemon, pos));
+                        
+                    }
+                }
             }
-            if (this.player.position.y <= this.player.network.loadingZoneBL.y+96) {
-                this.player.network.loadingZoneBL.add(0, -128);
-                this.player.network.loadingZoneTR.add(0, -128);
+            if (this.player.position.y <= this.player.network.loadingZone.y+96) {
+                // TODO: remove
+//                this.player.network.loadingZoneBL.add(0, -128);
+//                this.player.network.loadingZoneTR.add(0, -128);
+                this.player.network.loadingZone.translate(0, -128f);
                 Network.MapTiles mapTiles = new Network.MapTiles();
-                for (Vector2 position = this.player.network.loadingZoneBL.cpy();
+                for (Vector2 position = this.player.network.loadingZone.bottomLeft();
                      position.y < this.player.position.y; position.add(16, 0)) {
                     Tile tile = game.map.tiles.get(position);
                     if (tile == null) {
                         continue;
                     }
                     mapTiles.tiles.add(new Network.TileData(tile));
-                    if (position.x >= this.player.network.loadingZoneTR.x) {
+                    if (position.x >= this.player.network.loadingZone.topRight().x) {
                         position.add(0, 16);
-                        position.x = this.player.network.loadingZoneBL.x;
+                        position.x = this.player.network.loadingZone.x;
                     }
                     if (mapTiles.tiles.size() >= 16) {
                         game.server.sendToTCP(this.player.network.connectionId, mapTiles);
                         mapTiles.tiles.clear();
                     }
+                    // TODO: test
+                    if (game.map.pokemon.containsKey(position)) {
+                        Pokemon pokemon = game.map.pokemon.get(position);
+                        game.server.sendToTCP(this.player.network.connectionId,
+                                              new Network.OverworldPokemonData(pokemon, position));
+                    }
                 }
                 game.server.sendToTCP(this.player.network.connectionId, mapTiles);
+                for (Player otherPlayer : game.players.values()) {
+                    if (otherPlayer == this.player) {
+                        continue;
+                    }
+                    if (this.player.network.loadingZone.contains(otherPlayer.position)) {
+                        Network.ServerPlayerData serverPlayerData = new Network.ServerPlayerData(otherPlayer);
+                        game.server.sendToTCP(this.player.network.connectionId, serverPlayerData);
+                    }
+                }
+                for (Vector2 pos : game.map.pokemon.keySet()) {
+                    if (!this.player.network.loadingZone.contains(pos)) {
+                        Pokemon pokemon = game.map.pokemon.get(pos);
+                        game.server.sendToTCP(this.player.network.connectionId,
+                                              new Network.OverworldPokemonData(pokemon, pos));
+                        
+                    }
+                }
             }
-            if (this.player.position.y >= this.player.network.loadingZoneTR.y-96) {
-                this.player.network.loadingZoneBL.add(0, 128);
-                this.player.network.loadingZoneTR.add(0, 128);
+            if (this.player.position.y >= this.player.network.loadingZone.topRight().y-96) {
+                // TODO: remove
+//                this.player.network.loadingZoneBL.add(0, 128);
+//                this.player.network.loadingZoneTR.add(0, 128);
+                this.player.network.loadingZone.translate(0f, 128f);
                 Network.MapTiles mapTiles = new Network.MapTiles();
-                for (Vector2 position = new Vector2(this.player.network.loadingZoneBL.x, this.player.position.y);
-                     position.y < this.player.network.loadingZoneTR.y; position.add(16, 0)) {
+                for (Vector2 position = new Vector2(this.player.network.loadingZone.x, this.player.position.y);
+                     position.y < this.player.network.loadingZone.topRight().y; position.add(16, 0)) {
                     Tile tile = game.map.tiles.get(position);
                     if (tile == null) {
                         continue;
                     }
                     mapTiles.tiles.add(new Network.TileData(tile));
-                    if (position.x >= this.player.network.loadingZoneTR.x) {
+                    if (position.x >= this.player.network.loadingZone.topRight().x) {
                         position.add(0, 16);
-                        position.x = this.player.network.loadingZoneBL.x;
+                        position.x = this.player.network.loadingZone.x;
                     }
                     if (mapTiles.tiles.size() >= 16) {
                         game.server.sendToTCP(this.player.network.connectionId, mapTiles);
                         mapTiles.tiles.clear();
                     }
+                    // TODO: test
+                    if (game.map.pokemon.containsKey(position)) {
+                        Pokemon pokemon = game.map.pokemon.get(position);
+                        game.server.sendToTCP(this.player.network.connectionId,
+                                              new Network.OverworldPokemonData(pokemon, position));
+                    }
                 }
                 game.server.sendToTCP(this.player.network.connectionId, mapTiles);
+                for (Player otherPlayer : game.players.values()) {
+                    if (otherPlayer == this.player) {
+                        continue;
+                    }
+                    if (this.player.network.loadingZone.contains(otherPlayer.position)) {
+                        Network.ServerPlayerData serverPlayerData = new Network.ServerPlayerData(otherPlayer);
+                        game.server.sendToTCP(this.player.network.connectionId, serverPlayerData);
+                    }
+                }
+                for (Vector2 pos : game.map.pokemon.keySet()) {
+                    if (!this.player.network.loadingZone.contains(pos)) {
+                        Pokemon pokemon = game.map.pokemon.get(pos);
+                        game.server.sendToTCP(this.player.network.connectionId,
+                                              new Network.OverworldPokemonData(pokemon, pos));
+                        
+                    }
+                }
             }
         }
 
@@ -4151,6 +4367,19 @@ class PlayerStanding extends Action {
         }
         else {
             this.player.currSprite = new Sprite(this.player.standingSprites.get(this.player.dirFacing));
+        }
+
+        // If player is standing on a door, stop moving and move player to interior.
+        if (this.player.network.tiles.get(this.player.position) != null &&
+            (this.player.network.tiles.get(this.player.position).nameUpper.contains("door") ||
+             this.player.network.tiles.get(this.player.position).name.contains("door"))) {
+            if (this.player.network.tiles == game.map.overworldTiles) {
+                this.player.network.tiles = game.map.interiorTiles.get(game.map.interiorTilesIndex);
+            }
+            else {
+                this.player.network.tiles = game.map.overworldTiles;
+            }
+            return;
         }
 
         if (this.player.network.shouldMove) {
@@ -4172,8 +4401,21 @@ class PlayerStanding extends Action {
                 this.player.dirFacing = "right";
                 newPos = new Vector2(this.player.position.x+16, this.player.position.y);
             }
-            Tile currTile = game.map.tiles.get(this.player.position);
-            Tile temp = game.map.tiles.get(newPos);
+            Tile currTile = this.player.network.tiles.get(this.player.position);
+            Tile temp = this.player.network.tiles.get(newPos);
+
+            // Check if traveling through interior door.
+            if (this.player.dirFacing.equals("down") && currTile.name.contains("rug")) {
+                if (this.player.network.tiles == game.map.overworldTiles) {
+                    this.player.network.tiles = game.map.interiorTiles.get(game.map.interiorTilesIndex);
+                    game.insertAction(new PlayerMoving(game, this.player, this.alternate));
+                }
+                else {
+                    this.player.network.tiles = game.map.overworldTiles;
+                    game.insertAction(new PlayerMoving(game, this.player, this.alternate));
+                }
+                return;
+            }
 
             String oppDir = "";
             if (this.player.dirFacing.equals("up")) {
@@ -4190,16 +4432,22 @@ class PlayerStanding extends Action {
             }
             // Check if moving into empty space to avoid temp.attr checks afterwards
             if (temp == null) {
-                // No tile here, so just move normally
-                if (this.player.network.isRunning) {
-                    game.insertAction(new PlayerRunning(game, this.player, this.alternate));
-                }
-                else {
-                    game.insertAction(new PlayerMoving(game, this.player, this.alternate));
-                }
+                // TODO: remove if unused
+//                // No tile here, so just move normally
+//                if (this.player.network.isRunning) {
+//                    game.insertAction(new PlayerRunning(game, this.player, this.alternate));
+//                }
+//                else {
+//                    game.insertAction(new PlayerMoving(game, this.player, this.alternate));
+//                }
+                game.insertAction(new PlayerBump(game, this.player));
                 return;
             }
             if (temp.attrs.get("solid")) {
+                game.insertAction(new PlayerBump(game, this.player));
+                return;
+            }
+            if (game.map.pokemon.containsKey(newPos)) {
                 game.insertAction(new PlayerBump(game, this.player));
                 return;
             }
@@ -4228,7 +4476,7 @@ class PlayerStanding extends Action {
                 }
             }
             // Handle ledge jump upward case
-            if (currTile.attrs.get("ledge") && currTile.ledgeDir.equals("up") && this.player.dirFacing.equals("up")) {
+            if (currTile != null && currTile.attrs.get("ledge") && currTile.ledgeDir.equals("up") && this.player.dirFacing.equals("up")) {
                 // jump over ledge
                 game.insertAction(new PlayerLedgeJumpFast(game, this.player));
                 return;
@@ -4238,7 +4486,10 @@ class PlayerStanding extends Action {
                 return;
             }
             if (temp.attrs.get("ledge") && !temp.ledgeDir.equals("up")) {
-                if (temp.ledgeDir.equals(this.player.dirFacing)) {
+                // Check that the tile the player will jump into isn't solid
+                Vector2 diff = newPos.cpy().sub(this.player.position);
+                Tile fartherOutTile = game.map.tiles.get(newPos.cpy().add(diff));
+                if (temp.ledgeDir.equals(this.player.dirFacing) && (fartherOutTile == null || (!fartherOutTile.attrs.get("solid") && !fartherOutTile.attrs.get("ledge")))) {
                     // jump over ledge
                     game.insertAction(new PlayerLedgeJump(game, this.player));
                 }

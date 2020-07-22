@@ -94,6 +94,8 @@ public class Pokemon {
     // Keeps track of if this was set loose in overworld, indoors, etc.
     Map<Vector2, Tile> mapTiles;
     boolean isRunning = false;
+    public boolean shouldMove = false;  // used by client listener to trigger remote pokemon to move.
+    Player.Type type = Player.Type.LOCAL;
 
     // this reference is used when needing to stop drawing pokemon in battle screen
      // could also just be oppPokemonDrawAction in battle, I think
@@ -124,6 +126,12 @@ public class Pokemon {
         this.attacks[2] = pokemonData.attacks[2];
         this.attacks[3] = pokemonData.attacks[3];
         this.position = pokemonData.position;
+        if (pokemonData.isInterior) {
+            this.mapTiles = Game.staticGame.map.interiorTiles.get(Game.staticGame.map.interiorTilesIndex);
+        }
+        else {
+            this.mapTiles = Game.staticGame.map.overworldTiles;
+        }
     }
 
     public Pokemon (String name, int level) {
@@ -174,10 +182,10 @@ public class Pokemon {
             this.loadOverworldSprites(name);
 
             // Custom attributes - better way to handle this?
-//            if (name.equals("machop")) {
-//                this.hms.add("CUT");  // TODO: debug, remove
-////                this.hms.add("BUILD");
-//            }
+            if (name.equals("machop")) {
+                this.hms.add("CUT");  // TODO: debug, remove
+//                this.hms.add("BUILD");
+            }
 
             // Custom attributes - better way to handle this?
             if (name.equals("sneasel") || name.equals("scyther")) {
@@ -1332,6 +1340,11 @@ public class Pokemon {
 
         @Override
         public void firstStep(Game game) {
+            if (Pokemon.this.type == Player.Type.REMOTE) {
+                game.client.sendTCP(new Network.DropPokemon(game.player.network.id,
+                                                            Pokemon.this.position));
+            }
+
             if (game.player.pokemon.size() < 6) {
                 game.player.pokemon.add(Pokemon.this);
                 game.map.pokemon.remove(Pokemon.this.position);
@@ -1476,16 +1489,16 @@ public class Pokemon {
         @Override
         public void firstStep(Game game) {
             this.initialPos = new Vector2(Pokemon.this.position);
-            if (Pokemon.this.dirFacing == "up") {
+            if (Pokemon.this.dirFacing.equals("up")) {
                 this.targetPos = new Vector2(Pokemon.this.position.x, Pokemon.this.position.y+16);
             }
-            else if (Pokemon.this.dirFacing == "down") {
+            else if (Pokemon.this.dirFacing.equals("down")) {
                 this.targetPos = new Vector2(Pokemon.this.position.x, Pokemon.this.position.y-16);
             }
-            else if (Pokemon.this.dirFacing == "left") {
+            else if (Pokemon.this.dirFacing.equals("left")) {
                 this.targetPos = new Vector2(Pokemon.this.position.x-16, Pokemon.this.position.y);
             }
-            else if (Pokemon.this.dirFacing == "right") {
+            else if (Pokemon.this.dirFacing.equals("right")) {
                 this.targetPos = new Vector2(Pokemon.this.position.x+16, Pokemon.this.position.y);
             }
             game.map.pokemon.remove(Pokemon.this.position);
@@ -1501,16 +1514,16 @@ public class Pokemon {
             this.timer--;
             if (this.timer <= 0) {
                 this.timer = this.delay;
-                if (Pokemon.this.dirFacing == "up") {
+                if (Pokemon.this.dirFacing.equals("up")) {
                     Pokemon.this.position.y += this.numMove;
                 }
-                else if (Pokemon.this.dirFacing == "down") {
+                else if (Pokemon.this.dirFacing.equals("down")) {
                     Pokemon.this.position.y -= this.numMove;
                 }
-                else if (Pokemon.this.dirFacing == "left") {
+                else if (Pokemon.this.dirFacing.equals("left")) {
                     Pokemon.this.position.x -= this.numMove;
                 }
-                else if (Pokemon.this.dirFacing == "right") {
+                else if (Pokemon.this.dirFacing.equals("right")) {
                     Pokemon.this.position.x += this.numMove;
                 }
             }
@@ -1551,6 +1564,13 @@ public class Pokemon {
 
         @Override
         public void firstStep(Game game) {
+            if (game.type == Game.Type.CLIENT) {
+                Pokemon.this.type = Player.Type.REMOTE;
+                game.client.sendTCP(new Network.DropPokemon(game.player.network.id,
+                                                            DrawPokemonMenu.currIndex,
+                                                            game.player.dirFacing));
+            }
+
             game.player.pokemon.remove(Pokemon.this);
             if (game.player.currPokemon == Pokemon.this) {
                 game.player.currPokemon = game.player.pokemon.get(0);
@@ -1583,7 +1603,6 @@ public class Pokemon {
 
         @Override
         public void firstStep(Game game) {
-            Pokemon.this.mapTiles = game.map.tiles;
             this.moveTimer = game.map.rand.nextInt(180) + 60;
             game.map.pokemon.put(Pokemon.this.position.cpy(), Pokemon.this);
             Pokemon.this.standingAction = this;
@@ -1591,13 +1610,13 @@ public class Pokemon {
             game.insertAction(Pokemon.this.new DrawLower());
             game.insertAction(Pokemon.this.new DrawUpper());
             // If pokemon has low happiness, it starts running animation
+            // TODO: this isn't used atm.
             if (Pokemon.this.happiness <= 0) {
                 this.runTimer = 180;
             }
         }
-
-        @Override
-        public void step(Game game) {
+        
+        public void localStep(Game game) {
             Pokemon.this.currOwSprite = Pokemon.this.standingSprites.get(Pokemon.this.dirFacing);
 
             if (this.runTimer > 0 && !Pokemon.this.isRunning) {
@@ -1772,6 +1791,13 @@ public class Pokemon {
                 // Just checking overworldTiles for now, that way it will still
                 // move around while player is indoors
                 Tile temp = Pokemon.this.mapTiles.get(newPos);
+                boolean collidesWithPlayer = false;
+                for (Player player : game.players.values()) {
+                    if (newPos.equals(player.position)) {
+                        collidesWithPlayer = true;
+                        break;
+                    }
+                }
                 if (temp == null ||
                     temp.attrs.get("solid") || 
                     temp.attrs.get("ledge") || 
@@ -1781,7 +1807,7 @@ public class Pokemon {
                     // technically doesn't matter for now b/c indoor tiles won't
                     // overlap with non-solid overworld areas.
                     game.player.position.equals(newPos) ||
-                    game.players.containsKey(newPos)) {
+                    collidesWithPlayer) {
                     return;
                 }
                 game.actionStack.remove(this);
@@ -1789,11 +1815,42 @@ public class Pokemon {
 //                if (game.map.rand.nextInt(2) == 0) {
 //                    action.append(Pokemon.this.new Moving(false, null));
 //                }
+                // For each player in range, move this pokemon
+                if (game.type == Game.Type.SERVER) {
+                    for (Player player : game.players.values()) {
+                        if (player.network.loadingZone.contains(Pokemon.this.position)) {
+                            game.server.sendToTCP(player.network.connectionId,
+                                                  new Network.MovePokemon(Pokemon.this));
+                        }
+                    }
+                }
                 action.append(this);
                 game.insertAction(action);
                 Pokemon.this.standingAction = action;
             }
             this.moveTimer--;
+        }
+
+        public void remoteStep(Game game) {
+            Pokemon.this.currOwSprite = Pokemon.this.standingSprites.get(Pokemon.this.dirFacing);
+            if (Pokemon.this.shouldMove) {
+                Pokemon.this.shouldMove = false;
+                game.actionStack.remove(this);
+                Action action = Pokemon.this.new Moving(2, 1, true, null);
+                action.append(this);
+                game.insertAction(action);
+                Pokemon.this.standingAction = action;
+            }
+        }
+
+        @Override
+        public void step(Game game) {
+            if (Pokemon.this.type == Player.Type.LOCAL) {
+                this.localStep(game);
+            }
+            else {
+                this.remoteStep(game);
+            }
         }
     }
 
