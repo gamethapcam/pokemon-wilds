@@ -1333,7 +1333,6 @@ class GenIsland1 extends Action {
     public GenIsland1(Game game, Vector2 origin, int radius) {
         this.radius = radius;
         this.origin = origin;
-
         this.rand = new Random();
         this.tilesToAdd = new HashMap<Vector2, Tile>();
         this.doActions = new ArrayList<Action>();
@@ -1400,58 +1399,51 @@ class GenIsland1 extends Action {
         // TODO: there's still some white tiles
         // TODO: this occasionally causes crash (when tile == null)
         // Might need a better way to store tiles bigger than 16x16
-        //  TODO: I should just have each of those 16x16 blocks pointing to the same tile, that would solve all of these issues.
         for (int i=0; i < 1; i++) {
+            Vector2 tl;
+            Vector2 tr;
+            Vector2 bl;
+            Vector2 br;
+            Vector2 left;
+            Vector2 right;
+            Vector2 up;
+            Vector2 down;
             for (Tile tile : new ArrayList<Tile>(tilesToAdd.values())) {
-                if (tile.name.equals("tree_large1")) {
-                    Vector2 tl = tile.position.cpy().add(16,0);
-                    Vector2 br = tile.position.cpy().add(0,16);
-                    Vector2 tr = tile.position.cpy().add(16,16);
-                    if ((this.tilesToAdd.containsKey(tl) && !this.tilesToAdd.get(tl).name.equals("tree_large1_noSprite")) ||
-                        (this.tilesToAdd.containsKey(br) && !this.tilesToAdd.get(br).name.equals("tree_large1_noSprite")) ||
-                        (this.tilesToAdd.containsKey(tr) && !this.tilesToAdd.get(tr).name.equals("tree_large1_noSprite"))) {
-                        this.tilesToAdd.put(tile.position, new Tile("bush1", tile.position.cpy(), true, tile.routeBelongsTo));
+                if (tile.name.contains("tree_large1")) {
+                    boolean found = false;
+                    for (int j=0; j < 2; j++) {
+                        for (int k=0; k < 2; k++) {
+                            tl = tile.position.cpy().add(-16*j,16*k);
+                            tr = tile.position.cpy().add(-16*j+16,16*k);
+                            bl = tile.position.cpy().add(-16*j,16*k-16);
+                            br = tile.position.cpy().add(-16*j+16,16*k-16);
+                            boolean foundTl = this.tilesToAdd.containsKey(tl) && this.tilesToAdd.get(tl).name.equals("tree_large1_noSprite");
+                            boolean foundTr = this.tilesToAdd.containsKey(tr) && this.tilesToAdd.get(tr).name.equals("tree_large1_noSprite");
+                            boolean foundBl = this.tilesToAdd.containsKey(bl) && this.tilesToAdd.get(bl).name.equals("tree_large1");
+                            boolean foundBr = this.tilesToAdd.containsKey(br) && this.tilesToAdd.get(br).name.equals("tree_large1_noSprite");
+                            if (foundTl && foundTr && foundBl && foundBr) {
+                                found = true;
+                                break;
+                            }
+                        }
+                        if (found) {
+                            break;
+                        }
                     }
-                    if ((this.tilesToAdd.containsKey(tile.position.cpy().add(-16,16)) && this.tilesToAdd.get(tile.position.cpy().add(-16,16)).name.equals("tree_large1")) ||
-                        (this.tilesToAdd.containsKey(tile.position.cpy().add(16,16)) && this.tilesToAdd.get(tile.position.cpy().add(16,16)).name.equals("tree_large1")) ||
-                        (this.tilesToAdd.containsKey(tile.position.cpy().add(16,-16)) && this.tilesToAdd.get(tile.position.cpy().add(16,-16)).name.equals("tree_large1")) ||
-                        (this.tilesToAdd.containsKey(tile.position.cpy().add(-16,-16)) && this.tilesToAdd.get(tile.position.cpy().add(-16,-16)).name.equals("tree_large1"))) {
-                        this.tilesToAdd.put(tile.position, new Tile("bush1", tile.position.cpy(), true, tile.routeBelongsTo));
-                    }
-                }
-                // TODO: this isn't working, lots of tile == null
-                else if (tile.name.equals("tree_large1_noSprite")) {
-//
-//                    Vector2 tl = tile.position.cpy().add(16,0);
-//                    Vector2 tr = tile.position.cpy().add(16,16);
-//                    Vector2 br = tile.position.cpy().add(0,16);
-//                    Vector2 bl = tile.position.cpy().add(16,-16);
-//
-                    if ((this.tilesToAdd.containsKey(tile.position.cpy().add(16,-16)) && this.tilesToAdd.get(tile.position.cpy().add(16,-16)) != null && 
-                         !this.tilesToAdd.get(tile.position.cpy().add(16,0)).name.equals("tree_large1_noSprite") ||
-                         !this.tilesToAdd.get(tile.position.cpy().add(0,-16)).name.equals("tree_large1") ||
-                         !this.tilesToAdd.get(tile.position.cpy().add(16,-16)).name.equals("tree_large1_noSprite")) &&
-                        (this.tilesToAdd.containsKey(tile.position.cpy().add(-16,-16)) && this.tilesToAdd.get(tile.position.cpy().add(-16,-16)) != null &&
-                         !this.tilesToAdd.get(tile.position.cpy().add(-16,0)).name.equals("tree_large1_noSprite") ||
-                         !this.tilesToAdd.get(tile.position.cpy().add(-16,-16)).name.equals("tree_large1") ||
-                         !this.tilesToAdd.get(tile.position.cpy().add(0,-16)).name.equals("tree_large1_noSprite")) &&
-                        (this.tilesToAdd.containsKey(tile.position.cpy().add(-16,16)) && this.tilesToAdd.get(tile.position.cpy().add(-16,16)) != null &&
-                         !this.tilesToAdd.get(tile.position.cpy().add(-16,16)).name.equals("tree_large1_noSprite") ||
-                         !this.tilesToAdd.get(tile.position.cpy().add(-16,0)).name.equals("tree_large1") ||
-                         !this.tilesToAdd.get(tile.position.cpy().add(0,16)).name.equals("tree_large1_noSprite"))) {
+                    if (!found) {
                         this.tilesToAdd.put(tile.position, new Tile("bush1", tile.position.cpy(), true, tile.routeBelongsTo));
                     }
                 }
                 // Remove rocks that block in areas around the edges.
                 else if (tile.name.equals("rock1")) {
-                    Vector2 left = tile.position.cpy().add(-16f, 0f);
-                    Vector2 tl = tile.position.cpy().add(-16f, 16f);
-                    Vector2 bl = tile.position.cpy().add(-16f, -16f);
-                    Vector2 right = tile.position.cpy().add(16f, 0f);
-                    Vector2 tr = tile.position.cpy().add(16f, 16f);
-                    Vector2 br = tile.position.cpy().add(16f, -16f);
-                    Vector2 up = tile.position.cpy().add(0f, 16f);
-                    Vector2 down = tile.position.cpy().add(0f, -16f);
+                    left = tile.position.cpy().add(-16f, 0f);
+                    tl = tile.position.cpy().add(-16f, 16f);
+                    bl = tile.position.cpy().add(-16f, -16f);
+                    right = tile.position.cpy().add(16f, 0f);
+                    tr = tile.position.cpy().add(16f, 16f);
+                    br = tile.position.cpy().add(16f, -16f);
+                    up = tile.position.cpy().add(0f, 16f);
+                    down = tile.position.cpy().add(0f, -16f);
                     boolean touchLeft = (tilesToAdd.containsKey(left) && tilesToAdd.get(left).attrs.get("solid")) ||
                                         (tilesToAdd.containsKey(tl) && tilesToAdd.get(tl).attrs.get("solid")) ||
                                         (tilesToAdd.containsKey(bl) && tilesToAdd.get(bl).attrs.get("solid"));

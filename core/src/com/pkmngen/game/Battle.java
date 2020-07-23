@@ -6795,16 +6795,16 @@ class DrawPokemonMenu extends MenuAction {
 //            }
             if (word.equals("DROP")) {
                 Vector2 pos = new Vector2(0,0);
-                if (game.player.dirFacing == "right") {
+                if (game.player.dirFacing.equals("right")) {
                     pos = game.player.position.cpy().add(16, 0);
                 }
-                else if (game.player.dirFacing == "left") {
+                else if (game.player.dirFacing.equals("left")) {
                     pos = game.player.position.cpy().add(-16, 0);
                 }
-                else if (game.player.dirFacing == "up") {
+                else if (game.player.dirFacing.equals("up")) {
                     pos = game.player.position.cpy().add(0, 16);
                 }
-                else if (game.player.dirFacing == "down") {
+                else if (game.player.dirFacing.equals("down")) {
                     pos = game.player.position.cpy().add(0, -16);
                 }
                 else {
@@ -7556,6 +7556,16 @@ class DrawUseTossMenu extends MenuAction {
                                   new WaitFrames(game, 10,
                                   new SetField(game, "playerCanMove", true,
                                   null))))))));
+                // Deduct from inventory
+                game.player.itemsDict.put(itemName, game.player.itemsDict.get(itemName)-1);
+                if (game.player.itemsDict.get(itemName) <= 0) {
+                    game.player.itemsDict.remove(itemName);
+                }
+                // Tell server.
+                if (game.type == Game.Type.CLIENT) {
+                    game.client.sendTCP(new Network.UseItem(game.player.network.id, itemName,
+                                                            game.player.dirFacing));
+                }
                 return;
             }
             this.prevMenu.disabled = false;
@@ -7570,7 +7580,7 @@ class DrawUseTossMenu extends MenuAction {
             return;
         }
         // if this item can't be used in battle, player error noise.
-        if (!itemName.contains("ball") && !itemName.contains("berry")) {  // TODO: more
+        if (!itemName.contains("ball") && !itemName.contains("berry")) {  // TODO: more items
             game.insertAction(this.prevMenu);
             game.insertAction(new PlaySound("error1",
                               new SetField(this.prevMenu, "disabled", false,

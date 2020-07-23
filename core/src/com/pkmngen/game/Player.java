@@ -224,18 +224,20 @@ class CycleDayNight extends Action {
     @Override
     public void step(Game game) {
         // TODO: remove this (required by network play)
-        if (game.playerCanMove == true) {
-            dayTimer--;
-        }
+        // TODO: test
+//        if (game.playerCanMove) {
+//            dayTimer--;
+//        }
+        CycleDayNight.dayTimer--;
 
-        if (dayTimer <= 0) {
-            if (game.map.timeOfDay == "Day") {
+        if (CycleDayNight.dayTimer <= 0) {
+            if (game.map.timeOfDay.equals("Day")) {
                 this.fadeToNight = true;
-                dayTimer = 3000; // debug  // was 10000
+                CycleDayNight.dayTimer = 3000; // debug  // was 10000
             }
-            else if (game.map.timeOfDay == "Night") {
+            else if (game.map.timeOfDay.equals("Night")) {
                 this.fadeToDay = true;
-                dayTimer = 10000; // 1000 - debug
+                CycleDayNight.dayTimer = 10000; // 1000 - debug
             }
         }
 
@@ -324,7 +326,7 @@ class CycleDayNight extends Action {
 
         // check player can move so don't spawn in middle of battle or when looking at ghost
         // if player is near a campfire, don't deduct from ghost spawn timer
-        if (game.map.timeOfDay == "Night" && game.playerCanMove == true && !game.player.isNearCampfire && game.map.currBiome.equals("deep_forest")) {
+        if (game.map.timeOfDay.equals("Night") && game.playerCanMove == true && !game.player.isNearCampfire && game.map.currBiome.equals("deep_forest")) {
             countDownToGhost--;
             if (game.player.currState != "Running") {
                 countDownToGhost--;
@@ -371,14 +373,12 @@ class CycleDayNight extends Action {
 class DespawnGhost extends Action {
     public int layer = 114;
     Sprite[] sprites;
-
     int part1;
-
     int part2;
     int part3;
     Vector2 position;
-
     Sprite sprite;
+
     public DespawnGhost(Vector2 position) {
         this.part1 = 80;
 
@@ -1292,25 +1292,25 @@ class DrawGhost extends Action {
         // game.player.position.x < this.basePos.x
 
         // Modify base pos to chase player (accelerate in player direction)
-        if (this.dirFacing == "left") {
+        if (this.dirFacing.equals("left")) {
             if (velX > -maxVel) {
                 this.velX -= .1f;
             }
             this.velY -= this.velY/16.0f;
         }
-        else if (this.dirFacing == "right") {
+        else if (this.dirFacing.equals("right")) {
             if (velX < maxVel) {
                 this.velX += .1f;
             }
             this.velY -= this.velY/16.0f;
         }
-        else if (this.dirFacing == "down") {
+        else if (this.dirFacing.equals("down")) {
             if (velY > -maxVel) {
                 this.velY -= .1f;
             }
             this.velX -= this.velX/16.0f;
         }
-        else if (this.dirFacing == "up") {
+        else if (this.dirFacing.equals("up")) {
             if (velY < maxVel) {
                 this.velY += .1f;
             }
@@ -1408,16 +1408,16 @@ class DrawPlayerUpper extends Action {
         if (game.player.isBuilding) {
             // get direction facing
             Vector2 pos = new Vector2(0,0);
-            if (game.player.dirFacing == "right") {
+            if (game.player.dirFacing.equals("right")) {
                 pos = new Vector2(game.player.position.cpy().add(16,0));
             }
-            else if (game.player.dirFacing == "left") {
+            else if (game.player.dirFacing.equals("left")) {
                 pos = new Vector2(game.player.position.cpy().add(-16,0));
             }
-            else if (game.player.dirFacing == "up") {
+            else if (game.player.dirFacing.equals("up")) {
                 pos = new Vector2(game.player.position.cpy().add(0,16));
             }
-            else if (game.player.dirFacing == "down") {
+            else if (game.player.dirFacing.equals("down")) {
                 pos = new Vector2(game.player.position.cpy().add(0,-16));
             }
             // get game.player.currBuildTile and draw it at position
@@ -1934,10 +1934,10 @@ public class Player {
         this.itemsDict.put("Sleeping Bag", 1);
 //        this.itemsDict.put("Safari Ball", 99);
         // TODO: debug, remove
-        this.itemsDict.put("grass", 99);
-        this.itemsDict.put("log", 99);
-        this.itemsDict.put("blue apricorn", 99);
-        this.itemsDict.put("ultra ball", 99);
+//        this.itemsDict.put("grass", 99);
+//        this.itemsDict.put("log", 99);
+//        this.itemsDict.put("blue apricorn", 99);
+//        this.itemsDict.put("ultra ball", 99);
 //        this.itemsDict.put("blue apricorn", 99);
 //        this.itemsDict.put("Poké Ball", 99);
 
@@ -2208,10 +2208,12 @@ public class Player {
         boolean isInterior;
 
         public Network(Vector2 position) {
-//            loadingZoneBL = position.cpy().add(-128*2, -128*2);
-//            loadingZoneTR = position.cpy().add(128*2, 128*2);
-            this.loadingZone.setSize(128*4, 128*4);
+//            this.loadingZone.setSize(128*4, 128*4);
+            this.loadingZone.setSize(128*6, 128*6);
             this.loadingZone.setCenter(position);
+            this.loadingZone.inner = new LoadingZone();
+            this.loadingZone.inner.setSize(224, 224);
+            this.loadingZone.inner.setCenter(position);
         }
     }
 
@@ -2266,19 +2268,19 @@ class PlayerBump extends Action {
 
         // when facingDir key is released, go to playerStanding
 
-        if (!InputProcessor.upPressed && game.player.dirFacing == "up") {
+        if (!InputProcessor.upPressed && game.player.dirFacing.equals("up")) {
             game.insertAction(new PlayerStanding(game));
             game.actionStack.remove(this);
         }
-        else if (!InputProcessor.downPressed && game.player.dirFacing == "down") {
+        else if (!InputProcessor.downPressed && game.player.dirFacing.equals("down")) {
             game.insertAction(new PlayerStanding(game));
             game.actionStack.remove(this);
         }
-        else if (!InputProcessor.leftPressed && game.player.dirFacing == "left") {
+        else if (!InputProcessor.leftPressed && game.player.dirFacing.equals("left")) {
             game.insertAction(new PlayerStanding(game));
             game.actionStack.remove(this);
         }
-        else if (!InputProcessor.rightPressed && game.player.dirFacing == "right") {
+        else if (!InputProcessor.rightPressed && game.player.dirFacing.equals("right")) {
             game.insertAction(new PlayerStanding(game));
             game.actionStack.remove(this);
         }
@@ -2367,16 +2369,16 @@ class PlayerLedgeJump extends Action {
     public PlayerLedgeJump(Game game, Player player) {
         this.player = player;
         this.initialPos = new Vector2(this.player.position);
-        if (this.player.dirFacing == "up") {
+        if (this.player.dirFacing.equals("up")) {
             this.targetPos = new Vector2(this.player.position.x, this.player.position.y+32);
         }
-        else if (this.player.dirFacing == "down") {
+        else if (this.player.dirFacing.equals("down")) {
             this.targetPos = new Vector2(this.player.position.x, this.player.position.y-32);
         }
-        else if (this.player.dirFacing == "left") {
+        else if (this.player.dirFacing.equals("left")) {
             this.targetPos = new Vector2(this.player.position.x-32, this.player.position.y);
         }
-        else if (this.player.dirFacing == "right") {
+        else if (this.player.dirFacing.equals("right")) {
             this.targetPos = new Vector2(this.player.position.x+32, this.player.position.y);
         }
 
@@ -2437,19 +2439,19 @@ class PlayerLedgeJump extends Action {
 //        }
 
         if ( this.timer1 < 32) {
-            if (game.player.dirFacing == "up") {
+            if (game.player.dirFacing.equals("up")) {
                 game.player.position.y +=1;
                 game.cam.position.y +=1;
             }
-            else if (game.player.dirFacing == "down") {
+            else if (game.player.dirFacing.equals("down")) {
                 game.cam.position.y -=1;
                 game.player.position.y -=1;
             }
-            else if (game.player.dirFacing == "left") {
+            else if (game.player.dirFacing.equals("left")) {
                 game.player.position.x -=1;
                 game.cam.position.x -=1;
             }
-            else if (game.player.dirFacing == "right") {
+            else if (game.player.dirFacing.equals("right")) {
                 game.player.position.x +=1;
                 game.cam.position.x +=1;
             }
@@ -2495,16 +2497,16 @@ class PlayerLedgeJump extends Action {
     public void remoteStep(Game game) {
         this.player.network.syncTimer++;
         if ( this.timer1 < 32) {
-            if (this.player.dirFacing == "up") {
+            if (this.player.dirFacing.equals("up")) {
                 this.player.position.y +=1;
             }
-            else if (this.player.dirFacing == "down") {
+            else if (this.player.dirFacing.equals("down")) {
                 this.player.position.y -=1;
             }
-            else if (this.player.dirFacing == "left") {
+            else if (this.player.dirFacing.equals("left")) {
                 this.player.position.x -=1;
             }
-            else if (this.player.dirFacing == "right") {
+            else if (this.player.dirFacing.equals("right")) {
                 this.player.position.x +=1;
             }
 
@@ -2565,16 +2567,16 @@ class PlayerLedgeJumpFast extends Action {
     public PlayerLedgeJumpFast(Game game, Player player) {
         this.player = player;
         this.initialPos = new Vector2(this.player.position);
-        if (this.player.dirFacing == "up") {
+        if (this.player.dirFacing.equals("up")) {
             this.targetPos = new Vector2(this.player.position.x, this.player.position.y+16);
         }
-        else if (this.player.dirFacing == "down") {
+        else if (this.player.dirFacing.equals("down")) {
             this.targetPos = new Vector2(this.player.position.x, this.player.position.y-16);
         }
-        else if (this.player.dirFacing == "left") {
+        else if (this.player.dirFacing.equals("left")) {
             this.targetPos = new Vector2(this.player.position.x-16, this.player.position.y);
         }
-        else if (this.player.dirFacing == "right") {
+        else if (this.player.dirFacing.equals("right")) {
             this.targetPos = new Vector2(this.player.position.x+16, this.player.position.y);
         }
 
@@ -2632,19 +2634,19 @@ class PlayerLedgeJumpFast extends Action {
 //        }
 
         if ( this.timer1 < 16) {
-            if (game.player.dirFacing == "up") {
+            if (game.player.dirFacing.equals("up")) {
                 game.player.position.y +=1;
                 game.cam.position.y +=1;
             }
-            else if (game.player.dirFacing == "down") {
+            else if (game.player.dirFacing.equals("down")) {
                 game.cam.position.y -=1;
                 game.player.position.y -=1;
             }
-            else if (game.player.dirFacing == "left") {
+            else if (game.player.dirFacing.equals("left")) {
                 game.player.position.x -=1;
                 game.cam.position.x -=1;
             }
-            else if (game.player.dirFacing == "right") {
+            else if (game.player.dirFacing.equals("right")) {
                 game.player.position.x +=1;
                 game.cam.position.x +=1;
             }
@@ -2699,16 +2701,16 @@ class PlayerLedgeJumpFast extends Action {
     public void remoteStep(Game game) {
         this.player.network.syncTimer++;
         if ( this.timer1 < 16) {
-            if (this.player.dirFacing == "up") {
+            if (this.player.dirFacing.equals("up")) {
                 this.player.position.y +=1;
             }
-            else if (this.player.dirFacing == "down") {
+            else if (this.player.dirFacing.equals("down")) {
                 this.player.position.y -=1;
             }
-            else if (this.player.dirFacing == "left") {
+            else if (this.player.dirFacing.equals("left")) {
                 this.player.position.x -=1;
             }
-            else if (this.player.dirFacing == "right") {
+            else if (this.player.dirFacing.equals("right")) {
                 this.player.position.x +=1;
             }
 
@@ -2787,16 +2789,16 @@ class PlayerMoving extends Action {
     @Override
     public void firstStep(Game game) {
         this.initialPos = new Vector2(this.player.position);
-        if (this.player.dirFacing == "up") {
+        if (this.player.dirFacing.equals("up")) {
             this.targetPos = new Vector2(this.player.position.x, this.player.position.y+16);
         }
-        else if (this.player.dirFacing == "down") {
+        else if (this.player.dirFacing.equals("down")) {
             this.targetPos = new Vector2(this.player.position.x, this.player.position.y-16);
         }
-        else if (this.player.dirFacing == "left") {
+        else if (this.player.dirFacing.equals("left")) {
             this.targetPos = new Vector2(this.player.position.x-16, this.player.position.y);
         }
-        else if (this.player.dirFacing == "right") {
+        else if (this.player.dirFacing.equals("right")) {
             this.targetPos = new Vector2(this.player.position.x+16, this.player.position.y);
         }
     }
@@ -2818,19 +2820,19 @@ class PlayerMoving extends Action {
         // while you haven't moved 16 pixels,
          // move in facing direction
 
-        if (game.player.dirFacing == "up") {
+        if (game.player.dirFacing.equals("up")) {
             game.player.position.y +=1;
             game.cam.position.y +=1;
         }
-        else if (game.player.dirFacing == "down") {
+        else if (game.player.dirFacing.equals("down")) {
             game.player.position.y -=1;
             game.cam.position.y -=1;
         }
-        else if (game.player.dirFacing == "left") {
+        else if (game.player.dirFacing.equals("left")) {
             game.player.position.x -=1;
             game.cam.position.x -=1;
         }
-        else if (game.player.dirFacing == "right") {
+        else if (game.player.dirFacing.equals("right")) {
             game.player.position.x +=1;
             game.cam.position.x +=1;
         }
@@ -2912,16 +2914,16 @@ class PlayerMoving extends Action {
     public void remoteStep(Game game) {
         this.player.network.syncTimer++;
         // allows game to pause in middle of run
-        if (this.player.dirFacing == "up") {
+        if (this.player.dirFacing.equals("up")) {
             this.player.position.y +=1;
         }
-        else if (this.player.dirFacing == "down") {
+        else if (this.player.dirFacing.equals("down")) {
             this.player.position.y -=1;
         }
-        else if (this.player.dirFacing == "left") {
+        else if (this.player.dirFacing.equals("left")) {
             this.player.position.x -=1;
         }
-        else if (this.player.dirFacing == "right") {
+        else if (this.player.dirFacing.equals("right")) {
             this.player.position.x +=1;
         }
         this.xDist = Math.abs(this.initialPos.x - this.player.position.x);
@@ -2988,16 +2990,16 @@ class PlayerRunning extends Action {
         this.player = player;
 
         this.initialPos = new Vector2(this.player.position);
-        if (this.player.dirFacing == "up") {
+        if (this.player.dirFacing.equals("up")) {
             this.targetPos = new Vector2(this.player.position.x, this.player.position.y+16);
         }
-        else if (this.player.dirFacing == "down") {
+        else if (this.player.dirFacing.equals("down")) {
             this.targetPos = new Vector2(this.player.position.x, this.player.position.y-16);
         }
-        else if (this.player.dirFacing == "left") {
+        else if (this.player.dirFacing.equals("left")) {
             this.targetPos = new Vector2(this.player.position.x-16, this.player.position.y);
         }
-        else if (this.player.dirFacing == "right") {
+        else if (this.player.dirFacing.equals("right")) {
             this.targetPos = new Vector2(this.player.position.x+16, this.player.position.y);
         }
         this.player.currState = "Running";
@@ -3022,19 +3024,19 @@ class PlayerRunning extends Action {
 
         float speed = 1.6f; // this needs to add up to 16 for smoothness?
 
-        if (game.player.dirFacing == "up") {
+        if (game.player.dirFacing.equals("up")) {
             this.player.position.y +=speed;
             game.cam.position.y +=speed;
         }
-        else if (game.player.dirFacing == "down") {
+        else if (game.player.dirFacing.equals("down")) {
             game.player.position.y -=speed;
             game.cam.position.y -=speed;
         }
-        else if (game.player.dirFacing == "left") {
+        else if (game.player.dirFacing.equals("left")) {
             game.player.position.x -=speed;
             game.cam.position.x -=speed;
         }
-        else if (game.player.dirFacing == "right") {
+        else if (game.player.dirFacing.equals("right")) {
             game.player.position.x +=speed;
             game.cam.position.x +=speed;
         }
@@ -3744,16 +3746,16 @@ class PlayerStanding extends Action {
         if (InputProcessor.aJustPressed) {
             // place the built tile
             Vector2 pos = new Vector2(0,0);
-            if (game.player.dirFacing == "right") {
+            if (game.player.dirFacing.equals("right")) {
                 pos = new Vector2(game.player.position.cpy().add(16,0));
             }
-            else if (game.player.dirFacing == "left") {
+            else if (game.player.dirFacing.equals("left")) {
                 pos = new Vector2(game.player.position.cpy().add(-16,0));
             }
-            else if (game.player.dirFacing == "up") {
+            else if (game.player.dirFacing.equals("up")) {
                 pos = new Vector2(game.player.position.cpy().add(0,16));
             }
-            else if (game.player.dirFacing == "down") {
+            else if (game.player.dirFacing.equals("down")) {
                 pos = new Vector2(game.player.position.cpy().add(0,-16));
             }
             Tile currTile = game.map.tiles.get(pos);
@@ -3888,7 +3890,7 @@ class PlayerStanding extends Action {
                     game.insertAction(action);
 
                     if (game.type == Game.Type.CLIENT) {
-                        game.client.sendTCP(new Network.UseHM(game.player.network.id, 0, "CUT"));
+                        game.client.sendTCP(new Network.UseHM(game.player.network.id, 0, "CUT", game.player.dirFacing));
                     }
                 }
                 this.detectIsHouseBuilt(game, currTile);
@@ -4100,106 +4102,48 @@ class PlayerStanding extends Action {
 //                game.server.sendToTCP(this.player.network.connectionId, new Network.RelocatePlayer(this.player.position));
             }
 
-            // TODO: this didn't work, remove if unused.
-//            boolean updateTiles = false;
-//            Vector2 bottomLeft = new Vector2();
-//            Vector2 topRight = new Vector2();
-//            if (this.player.position.x <= this.player.network.loadingZone.x+96) {
-//                topRight.x = this.player.network.loadingZone.x;
-//                this.player.network.loadingZone.translate(-128f, 0f);
-//                bottomLeft.x = this.player.network.loadingZone.x;
-//                topRight.y = this.player.network.loadingZone.topRight().y;
-//                bottomLeft.y = this.player.network.loadingZone.y;
-//                updateTiles = true;
-//            }
-//            else if (this.player.position.x >= this.player.network.loadingZone.topRight().x-96) {
-//                bottomLeft.x = this.player.network.loadingZone.topRight().x;
-//                this.player.network.loadingZone.translate(128f, 0f);
-//                topRight.x = this.player.network.loadingZone.topRight().x;
-//                topRight.y = this.player.network.loadingZone.topRight().y;
-//                bottomLeft.y = this.player.network.loadingZone.y;
-//                updateTiles = true;
-//            }
-//            else if (this.player.position.y <= this.player.network.loadingZone.y+96) {
-//                topRight.y = this.player.network.loadingZone.y;
-//                this.player.network.loadingZone.translate(0, -128f);
-//                bottomLeft.y = this.player.network.loadingZone.y;
-//                topRight.x = this.player.network.loadingZone.topRight().x;
-//                bottomLeft.x = this.player.network.loadingZone.x;
-//                updateTiles = true;
-//            }
-//            else if (this.player.position.y >= this.player.network.loadingZone.topRight().y-96) {
-//                bottomLeft.y = this.player.network.loadingZone.topRight().y;
-//                this.player.network.loadingZone.translate(0f, 128f);
-//                topRight.y = this.player.network.loadingZone.topRight().y;
-//                topRight.x = this.player.network.loadingZone.topRight().x;
-//                bottomLeft.x = this.player.network.loadingZone.x;
-//                updateTiles = true;
-//            }
-//            if (updateTiles) {
-//                Network.MapTiles mapTiles = new Network.MapTiles();
-//                for (Vector2 position = bottomLeft; position.y < topRight.y; position.add(16, 0)) {
-//                    if (position.x > topRight.x) {
-//                        position.add(0, 16);
-//                        position.x = bottomLeft.x-16;
-//                        continue;
-//                    }
-//                    Tile tile = game.map.tiles.get(position);
-//                    if (tile == null) {
-//                        continue;
-//                    }
-//                    mapTiles.tiles.add(new Network.TileData(tile));
-//                    if (mapTiles.tiles.size() >= 16) {
-//                        game.server.sendToTCP(this.player.network.connectionId, mapTiles);
-//                        mapTiles.tiles.clear();
-//                    }
-//                }
-//                game.server.sendToTCP(this.player.network.connectionId, mapTiles);
-//                for (Player otherPlayer : game.players.values()) {
-//                    if (otherPlayer == this.player) {
-//                        continue;
-//                    }
-//                    if (this.player.network.loadingZone.contains(otherPlayer.position)) {
-//                        Network.ServerPlayerData serverPlayerData = new Network.ServerPlayerData(otherPlayer);
-//                        game.server.sendToTCP(this.player.network.connectionId, serverPlayerData);
-//                    }
-//                }
-//            }
-            
-            // TODO: also send interior tiles that are in loading zone
-            // If player is at edge of loading zone, send more tiles to client
-            if (this.player.position.x <= this.player.network.loadingZone.x+96) {
-                this.player.network.loadingZone.translate(-128f, 0f);
+            // TODO: probably move this to end of playermoving? or it's own function.
+            if (!this.player.network.loadingZone.inner.contains(this.player.position)) {
+                LoadingZone oldZone = new LoadingZone(this.player.network.loadingZone);
+                oldZone.inner = new LoadingZone(this.player.network.loadingZone.inner);
+                if (this.player.position.x < oldZone.inner.x) {
+                    this.player.network.loadingZone.translate(-112, 0);
+                }
+                else if (this.player.position.x >= oldZone.inner.topRight().x) {
+                    this.player.network.loadingZone.translate(112, 0);
+                }
+                if (this.player.position.y < oldZone.inner.y) {
+                    this.player.network.loadingZone.translate(0, -112);
+                }
+                else if (this.player.position.y >= oldZone.inner.topRight().y) {
+                    this.player.network.loadingZone.translate(0, 112);
+                }
                 Network.MapTiles mapTiles = new Network.MapTiles();
-//                for (Vector2 position = this.player.network.loadingZoneBL.cpy();
-//                     position.y < this.player.network.loadingZoneTR.y; position.add(16, 0)) {
-                for (Vector2 position = this.player.network.loadingZone.bottomLeft();
-                     position.y < this.player.network.loadingZone.topRight().y;
-                     position.add(16, 0)) {
+                for (Vector2 position : this.player.network.loadingZone.diff(oldZone)) {
                     Tile tile = game.map.tiles.get(position);
                     if (tile == null) {
                         continue;
                     }
                     mapTiles.tiles.add(new Network.TileData(tile));
-                    if (position.x >= player.position.x) {
-                        position.add(0, 16);
-                        position.x = player.network.loadingZone.x;
+                    // TODO: test
+                    tile = game.map.interiorTiles.get(game.map.interiorTilesIndex).get(position);
+                    if (tile != null) {
+                        mapTiles.tiles.add(new Network.TileData(tile, game.map.interiorTilesIndex));
                     }
                     // the larger the number, the more the client hangs when receiving.
                     // 16 seemed to cause little hangup.
                     if (mapTiles.tiles.size() >= 16) {
-                        game.server.sendToTCP(this.player.network.connectionId, mapTiles);
+                        game.server.sendToTCP(player.network.connectionId, mapTiles);
                         mapTiles.tiles.clear();
                     }
                     // TODO: test
                     if (game.map.pokemon.containsKey(position)) {
                         Pokemon pokemon = game.map.pokemon.get(position);
-                        game.server.sendToTCP(this.player.network.connectionId,
+                        game.server.sendToTCP(player.network.connectionId,
                                               new Network.OverworldPokemonData(pokemon, position));
                     }
-                    
                 }
-                game.server.sendToTCP(this.player.network.connectionId, mapTiles);
+                game.server.sendToTCP(player.network.connectionId, mapTiles);
                 for (Player otherPlayer : game.players.values()) {
                     if (otherPlayer == this.player) {
                         continue;
@@ -4210,155 +4154,15 @@ class PlayerStanding extends Action {
                     }
                 }
                 for (Vector2 pos : game.map.pokemon.keySet()) {
+                    // TODO: this seems wrong, should remove the '!'?
                     if (!this.player.network.loadingZone.contains(pos)) {
                         Pokemon pokemon = game.map.pokemon.get(pos);
                         game.server.sendToTCP(this.player.network.connectionId,
                                               new Network.OverworldPokemonData(pokemon, pos));
-                        
                     }
                 }
             }
-            if (this.player.position.x >= this.player.network.loadingZone.topRight().x-96) {
-                // TODO: remove
-//                this.player.network.loadingZoneBL.add(128, 0);
-//                this.player.network.loadingZoneTR.add(128, 0);
-                this.player.network.loadingZone.translate(128f, 0f);
-                Network.MapTiles mapTiles = new Network.MapTiles();
-                for (Vector2 position = new Vector2(this.player.position.x, this.player.network.loadingZone.y);
-                     position.y < this.player.network.loadingZone.topRight().y; position.add(16, 0)) {
-                    Tile tile = game.map.tiles.get(position);
-                    if (tile == null) {
-                        continue;
-                    }
-                    mapTiles.tiles.add(new Network.TileData(tile));
-                    if (position.x >= this.player.network.loadingZone.topRight().x) {
-                        position.add(0, 16);
-                        position.x = this.player.position.x;
-                    }
-                    if (mapTiles.tiles.size() >= 16) {
-                        game.server.sendToTCP(this.player.network.connectionId, mapTiles);
-                        mapTiles.tiles.clear();
-                    }
-                    // TODO: test
-                    if (game.map.pokemon.containsKey(position)) {
-                        Pokemon pokemon = game.map.pokemon.get(position);
-                        game.server.sendToTCP(this.player.network.connectionId,
-                                              new Network.OverworldPokemonData(pokemon, position));
-                    }
-                }
-                game.server.sendToTCP(this.player.network.connectionId, mapTiles);
-                for (Player otherPlayer : game.players.values()) {
-                    if (otherPlayer == this.player) {
-                        continue;
-                    }
-                    if (this.player.network.loadingZone.contains(otherPlayer.position)) {
-                        Network.ServerPlayerData serverPlayerData = new Network.ServerPlayerData(otherPlayer);
-                        game.server.sendToTCP(this.player.network.connectionId, serverPlayerData);
-                    }
-                }
-                for (Vector2 pos : game.map.pokemon.keySet()) {
-                    if (!this.player.network.loadingZone.contains(pos)) {
-                        Pokemon pokemon = game.map.pokemon.get(pos);
-                        game.server.sendToTCP(this.player.network.connectionId,
-                                              new Network.OverworldPokemonData(pokemon, pos));
-                        
-                    }
-                }
-            }
-            if (this.player.position.y <= this.player.network.loadingZone.y+96) {
-                // TODO: remove
-//                this.player.network.loadingZoneBL.add(0, -128);
-//                this.player.network.loadingZoneTR.add(0, -128);
-                this.player.network.loadingZone.translate(0, -128f);
-                Network.MapTiles mapTiles = new Network.MapTiles();
-                for (Vector2 position = this.player.network.loadingZone.bottomLeft();
-                     position.y < this.player.position.y; position.add(16, 0)) {
-                    Tile tile = game.map.tiles.get(position);
-                    if (tile == null) {
-                        continue;
-                    }
-                    mapTiles.tiles.add(new Network.TileData(tile));
-                    if (position.x >= this.player.network.loadingZone.topRight().x) {
-                        position.add(0, 16);
-                        position.x = this.player.network.loadingZone.x;
-                    }
-                    if (mapTiles.tiles.size() >= 16) {
-                        game.server.sendToTCP(this.player.network.connectionId, mapTiles);
-                        mapTiles.tiles.clear();
-                    }
-                    // TODO: test
-                    if (game.map.pokemon.containsKey(position)) {
-                        Pokemon pokemon = game.map.pokemon.get(position);
-                        game.server.sendToTCP(this.player.network.connectionId,
-                                              new Network.OverworldPokemonData(pokemon, position));
-                    }
-                }
-                game.server.sendToTCP(this.player.network.connectionId, mapTiles);
-                for (Player otherPlayer : game.players.values()) {
-                    if (otherPlayer == this.player) {
-                        continue;
-                    }
-                    if (this.player.network.loadingZone.contains(otherPlayer.position)) {
-                        Network.ServerPlayerData serverPlayerData = new Network.ServerPlayerData(otherPlayer);
-                        game.server.sendToTCP(this.player.network.connectionId, serverPlayerData);
-                    }
-                }
-                for (Vector2 pos : game.map.pokemon.keySet()) {
-                    if (!this.player.network.loadingZone.contains(pos)) {
-                        Pokemon pokemon = game.map.pokemon.get(pos);
-                        game.server.sendToTCP(this.player.network.connectionId,
-                                              new Network.OverworldPokemonData(pokemon, pos));
-                        
-                    }
-                }
-            }
-            if (this.player.position.y >= this.player.network.loadingZone.topRight().y-96) {
-                // TODO: remove
-//                this.player.network.loadingZoneBL.add(0, 128);
-//                this.player.network.loadingZoneTR.add(0, 128);
-                this.player.network.loadingZone.translate(0f, 128f);
-                Network.MapTiles mapTiles = new Network.MapTiles();
-                for (Vector2 position = new Vector2(this.player.network.loadingZone.x, this.player.position.y);
-                     position.y < this.player.network.loadingZone.topRight().y; position.add(16, 0)) {
-                    Tile tile = game.map.tiles.get(position);
-                    if (tile == null) {
-                        continue;
-                    }
-                    mapTiles.tiles.add(new Network.TileData(tile));
-                    if (position.x >= this.player.network.loadingZone.topRight().x) {
-                        position.add(0, 16);
-                        position.x = this.player.network.loadingZone.x;
-                    }
-                    if (mapTiles.tiles.size() >= 16) {
-                        game.server.sendToTCP(this.player.network.connectionId, mapTiles);
-                        mapTiles.tiles.clear();
-                    }
-                    // TODO: test
-                    if (game.map.pokemon.containsKey(position)) {
-                        Pokemon pokemon = game.map.pokemon.get(position);
-                        game.server.sendToTCP(this.player.network.connectionId,
-                                              new Network.OverworldPokemonData(pokemon, position));
-                    }
-                }
-                game.server.sendToTCP(this.player.network.connectionId, mapTiles);
-                for (Player otherPlayer : game.players.values()) {
-                    if (otherPlayer == this.player) {
-                        continue;
-                    }
-                    if (this.player.network.loadingZone.contains(otherPlayer.position)) {
-                        Network.ServerPlayerData serverPlayerData = new Network.ServerPlayerData(otherPlayer);
-                        game.server.sendToTCP(this.player.network.connectionId, serverPlayerData);
-                    }
-                }
-                for (Vector2 pos : game.map.pokemon.keySet()) {
-                    if (!this.player.network.loadingZone.contains(pos)) {
-                        Pokemon pokemon = game.map.pokemon.get(pos);
-                        game.server.sendToTCP(this.player.network.connectionId,
-                                              new Network.OverworldPokemonData(pokemon, pos));
-                        
-                    }
-                }
-            }
+
         }
 
         // draw the sprite corresponding to player direction
@@ -4405,7 +4209,7 @@ class PlayerStanding extends Action {
             Tile temp = this.player.network.tiles.get(newPos);
 
             // Check if traveling through interior door.
-            if (this.player.dirFacing.equals("down") && currTile.name.contains("rug")) {
+            if (this.player.dirFacing.equals("down") && currTile != null && currTile.name.contains("rug")) {
                 if (this.player.network.tiles == game.map.overworldTiles) {
                     this.player.network.tiles = game.map.interiorTiles.get(game.map.interiorTilesIndex);
                     game.insertAction(new PlayerMoving(game, this.player, this.alternate));

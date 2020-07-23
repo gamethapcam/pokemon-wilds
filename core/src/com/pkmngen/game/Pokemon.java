@@ -182,10 +182,10 @@ public class Pokemon {
             this.loadOverworldSprites(name);
 
             // Custom attributes - better way to handle this?
-            if (name.equals("machop")) {
-                this.hms.add("CUT");  // TODO: debug, remove
-//                this.hms.add("BUILD");
-            }
+//            if (name.equals("machop")) {
+//                this.hms.add("CUT");  // TODO: debug, remove
+////                this.hms.add("BUILD");
+//            }
 
             // Custom attributes - better way to handle this?
             if (name.equals("sneasel") || name.equals("scyther")) {

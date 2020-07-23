@@ -136,6 +136,9 @@ public class Game extends ApplicationAdapter {
         if (this.map != null) {
             new PkmnMap.PeriodicSave(this).step(this);
         }
+        if (this.server != null) {
+            this.server.close();
+        }
     }
 
     /**
@@ -143,10 +146,14 @@ public class Game extends ApplicationAdapter {
      */
     private void handleDebuggingInput() {
         if(Gdx.input.isKeyPressed(Input.Keys.Q)) {
-            cam.zoom += 0.5;
+            if (cam.zoom < 8) {
+                cam.zoom += 0.5;
+            }
         }
         if(Gdx.input.isKeyPressed(Input.Keys.E)) {
-            cam.zoom -= 0.5;
+            if (cam.zoom > 1) {
+                cam.zoom -= 0.5;
+            }
         }
         if(Gdx.input.isKeyPressed(Input.Keys.A)) {
             if (cam.position.x > -10000)
@@ -173,6 +180,8 @@ public class Game extends ApplicationAdapter {
             for (Action action : this.actionStack) {
                 System.out.println(String.valueOf(action.getLayer()) + "  " + action.getClass().getName());
             }
+            System.out.println(CycleDayNight.dayTimer);
+            System.out.println(this.map.timeOfDay);
         }
         // Check network type (reset when pressed)
         if (Gdx.input.isKeyJustPressed(Input.Keys.M)) {
@@ -406,7 +415,12 @@ public class Game extends ApplicationAdapter {
                     action.firstStep(this);
                     action.firstStep = false;
                 }
-                action.step(this);
+                try {
+                    action.step(this);
+                }
+                catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
         }
         this.mapBatch.end();
@@ -418,7 +432,12 @@ public class Game extends ApplicationAdapter {
                     action.firstStep(this);
                     action.firstStep = false;
                 }
-                action.step(this);
+                try {
+                    action.step(this);
+                }
+                catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
         }
 //        font.draw(this.uiBatch, "input: " + new Vector2(Gdx.input.getX(), Gdx.input.getY()), 0, 20);
@@ -523,9 +542,9 @@ public class Game extends ApplicationAdapter {
 //        this.player.pokemon.get(1).attacks[0] = "Ice Beam";  // TODO: debug, remove
 //        this.player.pokemon.add(new Pokemon("stantler", 50, Pokemon.Generation.CRYSTAL));
 //        this.player.pokemon.add(new Pokemon("Ditto", 6, Pokemon.Generation.CRYSTAL));
-        this.player.pokemon.add(new Pokemon("Lunatone", 6, Pokemon.Generation.CRYSTAL));
-        this.player.pokemon.add(new Pokemon("Celebi", 6, Pokemon.Generation.CRYSTAL));
-        this.player.pokemon.add(new Pokemon("Mareep", 6, Pokemon.Generation.CRYSTAL));
+//        this.player.pokemon.add(new Pokemon("Lunatone", 6, Pokemon.Generation.CRYSTAL));
+//        this.player.pokemon.add(new Pokemon("Celebi", 6, Pokemon.Generation.CRYSTAL));
+//        this.player.pokemon.add(new Pokemon("Mareep", 6, Pokemon.Generation.CRYSTAL));
         this.player.currPokemon = this.player.pokemon.get(0);
 
         // TODO: debug, remove

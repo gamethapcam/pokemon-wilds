@@ -136,7 +136,7 @@ class ClientBroadcast extends Action {
                             else if (object instanceof Network.BattleTurnData) {
                                 Network.BattleTurnData turnData = (Network.BattleTurnData) object;
                                 game.battle.network.turnData = turnData;
-                                System.out.println("Recieved turn data.");
+//                                System.out.println("Recieved turn data.");
                             }
 
                             // A server is changing a tile (ie player built or cut something within this player's loading zone)
@@ -199,10 +199,13 @@ class ClientBroadcast extends Action {
                                     throw new Exception();
                                 }
                                 Player player = game.players.get(useHM.playerId);
-                                if (!player.pokemon.get(useHM.pokemonIndex).hms.contains(useHM.hm)) {
-                                    System.out.println("UseHM: Invalid HM " + useHM.hm + " for index " + useHM.pokemonIndex + ", sent by server");
+                                if (useHM.hm.equals("STOP")) {
+                                    player.isBuilding = false;
+                                    player.isCutting = false;
+                                    player.isHeadbutting = false;
+                                    player.isJumping = false;
                                 }
-                                if (useHM.hm.equals("CUT")) {
+                                else if (useHM.hm.equals("CUT")) {
                                     Vector2 pos = player.facingPos(useHM.dirFacing);
                                     Tile currTile = player.network.tiles.get(pos);
                                     if (currTile.attrs.containsKey("cuttable") && currTile.attrs.get("cuttable")) {
@@ -210,6 +213,25 @@ class ClientBroadcast extends Action {
                                         game.map.interiorTiles.get(game.map.interiorTilesIndex).remove(currTile.position.cpy());
                                         game.insertAction(action);
                                     }
+                                }
+                                else if (useHM.hm.equals("JUMP")) {
+                                    player.isHeadbutting = false;
+                                    player.isBuilding = false;
+                                    player.isCutting = false;
+                                    player.isJumping = true;
+                                }
+                            }
+                            else if (object instanceof Network.UseItem) {
+                                Network.UseItem useItem = (Network.UseItem) object;
+                                if (!game.players.containsKey(useItem.playerId)) {
+                                    System.out.println("UseHM: Invalid player id " + useItem.playerId + ", sent by: server");
+                                    throw new Exception();
+                                }
+                                Player player = game.players.get(useItem.playerId);
+                                Vector2 pos = player.facingPos(useItem.dirFacing);
+//                                System.out.println(pos);
+                                if (useItem.item.contains("apricorn")) {
+                                    game.insertAction(new PlantTree(pos, null));
                                 }
                             }
                         }
@@ -265,6 +287,7 @@ public class Network {
         kryo.register(RelocatePlayer.class);
         kryo.register(RouteData.class);
         kryo.register(UseHM.class);
+        kryo.register(UseItem.class);
         kryo.register(Sleep.class);
         kryo.register(Craft.class);
         kryo.register(DropItem.class);
@@ -441,8 +464,8 @@ public class Network {
         public ArrayList<HashMap<Vector2, TileData>> interiorTiles = new ArrayList<HashMap<Vector2, TileData>>();
         int interiorTilesIndex;
 
-        // used to sync time with server
-        String timeOfDay;
+        // Used to sync time with server
+        String timeOfDay = null;
         int dayTimer;
 
         public MapTiles(){}
@@ -776,6 +799,23 @@ public class Network {
         }
     }
 
+    /**
+     * Sent client->server to notify that the player used an item.
+     */
+    static public class UseItem {
+        String playerId;
+        String item;
+        String dirFacing;
+
+        public UseItem(){}
+
+        public UseItem(String playerId, String item, String dirFacing) {
+            this.playerId = playerId;
+            this.item = item;
+            this.dirFacing = dirFacing;
+        }
+    }
+
     // TODO: remove if unused
     static public class SyncedHashMap {
         String name;
@@ -838,10 +878,9 @@ class ServerBroadcast extends Action {
                 Runnable runnable = new Runnable() {
                     public void run() {
                         try {
-                            // client is notifying server that it wants to load map tiles
+                            // Client is notifying server that it wants to load map tiles
                             if (object instanceof Network.Login) {
                                 Network.Login login = (Network.Login) object;
-                                Network.MapTiles mapTiles = new Network.MapTiles();
 
                                 // If player doesn't exist, add them to game.players
                                 // TODO: obviously need diff handling, need to require password
@@ -850,9 +889,9 @@ class ServerBroadcast extends Action {
                                     Player player = new Player();
                                     // Spawn player at random edge location
                                     // NOTE: Comment to start players in middle (like for debug)
-//                                    Vector2 startLoc = game.map.edges.get(game.map.rand.nextInt(game.map.edges.size()));
-//                                    player.position.set(startLoc);
-//                                    player.spawnLoc.set(startLoc);
+                                    Vector2 startLoc = game.map.edges.get(game.map.rand.nextInt(game.map.edges.size()));
+                                    player.position.set(startLoc);
+                                    player.spawnLoc.set(startLoc);
                                     //
                                     player.type = Player.Type.REMOTE;
                                     player.network = player.new Network(player.position);
@@ -870,15 +909,15 @@ class ServerBroadcast extends Action {
 //                                    player.currPokemon.attacks[1] = "Hydro Pump";
                                     player.pokemon.add(player.currPokemon);
 //                                    player.currPokemon.currentStats.put("hp", 2); // TODO: debug, remove
-                                    player.pokemon.add(new Pokemon("stantler", 6, Pokemon.Generation.CRYSTAL));
-                                    player.pokemon.add(new Pokemon("lunatone", 6, Pokemon.Generation.CRYSTAL));
-                                    player.pokemon.add(new Pokemon("mareep", 6, Pokemon.Generation.CRYSTAL));
+//                                    player.pokemon.add(new Pokemon("stantler", 6, Pokemon.Generation.CRYSTAL));
+//                                    player.pokemon.add(new Pokemon("lunatone", 6, Pokemon.Generation.CRYSTAL));
+//                                    player.pokemon.add(new Pokemon("mareep", 6, Pokemon.Generation.CRYSTAL));
                                     // ---
                                     game.players.put(playerId, player);
                                 }
-                                Player player = game.players.get(login.playerId);
+                                final Player player = game.players.get(login.playerId);
                                 player.network.connectionId = connection.getID();
-                                // send over player data
+                                // Send over player data
                                 Network.PlayerData playerData = new Network.PlayerData(player);
                                 connection.sendTCP(playerData);
 
@@ -889,10 +928,14 @@ class ServerBroadcast extends Action {
                                 if (!game.actionStack.contains(player.standingAction)) {
                                     game.insertAction(player.standingAction);
                                 }
-
+//                                // TODO: the runnable didn't seem like it helped.
+//                                Thread thread = new Thread(new Runnable() {
+//                                    public void run() {
+                                Network.MapTiles mapTiles = new Network.MapTiles();
                                 // Get map.tiles in square around player and send them back
-                                for (Vector2 position = player.network.loadingZone.bottomLeft();
-                                     position.y < player.network.loadingZone.topRight().y; position.add(16, 0)) {
+//                                        for (Vector2 position = player.network.loadingZone.bottomLeft();
+//                                             position.y < player.network.loadingZone.topRight().y; position.add(16, 0)) {
+                                for (Vector2 position : player.network.loadingZone.allPositions()) {
                                     Tile tile = game.map.overworldTiles.get(position);
                                     if (tile == null) {
                                         continue;
@@ -907,25 +950,23 @@ class ServerBroadcast extends Action {
                                     if (game.map.pokemon.containsKey(position)) {
                                         Pokemon pokemon = game.map.pokemon.get(position);
                                         connection.sendTCP(new Network.OverworldPokemonData(pokemon, position));
-                                        System.out.println(pokemon);
-                                    }
-                                    
-                                    if (position.x >= player.network.loadingZone.topRight().x) {
-                                        position.add(0, 16);
-                                        position.x = player.network.loadingZone.x;
                                     }
                                     // how many can we send without hitting buffer limit?
                                     //                              if (mapTiles.tiles.size() >= 16) {
-                                    if (mapTiles.tiles.size() >= 32) {
+                                    if (mapTiles.tiles.size() >= 16) {
                                         connection.sendTCP(mapTiles);
                                         mapTiles.tiles.clear();
                                     }
-                                    
                                 }
                                 // Time of day sync
                                 mapTiles.dayTimer = CycleDayNight.dayTimer;
                                 mapTiles.timeOfDay = game.map.timeOfDay;
                                 connection.sendTCP(mapTiles);
+//                                    }
+//                                });
+//                                thread.start();
+//                                thread.join();
+                                
                                 // Send players that are within loading zone
                                 // TODO: may have to have a HashMap<Vector2, Player> for performance
                                 for (Player otherPlayer : game.players.values()) {
@@ -1292,10 +1333,6 @@ class ServerBroadcast extends Action {
 //                                    player.isJumping = false;
                                 }
                                 else if (useHM.hm.equals("CUT")) {
-//                                    player.isCutting = true;
-//                                    player.isBuilding = false;
-//                                    player.isHeadbutting = false;
-//                                    player.isJumping = false;
                                     Vector2 pos = player.facingPos(useHM.dirFacing);
                                     Tile currTile = player.network.tiles.get(pos);
                                     if (currTile.attrs.containsKey("cuttable") && currTile.attrs.get("cuttable")) {
@@ -1334,11 +1371,40 @@ class ServerBroadcast extends Action {
                                         continue;
                                     }
                                     if (otherPlayer.network.loadingZone.contains(player.position)) {
-                                        useHM.playerId = otherPlayer.network.number;
+                                        useHM.playerId = player.network.number;
                                         game.server.sendToTCP(otherPlayer.network.connectionId, useHM);
                                     }
                                 }
-                                
+                            }
+                            else if (object instanceof Network.UseItem) {
+                                Network.UseItem useItem = (Network.UseItem) object;
+                                if (!game.players.containsKey(useItem.playerId)) {
+                                    System.out.println("UseItem: Invalid player id " + useItem.playerId + ", sent by: " + connection.getRemoteAddressTCP().toString());
+                                    throw new Exception();
+                                }
+                                Player player = game.players.get(useItem.playerId);
+                                if (!player.itemsDict.containsKey(useItem.item)) {
+                                    System.out.println("UseItem: None of this item in inventory: " + useItem.item + ", sent by: " + connection.getRemoteAddressTCP().toString());
+                                    throw new Exception();
+                                }
+                                Vector2 pos = player.facingPos(useItem.dirFacing);
+                                if (useItem.item.contains("apricorn")) {
+                                    game.insertAction(new PlantTree(pos, null));
+                                }
+                                // Deduct from inventory
+                                player.itemsDict.put(useItem.item, player.itemsDict.get(useItem.item)-1);
+                                if (player.itemsDict.get(useItem.item) <= 0) {
+                                    player.itemsDict.remove(useItem.item);
+                                }
+                                for (Player otherPlayer : game.players.values()) {
+                                    if (player == otherPlayer) {
+                                        continue;
+                                    }
+                                    if (otherPlayer.network.loadingZone.contains(player.position)) {
+                                        useItem.playerId = player.network.number;
+                                        game.server.sendToTCP(otherPlayer.network.connectionId, useItem);
+                                    }
+                                }
                             }
                             else if (object instanceof Network.Sleep) {
                                 Network.Sleep sleep = (Network.Sleep) object;
@@ -1490,9 +1556,9 @@ class ServerBroadcast extends Action {
                                     }
                                 }
 //                              // TODO: debug, delete
-                                for (String item : player.itemsDict.keySet()) {
-                                    System.out.println(player.itemsDict.get(item).toString() + " " + item);
-                                }
+//                                for (String item : player.itemsDict.keySet()) {
+//                                    System.out.println(player.itemsDict.get(item).toString() + " " + item);
+//                                }
                             }
                             else if (object instanceof Network.LearnMove) {
                                 // Check if move is in current level learnmoves, or less.

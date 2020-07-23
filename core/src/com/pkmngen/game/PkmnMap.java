@@ -144,12 +144,12 @@ class DrawMap extends Action {
             game.mapBatch.draw(tile.sprite, tile.sprite.getX(), tile.sprite.getY());
             // tile.sprite.draw(game.batch);
 
-            // oversprite is often ledges
-            if (tile.overSprite != null) {
-                game.mapBatch.draw(tile.overSprite, tile.overSprite.getX(), tile.overSprite.getY());
-                // tile.overSprite.draw(game.batch); // doesn't allow
-                // coloring via batch // TODO - remove
-            }
+//            // oversprite is often ledges
+//            if (tile.overSprite != null) {
+//                game.mapBatch.draw(tile.overSprite, tile.overSprite.getX(), tile.overSprite.getY());
+//                // tile.overSprite.draw(game.batch); // doesn't allow
+//                // coloring via batch // TODO - remove
+//            }
 
             /*
              * I regret everything, shouldn't have tried to do this at all.
@@ -337,6 +337,10 @@ class DrawMapGrass extends Action {
             // TODO: shouldn't be doing this here, need to refactor map draw action
             if (tile.nameUpper.contains("sleeping_bag")) {
                 tile.overSprite.draw(game.mapBatch);
+            }
+
+            if (tile.overSprite != null) {
+                game.mapBatch.draw(tile.overSprite, tile.overSprite.getX(), tile.overSprite.getY());
             }
         }
 
@@ -785,7 +789,7 @@ public class PkmnMap {
     }
 
     // TODO: test
-    SyncedHashMap<Vector2, Tile> testTiles = new SyncedHashMap<Vector2, Tile>("game.map.tiles");
+//    Synced.HashMap<Vector2, Tile> testTiles = new Synced.HashMap<Vector2, Tile>("game.map.tiles");
 
     public PkmnMap(String mapName) {
         this.id = mapName;
@@ -2313,7 +2317,6 @@ class Tile {
             }
             if (!this.nameUpper.contains("floor") && !this.nameUpper.contains("pokeball") && !this.nameUpper.contains("bush")) {
                 this.attrs.put("cuttable", true);
-                // TODO: test
                 this.items.put("grass", 1);
                 this.items.put("log", 1);
             }
@@ -2506,7 +2509,8 @@ class TrainerTipsTile extends Tile {
         game.insertAction(new DisplayText(game, "TRAINER TIPS!    ", null, null,
                           new DisplayText.Clear(game,
                           new DisplayText(game, this.message, null, null,
+                          new WaitFrames(game, 3,  // this fixes issue where final A press will re-trigger text.
                           new SetField(game, "playerCanMove", true,
-                          null)))));
+                          null))))));
     }
 }

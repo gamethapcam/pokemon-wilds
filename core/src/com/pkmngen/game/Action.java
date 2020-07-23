@@ -1091,12 +1091,14 @@ class DrawSetupMenu extends Action {
         textArray = "1234567890".toCharArray();
         for (int i=0; i < textArray.length; i++) {
             this.numberKeys.put(Input.Keys.valueOf(String.valueOf(textArray[i])), textArray[i]);
+            this.alphanumericKeys.put(Input.Keys.valueOf(String.valueOf(textArray[i])), textArray[i]);
+            this.alphanumericKeysShift.put(Input.Keys.valueOf(String.valueOf(textArray[i])), textArray[i]);
         }
         this.numberKeys.put(Input.Keys.PERIOD, '.');
 
         this.colors.add(new Color(0.9137255f, 0.5294118f, 0.1764706f, 1f));  // Original texture color.
-        this.colors.add(Color.WHITE);
-        this.colors.add(Color.BLACK);
+//        this.colors.add(Color.WHITE);
+//        this.colors.add(Color.BLACK);
         this.colors.add(new Color(46f/255f, 113f/255f, 1f, 1f));  // blue
         this.colors.add(Color.CYAN);
         this.colors.add(new Color(47f/255f, 229f/255f, 53f/255f, 1f));  // green
@@ -1235,6 +1237,13 @@ class DrawSetupMenu extends Action {
                             game.uiBatch.draw(letterSprite, 8 + 8*this.serverIp.size(), 128 -16 -16*j);
                         }
                     }
+                    else if (this.serverIp.size() <= 0) {
+                        textArray = "127.0.0.1".toCharArray();
+                        for (int i=0; i < textArray.length; i++) {
+                            letterSprite = game.textDict.get(textArray[i]);
+                            game.uiBatch.draw(letterSprite, 8 +8*i, 128 -16*(j+1));
+                        }
+                    }
                 }
                 else {
                     char[] textArray = "File".toCharArray();
@@ -1266,6 +1275,13 @@ class DrawSetupMenu extends Action {
                         if (DrawSetupMenu.avatarAnimCounter >= 12) {
                             letterSprite = game.textDict.get('_');
                             game.uiBatch.draw(letterSprite, 8 +5*8 + 8*this.mapName.size(), 128 -16*j);
+                        }
+                    }
+                    else if (this.mapName.size() <=0) {
+                        textArray = "default".toCharArray();
+                        for (int i=0; i < textArray.length; i++) {
+                            letterSprite = game.textDict.get(textArray[i]);
+                            game.uiBatch.draw(letterSprite, 8 +5*8 +8*i, 128 -16*j);
                         }
                     }
                     for (int i=0; i < this.mapName.size(); i++) {

@@ -10,6 +10,7 @@ public class DesktopLauncher {
         int scale = 3;  // scale viewport
         config.width = scale * 160;
         config.height = scale * 144;
+        config.title = "Pokémon Wilds";
         new LwjglApplication(new Game(args), config);
     }
 }
