@@ -9,6 +9,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.math.Vector2;
+import com.pkmngen.game.Pokemon.Standing;
 
 public class GenForest2 extends Action {
     public static void FlipFormat(String[][] format){
@@ -1396,9 +1397,8 @@ class GenIsland1 extends Action {
         }
 
         // post-process - remove stray trees
-        // TODO: there's still some white tiles
-        // TODO: this occasionally causes crash (when tile == null)
         // Might need a better way to store tiles bigger than 16x16
+        // Timed this part, took 42 milliseconds for large map.
         for (int i=0; i < 1; i++) {
             Vector2 tl;
             Vector2 tr;
@@ -1463,6 +1463,8 @@ class GenIsland1 extends Action {
             }
         }
 
+        // TODO: this part takes a long time (6 seconds for small map, ~20 for larger map)
+        long startTime = System.currentTimeMillis();
         // Post-processing - find all outer water tiles. Any adjacent land is an edge.
         // TODO: if any water on land isn't in this group, make into a puddle. (not ponds tho...)
         ArrayList<Tile> currTiles = new ArrayList<Tile>();
@@ -1473,11 +1475,11 @@ class GenIsland1 extends Action {
             Vector2 currPos = currTiles.get(0).position.cpy();
             Vector2 newPos;
             for (int i=-1; i < 2; i++){
-                if (i == 0) {
-                    continue;
-                }
                 for (int j=-1; j < 2; j++){
-                    if (j == 0) {
+//                    if (i==0 && j == 0) {
+//                        continue;
+//                    }
+                    if (i == j || i == -j || (i == 0 && j == 0)) {
                         continue;
                     }
                     newPos = currPos.cpy().add(i*16, j*16);
@@ -1494,6 +1496,7 @@ class GenIsland1 extends Action {
             }
             currTiles.remove(0);
         }
+        System.out.println("End post-process: " + String.valueOf(System.currentTimeMillis()-startTime));
 
         // TODO: remove if not using
 //        for (Tile tile : new ArrayList<Tile>(this.tilesToAdd.values())) {
@@ -1702,6 +1705,44 @@ class GenIsland1 extends Action {
                                 // spawn pokeball items
                                 else if (isRock <= maxDist + maxDist/2 && isGrass < maxDist - maxDist/4 && this.rand.nextInt(200) == 0) {
                                     newTile = new Tile(newTile.name, "pokeball1", edge, true, currRoute);
+                                }
+                                // Spawn a friendly overworld pokemon
+                                else if (isRock <= maxDist + maxDist/2 && isGrass < maxDist - maxDist/4 && this.rand.nextInt(450) == 0) {
+                                    int centerLevel;
+                                    if (maxDist > 300) {
+                                        centerLevel = 30;
+                                    }
+                                    else {
+                                        centerLevel = 15;
+                                    }
+                                    int level = (int)(centerLevel*(1-(distance / (2*maxDist/5))));
+                                    if (level < 4) {
+                                        level = 4;
+                                    }
+                                    Route blotchRoute;
+                                    if ((int)distance < 2*maxDist/8 && maxDist > 600) {
+                                        blotchRoute = new Route("deep_forest", level);
+                                    }
+                                    else if ((int)distance < 3*maxDist/8) {
+                                        blotchRoute = new Route("forest1", level);
+                                    }
+                                    else {
+                                        blotchRoute = new Route("savanna1", level);
+                                    }
+//                                    String[] candidates = new String[]{"oddish", "charmander", "squirtle", "bulbasaur"};
+//                                    Pokemon pokemon = new Pokemon(candidates[game.map.rand.nextInt(candidates.length)],
+//                                                                  6, Pokemon.Generation.CRYSTAL);
+                                    Pokemon pokemon = blotchRoute.pokemon.remove(0);
+//                                    blotchRoute.genPokemon(256);
+                                    pokemon.position = edge.cpy();
+                                    pokemon.mapTiles = game.map.tiles;
+                                    // TODO: uncomment
+                                    if (pokemon.name.toLowerCase().equals("tauros") || pokemon.name.toLowerCase().equals("ekans")
+                                            || pokemon.name.toLowerCase().equals("pidgey") || pokemon.name.toLowerCase().equals("spearow")
+                                            || pokemon.name.toLowerCase().equals("rattata")) {
+                                        pokemon.happiness = 0;
+                                    }
+                                    game.insertAction(pokemon.new Standing());
                                 }
                                 if (isMaze == 0) {
                                     int isTree = this.rand.nextInt(maxDist/4) + (int)distance;

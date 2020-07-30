@@ -209,7 +209,7 @@ class CycleDayNight extends Action {
         this.animIndex = 0;
 
         this.rand = new Random();
-        CycleDayNight.dayTimer = 10000; // 100; //- debug // 10000;
+        CycleDayNight.dayTimer = 18000; // 100; //- debug // 10000;
 
         Texture text = new Texture(Gdx.files.internal("text2.png"));
         this.bgSprite = new Sprite(text, 0, 0, 160, 144);
@@ -233,11 +233,11 @@ class CycleDayNight extends Action {
         if (CycleDayNight.dayTimer <= 0) {
             if (game.map.timeOfDay.equals("Day")) {
                 this.fadeToNight = true;
-                CycleDayNight.dayTimer = 3000; // debug  // was 10000
+                CycleDayNight.dayTimer = 5000; // debug  // was 10000
             }
             else if (game.map.timeOfDay.equals("Night")) {
                 this.fadeToDay = true;
-                CycleDayNight.dayTimer = 10000; // 1000 - debug
+                CycleDayNight.dayTimer = 18000; // 10000 // 1000 - debug
             }
         }
 
@@ -264,19 +264,22 @@ class CycleDayNight extends Action {
 //                game.currMusic = music;
 //                game.map.currRoute.music = music; // TODO - how to switch to normal after defeating
 //                game.currMusic.play();
-                
-                String nextMusicName = game.map.currRoute.getNextMusic(true);
-                BattleFadeOutMusic.playerFainted = true;  // TODO: this is just a hack around issues with FadeMusic
-                Action nextMusic = new BattleFadeOutMusic(game,
-                                   new WaitFrames(game, 360,
-                                   new FadeMusic(nextMusicName, "in", "", 0.2f, true, 1f, game.musicCompletionListener,
-                                   null)));
-                game.insertAction(nextMusic);
+
+                if (game.type != Game.Type.SERVER) {
+                    String nextMusicName = game.map.currRoute.getNextMusic(true);
+                    BattleFadeOutMusic.playerFainted = true;  // TODO: this is just a hack around issues with FadeMusic
+                    Action nextMusic = new BattleFadeOutMusic(game,
+                                       new WaitFrames(game, 360,
+                                       new FadeMusic(nextMusicName, "in", "", 0.2f, true, 1f, game.musicCompletionListener,
+                                       null)));
+                    game.fadeMusicAction = nextMusic;
+                    game.insertAction(nextMusic);
+                }
 
                 // state which day it is
                 day++;
                 signCounter = 300;
-                this.bgSprite.setPosition(0,24);
+                this.bgSprite.setPosition(0, 24);
 
                 // All planted trees become full size trees
                 if (game.type != Game.Type.CLIENT) {
@@ -308,13 +311,16 @@ class CycleDayNight extends Action {
 //                game.currMusic.pause();
                 if (game.type != Game.Type.SERVER) {
                     game.currMusic.stop();
-                    game.currMusic.dispose();
+                    game.actionStack.remove(game.fadeMusicAction);
                     // start night music
-                    Music music = Gdx.audio.newMusic(Gdx.files.internal("night1.ogg"));
+                    if (!game.loadedMusic.containsKey("night1")) {
+                        game.loadedMusic.put("night1", Gdx.audio.newMusic(Gdx.files.internal("night1.ogg")));
+                    }
+                    Music music = game.loadedMusic.get("night1");
                     music.setLooping(true);
                     music.setVolume(.7f);
                     game.currMusic = music;
-                    game.map.currRoute.music = music; // TODO - how to switch to normal after defeating
+                    game.map.currRoute.music = music;
                     game.currMusic.play();
                 }
                 // state which night it is
@@ -324,8 +330,8 @@ class CycleDayNight extends Action {
             }
         }
 
-        // check player can move so don't spawn in middle of battle or when looking at ghost
-        // if player is near a campfire, don't deduct from ghost spawn timer
+        // Check player can move so don't spawn in middle of battle or when looking at ghost
+        // If player is near a campfire, don't deduct from ghost spawn timer
         if (game.map.timeOfDay.equals("Night") && game.playerCanMove == true && !game.player.isNearCampfire && game.map.currBiome.equals("deep_forest")) {
             countDownToGhost--;
             if (game.player.currState != "Running") {
@@ -338,6 +344,7 @@ class CycleDayNight extends Action {
                 // TODO: mess with this.
 //                this.countDownToGhost = this.rand.nextInt(4000) + 1000; // debug: 1000;
                 this.countDownToGhost = this.rand.nextInt(2000) + 1000; // debug: 1000;
+                
             }
         }
 
@@ -1352,6 +1359,9 @@ class DrawGhost extends Action {
             game.battle.oppPokemon = this.pokemon;
             game.playerCanMove = false;
             game.insertAction(Battle.getIntroAction(game));
+            if (game.type == Game.Type.CLIENT) {
+                game.client.sendTCP(new Network.BattleData(this.pokemon, game.player.network.id));
+            }
         }
     }
 }
@@ -1958,6 +1968,7 @@ public class Player {
         for (com.pkmngen.game.Network.PokemonData pokemonData : playerData.pokemon) {
             this.pokemon.add(new Pokemon(pokemonData));
         }
+        // TODO: remove
         if (this.pokemon.size() > 0) {
             this.currPokemon = this.pokemon.get(0);
         }
@@ -2030,12 +2041,18 @@ public class Player {
         // Remove required materials from player inventory
         Craft craft = Player.crafts.get(craftIndex);
         for (Player.Craft req : craft.requirements) {
-            for (String item : this.itemsDict.keySet()) {
-                if (item.equals(req.name)) {
-                    int newAmt = this.itemsDict.get(item)-(req.amount*amount);
-                    this.itemsDict.put(item, newAmt);
-                    break;
-                }
+            // TODO: remove
+//            for (String item : this.itemsDict.keySet()) {
+//                if (item.equals(req.name)) {
+//                    int newAmt = this.itemsDict.get(item)-(req.amount*amount);
+//                    this.itemsDict.put(item, newAmt);
+//                    break;
+//                }
+//            }
+            int newAmt = this.itemsDict.get(req.name)-(req.amount*amount);
+            this.itemsDict.put(req.name, newAmt);
+            if (newAmt <= 0) {
+                this.itemsDict.remove(req.name);
             }
         }
         int newAmt = amount;
@@ -2229,6 +2246,7 @@ class PlayerBump extends Action {
 
     int maxTime = 10; // 20 reminded me of gold version I think
     boolean alternate = false;
+    public static boolean alternate2 = false;
 
     Player player;
     public PlayerBump(Game game) {
@@ -2267,7 +2285,6 @@ class PlayerBump extends Action {
         }
 
         // when facingDir key is released, go to playerStanding
-
         if (!InputProcessor.upPressed && game.player.dirFacing.equals("up")) {
             game.insertAction(new PlayerStanding(game));
             game.actionStack.remove(this);
@@ -2290,11 +2307,11 @@ class PlayerBump extends Action {
         this.player.network.syncTimer++;
         timer++;
 
-        if (this.timer >= 2*maxTime ) {
-            this.alternate = !this.alternate;
-            this.timer = 0;
-            game.insertAction(new PlaySound("bump2", null));
-        }
+//        if (this.timer >= 2*maxTime ) {
+//            this.alternate = !this.alternate;
+//            this.timer = 0;
+//            game.insertAction(new PlaySound("bump2", null));
+//        }
 
         if (this.timer < maxTime) {
             if (this.alternate) {
@@ -2308,9 +2325,7 @@ class PlayerBump extends Action {
             this.player.currSprite = this.player.standingSprites.get(this.player.dirFacing);
         }
 
-        // when facingDir key is released, go to playerStanding
-        if (!this.player.network.shouldMove) {
-//            game.insertAction(new playerStanding(game, this.player, true, false));
+        if (this.timer >= 2*maxTime || this.player.network.shouldMove) {
             this.player.standingAction.alternate = true;
             this.player.standingAction.isRunning = false;
             game.insertAction(this.player.standingAction);
@@ -3559,8 +3574,10 @@ class PlayerStanding extends Action {
 //                        game.battle.music2.stop();
 //                        game.battle.music2.setVolume(0.3f);
                         game.battle.music.stop();
+                        game.battle.music.setVolume(0.3f);
 //                        game.battle.music.setVolume(0.3f);
                         BattleFadeOutMusic.stop = true;
+                        FadeMusic.pause = true;
                         // TODO: debug, remove
 //                        game.currMusic.play();
 //                        game.currMusic.pause();
@@ -3574,6 +3591,14 @@ class PlayerStanding extends Action {
                     game.map.unownUsed.remove(unownLetter);
                     game.battle.oppPokemon = new Pokemon("unown_"+unownLetter, 13, Pokemon.Generation.CRYSTAL);
                 }
+                // The first Pokemon the player sends out in battle should
+                // have >0 hp.
+                for (Pokemon currPokemon : this.player.pokemon) {
+                    if (currPokemon.currentStats.get("hp") > 0) {
+                        this.player.currPokemon = currPokemon;
+                        break;
+                    }
+                }
                 game.insertAction(Battle.getIntroAction(game));
                 this.checkWildEncounter = false;
                 return;
@@ -3582,6 +3607,14 @@ class PlayerStanding extends Action {
         }
         // else, check if the server sent an encounter
         else if (this.player.network.doEncounter != null) {
+            // The first Pokemon the player sends out in battle should
+            // have >0 hp.
+            for (Pokemon currPokemon : this.player.pokemon) {
+                if (currPokemon.currentStats.get("hp") > 0) {
+                    this.player.currPokemon = currPokemon;
+                    break;
+                }
+            }
             game.playerCanMove = false;
             Network.PokemonData pokemonData = this.player.network.doEncounter.pokemonData;
             game.battle.oppPokemon = new Pokemon(pokemonData.name,
@@ -3589,10 +3622,15 @@ class PlayerStanding extends Action {
                                                  pokemonData.generation);
             game.battle.oppPokemon.currentStats.put("hp", pokemonData.hp);
             game.insertAction(Battle.getIntroAction(game));
-            game.currMusic.pause();
-            game.currMusic = game.battle.music;
-            game.currMusic.stop();
-            game.currMusic.play();
+            if (!game.map.timeOfDay.equals("Night")) {
+                game.currMusic.pause();
+                game.currMusic = game.battle.music;
+                game.battle.music.stop();
+                game.battle.music.setVolume(0.3f);
+                game.currMusic.play();
+                BattleFadeOutMusic.stop = true;
+                FadeMusic.pause = true;
+            }
             this.checkWildEncounter = false;
             this.player.network.doEncounter = null;
             return;
@@ -3888,7 +3926,6 @@ class PlayerStanding extends Action {
                     }
                     action.append(new SetField(game, "playerCanMove", true, null));
                     game.insertAction(action);
-
                     if (game.type == Game.Type.CLIENT) {
                         game.client.sendTCP(new Network.UseHM(game.player.network.id, 0, "CUT", game.player.dirFacing));
                     }
@@ -4132,7 +4169,7 @@ class PlayerStanding extends Action {
                     }
                     // the larger the number, the more the client hangs when receiving.
                     // 16 seemed to cause little hangup.
-                    if (mapTiles.tiles.size() >= 16) {
+                    if (mapTiles.tiles.size() >= 14) {  // buffer overflow at 16?
                         game.server.sendToTCP(player.network.connectionId, mapTiles);
                         mapTiles.tiles.clear();
                     }
@@ -4153,19 +4190,20 @@ class PlayerStanding extends Action {
                         game.server.sendToTCP(this.player.network.connectionId, serverPlayerData);
                     }
                 }
-                for (Vector2 pos : game.map.pokemon.keySet()) {
-                    // TODO: this seems wrong, should remove the '!'?
-                    if (!this.player.network.loadingZone.contains(pos)) {
-                        Pokemon pokemon = game.map.pokemon.get(pos);
-                        game.server.sendToTCP(this.player.network.connectionId,
-                                              new Network.OverworldPokemonData(pokemon, pos));
-                    }
-                }
+                // TODO: test without
+//                for (Vector2 pos : game.map.pokemon.keySet()) {
+//                    // TODO: this seems wrong, should remove the '!'?
+//                    if (!this.player.network.loadingZone.contains(pos)) {
+//                        Pokemon pokemon = game.map.pokemon.get(pos);
+//                        game.server.sendToTCP(this.player.network.connectionId,
+//                                              new Network.OverworldPokemonData(pokemon, pos));
+//                    }
+//                }
             }
 
         }
 
-        // draw the sprite corresponding to player direction
+        // Draw the sprite corresponding to player direction
         if (this.player.network.isRunning == true) {
             this.player.currSprite = new Sprite(this.player.standingSprites.get(this.player.dirFacing+"_running"));
         }
@@ -4314,7 +4352,14 @@ class PlayerStanding extends Action {
                 // check wild encounter on next position, send back if yes
                 Pokemon pokemon = checkWildEncounter(game, newPos);
                 if (pokemon != null) {
-                    // TODO: this may stop player from moving server-side
+                    // The first Pokemon the player sends out in battle should
+                    // have >0 hp.
+                    for (Pokemon currPokemon : this.player.pokemon) {
+                        if (currPokemon.currentStats.get("hp") > 0) {
+                            this.player.currPokemon = currPokemon;
+                            break;
+                        }
+                    }
                     this.player.canMove = false;
                     game.server.sendToTCP(this.player.network.connectionId,
                                           new Network.BattleData(pokemon));
@@ -4419,12 +4464,21 @@ class PlayerStanding extends Action {
                 this.player.zSprite.setPosition(this.player.position.x+16, this.player.position.y+18);
             }
             this.player.zsTimer++;
-            if (this.player.zsTimer >= 128) {
+            if (this.player.zsTimer >= 128 ) {
                 // Restore pokemon hp
                 // TODO: restore player hp
                 // TODO: this needs to go in remoteStep or something for remote player
                 for (Pokemon pokemon : this.player.pokemon) {
-                    pokemon.currentStats.put("hp", pokemon.currentStats.get("hp")+1);
+                    boolean indoors = (this.player.network.tiles == game.map.overworldTiles);
+                    if (game.type == Game.Type.CLIENT) {
+                        indoors = (game.map.tiles == game.map.overworldTiles);
+                    }
+                    if (indoors) {
+                        pokemon.currentStats.put("hp", pokemon.currentStats.get("hp")+1);
+                    }
+                    else {
+                        pokemon.currentStats.put("hp", pokemon.currentStats.get("hp")+2);
+                    }
                     if (pokemon.currentStats.get("hp") >= pokemon.maxStats.get("hp")) {
                         pokemon.currentStats.put("hp", pokemon.maxStats.get("hp"));
                     }

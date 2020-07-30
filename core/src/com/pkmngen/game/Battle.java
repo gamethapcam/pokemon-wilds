@@ -3095,7 +3095,6 @@ public class Battle {
 
             // If expecting player to switch, enemy does nothing
             if (game.battle.network.expectPlayerSwitch) {
-                System.out.println("TODO: remove");
                 game.battle.network.expectPlayerSwitch = false;
                 doTurn = playerAction;
                 doTurn.append(new DisplayText.Clear(game,
@@ -3609,7 +3608,8 @@ class BattleFadeOut extends Action {
             game.playerCanMove = true;
             DrawBattle.shouldDrawOppPokemon = true;
             // TODO: gameboy game handles this differently
-            game.player.currPokemon = game.player.pokemon.get(0);
+            // TODO: remove
+//            game.player.currPokemon = game.player.pokemon.get(0);
             return;
         }
 
@@ -3659,8 +3659,8 @@ class BattleFadeOutMusic extends Action {
     // and normally the fade out would be skipped.
     public static boolean playerFainted = false;
     public static boolean stop = false;
-
     public int layer = 129;
+
     public BattleFadeOutMusic(Game game, Action nextAction) {
         this.nextAction = nextAction;
         this.frames = new ArrayList<Float>();
@@ -3709,7 +3709,7 @@ class BattleFadeOutMusic extends Action {
         }
 //        this.music = game.currMusic;
 
-        // if done with anim, do nextAction
+        // If done with anim, do nextAction
         if (frames.isEmpty() || BattleFadeOutMusic.stop) {  // || FadeMusic.currFadeMusic != this
             game.insertAction(this.nextAction);
             game.actionStack.remove(this);
@@ -3717,13 +3717,14 @@ class BattleFadeOutMusic extends Action {
                 this.music.stop();
             }
             this.music.setVolume(this.originalVolume);
-            // make sure we are out of battle before resetting map music
+            // Make sure we are out of battle before resetting map music
             if (game.battle.drawAction == null && !BattleFadeOutMusic.playerFainted) {
                 game.currMusic = game.map.currRoute.music;
                 game.currMusic.play();
             }
             BattleFadeOutMusic.playerFainted = false;
             BattleFadeOutMusic.stop = false;
+            FadeMusic.pause = false;
             return;
         }
         // get next frame
@@ -4805,7 +4806,7 @@ class DepleteEnemyHealth extends Action {
             // If enemy health is 0, do EnemyFaint
             if (game.battle.oppPokemon.currentStats.get("hp") <= 0) {
                 int exp = game.battle.calcFaintExp();
-                game.player.currPokemon.exp += 1000; //exp;
+                game.player.currPokemon.exp += exp;
                 Action nextAction = new EnemyFaint(game,
                                     new RemoveDisplayText(  // TODO: refactor to stop using this
                                     new DisplayText.Clear(game,
@@ -6836,7 +6837,16 @@ class DrawPokemonMenu extends MenuAction {
                     return new SelectedMenu.Switch(prevMenu);
                 }
                 else if (game.player.pokemon.get(DrawPokemonMenu.currIndex).currentStats.get("hp") <= 0) {
-                    return new PlaySound("error1", null);
+                    this.disabled = true;
+                    game.insertAction(this.prevMenu);
+                    return new PlaySound("error1",
+                           new SetField(this.prevMenu, "disabled", false, null));
+                }
+                else if (game.player.pokemon.get(DrawPokemonMenu.currIndex) == game.player.currPokemon) {
+                    this.disabled = true;
+                    game.insertAction(this.prevMenu);
+                    return new PlaySound("error1",
+                           new SetField(this.prevMenu, "disabled", false, null));
                 }
                 else {
                     if (game.type == Game.Type.CLIENT) {
@@ -7021,17 +7031,21 @@ class DrawPokemonMenu extends MenuAction {
 
             if (InputProcessor.aJustPressed) {
                 // get action for this item
-
                 // perform the action
                  // actually this will probably be performed in 'getAction'
-
                 String word = this.words.get(this.curr);
                 if ("CANCEL".equals(word)) {
                     DrawPokemonMenu.avatarAnimCounter = 24;
                     game.insertAction(new PlaySound("click1", null));
                     game.actionStack.remove(this);
-                    game.insertAction(new DrawPokemonMenu.Outro(
-                                      this.prevMenu.prevMenu));
+                    if (game.battle.drawAction == null) {
+                        game.insertAction(new DrawPokemonMenu.Outro(
+                                          this.prevMenu.prevMenu));
+                    }
+                    else {
+                        this.prevMenu.disabled = false;
+                        game.insertAction(this.prevMenu);
+                    }
                     return;
                 }
                 else {
@@ -7266,6 +7280,12 @@ class DrawPokemonMenu extends MenuAction {
                         DrawPokemonMenu.avatarAnimCounter = 24;
                         game.actionStack.remove(this);
                         game.insertAction(new Switch.Outro(this));
+                        if (game.type == Game.Type.CLIENT) {
+                            game.client.sendTCP(new com.pkmngen.game.Network.UseHM(game.player.network.id,
+                                                                                   this.startPosition,
+                                                                                   "SWITCH",
+                                                                                   this.curr));
+                        }
                         return;
                     }
                     // player presses b, ie wants to go back
@@ -8873,13 +8893,14 @@ class SpecialBattleMegaGengar extends Action {
                 }
             });
 
+            // TODO: needs to be fixed to use LinkedMusic.
             // pre-load battle music
-            temp = Gdx.audio.newMusic(Gdx.files.internal("battle/mgengar_battle1.wav"));
-            temp.setLooping(true);
-            temp.setVolume(0.2f);
-            temp.play();
-            temp.pause();
-            game.loadedMusic.put("mgengar_battle1", temp);
+//            temp = Gdx.audio.newMusic(Gdx.files.internal("battle/mgengar_battle1.wav"));
+//            temp.setLooping(true);
+//            temp.setVolume(0.2f);
+//            temp.play();
+//            temp.pause();
+//            game.loadedMusic.put("mgengar_battle1", temp);
 
             this.firstStep = false;
         }

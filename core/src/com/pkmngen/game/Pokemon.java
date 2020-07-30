@@ -96,6 +96,7 @@ public class Pokemon {
     boolean isRunning = false;
     public boolean shouldMove = false;  // used by client listener to trigger remote pokemon to move.
     Player.Type type = Player.Type.LOCAL;
+    Player previousOwner = null;
 
     // this reference is used when needing to stop drawing pokemon in battle screen
      // could also just be oppPokemonDrawAction in battle, I think
@@ -1134,7 +1135,7 @@ public class Pokemon {
 //            }
             int col = (dexNumber % 15) * 2;
             int row = (int)((dexNumber) / 15);
-            this.spriteOffsetY = row*16;
+            this.spriteOffsetY = 31 +row*25;
             for (String dir : new String[]{"up", "down", "left", "right"}) {
                 this.standingSprites.put(dir, new Sprite(text, 1 +col*17, 31 +row*25, 16, 16));
                 this.movingSprites.put(dir, new Sprite(text, 1 +col*17 +17, 31 +row*25, 16, 16));
@@ -1346,6 +1347,7 @@ public class Pokemon {
             }
 
             if (game.player.pokemon.size() < 6) {
+                Pokemon.this.previousOwner = game.player;
                 game.player.pokemon.add(Pokemon.this);
                 game.map.pokemon.remove(Pokemon.this.position);
                 game.actionStack.remove(Pokemon.this.standingAction);
@@ -1504,6 +1506,21 @@ public class Pokemon {
             game.map.pokemon.remove(Pokemon.this.position);
             game.map.pokemon.put(this.targetPos.cpy(), Pokemon.this);
             Pokemon.this.canMove = true;
+
+            // For each player in range, move this pokemon
+            // If the pokemon moves out of the player's loading zone, tell that client to remove it.
+            if (game.type == Game.Type.SERVER) {
+                for (Player player : game.players.values()) {
+                    if (player.network.loadingZone.contains(this.targetPos)) {
+                        game.server.sendToTCP(player.network.connectionId,
+                                              new Network.MovePokemon(Pokemon.this));
+                    }
+                    else if (player.network.loadingZone.contains(Pokemon.this.position)) {
+                        game.server.sendToTCP(player.network.connectionId,
+                                              new Network.OverworldPokemonData(Pokemon.this, Pokemon.this.position, true));
+                    }
+                }
+            }
         }
 
         @Override
@@ -1581,6 +1598,28 @@ public class Pokemon {
     }
 
     /**
+     * Tell server to unpause the pokemon.
+     */
+    public class UnPause extends Action {
+        public int layer = 130;
+        int moveTimer = 0;
+
+        public int getLayer(){
+            return this.layer;
+        }
+
+        @Override
+        public void firstStep(Game game) {
+            if (game.type == Game.Type.CLIENT) {
+                game.client.sendTCP(new Network.PausePokemon(game.player.network.id,
+                                                             Pokemon.this.position,
+                                                             false));
+            }
+            game.actionStack.remove(this);
+        }
+    }
+
+    /**
      * Pokemon standing in place (overworld), moving periodically.
      * TODO: consider just making Pokemon extend Action, then move this stuff out one level.
      */
@@ -1611,33 +1650,69 @@ public class Pokemon {
             game.insertAction(Pokemon.this.new DrawUpper());
             // If pokemon has low happiness, it starts running animation
             // TODO: this isn't used atm.
-            if (Pokemon.this.happiness <= 0) {
-                this.runTimer = 180;
-            }
+//            if (Pokemon.this.happiness <= 0) {
+//                this.runTimer = 180;
+//            }
         }
         
         public void localStep(Game game) {
             Pokemon.this.currOwSprite = Pokemon.this.standingSprites.get(Pokemon.this.dirFacing);
+            
+            if (this.runTimer <= 0 && !Pokemon.this.isRunning) {
+                // If player is running nearby and pokemon happiness is low, have it run away.
+                boolean nearPlayer = false;
+                for (Vector2 currPos = Pokemon.this.position.cpy().add(-64, -64); currPos.y < Pokemon.this.position.y+65;) {
+                    if (currPos.x > Pokemon.this.position.x+64) {
+                        currPos.x = Pokemon.this.position.x-64;
+                        currPos.y += 16;
+                        continue;
+                    }
+                    if (game.player.position.equals(currPos)) {
+                        nearPlayer = true;
+                        break;
+                    }
+                    currPos.x += 16;
+                }
+                if (Pokemon.this.happiness <= 0 && nearPlayer) {
+                    this.runTimer = 180;
+                }
+            }
 
             if (this.runTimer > 0 && !Pokemon.this.isRunning) {
                 if (this.runTimer == 170) {
                     game.insertAction(Pokemon.this.new Emote("!", null));
+                    game.insertAction(new PlaySound("ledge2", null));
                 }
                 if (this.runTimer == 110) {
+                    Pokemon.this.dirFacing = "left";
+                }
+                if (this.runTimer == 100) {
+                    Pokemon.this.dirFacing = "right";
+                }
+                if (this.runTimer == 90) {
                     Pokemon.this.dirFacing = "left";
                 }
                 if (this.runTimer == 80) {
                     Pokemon.this.dirFacing = "right";
                 }
-                if (this.runTimer == 50) {
-                    Pokemon.this.dirFacing = "left";
-                }
-                if (this.runTimer == 20) {
-                    Pokemon.this.dirFacing = "left";
-                }
-                if (this.runTimer == 1) {
+                if (this.runTimer == 70) {
                     Pokemon.this.isRunning = true;
                 }
+//                if (this.runTimer == 110) {
+//                    Pokemon.this.dirFacing = "left";
+//                }
+//                if (this.runTimer == 80) {
+//                    Pokemon.this.dirFacing = "right";
+//                }
+//                if (this.runTimer == 50) {
+//                    Pokemon.this.dirFacing = "left";
+//                }
+//                if (this.runTimer == 20) {
+//                    Pokemon.this.dirFacing = "left";
+//                }
+//                if (this.runTimer == 1) {
+//                    Pokemon.this.isRunning = true;
+//                }
                 this.runTimer--;
                 return;
             }
@@ -1815,15 +1890,6 @@ public class Pokemon {
 //                if (game.map.rand.nextInt(2) == 0) {
 //                    action.append(Pokemon.this.new Moving(false, null));
 //                }
-                // For each player in range, move this pokemon
-                if (game.type == Game.Type.SERVER) {
-                    for (Player player : game.players.values()) {
-                        if (player.network.loadingZone.contains(Pokemon.this.position)) {
-                            game.server.sendToTCP(player.network.connectionId,
-                                                  new Network.MovePokemon(Pokemon.this));
-                        }
-                    }
-                }
                 action.append(this);
                 game.insertAction(action);
                 Pokemon.this.standingAction = action;

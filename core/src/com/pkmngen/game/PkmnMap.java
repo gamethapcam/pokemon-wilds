@@ -324,9 +324,9 @@ class DrawMapGrass extends Action {
             // Don't draw sprites if not in camera view
             // note - when zoomed out, game will lag
             if (!game.cam.frustum.pointInFrustum(tile.position.x, tile.position.y, game.cam.position.z) &&
-                    !game.cam.frustum.pointInFrustum(tile.position.x+tile.sprite.getWidth(), tile.position.y+tile.sprite.getHeight(), game.cam.position.z) &&
+                    !game.cam.frustum.pointInFrustum(tile.position.x+tile.sprite.getWidth(), tile.position.y+tile.sprite.getHeight()+16, game.cam.position.z) &&
                     !game.cam.frustum.pointInFrustum(tile.position.x+tile.sprite.getWidth(), tile.position.y, game.cam.position.z) &&
-                    !game.cam.frustum.pointInFrustum(tile.position.x, tile.position.y+tile.sprite.getHeight(), game.cam.position.z)) {
+                    !game.cam.frustum.pointInFrustum(tile.position.x, tile.position.y+tile.sprite.getHeight()+16, game.cam.position.z)) {
                continue;
             }
             if (tile.attrs.get("grass")) {
@@ -531,6 +531,12 @@ class EnterBuilding extends Action {
                 }
                 else if (this.action.equals("exit")){
                     game.map.tiles = game.map.overworldTiles;
+                }
+                if (this.action.equals("enter")) {
+                    Gdx.gl.glClearColor(0, 0, 0, 1);
+                }
+                else {
+                    Gdx.gl.glClearColor(1, 1, 1, 1);
                 }
             }
             this.sprite.draw(game.uiBatch, 1f);
@@ -1407,11 +1413,14 @@ class Route {
             this.allowedPokemon.add("miltank");
             for (int i = 0; i < 2; i++) {
                 this.allowedPokemon.add("oddish");
+                this.allowedPokemon.add("chikorita");
+                this.allowedPokemon.add("bulbasaur");
+                this.allowedPokemon.add("hoppip");
                 this.allowedPokemon.add("pidgey");
-                for (int j = 0; j < 2; j++) {
-                    this.allowedPokemon.add("charmander");
-                    this.allowedPokemon.add("cyndaquil");
-                }
+//                for (int j = 0; j < 2; j++) {
+                this.allowedPokemon.add("charmander");
+                this.allowedPokemon.add("cyndaquil");
+//                }
                 this.allowedPokemon.add("mareep");
                 this.allowedPokemon.add("ekans");
                 this.allowedPokemon.add("doduo");
@@ -1503,7 +1512,7 @@ class Route {
 
         // TODO: possibly different per-route
         this.musics.add("nature1_render");
-//        this.musics.add("overw2");
+        this.musics.add("overw3");
         this.musics.add("route_42");
         this.musics.add("national_park1");
         this.musics.add("viridian_forest_gs");
@@ -2322,6 +2331,8 @@ class Tile {
             }
             if (this.nameUpper.equals("bush2_color")) {
                 this.attrs.put("headbuttable", true);
+                this.attrs.put("cuttable", true);
+                this.items.put("log", 1);
             }
             if (this.nameUpper.equals("pokeball1")) {
                 this.attrs.put("solid", true);
@@ -2371,37 +2382,39 @@ class Tile {
 
     public void onPressA(Game game) {
         if (this.hasItem != null) {
-            game.playerCanMove = false;
-            String number = "a";
-            String plural = "";
-            if (this.hasItemAmount > 1) {
-                number = String.valueOf(this.hasItemAmount);
-                plural = "S";
-                if (this.hasItem.endsWith("s")) {
-                    plural = "ES";
-                }
-            }
             if (game.type == Game.Type.CLIENT) {
                 game.client.sendTCP(new Network.PickupItem(game.player.network.id, game.player.dirFacing));
             }
             else {
+                game.playerCanMove = false;
+                String number = "a";
+                String plural = "";
+                if (this.hasItemAmount > 1) {
+                    number = String.valueOf(this.hasItemAmount);
+                    plural = "S";
+                    if (this.hasItem.endsWith("s")) {
+                        plural = "ES";
+                    }
+                }
                 game.insertAction(new DisplayText(game, "Found "+number+" "+this.hasItem.toUpperCase()+plural+"!", "fanfare1.ogg", null,
                                                   new SetField(game, "playerCanMove", true,
                                                   null)));
                 this.pickUpItem(game.player);
             }
         }
-        else if (this.nameUpper.contains("bush") || this.name.contains("grass")) {  // && !this.name.contains("large")
-            game.playerCanMove = false;
-            game.insertAction(new DisplayText(game, "A Grass-type POKÈMON can CUT this.", null, null,
-                              new SetField(game, "playerCanMove", true,
-                              null)));
-        }
-        else if (game.map.pokemon.containsKey(this.position)) { 
+        else if (game.map.pokemon.containsKey(this.position)) {
+            Pokemon pokemon = game.map.pokemon.get(this.position);
+            if (game.type == Game.Type.CLIENT) {
+                // Server will send a PausePokemon back if this succeeds.
+                game.client.sendTCP(new Network.PausePokemon(game.player.network.id,
+                                                             pokemon.position,
+                                                             true));
+                return;
+            }
+
 //            game.map.pokemon.get(this.position)
             // TODO: play animation
             game.playerCanMove = false;
-            Pokemon pokemon = game.map.pokemon.get(this.position);
             pokemon.canMove = false;
             String oppDir = "down";  // TODO: need a map for this.
             if (game.player.dirFacing.equals("up")) {
@@ -2416,14 +2429,17 @@ class Tile {
             else if (game.player.dirFacing.equals("left")) {
                 oppDir = "right";
             }
-
-            game.insertAction(new SetField(pokemon, "dirFacing", oppDir,
-                              new WaitFrames(game, 20,
-                              new SplitAction(pokemon.new Emote("happy", null),
-                              new WaitFrames(game, 20,
-                              new PlaySound(pokemon,
+            Action nextAction = new SetField(pokemon, "dirFacing", oppDir,
+                                new WaitFrames(game, 20,
+                                new SplitAction(pokemon.new Emote("happy", null),
+                                new WaitFrames(game, 20,
+                                new PlaySound(pokemon,
+                                null)))));
+            if (pokemon.previousOwner != game.player) {
+                nextAction.append(new DisplayText(game, pokemon.name.toUpperCase()+" seems friendly. ", null, false, true, null));
+            }
 //                              new DisplayText(game, "Put "+pokemon.name.toUpperCase()+" in it' POKÈBALL?", null, true, false,
-                              new DisplayText(game, "Add "+pokemon.name.toUpperCase()+" to your party?", null, true, false,
+            nextAction.append(new DisplayText(game, "Add "+pokemon.name.toUpperCase()+" to your party?", null, true, false,
                               new DrawYesNoMenu(null,
                                   new DisplayText.Clear(game,
                                   new WaitFrames(game, 3,
@@ -2435,7 +2451,15 @@ class Tile {
                               new WaitFrames(game, 3,
                               new SetField(game, "playerCanMove", true, 
                               new SetField(pokemon, "canMove", true,
-                              null))))))))))));
+                              null)))))));
+            game.insertAction(nextAction);
+        }
+        else if (this.nameUpper.contains("bush") || this.name.contains("grass")) {  // && !this.name.contains("large")
+            game.playerCanMove = false;
+            game.insertAction(new DisplayText(game, "A Grass-type POKÈMON can CUT this.", null, null,
+                              new WaitFrames(game, 3, 
+                              new SetField(game, "playerCanMove", true,
+                              null))));
         }
     }
 
@@ -2490,6 +2514,7 @@ class TrainerTipsTile extends Tile {
 //        TrainerTipsTile.messages.add("Build fences to prevent your pokemon from running away when you let them out of their POKÈBALL.");
         TrainerTipsTile.messages.add("Build fences to prevent your pokemon from wandering when you let them out of their POKÈBALL.");
         TrainerTipsTile.messages.add("You can build a door between two roof tiles to build a back door to your house.");
+        TrainerTipsTile.messages.add("Sleeping indoors will restore hp twice as fast as sleeping outdoors.");
     }
 
     @Override

@@ -55,6 +55,15 @@ public class Action {
     // Game game = Game.staticGame;
     Action nextAction = null;
     boolean firstStep = true;
+    
+    Object[] params;
+
+    public Action(Object... parameters) {
+//        for (Object param : parameters) {
+//            System.out.println(param);
+//        }
+        this.params = parameters;
+    }
 
     /**
      * Append an Action to the end of this chain of Actions.
@@ -1017,6 +1026,17 @@ class DrawMobileControls extends Action {
 }
 
 
+//interface TestAction {
+//    
+//    
+//    public TestAction(Object... params) {
+//        for (Object param : params) {
+//            System.out.println(param);
+//        }
+//    }
+//}
+
+
 /**
  * Displayed at the beginning of the game so that the player can specify setup options.
  */
@@ -1054,6 +1074,7 @@ class DrawSetupMenu extends Action {
     ArrayList<String> fileNames = new ArrayList<String>();
 
     public DrawSetupMenu(Game game, Action nextAction) {
+        super(game, nextAction);
         this.nextAction = nextAction;
         Texture text = new Texture(Gdx.files.internal("battle/arrow_right_white.png"));
         this.arrowWhite = new Sprite(text, 0, 0, 5, 7);
@@ -1551,7 +1572,9 @@ class DrawSetupMenu extends Action {
                                 game.map.loadFromFile(game);
                             }
                             // periodically save game in both host/local cases
-                            game.insertAction(new PkmnMap.PeriodicSave(game));
+                            // TODO: this lags too much for large maps, which causes server desync.
+                            // not sure what to do.
+//                            game.insertAction(new PkmnMap.PeriodicSave(game));
                         }
                         // join existing server
                         else {
@@ -1637,6 +1660,9 @@ class DrawSetupMenu extends Action {
     }
 }
 
+/**
+ * Fade the currently playing music in or out.
+ */
 class FadeMusic extends Action {
     String musicName;
     Music music;
@@ -1648,6 +1674,7 @@ class FadeMusic extends Action {
     boolean switchCurrMusic = false;
     Music.OnCompletionListener onCompleteListener;
     public static Action currFadeMusic;
+    public static boolean pause = false;
 
     public FadeMusic(String musicName, String direction, String shouldPause, float rate, Action nextAction) {
         this.musicName = musicName;
@@ -1678,7 +1705,6 @@ class FadeMusic extends Action {
         else {
             this.amt = rate;
         }
-
         this.nextAction = nextAction;
     }
 
@@ -1694,7 +1720,6 @@ class FadeMusic extends Action {
         else {
             this.amt = rate;
         }
-
         this.nextAction = nextAction;
     }
 
@@ -1704,16 +1729,11 @@ class FadeMusic extends Action {
     }
 
     public void step(Game game) {
-        // The reason that this is hear is to prevent a fadeout->fadein chain from overwriting battle music
-        // ie, music starts transitioning in overworld, player enters battle (changes game.currMusic), then fademusic(in)
-        // overwrites the battle music.
-        // This should be handled better somehow, not sure how though.
-        //  - still want the fademusic to continue after the battle (which this accomplishes).
-//        System.out.println(game.playerCanMove);
 //        if (!game.playerCanMove) {
 //            return;
 //        }
-        if (game.battle.drawAction != null) {
+        // If player enters battle, pause any music that's currently fading.
+        if (FadeMusic.pause) {
             return;
         }
 
@@ -1724,15 +1744,9 @@ class FadeMusic extends Action {
                     game.currMusic.play();
                 }
                 else {
-                    // load music if it isnt loaded already
+                    // Load music if it isn't loaded already
                     if (!game.loadedMusic.containsKey(this.musicName)) {
                         String extension = ".ogg";
-                        // test - wav file for android, to enable looping
-//                      if (this.musicName.equals("bg_rumble1")) {
-//                          extension = ".mp3";
-//                          System.out.println("using mp3 extension");
-//                      }
-
                         Music temp = Gdx.audio.newMusic(Gdx.files.internal("music/"+this.musicName+extension)); // danger1.ogg
 //                        temp.setLooping(true);  // TODO: don't think I need this
                         temp.setVolume(0.1f); // will always fade in (for now, have option to fade in fast) //.1f because of 'failed to allocate' bug
@@ -1740,26 +1754,11 @@ class FadeMusic extends Action {
                             temp.setOnCompletionListener(this.onCompleteListener);
                         }
                         game.loadedMusic.put(this.musicName, temp);
-
                     }
-
-//                  System.out.println("loaded music: "+this.musicName);
-//                  System.out.println(game.loadedMusic);
-
-                    // this.music.play(); // TODO - remove
                     game.loadedMusic.get(this.musicName).play();
                 }
-
-                // TODO - remove
-//              // set max volumes
-//              if (this.musicName.equals("s_and_c3-2")) {
-//                  this.maxVol = .9f;
-//              }
             }
-
-            if (this.switchCurrMusic == true) {
-//              game.currMusic = this.music; // TODO - remove
-
+            if (this.switchCurrMusic) {
                 // if currmusic still playing, fade it out
                 if (game.currMusic != null) {
                     if (game.currMusic.isPlaying()) {
@@ -1790,6 +1789,11 @@ class FadeMusic extends Action {
             this.firstStep = false;
         }
 
+        // The reason that this is here is to prevent a fadeout->fadein chain from overwriting battle music
+        // ie, music starts transitioning in overworld, player enters battle (changes game.currMusic), then fademusic(in)
+        // overwrites the battle music.
+        // This should be handled better somehow, not sure how though.
+        //  - still want the fademusic to continue after the battle (which this accomplishes).
         // TODO: test
         // if another FadeMusic got inserted, then stop doing stuff.
         if (FadeMusic.currFadeMusic != this) {
@@ -1799,15 +1803,15 @@ class FadeMusic extends Action {
             else if (this.direction.equals("out")) {
                 this.music.setVolume(0f);
             }
-            game.actionStack.remove(this);
-            return;
+//            game.actionStack.remove(this);
+//            return;
         }
-
-        this.music.setVolume(this.music.getVolume()+this.amt);
+        else {
+            this.music.setVolume(this.music.getVolume()+this.amt);
+        }
 
         if (this.direction.equals("out")) {
             if (music.getVolume() <= 0.1f) { // bug - for some reason this can't be .0f - no idea why. 'failed to allocate' issue if play() (on any Music) ever called in future
-
                 if (this.shouldPause.equals("pause")) {
                     this.music.setVolume(0.1f);
                     this.music.pause();
@@ -1831,13 +1835,12 @@ class FadeMusic extends Action {
                 game.insertAction(this.nextAction);
             }
         }
-
     }
 }
 
 /**
  * Handle input events in a less annoying fashion than libGDX input processors.
- * Note: this is called before all Actions, so functionally behaves exactly
+ * Note: this is called before all Actions, so functionally behaves (almost) exactly
  * the same as an InputProcessor.
  */
 class InputProcessor extends Action {

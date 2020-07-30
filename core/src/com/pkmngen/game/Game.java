@@ -67,6 +67,7 @@ public class Game extends ApplicationAdapter {
     HashMap<String, Player> players = new HashMap<String, Player>();
     // Server determines outcome of all actions done in battle
     HashMap<String, Battle> battles = new HashMap<String, Battle>();
+    Action fadeMusicAction = null;
     // Network
     public Client client;
     public Server server;
@@ -139,6 +140,10 @@ public class Game extends ApplicationAdapter {
         if (this.server != null) {
             this.server.close();
         }
+        if (this.type == Game.Type.CLIENT) {
+            Network.Logout logoutPlayer = new Network.Logout(this.player.network.id);
+            this.client.sendTCP(logoutPlayer);
+        }
     }
 
     /**
@@ -180,8 +185,14 @@ public class Game extends ApplicationAdapter {
             for (Action action : this.actionStack) {
                 System.out.println(String.valueOf(action.getLayer()) + "  " + action.getClass().getName());
             }
-            System.out.println(CycleDayNight.dayTimer);
-            System.out.println(this.map.timeOfDay);
+            System.out.println("Time of day: " + this.map.timeOfDay + " " + String.valueOf(CycleDayNight.dayTimer));
+            System.out.println("player pokemon");
+            for (Player player : this.players.values()) {
+                System.out.println("curr pokemon:" + player.currPokemon.name);
+                for (Pokemon pokemon : player.pokemon) {
+                    System.out.println(pokemon.name + " hp: " + pokemon.currentStats.get("hp"));
+                }
+            }
         }
         // Check network type (reset when pressed)
         if (Gdx.input.isKeyJustPressed(Input.Keys.M)) {
@@ -299,11 +310,12 @@ public class Game extends ApplicationAdapter {
         }
 
         // TODO: handle login differently.
-        if (this.player.name == "") {
-        }
-        else {
-            this.player.network.id = this.player.name;
-        }
+//        if (this.player.name == "") {
+//            // why did I do this?
+//        }
+//        else {
+        this.player.network.id = this.player.name;
+//        }
         this.player.type = Player.Type.LOCAL;
         // Clear map tiles because the Server is going to send over tiles from it's map.
         this.map.tiles.clear();
@@ -496,6 +508,7 @@ public class Game extends ApplicationAdapter {
         if (this.type != Game.Type.SERVER) {
             // This will 'radio' through a selection of musics for the map (based on current route)
             this.currMusic = Gdx.audio.newMusic(Gdx.files.internal("music/nature1_render.ogg"));
+//            this.currMusic = Gdx.audio.newMusic(Gdx.files.internal("music/overw3.ogg"));
             this.map.currRoute.music = this.currMusic;
             this.currMusic.setLooping(false);
             this.currMusic.setVolume(1f);
@@ -518,6 +531,7 @@ public class Game extends ApplicationAdapter {
                                        null)));
                     Game.staticGame.insertAction(nextMusic);
                     nextMusic.step(Game.staticGame);
+                    Game.staticGame.fadeMusicAction = nextMusic;
                 }
             };
             this.currMusic.setOnCompletionListener(this.musicCompletionListener);
@@ -543,14 +557,25 @@ public class Game extends ApplicationAdapter {
 //        this.player.pokemon.add(new Pokemon("stantler", 50, Pokemon.Generation.CRYSTAL));
 //        this.player.pokemon.add(new Pokemon("Ditto", 6, Pokemon.Generation.CRYSTAL));
 //        this.player.pokemon.add(new Pokemon("Lunatone", 6, Pokemon.Generation.CRYSTAL));
+//        this.player.pokemon.get(1).currentStats.put("hp", 0);
+
 //        this.player.pokemon.add(new Pokemon("Celebi", 6, Pokemon.Generation.CRYSTAL));
 //        this.player.pokemon.add(new Pokemon("Mareep", 6, Pokemon.Generation.CRYSTAL));
-        this.player.currPokemon = this.player.pokemon.get(0);
+        // TODO: remove
+//        this.player.currPokemon = this.player.pokemon.get(0);
+        // The first Pokemon the player sends out in battle should
+        // have >0 hp.
+        for (Pokemon currPokemon : this.player.pokemon) {
+            if (currPokemon.currentStats.get("hp") > 0) {
+                this.player.currPokemon = currPokemon;
+                break;
+            }
+        }
 
         // TODO: debug, remove
 //        this.player.currPokemon.currentStats.put("hp", 10);
     }
-    
+
     public static class SetCamPos extends Action {
         Vector2 pos;
 
