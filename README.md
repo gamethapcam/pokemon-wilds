@@ -2,6 +2,11 @@
 
 ![Pokemon Wilds](https://github.com/SheerSt/pokemon-wilds/blob/master/android/assets/8.png)
 
+## How to Play
+ - Download /builds/latest/pokemon-wilds.exe and run.
+ - Java is required in order to run (it's required by libGDX, the engine this is built on). If you don't have java installed, a popup may appear pointing you to java installation instructions.
+ - **NOTE:** this is currently in Alpha. Things are getting there, but still not fully complete. If you find a bug, please create an issue here on github describing it (that would help me out a ton).
+
 ## v0.1 gameplay video
 
 https://www.youtube.com/watch?v=ndQ0d0hhIRQ
@@ -18,6 +23,12 @@ I have been using a set of techniques to 'rip' sprites and animations from the c
 
 In the future I hope that the game can also support graphics from other generations, as well as a map editor mode that could serve as a platform for custom games.
 
+# v0.2 (Latest)
+ - Pokefarms - you can build fences, let your pokemon out to walk around, and grow trees by planting Apricorns.
+ - Crafting - you can craft Apricorns into Pokeballs at a campfire.
+ - Smart building - tiles that you build will 'snap' together and form the structure as you build it.
+ - Host mode - option to host a server. Allows you to zoom around the map like an observer.
+
 # v0.1
  - Procedurally generated beach, forest, mountain and snow biomes with their own unique pokemon.
  - All Gen 2 Pokemon + Crystal intro animations.
@@ -32,6 +43,7 @@ In the future I hope that the game can also support graphics from other generati
  - Map editor.
  - Support for other platforms (controls, screen resizing).
  - Larger proc-gen worlds with more biomes (desert, graveyard, dungeons, ...)
+ - Pokemon breeding / shinies
  - Full Gen 2 engine replication (battle mechanics, attacks, etc).
  - Other Generations.
  
