@@ -7,7 +7,7 @@
    - *Alternatively, download and run /builds/latest/pokemon-wilds.jar if the exe doesn't work.*
  - Java is required in order to run (it's required by libGDX, the engine this is built on). If you don't have java installed, a popup may appear pointing you to java installation instructions.
  - **NOTE:** this is currently in Alpha. Things are getting there, but still not fully complete. If you find a bug, please create an issue here on github describing it (that would help me out a ton).
- - Controls: Arrow keys to move, Z = A button, X = B button, Enter = Start button. Hold B to run.
+ - Controls: Arrow keys to move, keyboard Z = A button, keyboard X = B button, keyboard Enter = Start button. Hold keyboard X to run.
 
 ## v0.1 gameplay video
 
