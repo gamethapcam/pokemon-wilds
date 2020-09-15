@@ -142,6 +142,10 @@ class DrawMap extends Action {
 //            this.texture = TextureCache.get(this.pixels);
 
             game.mapBatch.draw(tile.sprite, tile.sprite.getX(), tile.sprite.getY());
+            // TODO: might cause performance issue
+            if (tile.nameUpper.contains("stairs")) {
+                game.mapBatch.draw(tile.overSprite, tile.overSprite.getX(), tile.overSprite.getY());
+            }
             // tile.sprite.draw(game.batch);
 
 //            // oversprite is often ledges
@@ -329,7 +333,7 @@ class DrawMapGrass extends Action {
                     !game.cam.frustum.pointInFrustum(tile.position.x, tile.position.y+tile.sprite.getHeight()+16, game.cam.position.z)) {
                continue;
             }
-            if (tile.attrs.get("grass")) {
+            if (tile.attrs.get("grass") && tile.overSprite != null) {
                 // tile.sprite.draw(game.batch); doesn't allow coloring
                 game.mapBatch.draw(tile.overSprite, tile.sprite.getX(), tile.sprite.getY());
             }
@@ -339,7 +343,7 @@ class DrawMapGrass extends Action {
                 tile.overSprite.draw(game.mapBatch);
             }
 
-            if (tile.overSprite != null) {
+            if (tile.overSprite != null && !tile.nameUpper.contains("stairs")) {
                 game.mapBatch.draw(tile.overSprite, tile.overSprite.getX(), tile.overSprite.getY());
             }
         }
@@ -368,9 +372,10 @@ class DrawMapTrees extends Action {
     }
     @Override
     public void step(Game game) {
-        if (game.map.tiles != game.map.overworldTiles) {
-            return;
-        }
+        // TODO: remove (test)
+//        if (game.map.tiles != game.map.overworldTiles) {
+//            return;
+//        }
 
         worldCoordsTL = game.cam.unproject(new Vector3(-256, 0, 0f));
         worldCoordsBR = game.cam.unproject(new Vector3(game.currScreen.x, game.currScreen.y+128, 0f));
@@ -537,6 +542,34 @@ class EnterBuilding extends Action {
                 }
                 else {
                     Gdx.gl.glClearColor(1, 1, 1, 1);
+                }
+
+                // Fade music if required
+                Route newRoute = game.map.tiles.get(game.player.position).routeBelongsTo;
+                if (newRoute != null && !newRoute.name.equals(game.map.currRoute.name) && (newRoute.transitionMusic != game.map.currRoute.transitionMusic)) {
+                    String nextMusicName = newRoute.getNextMusic(false);
+                    Action nextMusic = new FadeMusic("currMusic", "out", "", .025f,
+                                       new WaitFrames(game, 10,
+                                       null));
+                    if (newRoute.name.contains("pkmnmansion")) {
+                        game.mapBatch.setColor(new Color(0.8f, 0.8f, 0.8f, 1f));
+//                        Music.OnCompletionListener l = new Music.OnCompletionListener(){
+//                            @Override
+//                            public void onCompletion(Music aMusic) {};
+//                        };
+                        nextMusic.append(// TODO: this didn't really work, still doesn't loop
+                                         new FadeMusic(nextMusicName, "in", "", .2f, true, 1f, null,
+                                         new CallMethod(game.currMusic, "setLooping", new Object[]{true},
+                                         null)));
+                    }
+                    else {
+                        game.mapBatch.setColor(new Color(1f, 1f, 1f, 1f));
+                        nextMusic.append(new FadeMusic(nextMusicName, "in", "", .2f, true, 1f, game.musicCompletionListener, null));
+                    }
+                    game.insertAction(nextMusic);
+                    nextMusic.step(game);
+                    game.fadeMusicAction = nextMusic;
+                    game.map.currRoute = newRoute;
                 }
             }
             this.sprite.draw(game.uiBatch, 1f);
@@ -761,10 +794,10 @@ public class PkmnMap {
 
     // it looks like .equals() is called here, so this method is valid.
     // ie, passing a new vector to search for a tile is fine
-    Map<Vector2, Tile> overworldTiles = new HashMap<Vector2, Tile>();
-    Map<Vector2, Tile> tiles = overworldTiles;
-    ArrayList<HashMap<Vector2, Tile>> interiorTiles = new ArrayList<HashMap<Vector2, Tile>>();
-    int interiorTilesIndex = 100;
+    public Map<Vector2, Tile> overworldTiles = new HashMap<Vector2, Tile>();
+    public Map<Vector2, Tile> tiles = overworldTiles;
+    public ArrayList<HashMap<Vector2, Tile>> interiorTiles = new ArrayList<HashMap<Vector2, Tile>>();
+    public int interiorTilesIndex = 100;
 
     // locations of all pokemon currently located on the map
     Map<Vector2, Pokemon> pokemon = new HashMap<Vector2, Pokemon>();
@@ -808,6 +841,7 @@ public class PkmnMap {
         for (int i=0; i < 100; i++) {
             this.interiorTiles.add(null);
         }
+        this.interiorTiles.add(new HashMap<Vector2, Tile>());
         this.interiorTiles.add(new HashMap<Vector2, Tile>());
 
         if (mapName == "default") {
@@ -969,7 +1003,8 @@ public class PkmnMap {
             pos = new Vector2(0, 16 * 5);
 
             // tile to trigger special mewtwo battle
-            this.tiles.put(pos, new SpecialMewtwoTile(pos));
+//            this.tiles.put(pos, new SpecialMewtwoTile(pos));
+            this.tiles.put(pos.cpy(), new Tile("blank", "mewtwo_overworld", pos.cpy(), true, null));
 
             this.currRoute = new Route("Route 1", 20);
         }
@@ -1258,6 +1293,8 @@ class Route {
     Music music;
     ArrayList<String> musics = new ArrayList<String>();
     int musicsIndex = 0;
+    
+    boolean transitionMusic = false;  // some routes require music transition. ie, cave, pokemon mansion
 
     // TODO: remove
 //    Random rand;
@@ -1283,6 +1320,16 @@ class Route {
 
         this.pokemon = new ArrayList<Pokemon>();
         this.allowedPokemon = new ArrayList<String>();
+        
+        // TODO: possibly different per-route
+        this.musics.add("nature1_render");
+        this.musics.add("overw3");
+        this.musics.add("route_42");
+        this.musics.add("national_park1");
+        this.musics.add("viridian_forest_gs");
+        this.musics.add("route_3_gs");
+        this.musics.add("route_1");
+        this.musics.add("route_idk1");
 
 //        this.rand = new Random();
 
@@ -1483,6 +1530,21 @@ class Route {
 //            this.music.setLooping(true);
 //            this.music.setVolume(.3f);
         }
+        else if (name.equals("pkmnmansion1")) {
+            this.allowedPokemon.add("magmar");
+            this.allowedPokemon.add("grimer");
+            this.allowedPokemon.add("rattata");
+            this.allowedPokemon.add("koffing");
+            this.allowedPokemon.add("vulpix");
+            this.allowedPokemon.add("growlithe");
+            this.allowedPokemon.add("ponyta");
+            this.allowedPokemon.add("ditto");
+            this.transitionMusic = true;
+            this.musics.clear();
+//            this.musics.add("pkmnmansion1");  // gbs version (didn't work)
+            this.musics.add("pkmnmansion");
+            this.musics.add("pkmnmansion");
+        }
         else if (name.equals("")) {
             this.allowedPokemon.clear();
             // TODO: remove
@@ -1510,15 +1572,6 @@ class Route {
         }
         genPokemon(256);
 
-        // TODO: possibly different per-route
-        this.musics.add("nature1_render");
-        this.musics.add("overw3");
-        this.musics.add("route_42");
-        this.musics.add("national_park1");
-        this.musics.add("viridian_forest_gs");
-        this.musics.add("route_3_gs");
-        this.musics.add("route_1");
-        this.musics.add("route_idk1");
         // TODO: victory road theme thing
 
         // TODO: mountain musics
@@ -1526,7 +1579,8 @@ class Route {
 
         // TODO: debug, delete
 //        this.pokemon.clear();
-//        Pokemon debug = new Pokemon("Rhydon", 70, Pokemon.Generation.CRYSTAL);  // 22
+//        Pokemon debug = new Pokemon("machamp", 22, Pokemon.Generation.CRYSTAL);  // 22
+//        Pokemon debug = new Pokemon("garchompbeta", 70, Pokemon.Generation.CRYSTAL);  // 22
 //        debug.attacks[0] = "Whirlpool";
 //        debug.attacks[1] = "Whirlpool";
 //        debug.attacks[2] = "Whirlpool";
@@ -1640,18 +1694,29 @@ class Route {
 
 }
 
-class SpecialMewtwoTile extends Tile {
-    public SpecialMewtwoTile(Vector2 pos) {
-        super("mewtwo_overw1", pos);
-        // TODO Auto-generated constructor stub
-    }
-
-    @Override
-    public void onPressA(Game game) {
-        game.playerCanMove = false;
-        game.insertAction(new SpecialBattleMewtwo(game));
-    }
-}
+//class SpecialMewtwoTile extends Tile {
+////    public static boolean isPresent = true;
+//    
+//    public SpecialMewtwoTile(Vector2 pos) {
+//        super("mewtwo_overw1", pos);
+//    }
+//
+//    @Override
+//    public void onPressA(Game game) {
+//        if (!this.nameUpper.contains("hidden")) {
+//            game.playerCanMove = false;
+//            SpecialMewtwo1 mewtwo = new SpecialMewtwo1(50, this);
+//            game.battle.oppPokemon = mewtwo;
+//            Action fadeMusic = new FadeMusic("currMusic", "out", "pause", 0.025f, null);
+//            game.insertAction(new SplitAction(fadeMusic,
+//                              new WaitFrames(game, 20,
+//                              new DisplayText(game, "...", null, false, true,
+//                              new WaitFrames(game, 100,
+//                              new SpecialBattleMewtwo(game, mewtwo))))));
+//            game.fadeMusicAction = fadeMusic;
+//        }
+//    }
+//}
 
 // action to generate mountain
 
@@ -1779,6 +1844,14 @@ class Tile {
 
     String biome = "";
 
+    // Used by hidden switches (so it knows which door tiles to flip)
+    // I'm storing Vector2 so I can serialize these values. Unfortunately the switch
+    // tile will need to be smart enough to know if it should flip switches on same
+    // layer, layer below, above, etc.
+    //
+    // This has to be initialized manually. Defaulting to null to save space.
+    ArrayList<Vector2> doorTiles;
+
     // for when you collect items from this tile
     HashMap<String, Integer> items = new HashMap<String, Integer>();
 
@@ -1797,6 +1870,7 @@ class Tile {
         tile.items = tileData.items;
         tile.hasItem = tileData.hasItem;
         tile.hasItemAmount = tileData.hasItemAmount;
+        tile.doorTiles = tileData.doorTiles;
         return tile;
     }
 
@@ -2145,14 +2219,14 @@ class Tile {
                     Gdx.files.internal("pokemon/suicune_overw1.png"));
             this.overSprite = new Sprite(playerText, 0, 0, 16, 16);
             this.attrs.put("solid", true);
-        } else if (tileName.equals("mewtwo_overw1")) {
-//            Texture playerText = TextureCache.get(Gdx.files.internal("ground1.png"));
-            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/blank.png"));
-            this.sprite = new Sprite(playerText, 0, 0, 16, 16);
-            playerText = TextureCache.get(
-                    Gdx.files.internal("pokemon/mewtwo_overworld1.png"));
-            this.overSprite = new Sprite(playerText, 0, 0, 16, 16);
-            this.attrs.put("solid", true);
+        // TODO: remove
+//        } else if (tileName.equals("mewtwo_overw1")) {
+////            Texture playerText = TextureCache.get(Gdx.files.internal("ground1.png"));
+//            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/blank.png"));
+//            this.sprite = new Sprite(playerText, 0, 0, 16, 16);
+//            playerText = TextureCache.get(Gdx.files.internal("tiles/mewtwo_overworld.png"));
+//            this.overSprite = new Sprite(playerText, 0, 0, 16, 16);
+//            this.attrs.put("solid", true);
         } else if (tileName.equals("mega_gengar_overworld1")) {
             Texture playerText = TextureCache.get(Gdx.files.internal("tiles/blank.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
@@ -2219,6 +2293,10 @@ class Tile {
             Texture playerText = TextureCache.get(
                     Gdx.files.internal("tiles/sand1.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
+        } else if (tileName.equals("path1")) {
+            Texture playerText = TextureCache.get(
+                    Gdx.files.internal("tiles/path1.png"));
+            this.sprite = new Sprite(playerText, 0, 0, 16, 16);
         // grass-like ground
         } else if (tileName.contains("green")) {
             Texture playerText = TextureCache.get(Gdx.files.internal("tiles/"+tileName+".png"));
@@ -2259,6 +2337,31 @@ class Tile {
           this.attrs.put("solid", true);
           this.attrs.put("tree", true);
           this.attrs.put("headbuttable", true);
+        } else if (tileName.equals("tree_plant1")) {
+          Texture playerText = TextureCache.get(Gdx.files.internal("tiles/green1.png"));
+          this.sprite = new Sprite(playerText, 0, 0, 16, 16);
+          playerText = TextureCache.get(Gdx.files.internal("tiles/buildings/plant1.png"));
+          this.overSprite = new Sprite(playerText, 0, 0, 16, 32);
+          this.attrs.put("solid", true);
+          this.attrs.put("tree", true);
+        } else if (tileName.equals("pkmnmansion_statue1")) {
+          Texture playerText = TextureCache.get(Gdx.files.internal("tiles/buildings/pkmnmansion_floor1.png"));
+          this.sprite = new Sprite(playerText, 0, 0, 16, 16);
+          playerText = TextureCache.get(Gdx.files.internal("tiles/buildings/pkmnmansion_statue1.png"));
+          this.overSprite = new Sprite(playerText, 0, 0, 16, 32);
+          this.attrs.put("solid", true);
+        } else if (tileName.equals("pkmnmansion_shelf1")) {
+          Texture playerText = TextureCache.get(Gdx.files.internal("tiles/buildings/pkmnmansion_floor1.png"));
+          this.sprite = new Sprite(playerText, 0, 0, 16, 16);
+          playerText = TextureCache.get(Gdx.files.internal("tiles/buildings/pkmnmansion_shelf1.png"));
+          this.overSprite = new Sprite(playerText, 0, 0, 16, 32);
+          this.attrs.put("solid", true);
+        } else if (tileName.equals("pkmnmansion_shelf1_NS")) {
+            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/buildings/pkmnmansion_floor1.png"));
+            this.sprite = new Sprite(playerText, 0, 0, 16, 16);
+            playerText = TextureCache.get(Gdx.files.internal("tiles/buildings/pkmnmansion_shelf1_NS.png"));
+            this.overSprite = new Sprite(playerText, 0, 0, 16, 32);
+            this.attrs.put("solid", true);
         // colored water
         } else if (tileName.equals("water2")) {
             Texture playerText = TextureCache.get(
@@ -2301,6 +2404,10 @@ class Tile {
                 this.attrs.put("solid", true);
             }
         }
+        if (tileName.contains("pkmnmansion_floor")) {
+            this.attrs.put("grass", true);
+        }
+        
         // TODO: refactors
         //  - just load file based on tile name. Names can probably contain slashes.
         //  - remove references above to setting overSprite, and just have whatever calls Tile() pass in nameUpper.
@@ -2338,6 +2445,23 @@ class Tile {
                 this.attrs.put("solid", true);
                 this.hasItem = "poké ball";
                 this.hasItemAmount = 1;
+            }
+            else if (this.nameUpper.equals("ultraball1")) {
+                this.attrs.put("solid", true);
+                this.hasItem = "ultra ball";
+                this.hasItemAmount = 1;
+            }
+            if (this.nameUpper.equals("pokemon_mansion_key")) {
+                this.attrs.put("solid", true);
+                this.hasItem = "secret key";
+                this.hasItemAmount = 1;
+            }
+            if (this.nameUpper.contains("stairs")) {
+                this.attrs.put("solid", false);
+                this.attrs.put("grass", false);
+            }
+            if (this.nameUpper.equals("mewtwo_overworld_hidden")) {
+                this.attrs.put("solid", false);
             }
         }
 
@@ -2380,6 +2504,24 @@ class Tile {
         this.hasItemAmount = 0;
     }
 
+    public class PutTile extends Action {
+        Tile tile;
+        Vector2 pos;
+
+        public PutTile(Tile tile, Vector2 pos, Action nextAction) {
+            this.tile = tile;
+            this.pos = pos;
+            this.nextAction = nextAction;
+        }
+
+        @Override
+        public void step(Game game) {
+            game.map.overworldTiles.put(this.pos.cpy(), this.tile);
+            game.actionStack.remove(this);
+            game.insertAction(this.nextAction);
+        }
+    }
+
     public void onPressA(Game game) {
         if (this.hasItem != null) {
             if (game.type == Game.Type.CLIENT) {
@@ -2397,8 +2539,8 @@ class Tile {
                     }
                 }
                 game.insertAction(new DisplayText(game, "Found "+number+" "+this.hasItem.toUpperCase()+plural+"!", "fanfare1.ogg", null,
-                                                  new SetField(game, "playerCanMove", true,
-                                                  null)));
+                                  new SetField(game, "playerCanMove", true,
+                                  null)));
                 this.pickUpItem(game.player);
             }
         }
@@ -2454,6 +2596,69 @@ class Tile {
                               null)))))));
             game.insertAction(nextAction);
         }
+        // Pokemon mansion (dungeon) door
+        else if (this.name.contains("pkmnmansion_ext_locked")) {
+            game.playerCanMove = false;
+            Action nextAction;
+            if (!game.player.itemsDict.containsKey("secret key")) {
+                nextAction = new DisplayText(game, "It' locked...", null, false, true,
+                             new WaitFrames(game, 3, 
+                             new SetField(game, "playerCanMove", true,
+                             null)));
+            }
+            else {
+                nextAction = new DisplayText(game, "It' locked...", null, false, true,
+                             new DisplayText(game, "Open using the SECRET KEY?", null, true, false,
+                             new DrawYesNoMenu(null,
+                                 new DisplayText.Clear(game,
+                                 new WaitFrames(game, 3,
+                                 game.player.new RemoveFromInventory("secret key", 1,
+                                 new Tile.PutTile(new Tile("pkmnmansion_ext_door", this.position.cpy(), true, this.routeBelongsTo), this.position.cpy(),
+                                 new DisplayText(game, "The door opened!", "fanfare1.ogg", null,
+                                 new SetField(game, "playerCanMove", true,
+                                 null)))))),
+                             new DisplayText.Clear(game,
+                             new WaitFrames(game, 3,
+                             new SetField(game, "playerCanMove", true,
+                             null))))));
+            }
+            game.insertAction(nextAction);
+        }
+        else if (this.name.equals("pkmnmansion_statue1") && this.doorTiles != null && game.player.dirFacing.equals("up")) {
+            // TODO: secret switch text
+            game.playerCanMove = false;
+            ArrayList<Tile> flipDoors = new ArrayList<Tile>();
+            for (Vector2 pos : this.doorTiles) {
+//                game.map.interiorTiles.get(game.map.interiorTilesIndex).get(pos).flipDoorTile();
+                flipDoors.add(game.map.interiorTiles.get(game.map.interiorTilesIndex-1).get(pos));
+            }
+            Action nextAction = new DisplayText(game, "A hidden switch! Press it?", null, true, false,
+                                new DrawYesNoMenu(null,
+                                    new DisplayText.Clear(game,
+                                    new WaitFrames(game, 20,
+                                    new PlaySound("enter1",
+                                    new Tile.FlipDoorTile(flipDoors,
+                                    new SetField(game, "playerCanMove", true,
+                                    null))))),
+                                new DisplayText.Clear(game,
+                                new WaitFrames(game, 3,
+                                new SetField(game, "playerCanMove", true,
+                                null)))));
+            game.insertAction(nextAction);
+        }
+        else if (this.nameUpper.equals("mewtwo_overworld")) {
+            game.playerCanMove = false;
+            SpecialMewtwo1 mewtwo = new SpecialMewtwo1(50, this);
+            game.battle.oppPokemon = mewtwo;
+            Action fadeMusic = new FadeMusic("currMusic", "out", "pause", 0.025f, 
+                               new CallMethod(game.currMusic, "setVolume", new Object[]{1f}, null));
+            game.insertAction(new SplitAction(fadeMusic,
+                              new WaitFrames(game, 20,
+                              new DisplayText(game, "...", null, false, true,
+                              new WaitFrames(game, 100,
+                              new SpecialBattleMewtwo(game, mewtwo))))));
+            game.fadeMusicAction = fadeMusic;
+        }
         else if (this.nameUpper.contains("bush") || this.name.contains("grass")) {  // && !this.name.contains("large")
             game.playerCanMove = false;
             game.insertAction(new DisplayText(game, "A Grass-type POKéMON can CUT this.", null, null,
@@ -2461,6 +2666,48 @@ class Tile {
                               new SetField(game, "playerCanMove", true,
                               null))));
         }
+    }
+    
+
+
+    public static class FlipDoorTile extends Action {
+        ArrayList<Tile> flipDoors;
+        
+        @Override
+        public void step(Game game) {
+            for (Tile tile : this.flipDoors) {
+                tile.flipDoorTile();
+            }
+            game.actionStack.remove(this);
+            game.insertAction(this.nextAction);
+        }
+        
+        public FlipDoorTile(ArrayList<Tile> flipDoors, Action nextAction) {
+            this.flipDoors = flipDoors;
+            this.nextAction = nextAction;
+        }
+    }
+
+    public void flipDoorTile() {
+        String[] tokens = this.name.split("__");
+        if (tokens.length < 2) {
+            System.out.println("somethings wrong.");
+            return;
+        }
+        String name = tokens[0];
+        String onOff = tokens[1];
+        if (onOff.equals("on")) {
+            name += "__off";
+            this.attrs.put("solid", false);
+        }
+        else {
+            name += "__on";
+            this.attrs.put("solid", true);
+        }
+        this.name = name;
+        Texture text = TextureCache.get(Gdx.files.internal("tiles/buildings/"+name+".png"));
+        this.sprite = new Sprite(text, 0, 0, 16, 16);
+        this.sprite.setPosition(this.position.x, this.position.y);
     }
 
     public void onWalkOver() {

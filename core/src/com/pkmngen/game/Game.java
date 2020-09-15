@@ -193,7 +193,21 @@ public class Game extends ApplicationAdapter {
                     System.out.println(pokemon.name + " hp: " + pokemon.currentStats.get("hp"));
                 }
             }
+            System.out.println("oppPokemon attacks:");
+            for (String attack : this.battle.oppPokemon.attacks) {
+                System.out.println(attack);
+            }
         }
+
+        if (Gdx.input.isKeyJustPressed(Input.Keys.PAGE_UP)) {
+            this.map.interiorTilesIndex += 1;
+            this.map.tiles = this.map.interiorTiles.get(this.map.interiorTilesIndex);
+        }
+        else if (Gdx.input.isKeyJustPressed(Input.Keys.PAGE_DOWN)) {
+            this.map.interiorTilesIndex -= 1;
+            this.map.tiles = this.map.interiorTiles.get(this.map.interiorTilesIndex);
+        }
+        
         // Check network type (reset when pressed)
         if (Gdx.input.isKeyJustPressed(Input.Keys.M)) {
             for (Action action : new ArrayList<Action>(this.actionStack)) {
@@ -252,10 +266,10 @@ public class Game extends ApplicationAdapter {
                     }
                 }
                 System.out.println("Creating screenshot of full map...");
-                Pixmap pixmap = new Pixmap((int)(br.x-tl.x), (int)(tl.y-br.y), Pixmap.Format.RGBA8888);
+                Pixmap pixmap = new Pixmap((int)(br.x-tl.x)+16, (int)(tl.y-br.y)+16, Pixmap.Format.RGBA8888);
                 // Draw all tiles onto the pixmap from top-left to bottom-right
-                for (Vector2 currPos = tl.cpy(); currPos.y >= br.y; currPos.x += 16) {
-                    if (currPos.x > br.x) {
+                for (Vector2 currPos = tl.cpy(); currPos.y >= br.y-16; currPos.x += 16) {
+                    if (currPos.x > br.x+16) {
                         currPos.x = tl.x-16;
                         currPos.y -= 16;
                         continue;
@@ -557,7 +571,12 @@ public class Game extends ApplicationAdapter {
 //        this.player.pokemon.add(new Pokemon("stantler", 50, Pokemon.Generation.CRYSTAL));
 //        this.player.pokemon.add(new Pokemon("Ditto", 6, Pokemon.Generation.CRYSTAL));
 //        this.player.pokemon.add(new Pokemon("Lunatone", 6, Pokemon.Generation.CRYSTAL));
+//        this.player.pokemon.add(new Pokemon("weavile", 6, Pokemon.Generation.CRYSTAL));
+//        this.player.pokemon.add(new Pokemon("Magikarp", 6, Pokemon.Generation.CRYSTAL));
 //        this.player.pokemon.get(1).currentStats.put("hp", 0);
+        this.player.pokemon.add(new Pokemon("jumpluff", 45, Pokemon.Generation.CRYSTAL));
+        this.player.pokemon.add(new Pokemon("pidgeot", 45, Pokemon.Generation.CRYSTAL));
+        this.player.pokemon.add(new Pokemon("tauros", 45, Pokemon.Generation.CRYSTAL));
 
 //        this.player.pokemon.add(new Pokemon("Celebi", 6, Pokemon.Generation.CRYSTAL));
 //        this.player.pokemon.add(new Pokemon("Mareep", 6, Pokemon.Generation.CRYSTAL));

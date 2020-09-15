@@ -2,8 +2,12 @@ package com.pkmngen.game;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 import com.badlogic.gdx.Gdx;
@@ -1746,9 +1750,9 @@ class FadeMusic extends Action {
                 else {
                     // Load music if it isn't loaded already
                     if (!game.loadedMusic.containsKey(this.musicName)) {
-                        String extension = ".ogg";
-                        Music temp = Gdx.audio.newMusic(Gdx.files.internal("music/"+this.musicName+extension)); // danger1.ogg
-//                        temp.setLooping(true);  // TODO: don't think I need this
+//                        String extension = ".ogg";
+//                        Music temp = Gdx.audio.newMusic(Gdx.files.internal("music/"+this.musicName+extension));
+                        Music temp = new LinkedMusic("music/"+this.musicName, "");
                         temp.setVolume(0.1f); // will always fade in (for now, have option to fade in fast) //.1f because of 'failed to allocate' bug
                         if (this.onCompleteListener != null) {
                             temp.setOnCompletionListener(this.onCompleteListener);
@@ -1779,7 +1783,7 @@ class FadeMusic extends Action {
                 this.music = game.loadedMusic.get(this.musicName);
             }
 
-            // shouldn't ever be the case, occasionally is in testing tho.
+            // Shouldn't ever be the case, occasionally is in testing tho.
             if (this.music == null) {
                 game.actionStack.remove(this);
                 game.insertAction(this.nextAction);
@@ -2005,12 +2009,11 @@ class PlaySound extends Action {
 
         // if it's crystal pokemon, load from crystal dir
         if (pokemon.generation == Pokemon.Generation.CRYSTAL) {
+            this.music = Gdx.audio.newMusic(Gdx.files.internal("crystal_pokemon/cries/" + pokemon.dexNumber + ".ogg"));
             if (pokemon.dexNumber.equals("000")) {
-                this.music = Gdx.audio.newMusic(Gdx.files.internal("crystal_pokemon/cries/" + pokemon.dexNumber + ".ogg"));
                 this.music.setVolume(0.9f);
             }
             else {
-                this.music = Gdx.audio.newMusic(Gdx.files.internal("crystal_pokemon/cries/" + pokemon.dexNumber + ".wav"));
                 this.music.setVolume(0.5f);
             }
             this.music.setLooping(false);
@@ -2098,9 +2101,10 @@ class PlaySound extends Action {
             this.music = Gdx.audio.newMusic(Gdx.files.internal("pokemon/cries/128Cry.mp3"));
             this.music.setLooping(false);
         }
-        else if (sound == "Mewtwo") {
+        else if (sound.equals("mewtwo")) {
             this.music = Gdx.audio.newMusic(Gdx.files.internal("pokemon/cries/150Cry.ogg"));
             this.music.setLooping(false);
+            this.music.setVolume(0.8f);
         }
         else if (sound.equals("Mega Gengar")) {
             this.music = Gdx.audio.newMusic(Gdx.files.internal("pokemon/cries/m_gengar_cry1.ogg"));
@@ -2364,6 +2368,84 @@ class SetField extends Action {
         }
         game.actionStack.remove(this);
         game.insertAction(this.nextAction);
+    }
+}
+
+
+/**
+ * Call an arbitrary method with params when step() is called. Useful if you don't
+ * want to call a method right away in an action chain, but want it to be called
+ * at a certain step.
+ *
+ * @see Tile.onPressA()
+ *
+ * Example: CallMethod(game.currMusic,        <-- Call method on this object.
+ *                     "setVolume",           <-- Call this method.
+ *                     new Object[]{"0.1f"},  <-- Call with these parameters
+ *                     null)                  <-- (nextAction, inserted immediately after calling the method)
+ */
+class CallMethod extends Action {
+    Object object;
+    String method;
+    Object[] params;
+    Class<?>[] paramTypes;
+
+    public CallMethod(Object object, String method, Object[] params, Action nextAction) {
+        this.nextAction = nextAction;
+        this.object = object;
+        this.method = method;
+        this.params = params;
+        this.paramTypes = new Class[params.length];
+        for (int i = 0; i < params.length; i++) {
+            this.paramTypes[i] = params[i].getClass();
+            // For some reason generic types need to be converted.
+            // Can't figure out how to do this generically.
+            if (this.paramTypes[i].getName().equals("java.lang.Float")) {
+                this.paramTypes[i] = float.class;  // not sure how to do generically.
+            }
+            else if (this.paramTypes[i].getName().equals("java.lang.Integer")) {
+                this.paramTypes[i] = int.class;
+            }
+            else if (this.paramTypes[i].getName().equals("java.lang.Boolean")) {
+                System.out.println("here");
+                this.paramTypes[i] = boolean.class;
+            }
+            else if (this.paramTypes[i].getName().equals("java.lang.Long")) {
+                this.paramTypes[i] = long.class;
+            }
+            else if (this.paramTypes[i].getName().equals("java.lang.Double")) {
+                this.paramTypes[i] = double.class;
+            }
+        }
+    }
+
+    @Override
+    public void step(Game game) {
+        try {
+//            Method[] methods = this.object.getClass().getMethods();
+//            for (Method m : methods) {
+//                System.out.println(m.getName());
+//                for (Parameter p : m.getParameters()) {
+//                    System.out.println(p.getName());
+//                    System.out.println(p.getType());
+//                }
+//            }
+            Method method = this.object.getClass().getMethod(this.method, this.paramTypes);
+            method.invoke(this.object, this.params);
+        } catch (NoSuchMethodException e) {
+            e.printStackTrace();
+        } catch (SecurityException e) {
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (IllegalArgumentException e) {
+            e.printStackTrace();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        game.actionStack.remove(this);
+        game.insertAction(this.nextAction);
+        System.out.println(game.currMusic.isLooping());
     }
 }
 

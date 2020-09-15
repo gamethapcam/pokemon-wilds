@@ -7,6 +7,7 @@ import java.io.Reader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.files.FileHandle;
@@ -55,18 +56,20 @@ public class Pokemon {
     }
 
     String name;
-
     int level;
     int exp;  // current total exp.
     String dexNumber;
     int happiness = 1; // TODO: replicate gen 2 mechanics for happiness.
-    // keep all pkmn textures in an array to be loaded
+    boolean isShiny = false;  // shiny or not
+    String growthRateGroup = "";
+
+    // Keep all pkmn textures in an array to be loaded
     // that way whenever a pkmn is created, it doesn't re-load the texture
     // takes up a lot of memory
+    // TODO: migrate to use TextureCache
     Texture[] pokemonTextures = new Texture[650]; // 650 for now since that's how many cries in folder
 
     Map<String, Integer> baseStats = new HashMap<String, Integer>();
-
     Map<String, Integer> currentStats = new HashMap<String, Integer>();
 
     // note - this doesn't go in 'maxStats' map
@@ -75,8 +78,6 @@ public class Pokemon {
     Map<String, Integer> maxStats = new HashMap<String, Integer>(); // needed for various calculations
     ArrayList<String> hms = new ArrayList<String>();
     Map<String, Integer> IVs = new HashMap<String, Integer>();
-
-    String growthRateGroup = "";
 
     Sprite sprite;
     Sprite backSprite;
@@ -119,8 +120,11 @@ public class Pokemon {
     Generation generation;
     ArrayList<Sprite> introAnim;
 
+    public static Random rand = new Random();
+
     public Pokemon (Network.PokemonData pokemonData) {
         this(pokemonData.name, pokemonData.level, pokemonData.generation);
+        this.isShiny = pokemonData.isShiny;
         this.currentStats.put("hp", pokemonData.hp);
         this.attacks[0] = pokemonData.attacks[0];
         this.attacks[1] = pokemonData.attacks[1];
@@ -141,6 +145,9 @@ public class Pokemon {
     }
 
     public Pokemon (String name, int level, Generation generation) {
+        // TODO: generate randomly.
+        this.isShiny = Pokemon.rand.nextInt(256) == 0;
+
         name = name.toLowerCase();
         this.name = name;
         if (name.contains("unown")) {
@@ -858,17 +865,18 @@ public class Pokemon {
         int i = 0;
         for (Integer level : this.learnSet.keySet()) {
             for (String attack : this.learnSet.get(level)) {
-                if (level < this.level) {
+                if (attack.contains("whirlwind") && this.name.contains("pidgeot")) {
+                    System.out.println(this.learnSet.get(level));
+                }
+                if (level <= this.level) {
                     this.attacks[i] = attack;
                     i += 1;
                     if (i >= this.attacks.length) {
                         i = 0;
                     }
-//                    System.out.println("attack: " + attack);
                 }
             }
         }
-
     }
 
     void loadCrystalPokemon(String name) {
@@ -949,17 +957,132 @@ public class Pokemon {
                 text = new Texture(newPixmap);
             }
             Pokemon.textures.put(name+"_front", text);
+            
+            // Swap palette for shiny texture (load by appending '_shiny' to the texture name)
+            // Load shiny palette from file
+            Color normalColor1 = null;
+            Color normalColor2 = new Color();
+            Color shinyColor1 = null;
+            Color shinyColor2 = new Color();
+            try {
+                FileHandle file = Gdx.files.internal("crystal_pokemon/pokemon/" + name + "/shiny.pal");
+                Reader reader = file.reader();
+                BufferedReader br = new BufferedReader(reader);
+                String line;
+                while ((line = br.readLine()) != null)   {
+                    if (line.contains("RGB")) {
+                        String[] vals = line.split("\tRGB ")[1].split(", ");
+                        if (shinyColor1 == null) {
+                            shinyColor1 = new Color();
+                            shinyColor1.r = (Float.valueOf(vals[0])*8f)/256f;
+                            shinyColor1.g = (Float.valueOf(vals[1])*8f)/256f;
+                            shinyColor1.b = (Float.valueOf(vals[2])*8f)/256f;
+                        }
+                        else {
+                            shinyColor2.r = (Float.valueOf(vals[0])*8f)/256f;
+                            shinyColor2.g = (Float.valueOf(vals[1])*8f)/256f;
+                            shinyColor2.b = (Float.valueOf(vals[2])*8f)/256f;
+                        }
+                    }
+                }
+                reader.close();
+                
+                file = Gdx.files.internal("crystal_pokemon/pokemon/" + name + "/front.pal");
+                reader = file.reader();
+                br = new BufferedReader(reader);
+                while ((line = br.readLine()) != null)   {
+                    if (line.contains("RGB")) {
+                        String[] vals = line.split("\tRGB ")[1].split(", ");
+                        if (normalColor1 == null) {
+                            normalColor1 = new Color();
+                            normalColor1.r = Integer.valueOf(vals[0]);
+                            normalColor1.g = Integer.valueOf(vals[1]);
+                            normalColor1.b = Integer.valueOf(vals[2]);
+                        }
+                        else {
+                            normalColor2.r = Integer.valueOf(vals[0]);
+                            normalColor2.g = Integer.valueOf(vals[1]);
+                            normalColor2.b = Integer.valueOf(vals[2]);
+                        }
+                    }
+                }
+                reader.close();
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+            TextureData temp = text.getTextureData();
+            if (!temp.isPrepared()) {
+                temp.prepare();
+            }
+            Pixmap currPixmap = temp.consumePixmap();
+            Pixmap newPixmap = new Pixmap(text.getWidth(), text.getHeight(), Pixmap.Format.RGBA8888);
+            newPixmap.setColor(new Color(0, 0, 0, 0));
+            newPixmap.fill();
+            for (int i=0, j=0; j < text.getHeight(); i++) {
+                if (i > text.getWidth()) {
+                    i=-1;
+                    j++;
+                    continue;
+                }
+                Color color = new Color(currPixmap.getPixel(i, j));
+                if ((int)(color.r*32) == (int)normalColor1.r && (int)(color.g*32) == (int)normalColor1.g && (int)(color.b*32) == (int)normalColor1.b) {
+                    color = shinyColor1;
+                }
+                else if ((int)(color.r*32) == (int)normalColor2.r && (int)(color.g*32) == (int)normalColor2.g && (int)(color.b*32) == (int)normalColor2.b) {
+                    color = shinyColor2;
+                }
+                newPixmap.drawPixel(i, j, Color.rgba8888(color.r, color.g, color.b, 1f));
+            }
+            text = new Texture(newPixmap);
+            Pokemon.textures.put(name+"_front_shiny", text);
+
+            // back sprites
+            text = new Texture(Gdx.files.internal("crystal_pokemon/pokemon/" + name + "/back.png"));
+            Pokemon.textures.put(name+"_back", text);
+            temp = text.getTextureData();
+            if (!temp.isPrepared()) {
+                temp.prepare();
+            }
+            currPixmap = temp.consumePixmap();
+            newPixmap = new Pixmap(text.getWidth(), text.getHeight(), Pixmap.Format.RGBA8888);
+            newPixmap.setColor(new Color(0, 0, 0, 0));
+            newPixmap.fill();
+            for (int i=0, j=0; j < text.getHeight(); i++) {
+                if (i > text.getWidth()) {
+                    i=-1;
+                    j++;
+                    continue;
+                }
+                Color color = new Color(currPixmap.getPixel(i, j));
+                if ((int)(color.r*32) == (int)normalColor1.r && (int)(color.g*32) == (int)normalColor1.g && (int)(color.b*32) == (int)normalColor1.b) {
+                    color = shinyColor1;
+                }
+                else if ((int)(color.r*32) == (int)normalColor2.r && (int)(color.g*32) == (int)normalColor2.g && (int)(color.b*32) == (int)normalColor2.b) {
+                    color = shinyColor2;
+                }
+                newPixmap.drawPixel(i, j, Color.rgba8888(color.r, color.g, color.b, 1f));
+            }
+            text = new Texture(newPixmap);
+            Pokemon.textures.put(name+"_back_shiny", text);
         }
-//        Texture pokemonText = new Texture(Gdx.files.internal("crystal_pokemon/pokemon/" + name + "/front.png"));
-        Texture pokemonText = Pokemon.textures.get(name+"_front");
+        String isShiny = "";
+        if (this.isShiny) {
+            isShiny = "_shiny";
+        }
+        Texture pokemonText = Pokemon.textures.get(name+"_front"+isShiny);
         // height and width are the same for these sprites
         int height = pokemonText.getWidth();
         this.sprite = new Sprite(pokemonText, 0, 0, height, height);
-        if (!Pokemon.textures.containsKey(name+"_back")) {
-            Pokemon.textures.put(name+"_back", new Texture(Gdx.files.internal("crystal_pokemon/pokemon/" + name + "/back.png")));
-        }
+        // TODO: remove
+//        if (!Pokemon.textures.containsKey(name+"_back")) {
+//            Texture text = new Texture(Gdx.files.internal("crystal_pokemon/pokemon/" + name + "/back.png"));
+//            Pokemon.textures.put(name+"_back", text);
+//        }
 //      pokemonText = new Texture(Gdx.files.internal("crystal_pokemon/pokemon/" + name + "/back.png"));
-        pokemonText = Pokemon.textures.get(name+"_back");
+        pokemonText = Pokemon.textures.get(name+"_back"+isShiny);
 //        height = pokemonText.getWidth();
         this.backSprite = new Sprite(pokemonText, 0, 0, 48, 48);
 
@@ -985,7 +1108,7 @@ public class Pokemon {
                     int frame = Integer.valueOf(vals[0]);
                     for (int j=0; j < numFrames; j++) {
 //                        pokemonText = new Texture(Gdx.files.internal("crystal_pokemon/pokemon/" + name + "/front.png"));
-                        pokemonText = Pokemon.textures.get(name+"_front");
+                        pokemonText = Pokemon.textures.get(name+"_front"+isShiny);
                         Sprite sprite = new Sprite(pokemonText, 0, height*frame, height, height);
                         this.introAnim.add(sprite);
                     }
@@ -1201,18 +1324,142 @@ public class Pokemon {
         // load sprite and animation data
         // load front sprite
         if (!Pokemon.textures.containsKey(name+"_front")) {
-            Pokemon.textures.put(name+"_front", new Texture(Gdx.files.internal("crystal_pokemon/prism/pics/" + name + "/front.png")));
+            Texture text = new Texture(Gdx.files.internal("crystal_pokemon/prism/pics/" + name + "/front.png"));
+            Pokemon.textures.put(name+"_front", text);
+
+            // Swap palette for shiny texture (load by appending '_shiny' to the texture name)
+            // Load shiny palette from file
+            Color normalColor1 = null;
+            Color normalColor2 = new Color();
+            Color shinyColor1 = null;
+            Color shinyColor2 = new Color();
+            try {
+                FileHandle file = Gdx.files.internal("crystal_pokemon/prism/pics/" + name + "/shiny.pal");
+                Reader reader = file.reader();
+                BufferedReader br = new BufferedReader(reader);
+                String line;
+                while ((line = br.readLine()) != null)   {
+                    if (line.contains("RGB")) {
+                        String[] vals = line.split("\tRGB ")[1].split(", ");
+                        if (shinyColor1 == null) {
+                            shinyColor1 = new Color();
+                            shinyColor1.r = Float.valueOf(vals[0]);
+                            shinyColor1.g = Float.valueOf(vals[1]);
+                            shinyColor1.b = Float.valueOf(vals[2]);
+                        }
+                        else {
+                            shinyColor2.r = Float.valueOf(vals[0]);
+                            shinyColor2.g = Float.valueOf(vals[1]);
+                            shinyColor2.b = Float.valueOf(vals[2]);
+                        }
+                    }
+                }
+                reader.close();
+                
+                file = Gdx.files.internal("crystal_pokemon/prism/pics/" + name + "/normal.pal");
+                reader = file.reader();
+                br = new BufferedReader(reader);
+                while ((line = br.readLine()) != null)   {
+                    if (line.contains("RGB")) {
+                        String[] vals = line.split("\tRGB ")[1].split(", ");
+                        if (normalColor1 == null) {
+                            normalColor1 = new Color();
+                            normalColor1.r = Float.valueOf(vals[0]);
+                            normalColor1.g = Float.valueOf(vals[1]);
+                            normalColor1.b = Float.valueOf(vals[2]);
+                        }
+                        else {
+                            normalColor2.r = Float.valueOf(vals[0]);
+                            normalColor2.g = Float.valueOf(vals[1]);
+                            normalColor2.b = Float.valueOf(vals[2]);
+                        }
+                    }
+                }
+                reader.close();
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+            TextureData temp = text.getTextureData();
+            if (!temp.isPrepared()) {
+                temp.prepare();
+            }
+            Pixmap currPixmap = temp.consumePixmap();
+            Pixmap newPixmap = new Pixmap(text.getWidth(), text.getHeight(), Pixmap.Format.RGBA8888);
+            newPixmap.setColor(new Color(0, 0, 0, 0));
+            newPixmap.fill();
+            for (int i=0, j=0; j < text.getHeight(); i++) {
+                if (i > text.getWidth()) {
+                    i=-1;
+                    j++;
+                    continue;
+                }
+                Color color = new Color(currPixmap.getPixel(i, j));
+                if ((int)(color.r*32) == (int)normalColor1.r && (int)(color.g*32) == (int)normalColor1.g && (int)(color.b*32) == (int)normalColor1.b) {
+                    color.r = (shinyColor1.r*8f)/256f;
+                    color.g = (shinyColor1.g*8f)/256f;
+                    color.b = (shinyColor1.b*8f)/256f;
+                }
+                else if ((int)(color.r*32) == (int)normalColor2.r && (int)(color.g*32) == (int)normalColor2.g && (int)(color.b*32) == (int)normalColor2.b) {
+                    color.r = (shinyColor2.r*8f)/256f;
+                    color.g = (shinyColor2.g*8f)/256f;
+                    color.b = (shinyColor2.b*8f)/256f;
+                    color = shinyColor2;
+                }
+                newPixmap.drawPixel(i, j, Color.rgba8888(color.r, color.g, color.b, 1f));
+            }
+            text = new Texture(newPixmap);
+            Pokemon.textures.put(name+"_front_shiny", text);
+
+            // Back sprites
+            text = new Texture(Gdx.files.internal("crystal_pokemon/prism/pics/" + name + "/back.png"));
+            Pokemon.textures.put(name+"_back_shiny", text);
+            temp = text.getTextureData();
+            if (!temp.isPrepared()) {
+                temp.prepare();
+            }
+            currPixmap = temp.consumePixmap();
+            newPixmap = new Pixmap(text.getWidth(), text.getHeight(), Pixmap.Format.RGBA8888);
+            newPixmap.setColor(new Color(0, 0, 0, 0));
+            newPixmap.fill();
+            for (int i=0, j=0; j < text.getHeight(); i++) {
+                if (i > text.getWidth()) {
+                    i=-1;
+                    j++;
+                    continue;
+                }
+                Color color = new Color(currPixmap.getPixel(i, j));
+                if ((int)(color.r*32) == (int)shinyColor1.r && (int)(color.g*32) == (int)shinyColor1.g && (int)(color.b*32) == (int)shinyColor1.b) {
+                    color.r = (normalColor1.r*8f)/256f;
+                    color.g = (normalColor1.g*8f)/256f;
+                    color.b = (normalColor1.b*8f)/256f;
+                }
+                else if ((int)(color.r*32) == (int)shinyColor2.r && (int)(color.g*32) == (int)shinyColor2.g && (int)(color.b*32) == (int)shinyColor2.b) {
+                    color.r = (normalColor2.r*8f)/256f;
+                    color.g = (normalColor2.g*8f)/256f;
+                    color.b = (normalColor2.b*8f)/256f;
+                }
+                newPixmap.drawPixel(i, j, Color.rgba8888(color.r, color.g, color.b, 1f));
+            }
+            text = new Texture(newPixmap);
+            Pokemon.textures.put(name+"_back", text);
         }
 //        Texture pokemonText = new Texture(Gdx.files.internal("crystal_pokemon/prism/pics/" + name + "/front.png"));  // TODO: remove
-        Texture pokemonText = Pokemon.textures.get(name+"_front");
+        String isShiny = "";
+        if (this.isShiny) {
+            isShiny = "_shiny";
+        }
+        Texture pokemonText = Pokemon.textures.get(name+"_front"+isShiny);
         // height and width are the same for these sprites
         int height = pokemonText.getWidth();
         this.sprite = new Sprite(pokemonText, 0, 0, height, height);
-        if (!Pokemon.textures.containsKey(name+"_back")) {
-            Pokemon.textures.put(name+"_back", new Texture(Gdx.files.internal("crystal_pokemon/prism/pics/" + name + "/back.png")));
-        }
+//        if (!Pokemon.textures.containsKey(name+"_back")) {
+//            Pokemon.textures.put(name+"_back", new Texture(Gdx.files.internal("crystal_pokemon/prism/pics/" + name + "/back.png")));
+//        }
 //        pokemonText = new Texture(Gdx.files.internal("crystal_pokemon/prism/pics/" + name + "/back.png"));  // TODO: remove
-        pokemonText = Pokemon.textures.get(name+"_back");
+        pokemonText = Pokemon.textures.get(name+"_back"+isShiny);
 //        height = pokemonText.getWidth();
         this.backSprite = new Sprite(pokemonText, 0, 0, 48, 48);
 
@@ -1238,7 +1485,7 @@ public class Pokemon {
                     int frame = Integer.valueOf(vals[0]);
                     for (int j=0; j < numFrames; j++) {
 //                        pokemonText = new Texture(Gdx.files.internal("crystal_pokemon/prism/pics/" + name + "/front.png")
-                        pokemonText = Pokemon.textures.get(name+"_front");
+                        pokemonText = Pokemon.textures.get(name+"_front"+isShiny);
                         Sprite sprite = new Sprite(pokemonText, 0, height*frame, height, height);
                         this.introAnim.add(sprite);
                     }
@@ -1973,20 +2220,23 @@ class SpecialMegaGengar1 extends Pokemon {
 }
 
 class SpecialMewtwo1 extends Pokemon {
-    Sprite breathingSprite;
+    // Where the mewtwo is located on the map
+    // Needed because catching mewtwo needs to despawn it, and fainting it needs to temporarily remove it.
+    Tile tile;
 
-    public SpecialMewtwo1(int level) {
+    public SpecialMewtwo1(int level, Tile tile) {
         // initialize variables
-        super("Mewtwo", level);
-
+//        super("Mewtwo", level);
+        super("Mewtwo", level, Pokemon.Generation.CRYSTAL);
+        this.tile = tile;
         // gen I properties
-        this.baseStats.put("hp", 106);
-        this.baseStats.put("attack", 110);
-        this.baseStats.put("defense", 90);
-        this.baseStats.put("specialAtk", 154);
-        this.baseStats.put("specialDef", 154);
-        this.baseStats.put("speed", 130);
-        this.baseStats.put("catchRate", 3);
+//        this.baseStats.put("hp", 106);
+//        this.baseStats.put("attack", 110);
+//        this.baseStats.put("defense", 90);
+//        this.baseStats.put("specialAtk", 154);
+//        this.baseStats.put("specialDef", 154);
+//        this.baseStats.put("speed", 130);
+//        this.baseStats.put("catchRate", 3);
 
         // sprite
         Texture pokemonText = new Texture(Gdx.files.internal("pokemon/mewtwo_special1.png"));
@@ -1995,14 +2245,25 @@ class SpecialMewtwo1 extends Pokemon {
         pokemonText = new Texture(Gdx.files.internal("pokemon/mewtwo_special2.png"));
         this.breathingSprite = new Sprite(pokemonText, 0, 0, 56, 56);
 
-//        this.learnSet.put(1, new String[]{"Confusion", "Disable", "Psychic", "Swift"});
-        this.learnSet.put(1, new String[]{"Psychic", "Psychic", "Psychic", "Psychic"});
-        this.types.add("Psychic");
+        // Gen 1 moves instead of Gen 2
+        this.learnSet.clear();
+        this.learnSet.put(1, new String[]{"confusion", "disable", "psychic", "swift"});
+        // Recover isn't in original moveset at lvl 1, but I want recover for a lvl 50 battle
+        this.learnSet.put(1, new String[]{"recover"});  
+        this.learnSet.put(63, new String[]{"barrier"});
+        this.learnSet.put(66, new String[]{"psychic"});
+        this.learnSet.put(70, new String[]{"recover"});
+        this.learnSet.put(75, new String[]{"mist"});
+        this.learnSet.put(81, new String[]{"amnesia"});
+//        this.learnSet.put(50, new String[]{"psychic", "psychic", "psychic", "psychic"});
+//        this.types.add("Psychic");
 
         getCurrentAttacks(); // fill this.attacks with what it can currently know
 
-        // stats formulas here
-        calcMaxStats();
-        this.currentStats = new HashMap<String, Integer>(this.maxStats); // copy maxStats
+//        // stats formulas here
+//        calcMaxStats();
+//        this.currentStats = new HashMap<String, Integer>(this.maxStats); // copy maxStats
+//        this.dexNumber = Pokemon.nameToIndex("mewtwo");
+////        System.out.println(this.dexNumber);
     }
 }

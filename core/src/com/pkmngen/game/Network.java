@@ -756,6 +756,7 @@ public class Network {
         int level;
         Pokemon.Generation generation;
         int hp;
+        boolean isShiny;
         String[] attacks = new String[4];
         int index;  // index in player inventory
         
@@ -769,6 +770,7 @@ public class Network {
             this.name = pokemon.name;
             this.level = pokemon.level;
             this.generation = pokemon.generation;
+            this.isShiny = pokemon.isShiny;
             this.hp = pokemon.currentStats.get("hp");
             this.attacks[0] = pokemon.attacks[0];
             this.attacks[1] = pokemon.attacks[1];
@@ -921,6 +923,7 @@ public class Network {
         boolean isUnown;
         String message = "";
         int interiorIndex;
+        ArrayList<Vector2> doorTiles;
 
         public TileData(){}
 
@@ -944,6 +947,7 @@ public class Network {
             this.items = tile.items;
             this.hasItem = tile.hasItem;
             this.hasItemAmount = tile.hasItemAmount;
+            this.doorTiles = tile.doorTiles;
         }
     }
 

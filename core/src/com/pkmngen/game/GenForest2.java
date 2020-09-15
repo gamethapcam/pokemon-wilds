@@ -571,7 +571,63 @@ public class GenForest2 extends Action {
         // randomNum = 0; // debug
         return squares.get(randomNum);
     }
+    
+    public static boolean[][] Maze_Algo2(int width, int height, float complexity, float density, Random rand) {
+        width = (int)(width / 2) * 2 + 2;
+        height = (int)(height / 2) * 2 + 2;
 
+        complexity = (int)(complexity * (5 * (height + width)));
+        density    = (int)(density * ( (int)(height / 2) * (int)(width / 2) ));
+
+        boolean[][] Z = new boolean[ width ][ height ];
+
+        // Fill borders
+        for (int i=0; i < width; i++) {
+            for (int j=0; j < height; j++) {
+                if ( i == 0 || j == 0 || i == width-2 || j == height-2) {
+                    Z[i][j] = Boolean.TRUE;
+                }
+            }
+        }
+        for (int i=0; i < density; i++) {
+            // get even number between width and height
+            int x = rand.nextInt( (int)(width / 2)  ) * 2; //+1 b/c java excludes this number
+            int y = rand.nextInt( (int)(height / 2)  ) * 2;
+            Z[x][y] = Boolean.TRUE;
+
+            for (int j=0; j < complexity; j++) {
+                // compile list of neighboring cells
+                ArrayList<int[]> neighbours = new ArrayList<int[]>();
+                if (x > 1) { neighbours.add(new int[]{x - 2, y}); }
+                if (x < width - 2) { neighbours.add(new int[]{x + 2, y}); }
+                if (y > 1) { neighbours.add(new int[]{x, y - 2}); }
+                if (y < height - 2) { neighbours.add(new int[]{x, y + 2}); }
+
+                if (!neighbours.isEmpty()) {
+                    int randomNum = rand.nextInt(neighbours.size()); //-1? no, python includes, java excludes this number
+                    int x_ = neighbours.get(randomNum)[0];
+                    int y_ = neighbours.get(randomNum)[1];
+
+                    if (Z[x_][y_] == Boolean.FALSE) {
+                        Z[x_][y_] = Boolean.TRUE;
+                        Z[x_ + (int)((x - x_) / 2)][y_ + (int)((y - y_) / 2)] = Boolean.TRUE;
+                        x = x_;
+                        y = y_;
+                    }
+                }
+            }
+        }
+        // debug - print maze
+        for (int i=height-1; i >= 0; i--) {
+            for (int j=0; j < width; j++) {
+                System.out.print(String.valueOf(Z[j][i] ? 1 : 0)+" ");
+            }
+            System.out.print("\n");
+        }
+        return Z;
+    }
+
+    
     public static HashMap<Vector2, MazeNode> Maze_Algo1(int width, int height, float complexity, float density, int squareSize, Random rand) {
         // Only odd shapes
         // int[] shape = { (int)(height / 2) * 2 + 1, (int)(width / 2) * 2 + 1 };
@@ -1317,8 +1373,11 @@ class GenIsland1 extends Action {
 
     // ArrayList<Tile> tilesToAdd;
     HashMap<Vector2, Tile> tilesToAdd;
+    ArrayList<HashMap<Vector2, Tile>> interiorTilesToAdd = new ArrayList<HashMap<Vector2, Tile>>();
 //    HashMap<Vector2, Tile> edgeTiles;
 
+    HashMap<Vector2, Pokemon> pokemonToAdd = new HashMap<Vector2, Pokemon>();
+    
     ArrayList<Action> doActions;
 
     Vector2 topLeft;
@@ -1330,6 +1389,10 @@ class GenIsland1 extends Action {
     ArrayList<Tile> edges = new ArrayList<Tile>();
 
     Random rand;
+    
+    // used to know if this has spawned the pokemon mansion yet or not (only spawn one)
+    public static boolean donePkmnMansion = false;
+    public static boolean donePkmnMansionKey = false;
 
     public GenIsland1(Game game, Vector2 origin, int radius) {
         this.radius = radius;
@@ -1363,6 +1426,15 @@ class GenIsland1 extends Action {
             ApplyBlotch(game, "island", tile, maxDist/18, this.tilesToAdd, 1, true, blotchRoute); 
         }
         this.tilesToAdd.putAll(mtnTiles);
+
+        // TODO: this should be on the beach somewhere. probably on the first beach that's created,
+         // once it gets to certain distance. check static var hasCreatedPkmnMansionYet
+        // TODO: generate pokemon mansion dungeon
+        // 28x30 tiles for now (maybe variable in the future)
+//        HashMap<Vector2, Tile> mansionExteriorTiles = new HashMap<Vector2, Tile>();
+//        ArrayList<HashMap<Vector2, Tile>> mansionInteriorTiles = new ArrayList<HashMap<Vector2, Tile>>();
+//        this.generateMansion(game, mansionExteriorTiles, mansionInteriorTiles);
+//        this.tilesToAdd.putAll(mansionExteriorTiles);
 
         // find max/min x and y tiles, add padding and add water tiles
         Vector2 maxPos = this.origin.cpy();
@@ -1460,6 +1532,40 @@ class GenIsland1 extends Action {
                         this.tilesToAdd.put(tile.position, new Tile("sand1", tile.position.cpy(), true, tile.routeBelongsTo));
                     }
                 }
+                // Remove overworld pokemon that are currently inside something solid
+                //  Hard to remove them when they are being placed, this issue happens when 
+                //  groups of tiles get merged together (I think).
+                if (this.pokemonToAdd.containsKey(tile.position) && tile.attrs.get("solid")) {
+                    Pokemon pokemon = this.pokemonToAdd.remove(tile.position);
+                    game.actionStack.remove(pokemon.standingAction);
+                }
+
+                // Generate the pokemon mansion dungeon'
+                // TODO: on small and S maps, just put it in the middle
+//                if (this.radius >= 100*100*(4)) {
+//                    
+//                }
+                //
+                if (tile.biome.equals("deep_forest") && !GenIsland1.donePkmnMansion
+                    && !mtnTiles.containsKey(tile.position.cpy().add(0, -16*23))
+                    && !mtnTiles.containsKey(tile.position.cpy().add(-16*14, 0))
+                    && !mtnTiles.containsKey(tile.position.cpy().add(16*9, -16*15))) {
+                    GenIsland1.donePkmnMansion = true;
+                    i = -1;  // start over. it's iterating on a copy of tilesToAdd right now.
+                    HashMap<Vector2, Tile> mansionExteriorTiles = new HashMap<Vector2, Tile>();
+                    ArrayList<HashMap<Vector2, Tile>> mansionInteriorTiles = new ArrayList<HashMap<Vector2, Tile>>();
+//                    this.generateMansion(game, mansionExteriorTiles, mansionInteriorTiles, tile.position.cpy());
+                    this.generateMansion(game, mansionExteriorTiles, mansionInteriorTiles, new Vector2(0, 16*14));  // TODO: debug, remove
+                    tilesToAdd.putAll(mansionExteriorTiles);
+                    this.interiorTilesToAdd.addAll(mansionInteriorTiles);
+                    break;
+                }
+                if (tile.biome.equals("deep_forest") && tile.name.contains("green") && !GenIsland1.donePkmnMansionKey) {
+                    GenIsland1.donePkmnMansionKey = true;
+                    i = -1;  // start over. it's iterating on a copy of tilesToAdd right now.
+                    tilesToAdd.put(tile.position, new Tile(tile.name, "pokemon_mansion_key", tile.position.cpy(), true, null));
+                    break;
+                }
             }
         }
 
@@ -1497,6 +1603,39 @@ class GenIsland1 extends Action {
             currTiles.remove(0);
         }
         System.out.println("End post-process: " + String.valueOf(System.currentTimeMillis()-startTime));
+        
+//        // place pokemon mansion
+//        while (true) {
+//            Vector2 edge = this.edges.get(this.rand.nextInt(this.edges.size())).position.cpy();
+//            boolean touchRight = this.tilesToAdd.get(edge.cpy().add(15*16, 0)).name.contains("water");
+//            boolean touchLeft = this.tilesToAdd.get(edge.cpy().add(-15*16, 0)).name.contains("water");
+//            boolean touchUp = this.tilesToAdd.get(edge.cpy().add(0, 14*16)).name.contains("water");
+//            boolean touchDown = this.tilesToAdd.get(edge.cpy().add(0, -14*16)).name.contains("water");
+//            if (touchRight && touchLeft) {
+//                continue;
+//            }
+//            if (touchUp && touchDown) {
+//                continue;
+//            }
+//            Vector2 bl = edge;
+//            if (touchRight) {
+//                bl.add(-15*16 -32, 0);
+//            }
+//            else {
+//                bl.add(32, 0);
+//            }
+//            if (touchUp) {
+//                bl.add(0, -14*16 -32);
+//            }
+//            else {
+//                bl.add(0, 32);
+//            }
+//            HashMap<Vector2, Tile> mansionExteriorTiles = new HashMap<Vector2, Tile>();
+//            ArrayList<HashMap<Vector2, Tile>> mansionInteriorTiles = new ArrayList<HashMap<Vector2, Tile>>();
+//            this.generateMansion(game, mansionExteriorTiles, mansionInteriorTiles, edge);
+//            tilesToAdd.putAll(mansionExteriorTiles);
+//            break;
+//        }
 
         // TODO: remove if not using
 //        for (Tile tile : new ArrayList<Tile>(this.tilesToAdd.values())) {
@@ -1742,7 +1881,9 @@ class GenIsland1 extends Action {
                                             || pokemon.name.toLowerCase().equals("rattata")) {
                                         pokemon.happiness = 0;
                                     }
-                                    game.insertAction(pokemon.new Standing());
+                                    pokemon.standingAction = pokemon.new Standing();
+                                    game.insertAction(pokemon.standingAction);
+                                    this.pokemonToAdd.put(pokemon.position.cpy(), pokemon);
                                 }
                                 if (isMaze == 0) {
                                     int isTree = this.rand.nextInt(maxDist/4) + (int)distance;
@@ -2476,6 +2617,1466 @@ class GenIsland1 extends Action {
         return endPoints;
     }
 
+    public void generateMansion(Game game,
+                                HashMap<Vector2, Tile> mansionExteriorTiles,
+                                ArrayList<HashMap<Vector2, Tile>> mansionInteriorTiles,
+                                Vector2 bl) {
+        int height = 28;
+        int width = 30;
+        int doWindows = 0; //this.rand.nextInt(3);
+        bl.add(-(width*16)/2, -(height*16)/2);  // centered
+        Tile prevStatue = null;
+        Route currRoute = new Route("snow1", 40);
+
+        // 6 levels
+        for (int i=0; i < 100-5; i++) {  // 100
+            mansionInteriorTiles.add(null);
+        }
+        mansionInteriorTiles.add(new HashMap<Vector2, Tile>());  // basement thing
+
+        // Create exterior
+        for (int i = -8; i <= height; i++) {
+            doWindows = this.rand.nextInt(2) + 1;
+            for (int j = 0; j <= width; j++) {
+                if (j == width-1) {
+                    doWindows = 1;
+                }
+                if (i < 0 && (j == width/2 || j == width/2 +1)) {
+                    String name = "path1";
+                    if (this.rand.nextInt(6) <= 1) {
+                        name = "sand1";
+                    }
+                    mansionExteriorTiles.put(bl.cpy().add(j*16, i*16), new Tile(name, bl.cpy().add(j*16, i*16), true, null));
+                }
+                else if (i == -2) {
+                    String name = "green1";
+                    if (this.rand.nextInt(24) == 0) {
+                        name = "green4";
+                    }
+                    mansionExteriorTiles.put(bl.cpy().add(j*16, i*16), new Tile(name, bl.cpy().add(j*16, i*16), true, null));
+                }
+                else if (i == -1) {
+                    mansionExteriorTiles.put(bl.cpy().add(j*16, i*16), new Tile("sand1", bl.cpy().add(j*16, i*16), true, null));
+                }
+                else if (i == 0) {
+                    if (j == 0) {
+                        mansionExteriorTiles.put(bl.cpy().add(j*16, i*16), new Tile("pkmnmansion_ext_SW", bl.cpy().add(j*16, i*16), true, null));
+                    }
+                    else if (j == width) {
+                        mansionExteriorTiles.put(bl.cpy().add(j*16, i*16), new Tile("pkmnmansion_ext_SE", bl.cpy().add(j*16, i*16), true, null));
+                    }
+                    else if (j == (width/2)) {
+                        mansionExteriorTiles.put(bl.cpy().add(j*16, i*16), new Tile("pkmnmansion_ext_locked", bl.cpy().add(j*16, i*16), true, currRoute));
+                    }
+                    else {
+                        String name = "pkmnmansion_ext_S";
+                        if (doWindows != 0) {
+                            name = "pkmnmansion_ext_S_windows";
+                        }
+                        mansionExteriorTiles.put(bl.cpy().add(j*16, i*16), new Tile(name,  bl.cpy().add(j*16, i*16), true, null));
+                    }
+                }
+                else if (i == 1 || i == 2) {
+                    if (j == 0) {
+                        mansionExteriorTiles.put(bl.cpy().add(j*16, i*16), new Tile("pkmnmansion_ext_W", bl.cpy().add(j*16, i*16), true, null));
+                    }
+                    else if (j == width) {
+                        mansionExteriorTiles.put(bl.cpy().add(j*16, i*16), new Tile("pkmnmansion_ext_E", bl.cpy().add(j*16, i*16), true, null));
+                    }
+                    else {
+                        String name = "pkmnmansion_ext";
+                        if (doWindows != 0) {
+                            name = "pkmnmansion_ext_windows";
+                        }
+                        mansionExteriorTiles.put(bl.cpy().add(j*16, i*16), new Tile(name,  bl.cpy().add(j*16, i*16), true, null));
+                    }
+                }
+                else if (i == 3) {
+                    if (j == 0) {
+                        mansionExteriorTiles.put(bl.cpy().add(j*16, i*16), new Tile("pkmnmansion_roof_SW", bl.cpy().add(j*16, i*16), true, null));
+                    }
+                    else if (j == width) {
+                        mansionExteriorTiles.put(bl.cpy().add(j*16, i*16), new Tile("pkmnmansion_roof_SE", bl.cpy().add(j*16, i*16), true, null));
+                    }
+                    else {
+                        mansionExteriorTiles.put(bl.cpy().add(j*16, i*16), new Tile("pkmnmansion_roof_S",  bl.cpy().add(j*16, i*16), true, null));
+                    }
+                }
+                else if (i == height) {
+                    if (j == 0) {
+                        mansionExteriorTiles.put(bl.cpy().add(j*16, i*16), new Tile("pkmnmansion_roof_NW", bl.cpy().add(j*16, i*16), true, null));
+                    }
+                    else if (j == width) {
+                        mansionExteriorTiles.put(bl.cpy().add(j*16, i*16), new Tile("pkmnmansion_roof_NE", bl.cpy().add(j*16, i*16), true, null));
+                    }
+                    else {
+                        mansionExteriorTiles.put(bl.cpy().add(j*16, i*16), new Tile("pkmnmansion_roof_N",  bl.cpy().add(j*16, i*16), true, null));
+                    }
+                }
+                else if (i > 0) {
+                    if (j == 0) {
+                        mansionExteriorTiles.put(bl.cpy().add(j*16, i*16), new Tile("pkmnmansion_roof_W", bl.cpy().add(j*16, i*16), true, null));
+                    }
+                    else if (j == width) {
+                        mansionExteriorTiles.put(bl.cpy().add(j*16, i*16), new Tile("pkmnmansion_roof_E", bl.cpy().add(j*16, i*16), true, null));
+                    }
+                    else {
+                        mansionExteriorTiles.put(bl.cpy().add(j*16, i*16), new Tile("pkmnmansion_roof",  bl.cpy().add(j*16, i*16), true, null));
+                    }
+                }
+
+                if (this.rand.nextInt(1+(doWindows)) == 0) {
+                    doWindows = (doWindows+1) % 2;
+                }
+            }
+        }
+
+        ArrayList<Vector2> alreadyChecked = new ArrayList<Vector2>();
+        Tile stairsUp = null;  // Stairs tile going upstairs. Top floor won't have this.
+        Tile stairsDown = null; 
+        Tile statue = null; 
+        // bl vector2 needs to move
+        bl.add(-4*16, -4*16);
+        // start from bottom basement level
+        for (int levelNum=0; levelNum < 6; levelNum++) {
+            // Always assume there is a wall
+            // Needs to fit into 30x28
+            // height: 28, -2 for top/bottom walls. 26 spaces. 27 since maze generates bottom wall
+            // 1. then 1-5. 
+            // should it just be true/false? yeah. true == solid
+            // 
+            currRoute = new Route("pkmnmansion1", 40 -levelNum*2);  // TODO: up level later
+            stairsUp = null;  // Stairs tile going upstairs. Top floor won't have this.
+            stairsDown = null; 
+            statue = null; 
+            ArrayList<Boolean> rowIsSolid = new ArrayList<Boolean>();
+            ArrayList<Integer> sizes = new ArrayList<Integer>();
+            sizes.add(1);
+            for (int k = 0; k < 2; k++) {
+                sizes.add(2);
+    //            sizes.add(3);
+                sizes.add(4);
+                sizes.add(5);
+            }
+            if (levelNum < 4) {
+                sizes.add(4);
+                sizes.add(2);
+                sizes.add(4);
+                sizes.add(2);
+            }
+            int numRows = 0;
+            int counter = 0;
+            for (int i = 0; i < 27 +(4-levelNum)*2; i++) {
+                if (i == 26 +(4-levelNum)*2) {
+                    rowIsSolid.add(false);
+                    continue;
+                }
+                if (counter == 0) {
+                    rowIsSolid.add(true);
+    //                int min = 1;
+    //                if (i < 8) {
+    //                    min = 3;
+    //                }
+    //                counter = this.rand.nextInt(5) + min;  // 5 == max open area height
+                    counter = sizes.remove(this.rand.nextInt(sizes.size()));
+                    numRows+=2;
+                    continue;
+                }
+                else {
+                    rowIsSolid.add(false);
+                }
+                counter--;
+            }
+            rowIsSolid.add(true);  // TODO: needed? idk
+    //        System.out.println(rowIsSolid.size()); // check that this is 28
+    
+            ArrayList<Boolean> columnIsSolid = new ArrayList<Boolean>();
+            sizes = new ArrayList<Integer>();
+            sizes.add(1);
+            for (int k = 0; k < 2; k++) {
+                sizes.add(2);
+    //            sizes.add(3);
+                sizes.add(4);
+                sizes.add(5);
+            }
+            if (levelNum < 4) {
+                sizes.add(4);
+                sizes.add(2);
+                sizes.add(4);
+                sizes.add(2);
+            }
+            int numCols = 0;
+            counter = 0;
+            for (int i = 0; i < 29 +(4-levelNum)*2; i++) {
+                if (i == 28 +(4-levelNum)*2) {
+                    columnIsSolid.add(false);
+                    continue;
+                }
+                if (counter == 0) {
+                    columnIsSolid.add(true);
+    //                counter = this.rand.nextInt(5) + 2;  // 5 == max open area width
+                    counter = sizes.remove(this.rand.nextInt(sizes.size()));
+                    numCols += 2;
+                    continue;
+                }
+                else {
+                    columnIsSolid.add(false);
+                }
+                counter--;
+            }
+            columnIsSolid.add(true);
+            
+            // TODO: don't use mazenodes for now. might be useful later tho (probably not)
+    
+            // get maze use numRows and numCols
+            // TODO: mess with those one values
+    
+    //        float density = 0.1f;
+    //        float complexity = 0.9f;
+    
+            float density = 0.05f;
+            float complexity = 0.7f;
+            boolean[][] maze = GenForest2.Maze_Algo2(numCols, numRows, density, complexity, this.rand);
+            HashMap<Vector2, Tile> currLayer = new HashMap<Vector2, Tile>();
+            mansionInteriorTiles.add(currLayer);
+    
+            int i = 0;
+            for (int k=0; k < rowIsSolid.size(); k++) {
+                boolean rowSolid = rowIsSolid.get(k);
+                int j = 0;
+                for (int l=0; l < columnIsSolid.size(); l++) {
+                    boolean columnSolid = columnIsSolid.get(l);
+                    if (maze[j][i]) {
+                        currLayer.put(bl.cpy().add(l*16, k*16), new Tile("pkmnmansion_wall",  bl.cpy().add(l*16, k*16), true, null));
+                    }
+                    else {
+                        currLayer.put(bl.cpy().add(l*16, k*16), new Tile("pkmnmansion_floor1",  bl.cpy().add(l*16, k*16), true, currRoute));
+                    }
+                    if (columnSolid || (l+1 < columnIsSolid.size() && columnIsSolid.get(l+1))) {
+                        j += 1;
+                    }
+                }
+                if (rowSolid || (k+1 < rowIsSolid.size() && rowIsSolid.get(k+1))) {
+                    i += 1;
+                }
+            }
+
+            // Place plants
+            alreadyChecked.clear();
+            for (Vector2 pos : currLayer.keySet()) {
+                if (alreadyChecked.contains(pos)) {
+                    continue;
+                }
+                if (currLayer.get(pos).attrs.get("solid")) {
+                    alreadyChecked.add(pos);
+                    int size = 0;
+                    ArrayList<Vector2> checkThese = new ArrayList<Vector2>();
+                    ArrayList<Vector2> found = new ArrayList<Vector2>();
+                    found.add(pos);
+                    checkThese.add(pos.cpy().add(-16,0));
+                    checkThese.add(pos.cpy().add(16,0));
+                    checkThese.add(pos.cpy().add(0,16));
+                    checkThese.add(pos.cpy().add(0,-16));
+                    while (checkThese.size() > 0) {
+                        Vector2 pos2 = checkThese.remove(0);
+                        if (alreadyChecked.contains(pos2)) {
+                            continue;
+                        }
+                        alreadyChecked.add(pos2);
+                        if (!currLayer.containsKey(pos2)) {
+                            continue;
+                        }
+                        if (!currLayer.get(pos2).attrs.get("solid")) {
+                            continue;
+                        }
+                        size++;
+                        found.add(pos2);
+                        checkThese.add(pos2.cpy().add(-16,0));
+                        checkThese.add(pos2.cpy().add(16,0));
+                        checkThese.add(pos2.cpy().add(0,16));
+                        checkThese.add(pos2.cpy().add(0,-16));
+                    }
+                    if (size < 10) {
+                        for (Vector2 pos3 : found) {
+                            currLayer.put(pos3.cpy(), new Tile("tree_plant1",  pos3.cpy(), true, null));
+                        }
+                    }
+                }
+            }
+
+            // Fix walls
+            for (Vector2 pos : currLayer.keySet()) {
+                if (!currLayer.get(pos).name.contains("pkmnmansion_wall")) {
+                    continue;
+                }
+    //            Tile tile = currLayer.get(pos);
+                Vector2 left = pos.cpy().add(-16f, 0f);
+                Vector2 right = pos.cpy().add(16f, 0f);
+                Vector2 up = pos.cpy().add(0f, 16f);
+                Vector2 down = pos.cpy().add(0f, -16f);
+                boolean touchLeft = currLayer.containsKey(left) && currLayer.get(left).name.contains("pkmnmansion_wall");
+                boolean touchRight = currLayer.containsKey(right) && currLayer.get(right).name.contains("pkmnmansion_wall");
+                boolean touchUp = currLayer.containsKey(up) && currLayer.get(up).name.contains("pkmnmansion_wall");
+                boolean touchDown = currLayer.containsKey(down) && currLayer.get(down).name.contains("pkmnmansion_wall");
+                // TODO: choose some random
+                // TODO: if touching solid up and down, do
+                if (touchDown && touchUp) {
+                    currLayer.put(pos.cpy(), new Tile("pkmnmansion_wall_NS", pos.cpy(), true, null));
+                }
+                else if (touchDown && touchLeft) {
+                    if (this.rand.nextInt(2) == 0) {
+                        currLayer.put(pos.cpy(), new Tile("pkmnmansion_wall_N", pos.cpy(), true, null));
+                    }
+                    else {
+                        currLayer.put(pos.cpy(), new Tile("pkmnmansion_wall_NE", pos.cpy(), true, null));
+                    }
+                }
+                else if (touchDown && touchRight) {
+                    if (this.rand.nextInt(2) == 0) {
+                        currLayer.put(pos.cpy(), new Tile("pkmnmansion_wall_N", pos.cpy(), true, null));
+                    }
+                    else {
+                        currLayer.put(pos.cpy(), new Tile("pkmnmansion_wall_NW", pos.cpy(), true, null));
+                    }
+                }
+                else if (touchDown) {
+                    currLayer.put(pos.cpy(), new Tile("pkmnmansion_wall_N", pos.cpy(), true, null));
+                }
+                else if (touchUp && touchLeft) {
+                    if (this.rand.nextInt(2) == 0) {
+                        currLayer.put(pos.cpy(), new Tile("pkmnmansion_wall_S", pos.cpy(), true, null));
+                    }
+                    else {
+                        currLayer.put(pos.cpy(), new Tile("pkmnmansion_wall_E", pos.cpy(), true, null));
+                    }
+                }
+                else if (touchUp && touchRight) {
+                    if (this.rand.nextInt(2) == 0) {
+                        currLayer.put(pos.cpy(), new Tile("pkmnmansion_wall_S", pos.cpy(), true, null));
+                    }
+                    else {
+                        currLayer.put(pos.cpy(), new Tile("pkmnmansion_wall_W", pos.cpy(), true, null));
+                    }
+                }
+                else if (touchUp) {
+                    currLayer.put(pos.cpy(), new Tile("pkmnmansion_wall_S", pos.cpy(), true, null));
+                }
+                else if (touchLeft && touchRight) {
+                    // nothing
+                }
+                else if (touchLeft) {
+                    currLayer.put(pos.cpy(), new Tile("pkmnmansion_wall_E", pos.cpy(), true, null));
+                }
+                else if (touchRight) {
+                    currLayer.put(pos.cpy(), new Tile("pkmnmansion_wall_W", pos.cpy(), true, null));
+                }
+            }
+    
+            // Place debris
+            alreadyChecked.clear();
+            for (Vector2 pos : currLayer.keySet()) {
+                if (alreadyChecked.contains(pos)) {
+                    continue;
+                }
+                alreadyChecked.add(pos);
+                if (currLayer.get(pos).name.contains("pkmnmansion_wall") && this.rand.nextInt(13) == 0) {  //13
+                    ArrayList<Vector2> checkThese = new ArrayList<Vector2>();
+                    ArrayList<Vector2> found = new ArrayList<Vector2>();
+                    int size = 0;
+                    found.add(pos);
+                    checkThese.add(pos.cpy().add(-16,0));
+                    checkThese.add(pos.cpy().add(16,0));
+                    checkThese.add(pos.cpy().add(0,16));
+                    checkThese.add(pos.cpy().add(0,-16));
+                    while (checkThese.size() > 0) {
+                        Vector2 pos2 = checkThese.remove(0);
+                        if (alreadyChecked.contains(pos2)) {
+                            continue;
+                        }
+                        alreadyChecked.add(pos2);
+                        if (!currLayer.containsKey(pos2)) {
+                            continue;
+                        }
+                        if (!currLayer.get(pos2).attrs.get("solid")) {
+                            Vector2 left = pos2.cpy().add(-16f, 0f);
+                            Vector2 tl = pos2.cpy().add(-16f, 16f);
+                            Vector2 ble = pos2.cpy().add(-16f, -16f);
+                            Vector2 right = pos2.cpy().add(16f, 0f);
+                            Vector2 tr = pos2.cpy().add(16f, 16f);
+                            Vector2 br = pos2.cpy().add(16f, -16f);
+                            Vector2 up = pos2.cpy().add(0f, 16f);
+                            Vector2 down = pos2.cpy().add(0f, -16f);
+                            boolean touchLeft = currLayer.containsKey(left) && currLayer.get(left).attrs.get("solid");
+                            boolean touchTl = currLayer.containsKey(tl) && currLayer.get(tl).attrs.get("solid");
+                            boolean touchBle = currLayer.containsKey(ble) && currLayer.get(ble).attrs.get("solid");
+                            boolean touchRight = currLayer.containsKey(right) && currLayer.get(right).attrs.get("solid");
+                            boolean touchTr = currLayer.containsKey(tr) && currLayer.get(tr).attrs.get("solid");
+                            boolean touchBr = currLayer.containsKey(br) && currLayer.get(br).attrs.get("solid");
+                            boolean touchUp = currLayer.containsKey(up) && currLayer.get(up).attrs.get("solid");
+                            boolean touchDown = currLayer.containsKey(down) && currLayer.get(down).attrs.get("solid");
+    
+                            // Use this one if you ever want there to be a lot of size=1 pathways, like in rocket hideout, cave, etc.
+    //                        if ((touchLeft && (touchTr || touchBr)) || 
+    //                            (touchUp && (touchBle || touchBr)) || 
+    //                            (touchRight && (touchTl || touchBle)) || 
+    //                            (touchDown && (touchTl || touchTr))) {
+    //                            continue;
+    //                        }
+                            
+                            if ((touchLeft && ((touchTr && !touchUp) || (touchBr && !touchDown))) || 
+                                (touchUp && ((touchBle && !touchLeft) || (touchBr && !touchRight))) || 
+                                (touchRight && ((touchTl && !touchUp) || (touchBle && !touchDown))) || 
+                                (touchDown && ((touchTl && !touchLeft) || (touchTr && !touchRight)))) {
+                                continue;
+                            }
+                        }
+                        else if (!currLayer.get(pos2).name.contains("pkmnmansion_wall")) {
+                            continue;
+                        }
+                        if (size > 10 && this.rand.nextInt(35) -size <= 0) {
+                            continue;
+                        }
+                        size++;
+                        currLayer.put(pos2.cpy(), new Tile("pkmnmansion_floor1", "rubble1", pos2.cpy(), true, null));
+                        checkThese.add(pos2.cpy().add(-16,0));
+                        checkThese.add(pos2.cpy().add(16,0));
+                        checkThese.add(pos2.cpy().add(0,16));
+                        checkThese.add(pos2.cpy().add(0,-16));
+                    }
+                }
+            }
+    
+            
+            // Place shelf things
+            alreadyChecked.clear();
+            for (Vector2 pos : currLayer.keySet()) {
+                if (alreadyChecked.contains(pos)) {
+                    continue;
+                }
+                alreadyChecked.add(pos);
+                int numShelves = 0;
+                HashMap<Vector2, Tile> currSet = new HashMap<Vector2, Tile>();
+                if (!currLayer.get(pos).attrs.get("solid") 
+                    && (currLayer.get(pos.cpy().add(0, 16)).name.contains("pkmnmansion_wall") 
+                        || currLayer.get(pos.cpy().add(-16, 0)).name.contains("pkmnmansion_wall")
+                        || currLayer.get(pos.cpy().add(16, 0)).name.contains("pkmnmansion_wall"))
+                    && this.rand.nextInt(5+numShelves) == 0) {
+                    ArrayList<Vector2> checkThese = new ArrayList<Vector2>();
+                    ArrayList<Vector2> found = new ArrayList<Vector2>();
+                    int size = 0;
+                    found.add(pos);
+                    checkThese.add(pos.cpy().add(-16,0));
+                    checkThese.add(pos.cpy().add(16,0));
+                    checkThese.add(pos.cpy().add(0,16));
+                    checkThese.add(pos.cpy().add(0,-16));
+                    numShelves++;
+                    while (checkThese.size() > 0) {
+                        Vector2 pos2 = checkThese.remove(0);
+                        if (alreadyChecked.contains(pos2)) {
+                            continue;
+                        }
+                        alreadyChecked.add(pos2);
+                        if (!currLayer.containsKey(pos2)) {
+                            continue;
+                        }
+                        if (currLayer.get(pos2).attrs.get("solid")) {
+                            continue;
+                        }
+                        Vector2 left = pos2.cpy().add(-16f, 0f);
+                        Vector2 right = pos2.cpy().add(16f, 0f);
+                        Vector2 up = pos2.cpy().add(0f, 16f);
+                        Vector2 down = pos2.cpy().add(0f, -16f);
+                        boolean touchLeft = currLayer.get(left).name.contains("pkmnmansion_wall");
+                        boolean touchRight = currLayer.get(right).name.contains("pkmnmansion_wall");
+                        boolean touchUp = currLayer.get(up).name.contains("pkmnmansion_wall");
+                        boolean touchDown = currLayer.get(down).name.contains("pkmnmansion_wall");
+    
+                        if (touchDown) {
+                            continue;
+                        }
+                        else if ((touchLeft && touchRight) ||
+                                 (!touchLeft && !touchRight && !touchUp)) {
+                            continue;
+                        }
+    
+                        Vector2 tl = pos2.cpy().add(-16f, 16f);
+                        Vector2 ble = pos2.cpy().add(-16f, -16f);
+                        Vector2 tr = pos2.cpy().add(16f, 16f);
+                        Vector2 br = pos2.cpy().add(16f, -16f);
+                        boolean touchTl = currLayer.get(tl).attrs.get("solid");
+                        boolean touchBle = currLayer.get(ble).attrs.get("solid");
+                        boolean touchTr = currLayer.get(tr).attrs.get("solid");
+                        boolean touchBr = currLayer.get(br).attrs.get("solid");
+                        touchLeft = currLayer.get(left).attrs.get("solid");
+                        touchRight = currLayer.get(right).attrs.get("solid");
+                        touchUp = currLayer.get(up).attrs.get("solid");
+                        touchDown = currLayer.get(down).attrs.get("solid");
+    
+                        if ((touchLeft && ((touchTr && !touchUp) || (touchBr && !touchDown))) || 
+                            (touchUp && ((touchBle && !touchLeft) || (touchBr && !touchRight))) || 
+                            (touchRight && ((touchTl && !touchUp) || (touchBle && !touchDown))) || 
+                            (touchDown && ((touchTl && !touchLeft) || (touchTr && !touchRight)))) {
+                            continue;
+                        }
+    
+                        if (size > 10 && this.rand.nextInt(35) -size <= 0) {
+                            continue;
+                        }
+                        size++;
+                        currSet.put(pos2.cpy(), new Tile("pkmnmansion_shelf1", pos2.cpy(), true, null));
+                        checkThese.add(pos2.cpy().add(-16,0));
+                        checkThese.add(pos2.cpy().add(16,0));
+                        checkThese.add(pos2.cpy().add(0,16));
+                        checkThese.add(pos2.cpy().add(0,-16));
+                    }
+                    if (currSet.keySet().size() > 3) {
+                        for (Vector2 pos2 : currSet.keySet()) {
+                            Vector2 up = pos2.cpy().add(0f, 16f);
+                            boolean touchUp = currSet.containsKey(up);
+                            if (touchUp) {
+                                currLayer.put(pos2.cpy(), new Tile("pkmnmansion_shelf1_NS", pos2.cpy(), true, null));
+                            }
+                            else {
+                                currLayer.put(pos2.cpy(), new Tile("pkmnmansion_shelf1", pos2.cpy(), true, null));
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (levelNum == 4) {
+            }
+
+            // Place tables
+            alreadyChecked.clear();
+            ArrayList<HashMap<Vector2, Tile>> possibleSpots = new ArrayList<HashMap<Vector2, Tile>>();
+    //        for (Vector2 pos : currLayer.keySet()) {
+            for (Vector2 pos = bl.cpy(); pos.y < (bl.y + 28*16); pos.x += 16) {
+                if (pos.x > bl.x + 30*16) {
+                    pos.x = bl.x-16;
+                    pos.y += 16;
+                    continue;
+                }
+                if (!currLayer.containsKey(pos)) {
+                    continue;
+                }
+                if (alreadyChecked.contains(pos)) {
+                    continue;
+                }
+    //            alreadyChecked.add(pos);
+    //            if (!currLayer.get(pos).attrs.get("solid")) {
+                if (currLayer.get(pos).name.contains("pkmnmansion_floor1")) {
+    //                ArrayList<Vector2> checkThese = new ArrayList<Vector2>();
+                    int h = 4;
+                    int w = 4;
+                    Vector2 lastWorking = null;
+                    boolean yDir = false;
+                    while (true) {
+                        boolean works = true;
+                        for (int x = 0; x < w; x++) {
+                            for (int y = 0; y < h; y++) {
+    //                            if (alreadyChecked.contains(pos.cpy().add(x*16, y*16))) {
+    //                                works = false;
+    //                                break;
+    //                            }
+                                if (currLayer.get(pos.cpy().add(x*16, y*16)).attrs.get("solid")) {
+                                    works = false;
+                                    break;
+                                }
+                            }
+                            if (!works) {
+                                break;
+                            }
+                        }
+    //                    if (w > 7) {
+    //                        works = false;
+    //                    }
+    //                    if (h > 7) {
+    //                        works = false;
+    //                    }
+    //                    if (lastWorking != null && works && this.rand.nextInt(4) == 0) {
+    //                        works = false;
+    //                    }
+                        if (works) {
+                            lastWorking = new Vector2(w, h);
+                            if (yDir) {
+                                h += 1;
+                            }
+                            else {
+                                w += 1;
+                            }
+                        }
+                        else {
+                            if (!yDir) {
+                                yDir = true;
+                                continue;
+                            }
+                            else if (lastWorking != null) {  // && this.rand.nextInt(3) != 0
+                                // place table
+                                // TODO: probably place beds, or something.
+                                if (lastWorking.x < 7 && lastWorking.y < 7) {
+                                    HashMap<Vector2, Tile> putThese = new HashMap<Vector2, Tile>();
+                                    for (int x = 1; x < lastWorking.x-1; x++) {
+                                        for (int y = 1; y < lastWorking.y-1; y++) {
+                                            if (x == 1 && y == 1) {
+                                                putThese.put(pos.cpy().add(x*16, y*16), new Tile("table_SW", pos.cpy().add(x*16, y*16), true, null));
+                                            }
+                                            else if (x == lastWorking.x-2 && y == lastWorking.y-2) {
+                                                putThese.put(pos.cpy().add(x*16, y*16), new Tile("table_NE", pos.cpy().add(x*16, y*16), true, null));
+                                            }
+                                            else if (x == 1 && y == lastWorking.y-2) {
+                                                putThese.put(pos.cpy().add(x*16, y*16), new Tile("table_NW", pos.cpy().add(x*16, y*16), true, null));
+                                            }
+                                            else if (x == lastWorking.x-2 && y == 1) {
+                                                putThese.put(pos.cpy().add(x*16, y*16), new Tile("table_SE", pos.cpy().add(x*16, y*16), true, null));
+                                            }
+                                            else if (x == 1) {
+                                                putThese.put(pos.cpy().add(x*16, y*16), new Tile("table_W", pos.cpy().add(x*16, y*16), true, null));
+                                            }
+                                            else if (x == lastWorking.x-2) {
+                                                putThese.put(pos.cpy().add(x*16, y*16), new Tile("table_E", pos.cpy().add(x*16, y*16), true, null));
+                                            }
+                                            else if (y == 1) {
+                                                putThese.put(pos.cpy().add(x*16, y*16), new Tile("table_S", pos.cpy().add(x*16, y*16), true, null));
+                                            }
+                                            else if (y == lastWorking.y-2) {
+                                                putThese.put(pos.cpy().add(x*16, y*16), new Tile("table_N", pos.cpy().add(x*16, y*16), true, null));
+                                            }
+                                            else {
+                                                putThese.put(pos.cpy().add(x*16, y*16), new Tile("table", pos.cpy().add(x*16, y*16), true, null));
+                                            }
+                                        }
+                                    }
+                                    possibleSpots.add(putThese);
+                                }
+                                for (int x = 0; x < lastWorking.x; x++) {
+                                    for (int y = 0; y < lastWorking.y+1; y++) {
+                                        alreadyChecked.add(pos.cpy().add(x*16, y*16));
+                                    }
+                                }
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+            for (HashMap<Vector2, Tile> putThese : possibleSpots) {
+                boolean works = true;
+                for (Vector2 pos : putThese.keySet()) {
+                    if (currLayer.get(pos).attrs.get("solid")) {
+                        works = false;
+                        break;
+                    }
+                }
+                if (works) {
+                    for (Vector2 pos : putThese.keySet()) {
+                        currLayer.put(pos, putThese.get(pos));
+                    }
+                }
+            }
+            bl.add(16, 16);
+        }
+
+        bl.add(-32, -32);
+        Tile nextStairsUp = null;
+        HashMap<Vector2, Tile> currLayer = mansionInteriorTiles.get(100);
+        HashMap<Vector2, Tile> layerAbove = mansionInteriorTiles.get(101);
+        currRoute = new Route("pkmnmansion1", 30);  // TODO: up level later
+        // Entrance area
+        // TODO: might keep increasing yMax until you find free upstairs tile for stairs.
+        int yMax = this.rand.nextInt(4)*2 +6;  // from 6 to 18  // this.rand.nextInt(7)*2 +6
+        while (true) {
+            Vector2 pos = bl.cpy().add((5+10)*16, (yMax-1)*16);
+            if (layerAbove.get(pos) != null && layerAbove.get(pos).attrs.get("solid")) {
+                System.out.println(yMax);
+                yMax++;
+            }
+            else {
+                break;
+            }
+        }
+        for (int x = 0; x < 10; x++) {  //  x pos
+            for (int y = 0; y < yMax; y++) {  //  y pos  
+                Vector2 pos = bl.cpy().add((x+10)*16, y*16);
+                if (y == yMax-1 && x == 5) {
+                    nextStairsUp = new Tile("pkmnmansion_floor2", "stairs_up1", pos.cpy(), true, null);
+                    currLayer.put(pos.cpy(), nextStairsUp);
+                    stairsUp = new Tile("pkmnmansion_floor2", "stairs_down1", pos.cpy(), true, null);
+                    layerAbove.put(pos.cpy(), stairsUp);
+                }
+                else if (y == 0 && x == 5) {
+                    currLayer.put(pos.cpy(), new Tile("pkmnmansion_rug", pos.cpy(), true, currRoute));
+                }
+                else if ((x == 2 || x == 7) && (y % 2) == 1 && y != 1) {
+                    currLayer.put(pos.cpy(), new Tile("pkmnmansion_block1", pos.cpy(), true, null));
+                }
+                else if (x == 3) {
+                    currLayer.put(pos.cpy(), new Tile("pkmnmansion_floor2_W", pos.cpy(), true, currRoute));
+                }
+                else if (x == 6) {
+                    currLayer.put(pos.cpy(), new Tile("pkmnmansion_floor2_E", pos.cpy(), true, currRoute));
+                }
+                else if (x > 3 && x < 6) {
+                    currLayer.put(pos.cpy(), new Tile("pkmnmansion_floor2", pos.cpy(), true, currRoute));
+                }
+                else if (y != 0) {
+                    currLayer.put(pos.cpy(), new Tile("pkmnmansion_floor1", pos.cpy(), true, currRoute));
+                }
+            }
+        }
+
+        // Starting at top level, place statue, stairs and walls.
+        HashMap<Vector2, Tile> layerBelow = null;
+        for (int levelNum = 6; levelNum > 0; levelNum--) {
+            currLayer = mansionInteriorTiles.get(95+levelNum);
+            layerBelow = mansionInteriorTiles.get(94+levelNum);
+
+            // Place downstairs
+            if (stairsUp != null) {
+                alreadyChecked.clear();
+                ArrayList<Vector2> checkThese = new ArrayList<Vector2>();
+                ArrayList<Vector2> shuffleThese = new ArrayList<Vector2>();
+                ArrayList<Vector2> endPoints = new ArrayList<Vector2>();
+                checkThese.add(stairsUp.position.cpy());
+                alreadyChecked.add(stairsUp.position.cpy());
+                while (checkThese.size() > 0) {
+                    for (Vector2 pos : new ArrayList<Vector2>(checkThese)) {
+                        boolean addedAnother = false;
+                        boolean touchTable = false;
+                        boolean touchEndpoint = false;
+                        checkThese.remove(pos);
+                        shuffleThese.clear();
+                        shuffleThese.add(pos.cpy().add(16, 0));
+                        shuffleThese.add(pos.cpy().add(-16, 0));
+                        shuffleThese.add(pos.cpy().add(0, 16));
+                        shuffleThese.add(pos.cpy().add(0, -16));
+                        Vector2 pos2;
+                        while (true) {
+                            pos2 = shuffleThese.remove(this.rand.nextInt(shuffleThese.size()));
+                            if (!alreadyChecked.contains(pos2) && currLayer.containsKey(pos2) && !currLayer.get(pos2).attrs.get("solid")&& !currLayer.get(pos2).nameUpper.contains("stairs")) {
+                                checkThese.add(pos2);
+                                alreadyChecked.add(pos2);
+                                addedAnother = true;
+                            }
+                            if (currLayer.containsKey(pos2) && currLayer.get(pos2).name.contains("table")) {
+                                touchTable = true;
+                            }
+                            if (endPoints.contains(pos2)) {
+                                touchEndpoint = true;
+                            }
+                            if (shuffleThese.size() <= 0) {
+                                break;
+                            }
+                        }
+                        if (!touchTable && !touchEndpoint && !addedAnother && !currLayer.get(pos).name.contains("floor2") && !currLayer.get(pos).name.contains("rug")) {
+                            endPoints.add(pos);
+                        }
+                    }
+                }
+                // TODO: hidden items
+                // TODO: sometimes there aren't enough endpoints, crashes.
+                Vector2 pos3 = endPoints.get(endPoints.size()-1); // = endPoints.remove(endPoints.size()-1);
+                while (endPoints.size() > 0) {
+                    if (endPoints.size() > 4) {
+                        pos3 = endPoints.remove(this.rand.nextInt(5)+endPoints.size()-5);
+                    }
+                    else {
+                        pos3 = endPoints.remove(endPoints.size()-1);
+                    }
+                    if (layerBelow.get(pos3) != null && layerBelow.get(pos3).attrs.get("solid")) {
+                        continue;
+                    }
+                    // TODO: check
+                    stairsDown = new Tile("pkmnmansion_floor2", "stairs_down1", pos3.cpy(), true, null);
+                    break;
+                }
+                if (levelNum != 6) {
+                    currLayer.put(pos3.cpy(), stairsDown);
+                    nextStairsUp = new Tile("pkmnmansion_floor1", "stairs_up1", pos3.cpy(), true, null);
+                    layerBelow.put(pos3.cpy(), nextStairsUp);
+                }
+
+                // Place pokeballs
+                int maxJ = this.rand.nextInt(3)+3;
+                for (int j = 0; j < maxJ*3 && endPoints.size() > 5; j++) {
+    //                pos = endPoints.remove(this.rand.nextInt(5)+endPoints.size()-5);
+    //                pos = endPoints.remove(this.rand.nextInt(endPoints.size()));
+                    pos3 = endPoints.remove(endPoints.size()-1);
+                    if (j % 3 == 0) {  // && this.rand.nextInt(2) == 0
+//                        currLayer.put(pos3.cpy(), new Tile("pkmnmansion_floor1", "pokeball1", pos3.cpy(), true, null));
+                        currLayer.put(pos3.cpy(), new Tile("pkmnmansion_floor1", "ultraball1", pos3.cpy(), true, null));
+                    }
+    //                if (this.rand.nextInt(2) == 0) {
+    //                    currLayer.put(pos3.cpy(), new Tile("pkmnmansion_floor1", "pokeball1", pos3.cpy(), true, null));
+    //                }
+    //                else {
+    //                    j--;
+    //                }
+                    
+                }
+    //            System.out.println("Num Endpoints:");
+    //            System.out.println(endPoints.size());
+    //            for (int j = 0; j < 5 && j < endPoints.size(); j++) {
+    //                Vector2 pos = endPoints.get(endPoints.size()-1-j);
+    ////                Vector2 pos = endPoints.get(j);
+    //                stairsDown = new Tile("pkmnmansion_floor2", "stairs_down1", pos.cpy(), true, null);
+    //                currLayer.put(pos.cpy(), stairsDown);
+    //            }
+
+                // Place the hidden-switch statue
+                alreadyChecked.clear();
+                checkThese.clear();
+                shuffleThese.clear();
+                endPoints.clear();
+                checkThese.add(stairsUp.position.cpy());
+                alreadyChecked.add(stairsUp.position.cpy());
+                checkThese.add(stairsDown.position.cpy());
+                alreadyChecked.add(stairsUp.position.cpy());
+                while (checkThese.size() > 0) {
+                    for (Vector2 pos : new ArrayList<Vector2>(checkThese)) {
+                        boolean addedAnother = false;
+                        boolean touchTable = false;
+                        boolean touchEndpoint = false;
+                        // TODO: remove
+    //                    boolean touchDown;
+    //                    boolean touchLeft;
+    //                    boolean touchRight;
+                        int numTouch = 0;
+                        checkThese.remove(pos);
+                        shuffleThese.clear();
+                        shuffleThese.add(pos.cpy().add(16, 0));
+                        shuffleThese.add(pos.cpy().add(-16, 0));
+                        shuffleThese.add(pos.cpy().add(0, 16));
+                        shuffleThese.add(pos.cpy().add(0, -16));
+                        Vector2 pos2;
+                        while (true) {
+                            pos2 = shuffleThese.remove(this.rand.nextInt(shuffleThese.size()));
+                            // TODO: remove
+    //                        boolean works = true;
+    //                        touchDown = currLayer.containsKey(pos2.cpy().add(0, -16)) && currLayer.get(pos2.cpy().add(0, -16)).attrs.get("solid");
+    //                        touchLeft = currLayer.containsKey(pos2.cpy().add(-16, 0)) && currLayer.get(pos2.cpy().add(-16, 0)).attrs.get("solid");
+    //                        touchRight = currLayer.containsKey(pos2.cpy().add(16, 0)) && currLayer.get(pos2.cpy().add(16, 0)).attrs.get("solid");
+    //                        if (pos.y == pos2.y && touchDown) {
+    //                            works = false;
+    //                        }
+    //                        else if (touchLeft && touchRight) {
+    //                            works = false;
+    //                        }
+                            if (currLayer.containsKey(pos2) && currLayer.get(pos2).attrs.get("solid")) {
+                                numTouch++;
+                            }
+                            if (!alreadyChecked.contains(pos2) && currLayer.containsKey(pos2) && !currLayer.get(pos2).attrs.get("solid") && !currLayer.get(pos2).nameUpper.contains("stairs")) {
+                                checkThese.add(pos2);
+                                alreadyChecked.add(pos2);
+                                addedAnother = true;
+                            }
+                            if (currLayer.containsKey(pos2) && currLayer.get(pos2).name.contains("table")) {
+                                touchTable = true;
+                            }
+                            if (endPoints.contains(pos2)) {
+                                touchEndpoint = true;
+                            }
+                            if (shuffleThese.size() <= 0) {
+                                break;
+                            }
+                        }
+                        boolean touchDown = currLayer.containsKey(pos.cpy().add(0, -16)) && currLayer.get(pos.cpy().add(0, -16)).attrs.get("solid");
+                        boolean touchBl = currLayer.containsKey(pos.cpy().add(-16, -16)) && currLayer.get(pos.cpy().add(-16, -16)).attrs.get("solid");
+                        boolean touchBr = currLayer.containsKey(pos.cpy().add(16, -16)) && currLayer.get(pos.cpy().add(16, -16)).attrs.get("solid");
+                        boolean touchTl = currLayer.containsKey(pos.cpy().add(-16, 16)) && currLayer.get(pos.cpy().add(-16, 16)).attrs.get("solid");
+                        boolean touchTr = currLayer.containsKey(pos.cpy().add(16, 16)) && currLayer.get(pos.cpy().add(16, 16)).attrs.get("solid");
+                        if (!touchDown && !(touchBl && touchBr) && !(touchTl && touchTr) && numTouch < 2 && !touchTable && !touchEndpoint && !addedAnother && !currLayer.get(pos).name.contains("floor2") && !currLayer.get(pos).name.contains("rug")) {
+                            endPoints.add(pos);
+                        }
+                    }
+                }
+                //
+                if (endPoints.size() > 4) {
+                    pos3 = endPoints.remove(this.rand.nextInt(5)+endPoints.size()-5);
+                }
+                else {
+                    pos3 = endPoints.remove(endPoints.size()-1);
+                }
+                statue = new Tile("pkmnmansion_statue1", pos3.cpy(), true, null);
+                if (levelNum != 1) {
+                    currLayer.put(pos3.cpy(), statue);
+                }
+    //            pos3 = endPoints.remove(endPoints.size()-1);
+    //            statue = new Tile("pkmnmansion_statue1", pos3.cpy(), true, null);
+    //            currLayer.put(pos3.cpy(), statue);
+    
+    //            // TODO: debug, remove
+    //            for (int j = 0; j < 10; j++) {  // j <endPoints.size()
+    //                pos3 = endPoints.get(endPoints.size()-1-j);
+    ////                statue = new Tile("pkmnmansion_statue1", pos3.cpy(), true, null);
+    //                statue = new Tile("pkmnmansion_roof", pos3.cpy(), true, null);
+    //                currLayer.put(pos3.cpy(), statue);
+    //            }
+                
+                // Get list of all possible doorways
+                ArrayList<ArrayList<Tile>> allDoors = new ArrayList<ArrayList<Tile>>();
+                alreadyChecked.clear();
+                for (Vector2 pos : currLayer.keySet()) {
+                    Tile currTile = currLayer.get(pos);
+                    if (!currTile.attrs.get("solid")) {
+                        continue;
+                    }
+                    Tile nextTile = currTile;
+                    int length = 0;
+                    ArrayList<Vector2> checkDirs = new ArrayList<Vector2>();
+                    if (currTile.name.equals("pkmnmansion_wall_S")) {
+                        checkDirs.add(new Vector2(-16, 0));
+                        checkDirs.add(new Vector2(0, -16));
+                        checkDirs.add(new Vector2(16, 0));
+                    }
+                    else if (currTile.name.equals("pkmnmansion_wall_N")) {
+                        checkDirs.add(new Vector2(-16, 0));
+                        checkDirs.add(new Vector2(0, 16));
+                        checkDirs.add(new Vector2(16, 0));
+                    }
+                    else if (currTile.name.equals("pkmnmansion_wall_W")) {
+                        checkDirs.add(new Vector2(-16, 0));
+                        checkDirs.add(new Vector2(0, 16));
+                        checkDirs.add(new Vector2(0, -16));
+                    }
+                    else if (currTile.name.equals("pkmnmansion_wall_NW")) {
+                        checkDirs.add(new Vector2(-16, 0));
+                        checkDirs.add(new Vector2(0, 16));
+                    } 
+                    else if (currTile.name.equals("pkmnmansion_wall_E")) {
+                        checkDirs.add(new Vector2(16, 0));
+                        checkDirs.add(new Vector2(0, 16));
+                        checkDirs.add(new Vector2(0, -16));
+                    }
+                    else if (currTile.name.equals("pkmnmansion_wall_NE")) {
+                        checkDirs.add(new Vector2(16, 0));
+                        checkDirs.add(new Vector2(0, 16));
+                    }
+                    else {
+                        continue;
+                    }
+                    for (Vector2 dir : checkDirs) {
+                        ArrayList<Tile> door = new ArrayList<Tile>();
+                        Vector2 initialDir = dir.cpy();
+                        while (true) {
+                            nextTile = currLayer.get(currTile.position.cpy().add(dir));
+                            if (nextTile != currTile && (nextTile == null || nextTile.name.contains("rug") || nextTile.name.contains("stairs") || nextTile.nameUpper.contains("stairs") || (nextTile.attrs.get("solid") && !nextTile.nameUpper.contains("pokeball")))) {
+                                if (nextTile != null && ((!nextTile.name.contains("pkmnmansion_wall") && !nextTile.nameUpper.contains("rubble")) || alreadyChecked.contains(nextTile.position))) {
+                                    nextTile = null;
+                                }
+        //                        if (nextTile != null) {
+        //                            alreadyChecked.add(nextTile.position.cpy());
+        //                            alreadyChecked.add(currTile.position.cpy());
+        //                        }
+    //                            if (door.size() > 0) {
+    //                                door.remove(door.size()-1);
+    //                            }
+                                break;
+                            }
+                            String name = "pkmnmansion_gate_EW__on";
+                            if (dir.x == 0) {
+                                name = "pkmnmansion_gate_NS__on";
+                            }
+                            door.add(new Tile(name, nextTile.position.cpy(), true, null));
+        //                    if (currTile.name.equals("pkmnmansion_wall_S")) {
+        //                        nextTile = currLayer.get(nextTile.position.cpy().add(0, -16));
+        //                        if (nextTile != null) {
+        //                            door.add(new Tile("pkmnmansion_gate_NS__on", nextTile.position.cpy(), true, null));
+        //                        }
+        //                    }
+        //                    else if (currTile.name.equals("pkmnmansion_wall_N")) {
+        //                        nextTile = currLayer.get(nextTile.position.cpy().add(0, 16));
+        //                        if (nextTile != null) {
+        //                            door.add(new Tile("pkmnmansion_gate_NS__on", nextTile.position.cpy(), true, null));
+        //                        }
+        //                    }
+        //                    else if (currTile.name.equals("pkmnmansion_wall_W") || currTile.name.equals("pkmnmansion_wall_NW")) {
+        //                        nextTile = currLayer.get(nextTile.position.cpy().add(-16, 0));
+        //                        if (nextTile != null) {
+        //                            door.add(new Tile("pkmnmansion_gate_EW__on", nextTile.position.cpy(), true, null));
+        //                        }
+        //                    }
+        //                    else if (currTile.name.equals("pkmnmansion_wall_E") || currTile.name.equals("pkmnmansion_wall_NE")) {
+        //                        nextTile = currLayer.get(nextTile.position.cpy().add(16, 0));
+        //                        if (nextTile != null) {
+        //                            door.add(new Tile("pkmnmansion_gate_EW__on", nextTile.position.cpy(), true, null));
+        //                        }
+        //                    }
+        //                    else  {
+        //                        break;
+        //                    }
+                            dir = dir.add(initialDir);
+                            length++;
+                        }
+                        if (nextTile != null && length < 7) {
+                            allDoors.add(door);
+                        }
+                    }
+                }
+                
+                // TODO: debug, remove
+//                prevStatue = statue;
+    
+                if (prevStatue != null) {
+                    
+                    prevStatue.doorTiles = new ArrayList<Vector2>();
+                    int j = 0;
+                    for (ArrayList<Tile> door : allDoors) {
+        //                boolean flip = this.rand.nextInt(2) == 0;
+                        for (Tile tile : door) {
+                            currLayer.put(tile.position.cpy(), tile);
+                            if (!prevStatue.doorTiles.contains(tile.position)) {
+                                prevStatue.doorTiles.add(tile.position.cpy());
+                            }
+        //                    if (flip) {
+        //                        tile.flipDoorTile();
+        //                    }
+        //                    if (j % 2 == 0) {
+        //                        tile.flipDoorTile();
+        //                    }
+                        }
+                        j++;
+                    }
+                    
+                    ArrayList<ArrayList<Tile>> stairsDownDoors = new ArrayList<ArrayList<Tile>>();
+                    for (ArrayList<Tile> door : allDoors) {
+                        stairsDownDoors.add(door);
+                    }
+                    int numRemoved = 0;
+                    boolean changedDoor = true;
+        //            while(!this.isPathBetween(currLayer, stairsUp, statue) || this.isPathBetween(currLayer, stairsUp, stairsDown)) {
+                    while(changedDoor) {
+                        boolean pathToStairs = this.isPathBetween(currLayer, stairsUp, stairsDown);
+                        boolean pathToStatue = this.isPathBetween(currLayer, stairsUp, statue);
+                        changedDoor = false;
+        //                for (ArrayList<Tile> door : new ArrayList<ArrayList<Tile>>(stairsDownDoors)) {
+                        for (int k = 0; k < stairsDownDoors.size(); k++) {
+                            ArrayList<Tile> door = stairsDownDoors.get(this.rand.nextInt(stairsDownDoors.size()));
+                            for (Tile tile : door) {
+                                tile.flipDoorTile();
+                            }
+                            // If stairsDown is now reachable, add the door back
+                            if (!pathToStairs && this.isPathBetween(currLayer, stairsUp, stairsDown)) {
+                                for (Tile tile : door) {
+                                    tile.flipDoorTile();
+                                }
+                            }
+                            // If statue is no longer reachable, remove the door
+                            else if (pathToStatue && !this.isPathBetween(currLayer, stairsUp, statue)) {
+                                for (Tile tile : door) {
+                                    tile.flipDoorTile();
+                                }
+                            }
+                            // Else, set removedDoor
+                            else {
+                                stairsDownDoors.remove(door);
+                                changedDoor = true;
+                                numRemoved++;
+                            }
+                        }
+        //                System.out.println(stairsDownDoors.size());
+        //                System.out.println(numRemoved);
+        //                if (!removedDoor) {
+        //                    break;
+        //                }
+                    }
+        
+                    // stairsDownDoors should only contain closed doors
+        //            System.out.println("removed:");
+        //            System.out.println(numRemoved);
+                    stairsDownDoors.clear();
+        //            if (numRemoved != 0) {
+                    for (ArrayList<Tile> door : allDoors) {
+                        for (Tile tile : door) {
+                            if (tile.name.contains("__on")) {
+                                stairsDownDoors.add(door);
+                                break;
+                            }
+                        }
+                    }
+        //            }
+        //            
+        //            
+                    // Flip everything to __on
+                    for (Vector2 pos : prevStatue.doorTiles) {
+                        if (currLayer.get(pos).name.contains("__off")) {
+                            currLayer.get(pos).flipDoorTile();
+                        }
+                    }
+        
+                    j = 0;
+                    for (ArrayList<Tile> door : allDoors) {
+                        for (Tile tile : door) {
+                            if (tile.name.contains("__off")) {  //__off
+                                tile.flipDoorTile();
+                            }
+        //                    if (j % 2 == 1) {
+        //                        tile.flipDoorTile();
+        //                    }
+                        }
+                        j++;
+                    }
+        
+                    //
+                    ArrayList<ArrayList<Tile>> statueDoors = new ArrayList<ArrayList<Tile>>();
+                    for (ArrayList<Tile> door : allDoors) {
+                        if (!stairsDownDoors.contains(door)) {
+                            statueDoors.add(door);
+                        }
+                    }
+                    numRemoved = 0;
+        //            int giveUp = 0;
+                    changedDoor = true;
+                    while(changedDoor) {  // && giveUp < statueDoors.size()
+        //          while(!this.isPathBetween(currLayer, stairsUp, stairsDown) || this.isPathBetween(currLayer, stairsUp, statue)) {
+                        boolean pathToStairs = this.isPathBetween(currLayer, stairsUp, stairsDown);
+                        boolean pathToStatue = this.isPathBetween(currLayer, stairsUp, statue);
+        //                boolean removedDoor = false;
+        //                for (ArrayList<Tile> door : new ArrayList<ArrayList<Tile>>(statueDoors)) {
+                        changedDoor = false;
+                        for (int k = 0; k < statueDoors.size(); k++) {
+                            ArrayList<Tile> door = statueDoors.get(this.rand.nextInt(statueDoors.size()));
+                            for (Tile tile : door) {
+                                tile.flipDoorTile();
+                            }
+        
+                            if (!pathToStatue && this.isPathBetween(currLayer, stairsUp, statue)) {
+                                for (Tile tile : door) {
+                                    tile.flipDoorTile();
+                                }
+                            }
+                            // If stairs aren't reachable, remove the door
+                            else if (pathToStairs && !this.isPathBetween(currLayer, stairsUp, stairsDown)) {
+                                for (Tile tile : door) {
+                                    tile.flipDoorTile();
+                                }
+                            }
+                            // Else, set removedDoor
+                            else {
+        //                        for (Tile tile : door) {
+        //                            tile.flipDoorTile();
+        //                        }
+                                statueDoors.remove(door);
+                                changedDoor = true;
+                                numRemoved++;
+                            }
+                        }
+        //                giveUp++;
+        //                if (!removedDoor) {
+        ////                    if (numRemoved == 0) {
+        ////                        for (ArrayList<Tile> door : statueDoors) {
+        ////                            for (Tile tile : door) {
+        ////                                tile.flipDoorTile();
+        ////                            }
+        ////                        }
+        ////                        statueDoors.clear();
+        ////                    }
+        //                    break;
+        //                }
+                    }
+        
+                    // statueDoors should only contain closed doors
+                    statueDoors.clear();
+        //            if (numRemoved != 0) {
+        //            if (this.isPathBetween(currLayer, stairsUp, stairsDown)) {
+                        for (ArrayList<Tile> door : allDoors) {
+                            for (Tile tile : door) {
+                                if (tile.name.contains("__on")) {
+                                    statueDoors.add(door);
+                                    break;
+                                }
+                            }
+                        }
+        //            }
+        //            }
+                    
+        
+                    for (ArrayList<Tile> door : allDoors) {
+        //                if (stairsDownDoors.contains(door) && statueDoors.contains(door)) {
+        //                    for (Tile tile : door) {
+        //                        prevStatue.doorTiles.remove(tile.position);
+        //                    }
+        //                    System.out.println("both");
+        //                }
+                        // TODO: i don't think this check works.
+        //                else if (!stairsDownDoors.contains(door) && !statueDoors.contains(door)) {
+                            for (Tile tile : door) {
+                                if (tile.nameUpper.contains("stairs")) {
+                                    System.out.println(tile.nameUpper);
+                                }
+                                currLayer.put(tile.position.cpy(), new Tile("pkmnmansion_floor1", tile.position.cpy(), true, null));
+                                prevStatue.doorTiles.remove(tile.position);
+                            }
+        //                    System.out.println("neither");
+        //                }
+        
+        //                for (Tile tile : door) {
+        //                    if (tile.name.contains("__off")) {
+        //                        tile.flipDoorTile();
+        //                    }
+        //                }
+                    }
+                    // TODO: probably don't add to this until now.
+                    prevStatue.doorTiles.clear();
+                    for (ArrayList<Tile> door : statueDoors) {
+                        for (Tile tile : door) {
+        //                    currLayer.put(tile.position.cpy(), new Tile(tile.name, tile.position.cpy(), true, null));
+                            currLayer.put(tile.position.cpy(), tile);
+                            prevStatue.doorTiles.add(tile.position.cpy());
+                            if (tile.name.contains("__off")) {
+                                tile.flipDoorTile();
+                            }
+                        }
+                    }
+                    if (!this.isPathBetween(currLayer, stairsUp, stairsDown)) {
+                        for (ArrayList<Tile> door : statueDoors) {
+                            for (Tile tile : door) {
+                                currLayer.put(tile.position.cpy(), new Tile("pkmnmansion_floor1", tile.position.cpy(), true, null));
+                                prevStatue.doorTiles.remove(tile.position);
+                            }
+                            if (this.isPathBetween(currLayer, stairsUp, stairsDown)) {
+                                break;
+                            }
+                        }
+                    }
+                    for (ArrayList<Tile> door : stairsDownDoors) {
+                        for (Tile tile : door) {
+        //                    currLayer.put(tile.position.cpy(), new Tile(tile.name, tile.position.cpy(), true, null));
+                            currLayer.put(tile.position.cpy(), tile);
+                            if (!prevStatue.doorTiles.contains(tile.position)) {
+                                prevStatue.doorTiles.add(tile.position.cpy());
+                            }
+//                            else {
+//                                System.out.println("duplicate");
+//                            }
+                            if (tile.name.contains("__on")) {
+                                tile.flipDoorTile();
+                            }
+                        }
+                    }
+                    
+                    
+        
+        //            while(!this.isPathBetween(currLayer, stairsUp, stairsDown) && allDoors.size() > 0) {
+        //                ArrayList<Tile> door = allDoors.remove(this.rand.nextInt(allDoors.size()));
+        //                // Remove the door
+        //                for (Tile tile : door) {
+        //                    currLayer.put(tile.position.cpy(), new Tile("pkmnmansion_floor1", tile.position.cpy(), true, null));
+        //                    prevStatue.doorTiles.remove(tile.position);
+        //                }
+        //            }
+        
+        //            tempDoors = new ArrayList<ArrayList<Tile>>(allDoors);
+        //            boolean giveUp = false;
+        //            while(!this.isPathBetween(currLayer, stairsUp, stairsDown)) {
+        //                boolean removedDoor = false;
+        //                for (ArrayList<Tile> door : new ArrayList<ArrayList<Tile>>(tempDoors)) {
+        //                    for (Tile tile : door) {
+        //                        currLayer.put(tile.position.cpy(), new Tile("pkmnmansion_floor1", tile.position.cpy(), true, null));
+        //                        prevStatue.doorTiles.remove(tile.position);
+        //                    }
+        ////                    System.out.println(door.size());
+        //                    // If statue is now reachable, add the door back
+        //                    if (this.isPathBetween(currLayer, stairsUp, statue)) {
+        //                        for (Tile tile : door) {
+        //                            currLayer.put(tile.position.cpy(), tile);
+        //                            if (giveUp) {
+        //                                tile.flipDoorTile();
+        //                            }
+        //                            else {
+        //                                prevStatue.doorTiles.add(tile.position);
+        //                            }
+        //                        }
+        ////                        System.out.println("added back");
+        //                    }
+        //                    // Else, set removedDoor
+        //                    else {
+        //                        tempDoors.remove(door);
+        //                        removedDoor = true;
+        //                    }
+        //                }
+        //                if (!removedDoor) {
+        //                    giveUp = true;
+        //                    System.out.println("gave up.");
+        //                }
+        //            }
+        
+                    // At end, randomly flip statue switch
+                    if (this.rand.nextInt(2) == 0) {
+                        for (Vector2 pos : prevStatue.doorTiles) {
+                            currLayer.get(pos).flipDoorTile();
+                        }
+                    }
+                }
+                
+                // Place mewtwo
+                if (levelNum == 1) {
+//                    alreadyChecked.clear();
+//                    checkThese.clear();
+//                    Tile currTile = stairsDown;
+//                    Vector2 pos = stairsDown.position.cpy();
+//                    checkThese.add(pos.cpy());
+////                    checkThese.add(pos.cpy().add(-16,0));
+////                    checkThese.add(pos.cpy().add(16,0));
+////                    checkThese.add(pos.cpy().add(0,16));
+////                    checkThese.add(pos.cpy().add(0,-16));
+//                    while (checkThese.size() > 0) {
+//                        Vector2 pos2 = checkThese.remove(0);
+//                        if (alreadyChecked.contains(pos2)) {
+//                            continue;
+//                        }
+//                        alreadyChecked.add(pos2);
+//                        if (pos.dst(pos2) > 128) {
+//                            continue;
+//                        }
+//                        if (!currLayer.containsKey(pos2)) {
+//                            continue;
+//                        }
+//                        if (currLayer.get(pos2).name.contains("wall") || currLayer.get(pos2).name.contains("gate") || currLayer.get(pos2).nameUpper.contains("pokeball")) {
+//                            continue;
+//                        }
+////                        Route currRoute = currLayer.get(pos2).routeBelongsTo;
+//                        currTile = new Tile("pkmnmansion_floor1", pos2.cpy(), true, null);
+//                        currLayer.put(pos2.cpy(), currTile);
+//                        // Depth-first search, try to get middle tile.
+//                        checkThese.add(0, pos2.cpy().add(-16,0));
+//                        checkThese.add(0, pos2.cpy().add(16,0));
+//                        checkThese.add(0, pos2.cpy().add(0,16));
+//                        checkThese.add(0, pos2.cpy().add(0,-16));
+//                    }
+//                    currLayer.put(currTile.position.cpy(), new SpecialMewtwoTile(currTile.position.cpy()));
+
+                    bl = stairsDown.position.cpy().add(-16*5, -16*1);
+                    mansionInteriorTiles.remove(94+levelNum);
+                    mansionInteriorTiles.add(94+levelNum, new HashMap<Vector2, Tile>());
+                    layerBelow = mansionInteriorTiles.get(94+levelNum); // TODO: init this beginning
+                    Tile currTile = null;
+                    for (int x = 0; x < 11; x++) {  //  x pos
+                        for (int y = 0; y < 11; y++) {  //  y pos  
+                            Vector2 pos = bl.cpy().add(x*16, y*16);
+                            if ((y == 2 || y == 6) && (x == 2 || x == 3 || x == 7 || x == 8)) {
+                                currTile = new Tile("tree_plant1", pos.cpy(), true, null);
+                            }
+                            else if (x == 0|| y == 0 || y == 10 || x == 10) {
+                                currTile = new Tile("pkmnmansion_wall", pos.cpy(), true, null);
+                            }
+                            else if (x == 5 && y == 8) {
+//                                currTile = new SpecialMewtwoTile(pos.cpy());
+                                currTile = new Tile("pkmnmansion_floor1", "mewtwo_overworld", pos.cpy(), true, null);
+                            }
+                            else if (x == 5 && y == 1) {
+                                currTile = new Tile("pkmnmansion_floor1", "stairs_up1", pos.cpy(), true, null);
+                            }
+                            else {
+                                currTile = new Tile("pkmnmansion_floor1", pos.cpy(), true, null);
+                            }
+                            layerBelow.put(pos.cpy(), currTile);
+                        }
+                    }
+                    for (Vector2 pos : layerBelow.keySet()) {
+                        if (!layerBelow.get(pos).name.contains("pkmnmansion_wall")) {
+                            continue;
+                        }
+            //            Tile tile = currLayer.get(pos);
+                        Vector2 left = pos.cpy().add(-16f, 0f);
+                        Vector2 right = pos.cpy().add(16f, 0f);
+                        Vector2 up = pos.cpy().add(0f, 16f);
+                        Vector2 down = pos.cpy().add(0f, -16f);
+                        boolean touchLeft = layerBelow.containsKey(left) && layerBelow.get(left).name.contains("pkmnmansion_wall");
+                        boolean touchRight = layerBelow.containsKey(right) && layerBelow.get(right).name.contains("pkmnmansion_wall");
+                        boolean touchUp = layerBelow.containsKey(up) && layerBelow.get(up).name.contains("pkmnmansion_wall");
+                        boolean touchDown = layerBelow.containsKey(down) && layerBelow.get(down).name.contains("pkmnmansion_wall");
+                        // TODO: choose some random
+                        // TODO: if touching solid up and down, do
+                        if (touchDown && touchUp) {
+                            layerBelow.put(pos.cpy(), new Tile("pkmnmansion_wall_NS", pos.cpy(), true, null));
+                        }
+                        else if (touchDown && touchLeft) {
+                            if (this.rand.nextInt(2) == 0) {
+                                layerBelow.put(pos.cpy(), new Tile("pkmnmansion_wall_N", pos.cpy(), true, null));
+                            }
+                            else {
+                                layerBelow.put(pos.cpy(), new Tile("pkmnmansion_wall_NE", pos.cpy(), true, null));
+                            }
+                        }
+                        else if (touchDown && touchRight) {
+                            if (this.rand.nextInt(2) == 0) {
+                                layerBelow.put(pos.cpy(), new Tile("pkmnmansion_wall_N", pos.cpy(), true, null));
+                            }
+                            else {
+                                layerBelow.put(pos.cpy(), new Tile("pkmnmansion_wall_NW", pos.cpy(), true, null));
+                            }
+                        }
+                        else if (touchDown) {
+                            layerBelow.put(pos.cpy(), new Tile("pkmnmansion_wall_N", pos.cpy(), true, null));
+                        }
+                        else if (touchUp && touchLeft) {
+                            if (this.rand.nextInt(2) == 0) {
+                                layerBelow.put(pos.cpy(), new Tile("pkmnmansion_wall_S", pos.cpy(), true, null));
+                            }
+                            else {
+                                layerBelow.put(pos.cpy(), new Tile("pkmnmansion_wall_E", pos.cpy(), true, null));
+                            }
+                        }
+                        else if (touchUp && touchRight) {
+                            if (this.rand.nextInt(2) == 0) {
+                                layerBelow.put(pos.cpy(), new Tile("pkmnmansion_wall_S", pos.cpy(), true, null));
+                            }
+                            else {
+                                layerBelow.put(pos.cpy(), new Tile("pkmnmansion_wall_W", pos.cpy(), true, null));
+                            }
+                        }
+                        else if (touchUp) {
+                            layerBelow.put(pos.cpy(), new Tile("pkmnmansion_wall_S", pos.cpy(), true, null));
+                        }
+                        else if (touchLeft && touchRight) {
+                            // nothing
+                        }
+                        else if (touchLeft) {
+                            layerBelow.put(pos.cpy(), new Tile("pkmnmansion_wall_E", pos.cpy(), true, null));
+                        }
+                        else if (touchRight) {
+                            layerBelow.put(pos.cpy(), new Tile("pkmnmansion_wall_W", pos.cpy(), true, null));
+                        }
+                    }
+                }
+                
+                prevStatue = statue;
+                stairsUp = nextStairsUp;
+            }
+        }
+    }
+    
+
+    //
+    public boolean isPathBetween(HashMap<Vector2, Tile> currLayer, Tile tileA, Tile tileB) {
+        // TODO: test
+        ArrayList<Tile> checkTiles = new ArrayList<Tile>();
+        ArrayList<Vector2> alreadyChecked = new ArrayList<Vector2>();
+        checkTiles.add(tileA);
+        while (checkTiles.size() > 0) {
+            Tile tile = checkTiles.remove(0);
+            if (tile != null && tile.position.equals(tileB.position)) {
+                return true;
+            }
+            if (tile != tileA && (tile == null || (tile.attrs.get("solid") && !tile.nameUpper.contains("pokeball")) || alreadyChecked.contains(tile.position))) {
+                continue;
+            }
+            // TODO: debug, remove
+//            if (tile != tileA) {
+//                tile = new Tile("pkmnmansion_floor2", tile.position.cpy(), true, null);
+//                currLayer.put(tile.position.cpy(), tile);
+//            }
+            alreadyChecked.add(tile.position);
+            checkTiles.add(currLayer.get(tile.position.cpy().add(-16, 0)));
+            checkTiles.add(currLayer.get(tile.position.cpy().add(16, 0)));
+            checkTiles.add(currLayer.get(tile.position.cpy().add(0, -16)));
+            checkTiles.add(currLayer.get(tile.position.cpy().add(0, 16)));
+//            System.out.println(checkTiles.size());
+        }
+        return false;
+    }
+
     public int getLayer(){
         return this.layer;
     }
@@ -2485,6 +4086,20 @@ class GenIsland1 extends Action {
         // TODO: remove if you want to stagger adding the tiles.
         game.map.tiles.putAll(this.tilesToAdd);
         this.tilesToAdd.clear();
+
+        for (int i = 0; i < this.interiorTilesToAdd.size(); i++) {
+            HashMap<Vector2, Tile> tiles = this.interiorTilesToAdd.get(i);
+            if (tiles == null) {
+                continue;
+            }
+            if (game.map.interiorTiles.get(i) == null) {
+                game.map.interiorTiles.remove(i);
+                game.map.interiorTiles.add(i, new HashMap<Vector2, Tile>());
+            }
+            System.out.println(i);
+            game.map.interiorTiles.get(i).putAll(this.interiorTilesToAdd.get(i));
+        }
+        this.interiorTilesToAdd.clear();
 
         if (this.tilesToAdd.isEmpty()) {
             if (this.doActions.isEmpty()) {
@@ -2497,9 +4112,11 @@ class GenIsland1 extends Action {
                 Vector2 startLoc = this.edges.get(game.map.rand.nextInt(this.edges.size())).position;
 //                System.out.println("startLoc");
 //                System.out.println(startLoc);
-                game.player.position.set(startLoc);
-                game.player.spawnLoc.set(startLoc);
-                game.cam.position.set(startLoc.x+16, startLoc.y, 0);
+                
+                // TODO: uncomment
+//                game.player.position.set(startLoc);
+//                game.player.spawnLoc.set(startLoc);
+//                game.cam.position.set(startLoc.x+16, startLoc.y, 0);
 
                 return;
             }

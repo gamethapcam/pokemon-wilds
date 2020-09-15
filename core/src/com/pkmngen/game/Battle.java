@@ -68,7 +68,12 @@ class AfterFriendlyFaint extends Action {
 //                          new SplitAction(
 //                              new BattleFadeOut(game,
 //                              new DoneWithDemo(game)),
+                          // TODO: this puts the player in the overworld
+                          // will eventually want to be able to respawn indoors
+                          // probably something like game.player.spawnLocTiles
                           new SetField(game.player, "position", game.player.spawnLoc.cpy(),
+                          new SetField(game.map, "tiles", game.map.overworldTiles,
+                          new SetField(game.map, "interiorTilesIndex", 100,
                           new SetField(game.player, "dirFacing", "down",
                           new SetField(game.player, "currSprite", game.player.standingSprites.get("down"),
                           new Game.SetCamPos(game.player.spawnLoc.cpy().add(16, 0),
@@ -80,7 +85,7 @@ class AfterFriendlyFaint extends Action {
                                           new FadeMusic("currMusic", "in", "", 0.2f, false, 1f,
                                           null)),
 //                          new SplitAction(new FadeIn(),
-                          null))))))))))))));
+                          null))))))))))))))));
     }
     // TODO: remove
 //    static class FadeIn extends Action {
@@ -233,6 +238,8 @@ class Attack {
 
             float currAlpha = this.alphas.get(0);
             game.battle.oppPokemon.sprite.setAlpha(currAlpha);
+//            Color color = game.battle.oppPokemon.sprite.getColor();
+//            game.battle.oppPokemon.sprite.setColor(color.r, color.g, color.b, currAlpha);
             // special battles require this
             if (game.battle.oppPokemon.breathingSprite != null) {
                 game.battle.oppPokemon.breathingSprite.setAlpha(currAlpha);
@@ -597,10 +604,10 @@ class Attack {
 
     static class Mewtwo_Special1 extends Action {
         public int layer = 109;
-        // TODO: set these
+        // TODO: remove if unused
         int power = 100;
-
         int accuracy = 100;
+        //
 
         Pokemon attacker;
         Pokemon target;
@@ -892,22 +899,23 @@ class Attack {
                     SpecialBattleMewtwo.RocksEffect2.velocityX = 0;
                 }
             }
-            else if (this.timer == 550) {
+            else if (this.timer == 550) { //550
                 game.player.currPokemon.backSprite.setAlpha(1);
                 this.currShader = new ShaderProgram(this.vertexShader, this.getShader(0f));
                 game.uiBatch.setShader(this.currShader);
                 SpecialBattleMewtwo.RocksEffect1.shouldMoveY = true;
                 SpecialBattleMewtwo.RocksEffect2.shouldMoveY = true;
             }
-            else if (this.timer < 600) {
+            else if (this.timer < 600) { //600
             }
             else {
-                // assign damage to target pkmn
-                int currHealth = this.target.currentStats.get("hp");
-                // TODO - correct damage calculation
-                int finalHealth = currHealth - this.power;
-                if (finalHealth < 0) {finalHealth = 0;} // make sure finalHealth isn't negative
-                this.target.currentStats.put("hp", finalHealth);
+                // TODO: remove if unused.
+//                // assign damage to target pkmn
+//                int currHealth = this.target.currentStats.get("hp");
+//                // TODO - correct damage calculation
+//                int finalHealth = currHealth - this.power;
+//                if (finalHealth < 0) {finalHealth = 0;} // make sure finalHealth isn't negative
+//                this.target.currentStats.put("hp", finalHealth);
 
                 game.actionStack.remove(this);
                 game.insertAction(this.nextAction);
@@ -981,12 +989,11 @@ class Attack {
     // the animation has the correct number of frames
     static class Psychic extends Action {
         public int layer = 109;
-        // TODO: set these
+        // TODO: remove if unused
         int power = 100;
-
         int accuracy = 100;
 
-        Pokemon attacker;
+//        Pokemon attacker;
         Pokemon target;
 
         Pixmap pixmap = null;
@@ -1004,19 +1011,19 @@ class Attack {
         boolean hitSound = true;
 
         public Psychic(Game game,
-                       Pokemon attacker,
+//                       Pokemon attacker,
                        Pokemon target,
                        boolean isNightShade,
                        Action nextAction) {
             this.isNightShade = isNightShade;
             this.target = target;
-            this.attacker = attacker;
+//            this.attacker = attacker;
             this.nextAction = nextAction;
 
             // if night shade, power == users level
-            if (this.isNightShade) {
-                this.power = this.attacker.level;
-            }
+//            if (this.isNightShade) {
+//                this.power = this.attacker.level;
+//            }
 
             // single pixel sprite used for drawing the effect
             Texture text = new Texture(Gdx.files.internal("battle/pixel1.png"));
@@ -1101,6 +1108,7 @@ class Attack {
                 this.shaderVals.add(normal);
             }
 
+            // TODO: remove
             // screen movement after attack
             // 9 frames nothing
             for (int i = 0; i < 9; i++) {
@@ -1297,7 +1305,7 @@ class Attack {
                 this.firstStep = false;
             }
 
-            // run through shaders, then offsets, then positions
+            // Run through shaders, then offsets, then positions
             if (!this.shaderVals.isEmpty()) {
                 this.currShaderVal = this.shaderVals.get(0);
                 this.currShader = new ShaderProgram(this.vertexShader,
@@ -1309,47 +1317,52 @@ class Attack {
                 this.currOffsets = this.offsets.get(0);
                 // setting pixmap only once b/c otherwise get bad lag
                 // would be nice to do every frame tho since there are moving rocks etc
+                float heightM = (game.currScreen.y / 144); 
                 if (this.pixmap == null) {
+                    int offsetX = (int)((game.currScreen.x-((160*game.currScreen.y)/144))/2);  // x = (currWidth-160*currHeight/144)/2
+                    this.pixmap = ScreenUtils.getFrameBufferPixmap(offsetX, 0, (int)game.currScreen.x-(offsetX*2), (int)game.currScreen.y);
                     // TODO: *3 b/c screen is scaled, alternative approach would be nice
-                    this.pixmap = ScreenUtils.getFrameBufferPixmap(0, 0, 160*3, 144*3);
+//                    this.pixmap = ScreenUtils.getFrameBufferPixmap(0, 0, 160*3, 144*3);
                 }
                 for (int j=0; j < 144-3; j++) { // 3 pixels from top
                     for (int i=0; i < 160; i++) {
                         // note: got better performance when creating a new Color here
                         // rather than using Color.set() on existing Color
-                        this.sprite.setColor(new Color(this.pixmap.getPixel(i*3, j*3)));
+                        this.sprite.setColor(new Color(this.pixmap.getPixel((int)(i*heightM), (int)(j*heightM))));
                         this.sprite.setPosition(i + this.currOffsets[j%16], j);
                         this.sprite.draw(game.uiBatch);
                     }
                 }
                 this.offsets.remove(0);
             }
-            else if (!this.positions.isEmpty()) {
-                if (this.hitSound) {
-                    // play hit sound
-                    game.insertAction(new PlaySound("hit_normal1", null));
-                    this.hitSound = false;
-                }
-                this.currPosition = this.positions.get(0);
-                // TODO: *3 b/c screen is scaled, alternative approach would be nice
-                this.pixmap = ScreenUtils.getFrameBufferPixmap(0, 0, 160*3, 144*3);
-                for (int j=0; j < 144; j++) {
-                    for (int i=0; i < 160; i++) {
-                        this.sprite.setColor(new Color(this.pixmap.getPixel(i*3, j*3)));
-                        // not using this.currPosition.y here, but may in future animations
-                        this.sprite.setPosition(i + this.currPosition.x, j + this.currPosition.y);
-                        this.sprite.draw(game.uiBatch);
-                    }
-                }
-                this.positions.remove(0);
-            }
+            // TODO: remove
+//            else if (!this.positions.isEmpty()) {
+//                if (this.hitSound) {
+//                    // play hit sound
+//                    game.insertAction(new PlaySound("hit_normal1", null));
+//                    this.hitSound = false;
+//                }
+//                this.currPosition = this.positions.get(0);
+//                // TODO: *3 b/c screen is scaled, alternative approach would be nice
+//                this.pixmap = ScreenUtils.getFrameBufferPixmap(0, 0, 160*3, 144*3);
+//                for (int j=0; j < 144; j++) {
+//                    for (int i=0; i < 160; i++) {
+//                        this.sprite.setColor(new Color(this.pixmap.getPixel(i*3, j*3)));
+//                        // not using this.currPosition.y here, but may in future animations
+//                        this.sprite.setPosition(i + this.currPosition.x, j + this.currPosition.y);
+//                        this.sprite.draw(game.uiBatch);
+//                    }
+//                }
+//                this.positions.remove(0);
+//            }
             else {
-                // assign damage to target pkmn
-                int currHealth = this.target.currentStats.get("hp");
-                // TODO - correct damage calculation
-                int finalHealth = currHealth - this.power;
-                if (finalHealth < 0) {finalHealth = 0;} // make sure finalHealth isn't negative
-                this.target.currentStats.put("hp", finalHealth);
+                // TODO: remove if unused
+//                // assign damage to target pkmn
+//                int currHealth = this.target.currentStats.get("hp");
+//                // TODO - correct damage calculation
+//                int finalHealth = currHealth - this.power;
+//                if (finalHealth < 0) {finalHealth = 0;} // make sure finalHealth isn't negative
+//                this.target.currentStats.put("hp", finalHealth);
 
                 game.actionStack.remove(this);
                 game.insertAction(this.nextAction);
@@ -1552,12 +1565,12 @@ class Attack {
                     this.screenPositions.remove(0);
                 }
                 else {
-                    // assign damage to target pkmn
-                    int currHealth = this.target.currentStats.get("hp");
-                    // TODO - correct damage calculation
-                    int finalHealth = currHealth - this.power;
-                    if (finalHealth < 0) {finalHealth = 0;} // make sure finalHealth isn't negative
-                    this.target.currentStats.put("hp", finalHealth);
+//                    // assign damage to target pkmn
+//                    int currHealth = this.target.currentStats.get("hp");
+//                    // TODO - correct damage calculation
+//                    int finalHealth = currHealth - this.power;
+//                    if (finalHealth < 0) {finalHealth = 0;} // make sure finalHealth isn't negative
+//                    this.target.currentStats.put("hp", finalHealth);
 
                     game.actionStack.remove(this);
                     game.insertAction(this.nextAction);
@@ -1821,6 +1834,9 @@ public class Battle {
      * Note: below is taken based off of Gen 2.
      */
     static int calcDamage(Pokemon source, Attack attack, Pokemon target) {
+        if (attack.name.equals("Mewtwo_Special1")) {
+            return 30;
+        }
         int attackStat = attack.isPhysical ? source.currentStats.get("attack") : source.currentStats.get("specialAtk");
         int defenseStat = attack.isPhysical ? target.currentStats.get("defense") : target.currentStats.get("specialDef");
         int damage = (int)Math.floor(Math.floor(Math.floor(2 * source.level / 5 + 2) * attackStat * attack.power / defenseStat) / 50) + 2;
@@ -2037,17 +2053,15 @@ public class Battle {
         else if (attack.name.equals("Psychic")) {
             if (isFriendly) {
                 return new Attack.Psychic(game,
-                                          game.player.currPokemon,
+//                                          game.player.currPokemon,
                                           game.battle.oppPokemon,
-                                          false,
-                                          nextAction);
+                                          false, nextAction);
             }
             else {
                 return new Attack.Psychic(game,
-                                          game.battle.oppPokemon,
+//                                          game.battle.oppPokemon,
                                           game.player.currPokemon,
-                                          false,
-                                          nextAction);
+                                          false, nextAction);
             }
         }
         else if (attack.name.equals("Mewtwo_Special1")) {
@@ -2059,17 +2073,15 @@ public class Battle {
         else if (attack.name.equals("Night Shade")) {
             if (isFriendly) {
                 return new Attack.Psychic(game,
-                                          game.player.currPokemon,
+//                                          game.player.currPokemon,
                                           game.battle.oppPokemon,
-                                          true,
-                                          nextAction);
+                                          true, nextAction);
             }
             else {
                 return new Attack.Psychic(game,
-                                          game.battle.oppPokemon,
+//                                          game.battle.oppPokemon,
                                           game.player.currPokemon,
-                                          true,
-                                          nextAction);
+                                          true, nextAction);
             }
         }
         else if (attack.name.equals("Slash")) {
@@ -2099,15 +2111,22 @@ public class Battle {
             }
         }
         else {
-            if (game.battle.oppPokemon.name.equals("Mewtwo")) {
-                Attack mewtwoSpecial1 = game.battle.attacks.get("Mewtwo_Special1");
-                mewtwoSpecial1.damage = calcDamage(game.battle.oppPokemon, mewtwoSpecial1, game.player.currPokemon);
-                nextAction = new DisplayText(game, "A wave of psychic power unleashes!", null, true,
-                             Battle.getAttackAction(game, mewtwoSpecial1, !isFriendly,
-                             new DepleteFriendlyHealth(game.player.currPokemon, mewtwoSpecial1.damage,
-                             new WaitFrames(game, 30,
-                             new DisplayText.Clear(game,
-                             new WaitFrames(game, 3, nextAction))))));
+//            if (game.battle.oppPokemon.name.equals("Mewtwo")) {
+            if (SpecialMewtwo1.class.isInstance(game.battle.oppPokemon) && !isFriendly) {
+                SpecialBattleMewtwo.specialAttackCounter++;
+                if (SpecialBattleMewtwo.specialAttackCounter >= 3) {
+                    Attack mewtwoSpecial1 = game.battle.attacks.get("Mewtwo_Special1");
+                    mewtwoSpecial1.damage = Battle.calcDamage(game.battle.oppPokemon, mewtwoSpecial1, game.player.currPokemon);
+                    nextAction = new DisplayText.Clear(game,
+                                 new WaitFrames(game, 3,
+                                 new DisplayText(game, "A wave of psychic power unleashes!", null, true, false,
+                                 Battle.getAttackAction(game, mewtwoSpecial1, !isFriendly,
+                                 new DepleteFriendlyHealth(game.player.currPokemon, mewtwoSpecial1.damage,
+                                 new WaitFrames(game, 30,
+                                 new DisplayText.Clear(game,
+                                 new WaitFrames(game, 3, nextAction))))))));
+                    SpecialBattleMewtwo.specialAttackCounter = 0;
+                }
             }
             String effectiveness;
             String text_string = "";
@@ -2141,9 +2160,7 @@ public class Battle {
                                     new WaitFrames(game, 3,
                                     new DisplayText(game,
                                                     text_string,
-                                                    null,
-                                                    true,
-                                                    true,
+                                                    null, true, true,
                                     null)))
                                 :
                                     null))));
@@ -2263,13 +2280,20 @@ public class Battle {
                                 new DrawFriendlyHealth(game,
                                 afterTrigger)));
             }
-            return new BattleIntro(
+            Action introAction = 
+                   new BattleIntro(
                    new BattleIntroAnim1(
                    new SplitAction(new DrawBattle(game),
                    new BattleAnimPositionPlayers(game,
+                   null))));
+            if (game.battle.oppPokemon.isShiny) {
+                introAction.append(new Battle.LoadAndPlayAnimation(game, "shiny", game.player.currPokemon, null));
+            }
+
+            introAction.append(
                    new SplitAction(new WaitFrames(game, 4,
-                                      new PlaySound(game.battle.oppPokemon,
-                                      null)),
+                                   new PlaySound(game.battle.oppPokemon,
+                                   null)),
                    new PokemonIntroAnim(
                    new WaitFrames(game, 11,
                    new DisplayText(game, "Wild "+game.battle.oppPokemon.name.toUpperCase()+" appeared!", null, null,
@@ -2285,9 +2309,14 @@ public class Battle {
                        ))
                    :
                        new ThrowOutPokemonCrystal(game, // this draws pkmn sprite permanently until battle ends, ie until game.battle.drawAction == null
-                       triggerAction
+                       game.player.currPokemon.isShiny ?
+                           new Battle.LoadAndPlayAnimation(game, "shiny", game.battle.oppPokemon,
+                           triggerAction)
+                       :
+                           triggerAction
                        )
-                   ))))))))))));
+                   )))))))));
+            return introAction;
         }
         // Below is red/blue intro anim
         // TODO: what if opp pokemon is crystal, and yours is red? or vice-versa
@@ -2794,7 +2823,8 @@ public class Battle {
             e.printStackTrace();
         }
 
-        Attack attack = new Attack("Mewtwo_Special1", 100, "Psychic", 100, 1, 100);
+        // power 0 because the attack will apply extra damage that ignores stats.
+        Attack attack = new Attack("Mewtwo_Special1", 0, "psychic", 100, 1, 100);
         this.attacks.put(attack.name, attack);
     }
 
@@ -2819,6 +2849,10 @@ public class Battle {
      * https://bulbapedia.bulbagarden.net/wiki/Escape#Generation_I_and_II
      */
     boolean calcIfRunSuccessful(Game game, Player player) {
+        // special case for special mewtwo battle - can't run.
+        if (SpecialMewtwo1.class.isInstance(this.oppPokemon)) {
+            return false;
+        }
         int currSpeed = player.currPokemon.currentStats.get("speed");
         int b = (int)(this.oppPokemon.currentStats.get("speed")/4) % 256;
 //        System.out.println("opp speed:" + String.valueOf(this.oppPokemon.currentStats.get("speed")));
@@ -3249,8 +3283,15 @@ public class Battle {
  
         @Override
         public void step(Game game) {
- 
             if (this.firstStep) {
+                // I did the Psychic animation manually before I ripped them and put them under attacks/
+                if (this.name.contains("psychic")) {
+                    game.actionStack.remove(this);
+                    game.insertAction(new Attack.Psychic(game, this.target,
+                                                         false, this.nextAction));
+                    return;
+                }
+
                 // load metadata for each frame
                 // ex: player_healthbar_gone -> means to make player's healthbar transparent during this frame
                 try {
@@ -3285,7 +3326,7 @@ public class Battle {
                                                      game.battle.oppPokemon.sprite.getY());
             }
  
-            // reset vars at beginning
+            // Reset vars at beginning
             DrawEnemyHealth.shouldDraw = true;
             DrawFriendlyHealth.shouldDraw = true;
             DrawBattle.shouldDrawOppPokemon = true;
@@ -3295,7 +3336,7 @@ public class Battle {
             game.player.currPokemon.backSprite.setPosition(this.playerSpriteOrigin.x, this.playerSpriteOrigin.y);
             game.battle.oppPokemon.sprite.setPosition(this.enemySpriteOrigin.x, this.enemySpriteOrigin.y);
             game.uiBatch.setTransformMatrix(new Matrix4(new Vector3(0,0,0), new Quaternion(), new Vector3(1,1,1)));
- 
+
             // if next frame doesn't exist in animation, return
             FileHandle filehandle = Gdx.files.internal("attacks/" + this.name + "/output/frame-" + String.format("%03d", this.frameNum) + ".png");
             if (!filehandle.exists()) {
@@ -3314,7 +3355,7 @@ public class Battle {
             EvolutionAnim.drawPostEvoBottom = false;
             EvolutionAnim.drawPostEvoTop = false;
  
-            // draw water effect if present
+            // Draw water ripple effect if present
             if (this.metadata.containsKey(this.frameNum)) {
                 String properties = this.metadata.get(this.frameNum);
                 if (properties.contains("screenshot")) {
@@ -3437,10 +3478,8 @@ public class Battle {
                     EvolutionAnim.playSound = true;
                 }
             }
- 
             this.frameNum++;
         }
- 
     }
 
     class Network {
@@ -3450,7 +3489,7 @@ public class Battle {
         public Network() {}
     }
 
-    /*
+        /**
          * Wait for the server to send turn data back to client.
          *
          * Example: the player sends an attack, waits to see result of the attack.
@@ -3520,8 +3559,10 @@ class BattleAnimPositionPlayers extends Action {
 //        game.player.battleSprite.setPosition(175+1-8-2, 71+1-10);//(3*175+1,3*71+1);
 //        game.player.battleSprite.setScale(2);
         game.player.battleSprite.setPosition(162, 49);
+//        game.player.battleSprite.setPosition(162-30, 49);  // used for saving video of pokemon sprite
 
         game.battle.oppPokemon.sprite.setPosition(-30-4-1-14,106+2-5-15);//(3*-30,3*106+2); // TODO - x and y pos not correct...
+//        game.battle.oppPokemon.sprite.setPosition(-30-4-1-14-24,106+2-5-15-16);  // used for saving video of pokemon sprite
         // note - i think my previous x was off by 1/3 a pixel, b/c val wasn't divisible by 3.
          // I am sticking with new x pos, which is really close
         // game.battle.oppPokemon.sprite.setScale(3);
@@ -4053,7 +4094,13 @@ class CatchPokemonWobbles1Time extends Action {
 
         // control alpha of opposing pkmn
         float currAlpha = this.alphas.get(0);
-        game.battle.oppPokemon.sprite.setAlpha(currAlpha);
+        if (currAlpha == 0f) {
+            DrawBattle.shouldDrawOppPokemon = false;
+        }
+        else {
+            DrawBattle.shouldDrawOppPokemon = true; 
+        }
+//        game.battle.oppPokemon.sprite.setAlpha(currAlpha);
 
         // get next sound, play it
         this.sound = this.sounds.get(0);
@@ -4106,7 +4153,6 @@ class CatchPokemonWobbles2Times extends Action {
     ArrayList<Integer> repeats;
     String sound;
     ArrayList<String> sounds;
-
     ArrayList<Float> alphas;
 
     public int layer = 120;
@@ -4233,7 +4279,13 @@ class CatchPokemonWobbles2Times extends Action {
 
         // control alpha of opposing pkmn
         float currAlpha = this.alphas.get(0);
-        game.battle.oppPokemon.sprite.setAlpha(currAlpha);
+        if (currAlpha == 0f) {
+            DrawBattle.shouldDrawOppPokemon = false;
+        }
+        else {
+            DrawBattle.shouldDrawOppPokemon = true; 
+        }
+//        game.battle.oppPokemon.sprite.setAlpha(currAlpha);
 
         // get next sound, play it
         this.sound = this.sounds.get(0);
@@ -4443,7 +4495,13 @@ class CatchPokemonWobbles3Times extends Action {
 
         // control alpha of opposing pkmn
         float currAlpha = this.alphas.get(0);
-        game.battle.oppPokemon.sprite.setAlpha(currAlpha);
+        if (currAlpha == 0f) {
+            DrawBattle.shouldDrawOppPokemon = false;
+        }
+        else {
+            DrawBattle.shouldDrawOppPokemon = true; 
+        }
+//        game.battle.oppPokemon.sprite.setAlpha(currAlpha);
 
         // get next sound, play it
         this.sound = this.sounds.get(0);
@@ -4585,16 +4643,26 @@ class CatchPokemonWobblesThenCatch extends Action {
     @Override
     public void step(Game game) {
         // set opp pokemon sprite alpha
-        game.battle.oppPokemon.sprite.setAlpha(0);
+//        game.battle.oppPokemon.sprite.setAlpha(0);
+        DrawBattle.shouldDrawOppPokemon = false;
 
         // Set sprite position
         // if done with anim, do nextAction
         if (positions.isEmpty() || sprites.isEmpty()) {
             // Since pkmn was caught, add to players pokemon
             game.player.pokemon.add(game.battle.oppPokemon);
-            // remove this pokemon from the map
-            game.map.currRoute.pokemon.remove(game.battle.oppPokemon);
-
+            if (SpecialMewtwo1.class.isInstance(game.battle.oppPokemon)) {
+                // Remove mewtwo from it's tile
+                Tile tile = ((SpecialMewtwo1)game.battle.oppPokemon).tile;
+                tile.nameUpper = "";
+                tile.overSprite = null;
+                tile.attrs.put("solid", false);
+            }
+            else {
+                // Remove this pokemon from the map
+                game.map.currRoute.pokemon.remove(game.battle.oppPokemon);
+                game.map.currRoute.genPokemon(game.battle.oppPokemon.baseStats.get("catchRate"));
+            }
             Action newAction = new PokemonCaughtEvents(game,
                                new SplitAction(new BattleFadeOut(game, null),
                                new BattleFadeOutMusic(game,
@@ -4608,7 +4676,6 @@ class CatchPokemonWobblesThenCatch extends Action {
             }
             game.insertAction(newAction);
             newAction.step(game);  // need to draw the pokeball
-            game.map.currRoute.genPokemon(game.battle.oppPokemon.baseStats.get("catchRate"));
             game.actionStack.remove(this);
             return;
         }
@@ -4821,6 +4888,19 @@ class DepleteEnemyHealth extends Action {
                                                   null),
                                   new BattleFadeOutMusic(game,
                                   null)));
+                // If player made mewtwo faint, display message that it may return
+                // Also don't draw upper sprite, make unsolid.
+                if (SpecialMewtwo1.class.isInstance(game.battle.oppPokemon)) {
+                    SpecialMewtwo1 mewtwo = (SpecialMewtwo1)game.battle.oppPokemon;
+                    mewtwo.tile.attrs.put("solid", false);
+                    mewtwo.tile.nameUpper = "mewtwo_overworld_hidden";
+                    mewtwo.tile.overSprite = null;
+                    nextAction.append(new SetField(game, "playerCanMove", false,
+                                      new DisplayText(game, "MEWTWO fled... it may return when it' had time to recover.",
+                                                      null, null,
+                                      new SetField(game, "playerCanMove", true,
+                                      null))));
+                }
                 game.insertAction(nextAction);
             }
             // else, insert nextAction
@@ -7518,7 +7598,8 @@ class DrawUseTossMenu extends MenuAction {
                 if (game.map.tiles.get(game.player.position.cpy().add(0,0)).attrs.get("grass")) {
                     this.disabled = true;
                     game.actionStack.remove(this);
-                    game.insertAction(new DisplayText(game, "Canì use this while in tall grass!", null, false, true,
+                    // Canì use this while in tall grass!
+                    game.insertAction(new DisplayText(game, "Canì use this while Pokemon are nearby!", null, false, true,
                                       new SetField(this.prevMenu, "disabled", false,
                                       this.prevMenu)));
                     return;
@@ -7910,6 +7991,7 @@ class EnemyFaint extends Action {
 
     Vector2 position;
     Sprite sprite;
+    Sprite breathingSprite = null;
 
     public int layer = 120;
     boolean firstStep;
@@ -7966,6 +8048,9 @@ class EnemyFaint extends Action {
         }
 
         this.sprite = new Sprite(game.battle.oppPokemon.sprite);
+        if (game.battle.oppPokemon.breathingSprite != null) {
+            this.breathingSprite = game.battle.oppPokemon.breathingSprite;
+        }
 
 //        Texture text = new Texture(Gdx.files.internal("attack_menu/helper5.png"));
 //        this.helperSprite = new Sprite(text, 0,0, 16*10, 16*9);
@@ -8013,6 +8098,9 @@ class EnemyFaint extends Action {
 //        this.helperSprite.draw(game.floatingBatch);
 
         this.sprite.draw(game.uiBatch);
+        if (this.breathingSprite != null) {
+            this.breathingSprite.draw(game.uiBatch);
+        }
 
         // debug
 //        if (this.repeats.size() == 1) {
@@ -8031,8 +8119,12 @@ class EnemyFaint extends Action {
             // this.sprite.setRegionY(this.sprite.getRegionY() + (int)positions.get(0).y);
             this.sprite.setRegionHeight(this.sprite.getRegionHeight() + (int)positions.get(0).y);
             this.sprite.setSize(this.sprite.getWidth(), this.sprite.getHeight() + (int)positions.get(0).y);
+            if (this.breathingSprite != null) {
+                this.breathingSprite.setRegionHeight(this.breathingSprite.getRegionHeight() + (int)positions.get(0).y);
+                this.breathingSprite.setSize(this.breathingSprite.getWidth(), this.breathingSprite.getHeight() + (int)positions.get(0).y);
+            }
 
-            if (this.playSound.get(0) == true) {
+            if (this.playSound.get(0) == true && !SpecialMewtwo1.class.isInstance(game.battle.oppPokemon)) {
                 // play victory fanfare
                 game.currMusic.pause();
                 game.currMusic = game.battle.victoryFanfare;
@@ -8044,9 +8136,7 @@ class EnemyFaint extends Action {
             repeats.remove(0);
             playSound.remove(0);
         }
-
     }
-
 }
 
 class EvolutionAnim extends Action {
@@ -9373,13 +9463,15 @@ class SpecialBattleMegaGengar extends Action {
 class SpecialBattleMewtwo extends Action {
     public int layer = 107;
     Music music;
-
+    SpecialMewtwo1 mewtwo;
     boolean firstStep = true;
+    public static boolean doneYet = false;
+    public static int specialAttackCounter = 0;  // wait N turns until doing special attack
+    int timer = 0;
 
-    //    int timer = 0;
-    int timer = 1670; // TODO: debug, remove
-
-    public SpecialBattleMewtwo(Game game) {}
+    public SpecialBattleMewtwo(Game game, SpecialMewtwo1 mewtwo) {
+        this.mewtwo = mewtwo;
+    }
 
     public String getCamera() {return "gui";}
 
@@ -9390,22 +9482,30 @@ class SpecialBattleMewtwo extends Action {
         if (this.firstStep) {
             this.music = Gdx.audio.newMusic(Gdx.files.internal("battle/pokemon_mansion_remix_eq.ogg"));
             this.music.setLooping(true);
-            this.music.setVolume(0.9f);
+//            this.music.setVolume(0.9f);
+            this.music.setVolume(0.7f);
 
             game.currMusic = this.music;
-            game.currMusic.stop();
+//            game.currMusic.stop();  // needed? might mess w/ volume
             game.currMusic.play();
-            game.currMusic.setPosition(28); // TODO: debug, remove
-
+            
+            // debug
+            if (SpecialBattleMewtwo.doneYet) {
+                this.timer = 1708;  //1670;  // TODO: this is probably off now
+//                game.currMusic.setPosition(28); // TODO: debug, remove
+                game.currMusic.setPosition(28.55f);
+            }
+            SpecialBattleMewtwo.doneYet = true;
+            SpecialBattleMewtwo.specialAttackCounter = 0;
             this.firstStep = false;
         }
 
         if (this.timer == 0) {
             // remove the text box
-            game.actionStack.remove(game.displayTextAction);
-            game.displayTextAction = null;
-            game.insertAction(new DisplayTextIntro(game, "...",
-                                                                  null, null, false, null));
+//            game.actionStack.remove(game.displayTextAction);
+//            game.displayTextAction = null;
+//            game.insertAction(new DisplayTextIntro(game, "...",
+//                                                                  null, null, false, null));
         }
         else if (this.timer == 100) {
             // remove the text box
@@ -9418,14 +9518,14 @@ class SpecialBattleMewtwo extends Action {
             // remove the text box
             game.actionStack.remove(game.displayTextAction);
             game.displayTextAction = null;
-            game.insertAction(new DisplayTextIntro(game, "These humans cared nothing for me...",
-                                                                  null, null, false, null));
+            game.insertAction(new DisplayTextIntro(game, "They cared nothing for me...",  //These humans cared nothing for me
+                                                   null, null, false, null));
         }
         else if (this.timer == 600 -20 -20) {
             // remove the text box
             game.actionStack.remove(game.displayTextAction);
             game.displayTextAction = null;
-            game.insertAction(new DisplayTextIntro(game, "From the moment I first opened my eyes, humans have sought to control me.",
+            game.insertAction(new DisplayTextIntro(game, "From the moment I first opened my eyes, they have sought to control me...",
                                                                   null, null, false, null));
         }
         else if (this.timer == 1000 -20 -20) {
@@ -9443,39 +9543,50 @@ class SpecialBattleMewtwo extends Action {
                                                                   null, null, false, null));
         }
         else if (this.timer == 1350 -20 -20) {
-            // remove the text box
+            // Remove the text box
             game.actionStack.remove(game.displayTextAction);
             game.displayTextAction = null;
-            game.insertAction(new DisplayTextIntro(game, "You desire to control me, just like the others.",
-                                                                  null, null, false, null));
+            game.insertAction(new DisplayTextIntro(game, "You seek to control me, just like the others.",  //desire
+                                                   null, null, false, null));
         }
         else if (this.timer == 1580) {
-            // remove the text box
+            // Remove the text box
             game.actionStack.remove(game.displayTextAction);
             game.displayTextAction = null;
-            game.insertAction(new DisplayTextIntro(game, "...",
-                                                                  null, null, false, null));
+            game.insertAction(new DisplayTextIntro(game, "...", null, null, false, null));
         }
 
-        if (this.timer >= 1685) {
+        if (this.timer >= 1708) {  // >= 1685  // was this value. TODO: remove after tested.
             game.actionStack.remove(game.displayTextAction);
             game.displayTextAction = null;
 
-            SpecialMewtwo1 mewtwo = new SpecialMewtwo1(70);
-            game.battle.oppPokemon = mewtwo;
+            // TODO: remove
+//            SpecialMewtwo1 mewtwo = new SpecialMewtwo1(70);
+//            SpecialMewtwo1 mewtwo = new SpecialMewtwo1(50);
+//            game.battle.oppPokemon = mewtwo;
 
-            Action triggerAction = new PlaySound(game.player.currPokemon.name,
+            // TODO: this was for gen1 pokemon
+//            Action triggerAction = new PlaySound(game.player.currPokemon, //game.player.currPokemon.name,
+//                                   new WaitFrames(game, 6,
+//                                   new DrawBattleMenuNormal(game, null)
+//                                   ));
+            
+
+            Action afterTrigger = new WaitFrames(game, 15,
+                                  new DrawBattleMenuNormal(game,
+                                  null
+                                  ));
+            Action triggerAction = new PlaySound(game.player.currPokemon,
                                    new WaitFrames(game, 6,
-                                   new DrawBattleMenuNormal(game, null)
-                                   ));
-
-//            Action nextAction =  new WaitFrames(game, 15,
+                                   new DrawFriendlyHealth(game,
+                                   afterTrigger)));
+//            Action nextAction =  new WaitFrames(game, 15,  // TODO: delete
             Action nextAction =  new BattleIntro(
                                  new SpecialBattleMewtwo.BattleIntro1(
                                  new SplitAction(
                                          new SpecialBattleMewtwo.DrawBattle1(game),
                                  new SplitAction(
-                                         new SpecialBattleMewtwo.DrawBreathingSprite(mewtwo),
+                                         new SpecialBattleMewtwo.DrawBreathingSprite(this.mewtwo),
                                  new SplitAction(
                                          new SpecialBattleMewtwo.RocksEffect2(),
                                  new SpecialBattleMewtwo.IntroAnim(game,
@@ -9483,7 +9594,8 @@ class SpecialBattleMewtwo extends Action {
                                          new SpecialBattleMewtwo.RocksEffect1(),
                                  new SplitAction(
                                          new SpecialBattleMewtwo.RippleEffect1(),
-                                 new PlaySound(game.battle.oppPokemon.name,
+                                 new PlaySound(game.battle.oppPokemon.name,  // TODO: cry not working for dex num 150
+//                                 new PlaySound(game.battle.oppPokemon,  // TODO: remove
                                  new DisplayText(game, "Wild "+game.battle.oppPokemon.name.toUpperCase()+" appeared!", null, null,
                                  new SplitAction(
                                          new WaitFrames(game, 1,
@@ -9492,11 +9604,18 @@ class SpecialBattleMewtwo extends Action {
                                  new WaitFrames(game, 39,
                                  new MovePlayerOffScreen(game,
                                  new DisplayText(game, "Go! "+game.player.currPokemon.name.toUpperCase()+"!", null, triggerAction,
-                                 new SplitAction(
-                                         new DrawFriendlyHealth(game),
-                                 new ThrowOutPokemon(game, // this draws pkmn sprite permanently until battle ends, ie until game.battle.drawAction == null
-                                 triggerAction
-                                 ))))))))))))))));
+//                                 new SplitAction(  // TODO: gen 1 animation. remove
+//                                     new DrawFriendlyHealth(game),
+                                 // TODO: this was for gen1
+//                                 new ThrowOutPokemon(game,
+//                                 triggerAction
+                                 new ThrowOutPokemonCrystal(game,
+                                 game.player.currPokemon.isShiny ?
+                                     new Battle.LoadAndPlayAnimation(game, "shiny", game.battle.oppPokemon,
+                                     triggerAction)
+                                 :
+                                     triggerAction
+                                 )))))))))))))));
             game.actionStack.remove(this);
             game.insertAction(nextAction);
         }
@@ -9581,18 +9700,18 @@ class SpecialBattleMewtwo extends Action {
 
     // draw sprite and move it up and down
     static class DrawBreathingSprite extends Action {
-        // set true when should start breathing
+        // Set true when should start breathing
         static boolean shouldBreathe = false;
         public int layer = 129;
-
+        Sprite bgSprite2;
         SpecialMewtwo1 mewtwo;
-
         int timer = 300;
-
         int offsetY = 0;
 
         public DrawBreathingSprite(SpecialMewtwo1 mewtwo) {
             this.mewtwo = mewtwo;
+            Texture text = new Texture(Gdx.files.internal("battle/intro_frame6.png"));
+            this.bgSprite2 = new Sprite(text, 0, 0, 160, 144);
         }
         public String getCamera() {return "gui";}
 
@@ -9620,9 +9739,22 @@ class SpecialBattleMewtwo extends Action {
 //            game.floatingBatch.draw(this.mewtwo.breathingSprite,
 //                                    this.mewtwo.sprite.getX(),
 //                                    this.mewtwo.sprite.getY() + this.offsetY);
-            this.mewtwo.breathingSprite.setPosition(this.mewtwo.sprite.getX(), this.mewtwo.sprite.getY() + this.offsetY);
-            this.mewtwo.breathingSprite.draw(game.uiBatch);
-
+            // TODO: remove
+//            float alpha = this.mewtwo.sprite.getColor().a;
+//            System.out.println(alpha);
+//            this.mewtwo.breathingSprite.setAlpha(alpha);
+            if (DrawBattle.shouldDrawOppPokemon) {
+                this.mewtwo.breathingSprite.setPosition(this.mewtwo.sprite.getX(), this.mewtwo.sprite.getY() + this.offsetY);
+                this.mewtwo.breathingSprite.draw(game.uiBatch);
+            }
+            for (int i = -1; i < 2; i+= 1) {
+                for (int j = -1; j < 2; j+= 1) {
+                    if (i == 0 && j == 0) {
+                        continue;
+                    }
+                    game.uiBatch.draw(this.bgSprite2, 160*i, 144*j);
+                }
+            }
             if (game.battle.drawAction == null) {
                 game.actionStack.remove(this);
                 return;
@@ -9651,7 +9783,8 @@ class SpecialBattleMewtwo extends Action {
                 moves_relative.add(new Vector2(1,0));
             }
 
-            game.player.battleSprite.setPosition(175+1-8-2,71+1-10);
+//            game.player.battleSprite.setPosition(175+1-8-2,71+1-10);  // TODO: this was gen1 backsprite
+            game.player.battleSprite.setPosition(162, 49);
 //            game.player.battleSprite.setScale(2);
             game.battle.oppPokemon.sprite.setPosition(-30-4-1-14,106+2-5-15);
 
@@ -9969,7 +10102,8 @@ public String getCamera() {return "gui";}
 
         public RocksEffect1() {
             Texture text = new Texture(Gdx.files.internal("battle/battle_bg4.png"));
-            this.textboxSprite = new Sprite(text, 0, 0, 160, 144);
+            this.textboxSprite = new Sprite(text, 0, 0, 176, 160);
+            this.textboxSprite.setPosition(-8, -8);
 
             text = new Texture(Gdx.files.internal("battle/rock1.png"));
             this.sprites[0] = new Sprite(text, 0*32, 0, 32, 32);
@@ -10094,16 +10228,17 @@ public String getCamera() {return "gui";}
                                         1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
                                         0.95f, 0.95f, 0.95f, 0.95f, 0.95f, 0.95f,
                                         0.9f, 0.9f, 0.9f, 0.9f, 0.9f, 0.9f,};
-
         int bg_values_idx = 0;
         float curr_value = 0f;
 
         public RocksEffect2() {
             Texture text = new Texture(Gdx.files.internal("battle/battle_bg3.png"));
-            this.bgSprite = new Sprite(text, 0, 0, 160, 144);
+            this.bgSprite = new Sprite(text, 0, 0, 176, 160);
+            this.bgSprite.setPosition(-8, -8);
 
             text = new Texture(Gdx.files.internal("battle/battle_bg5.png"));
-            this.bgSprite2 = new Sprite(text, 0, 0, 160, 144);
+            this.bgSprite2 = new Sprite(text, 0, 0, 176, 160);
+            this.bgSprite2.setPosition(-8, -8);
 
             text = new Texture(Gdx.files.internal("battle/rock1.png"));
             this.sprites[0] = new Sprite(text, 0*32, 0, 32, 32);
@@ -10741,7 +10876,7 @@ class ThrowOutPokemon extends Action {
         Sprite temp = new Sprite(game.player.currPokemon.backSprite);
         TextureRegion[][] tempRegion = temp.split(4, 4); // should be 7x7
 
-        //
+
         Sprite[][] temp2 = new Sprite[7][7];
         for (int i = 0; i < tempRegion.length; i++) {
             for (int j = 0; j < tempRegion[i].length; j++) {

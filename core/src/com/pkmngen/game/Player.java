@@ -19,6 +19,7 @@ import com.badlogic.gdx.math.Vector2;
 import com.pkmngen.game.DrawPokemonMenu.SelectedMenu;
 import com.pkmngen.game.DrawPokemonMenu.SelectedMenu.Switch;
 import com.pkmngen.game.util.LoadingZone;
+import com.pkmngen.game.util.TextureCache;
 
 /*
  * TODO: remove this, not using.
@@ -213,9 +214,8 @@ class CycleDayNight extends Action {
 
         Texture text = new Texture(Gdx.files.internal("text2.png"));
         this.bgSprite = new Sprite(text, 0, 0, 160, 144);
-        this.bgSprite.setPosition(0,24);
-
-        this.text = game.map.timeOfDay+": ";
+        this.bgSprite.setPosition(0, 24);
+        this.text = game.map.timeOfDay + ": ";
     }
     public String getCamera() {return "gui";}
 
@@ -281,11 +281,25 @@ class CycleDayNight extends Action {
                 signCounter = 300;
                 this.bgSprite.setPosition(0, 24);
 
-                // All planted trees become full size trees
                 if (game.type != Game.Type.CLIENT) {
+                    // All planted trees become full size trees
                     for (Tile tile : game.map.overworldTiles.values()) {
                         if (tile.nameUpper.equals("tree_planted")) {
                             game.map.overworldTiles.put(tile.position, new Tile("bush1", "", tile.position.cpy(), true, tile.routeBelongsTo));
+                        }
+                    }
+                    // Mewtwo respawns
+                    for (HashMap<Vector2, Tile> interiorTiles : game.map.interiorTiles) {
+                        if (interiorTiles == null) {
+                            continue;
+                        }
+                        for (Tile tile : interiorTiles.values()) {
+                            if (tile.nameUpper.equals("mewtwo_overworld_hidden")) {
+                                tile.attrs.put("solid", true);
+                                tile.nameUpper = "mewtwo_overworld";
+                                Texture text = TextureCache.get(Gdx.files.internal("tiles/mewtwo_overworld.png"));
+                                tile.overSprite = new Sprite(text, 0, 0, 16, 16);
+                            }
                         }
                     }
                 }
@@ -1950,6 +1964,8 @@ public class Player {
 //        this.itemsDict.put("ultra ball", 99);
 //        this.itemsDict.put("blue apricorn", 99);
 //        this.itemsDict.put("Poké Ball", 99);
+        this.itemsDict.put("secret key", 1);
+        this.itemsDict.put("master ball", 1);  // TODO: debug, remove
 
         this.network = new Network(this.position);
         this.type = Type.LOCAL;
@@ -2087,6 +2103,27 @@ public class Player {
             pos = this.position.cpy().add(0, -16);
         }
         return pos;
+    }
+
+    public class RemoveFromInventory extends Action {
+        String itemName;
+        int amount;
+
+        public RemoveFromInventory(String itemName, int amount, Action nextAction) {
+            this.itemName = itemName;
+            this.amount = amount;
+            this.nextAction = nextAction;
+        }
+
+        @Override
+        public void step(Game game) {
+            Player.this.itemsDict.put(itemName, Player.this.itemsDict.get(itemName)-amount);
+            if (game.player.itemsDict.get(itemName) <= 0) {
+                game.player.itemsDict.remove(itemName);
+            }
+            game.actionStack.remove(this);
+            game.insertAction(this.nextAction);
+        }
     }
 
     public void setColor(Color newColor) {
@@ -3263,7 +3300,11 @@ class PlayerStanding extends Action {
             if (currTile.attrs.get("grass") == true) {
                 // chance wild encounter
                 int randomNum = game.map.rand.nextInt(100) + 1; // rate determine by player? // 1 - 100
-                if (randomNum < 20) { // encounterRate // was <= 50
+                int rate = 10;
+                if (game.map.tiles == game.map.interiorTiles.get(game.map.interiorTilesIndex)) {
+                    rate = 3;
+                }
+                if (randomNum < rate) { //  < 20
                     // disable player movement
                     // game.actionStack.remove(this); // using flag now, delete this
 
@@ -3562,6 +3603,28 @@ class PlayerStanding extends Action {
         boolean shouldMove = false;
         Vector2 newPos = new Vector2();
 
+        if (this.checkWildEncounter) {
+            // If player is standing on stairs, stop moving and change interior index.
+            if (game.map.tiles.get(game.player.position) != null &&
+                (game.map.tiles.get(game.player.position).nameUpper.contains("stairs") ||
+                 game.map.tiles.get(game.player.position).name.contains("stairs"))) {
+                int downUp = 0;
+                if (game.map.tiles.get(game.player.position).nameUpper.contains("up") ||
+                    game.map.tiles.get(game.player.position).name.contains("up")) {
+                    downUp = +1;
+                }
+                else {
+                    downUp = -1;
+                }
+                game.playerCanMove = false;
+                HashMap<Vector2, Tile> whichTiles = game.map.interiorTiles.get(game.map.interiorTilesIndex+downUp);
+                game.insertAction(new EnterBuilding(game, "enter", whichTiles,
+                                  new SetField(game.map, "interiorTilesIndex", game.map.interiorTilesIndex+downUp,
+                                  new SetField(game, "playerCanMove", true,
+                                  null))));
+            }
+        }
+        
         // Check wild encounter
         if (this.checkWildEncounter && game.type != Game.Type.CLIENT) {
             if (this.checkWildEncounter(game) == true) {
@@ -3801,7 +3864,6 @@ class PlayerStanding extends Action {
 
             }
             else if (currTile.nameUpper.equals("sleeping_bag1")) {
-                // TODO: yes/no confirm dialogue
                 game.player.isSleeping = true;
                 Texture playerText = new Texture(Gdx.files.internal("tiles/sleeping_bag1_using.png"));
                 Sprite temp = new Sprite(playerText, 0, 0, 24, 16);
