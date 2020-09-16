@@ -1967,6 +1967,8 @@ public class Player {
         if (Game.staticGame.debugInputEnabled) {
             this.itemsDict.put("secret key", 1);
             this.itemsDict.put("master ball", 99);
+            this.itemsDict.put("grass", 99);
+            this.itemsDict.put("log", 99);
         }
 
         this.network = new Network(this.position);

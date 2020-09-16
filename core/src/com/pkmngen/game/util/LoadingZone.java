@@ -7,7 +7,9 @@ import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 
 /**
- * Rectangle except provides Vector2 for bottom-left and top-right (for convenience)
+ * Rectangle except provides Vector2 for bottom-left and top-right (for convenience).
+ * Also includes some utilities that Rectangle doesn't have (getAll(), translate(),
+ * diff(), allPositions()).
  */
 public class LoadingZone extends Rectangle {
     

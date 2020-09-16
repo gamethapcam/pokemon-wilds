@@ -1427,15 +1427,6 @@ class GenIsland1 extends Action {
         }
         this.tilesToAdd.putAll(mtnTiles);
 
-        // TODO: this should be on the beach somewhere. probably on the first beach that's created,
-         // once it gets to certain distance. check static var hasCreatedPkmnMansionYet
-        // TODO: generate pokemon mansion dungeon
-        // 28x30 tiles for now (maybe variable in the future)
-//        HashMap<Vector2, Tile> mansionExteriorTiles = new HashMap<Vector2, Tile>();
-//        ArrayList<HashMap<Vector2, Tile>> mansionInteriorTiles = new ArrayList<HashMap<Vector2, Tile>>();
-//        this.generateMansion(game, mansionExteriorTiles, mansionInteriorTiles);
-//        this.tilesToAdd.putAll(mansionExteriorTiles);
-
         // find max/min x and y tiles, add padding and add water tiles
         Vector2 maxPos = this.origin.cpy();
         Vector2 minPos = this.origin.cpy();
@@ -1471,7 +1462,10 @@ class GenIsland1 extends Action {
         // post-process - remove stray trees
         // Might need a better way to store tiles bigger than 16x16
         // Timed this part, took 42 milliseconds for large map.
-        for (int i=0; i < 1; i++) {
+//        for (int i=0; i < 1; i++) {
+        boolean complete = false;
+        while (!complete) {
+            complete = true;
             Vector2 tl;
             Vector2 tr;
             Vector2 bl;
@@ -1533,74 +1527,104 @@ class GenIsland1 extends Action {
                     }
                 }
                 // Remove overworld pokemon that are currently inside something solid
-                //  Hard to remove them when they are being placed, this issue happens when 
-                //  groups of tiles get merged together (I think).
+                //  Hard to remove them when they are being placed initially, this issue
+                //  happens when groups of tiles get merged together (I think).
                 if (this.pokemonToAdd.containsKey(tile.position) && tile.attrs.get("solid")) {
                     Pokemon pokemon = this.pokemonToAdd.remove(tile.position);
-                    game.actionStack.remove(pokemon.standingAction);
+//                    game.actionStack.remove(pokemon.standingAction);
                 }
-                // Generate the pokemon mansion dungeon'
+                // Generate the pokemon mansion dungeon
                 if (tile.biome.equals("deep_forest") && !GenIsland1.donePkmnMansion
                     && !mtnTiles.containsKey(tile.position.cpy().add(0, -16*23))
                     && !mtnTiles.containsKey(tile.position.cpy().add(-16*14, 0))
                     && !mtnTiles.containsKey(tile.position.cpy().add(16*9, -16*15))) {
                     GenIsland1.donePkmnMansion = true;
-                    i = -1;  // start over. it's iterating on a copy of tilesToAdd right now.
+//                    i = -1;  // start over. it's iterating on a copy of tilesToAdd right now.
+                    complete = false;
                     HashMap<Vector2, Tile> mansionExteriorTiles = new HashMap<Vector2, Tile>();
                     ArrayList<HashMap<Vector2, Tile>> mansionInteriorTiles = new ArrayList<HashMap<Vector2, Tile>>();
                     Vector2 mansionPos = tile.position.cpy();
                     if (this.radius < 100*100*(4)) {
                         mansionPos = new Vector2(0, 16*14);
                     }
-//                    this.generateMansion(game, mansionExteriorTiles, mansionInteriorTiles, tile.position.cpy());  // TODO: debug, remove
-                    this.generateMansion(game, mansionExteriorTiles, mansionInteriorTiles, mansionPos);
-                    tilesToAdd.putAll(mansionExteriorTiles);
-                    this.interiorTilesToAdd.addAll(mansionInteriorTiles);
+                    // TODO: occasional bug with mansion generation when it
+                    // fails to find enough endpoint tiles for statues/stairs
+                    try {
+                        this.generateMansion(game, mansionExteriorTiles, mansionInteriorTiles, mansionPos);
+                        tilesToAdd.putAll(mansionExteriorTiles);
+                        this.interiorTilesToAdd.addAll(mansionInteriorTiles);
+                    } catch (Exception e) {
+                        System.out.println("Failed to generate mansion: " + e.getMessage());
+                        e.printStackTrace();
+                    }
                     break;
                 }
                 if (tile.biome.equals("deep_forest") && tile.name.contains("green") && !GenIsland1.donePkmnMansionKey) {
                     GenIsland1.donePkmnMansionKey = true;
-                    i = -1;  // start over. it's iterating on a copy of tilesToAdd right now.
+//                    i = -1;  // start over. it's iterating on a copy of tilesToAdd right now.
+                    complete = false;
                     tilesToAdd.put(tile.position, new Tile(tile.name, "pokemon_mansion_key", tile.position.cpy(), true, null));
                     break;
                 }
             }
         }
 
-        // TODO: this part takes a long time (6 seconds for small map, ~20 for larger map)
-        long startTime = System.currentTimeMillis();
-        // Post-processing - find all outer water tiles. Any adjacent land is an edge.
-        // TODO: if any water on land isn't in this group, make into a puddle. (not ponds tho...)
-        ArrayList<Tile> currTiles = new ArrayList<Tile>();
-        ArrayList<Tile> waterTiles = new ArrayList<Tile>();
-        Tile currTile = this.tilesToAdd.get(minPos);
-        currTiles.add(currTile);
-        while (currTiles.size() > 0) {
-            Vector2 currPos = currTiles.get(0).position.cpy();
-            Vector2 newPos;
-            for (int i=-1; i < 2; i++){
-                for (int j=-1; j < 2; j++){
-//                    if (i==0 && j == 0) {
+//        // TODO: this part takes a long time (6 seconds for small map, ~20 for larger map)
+//        long startTime = System.currentTimeMillis();
+//        // Post-processing - find all outer water tiles. Any adjacent land is an edge.
+//        // TODO: if any water on land isn't in this group, make into a puddle. (not ponds tho...)
+//        ArrayList<Tile> currTiles = new ArrayList<Tile>();
+////        ArrayList<Tile> waterTiles = new ArrayList<Tile>();  // TODO: not sure if using or not.
+//        ArrayList<Vector2> alreadyChecked = new ArrayList<Vector2>();
+//        Tile currTile = this.tilesToAdd.get(minPos);
+//        currTiles.add(currTile);
+//        alreadyChecked.add(minPos);
+//        Tile nextTile;
+//        Vector2 newPos;
+//        while (currTiles.size() > 0) {
+//            currTile = currTiles.remove(0);
+//            for (int i=-1; i < 2; i++){
+//                for (int j=-1; j < 2; j++){
+//                    if (i == j || i == -j || (i == 0 && j == 0)) {
 //                        continue;
 //                    }
-                    if (i == j || i == -j || (i == 0 && j == 0)) {
-                        continue;
-                    }
-                    newPos = currPos.cpy().add(i*16, j*16);
-                    if (this.tilesToAdd.containsKey(newPos) && !waterTiles.contains(this.tilesToAdd.get(newPos))) {
-                        if (this.tilesToAdd.get(newPos).name.contains("water")) {
-                            waterTiles.add(this.tilesToAdd.get(newPos));
-                            currTiles.add(this.tilesToAdd.get(newPos));
-                        }
-                        else if (!this.tilesToAdd.get(newPos).attrs.get("solid")) {
-                            this.edges.add(this.tilesToAdd.get(newPos));
-                        }
-                    }
+//                    newPos = currTile.position.cpy().add(i*16, j*16);
+//                    if (alreadyChecked.contains(newPos)) {
+//                        continue;
+//                    }
+//                    alreadyChecked.add(newPos);
+//                    nextTile = this.tilesToAdd.get(newPos);
+//                    if (nextTile == null) {
+//                        continue;
+//                    }
+//                    if (nextTile.name.contains("water")) {
+////                        waterTiles.add(nextTile);
+//                        currTiles.add(nextTile);
+//                    }
+//                    else if (!nextTile.attrs.get("solid")) {
+//                        this.edges.add(nextTile);
+//                    }
+//                }
+//            }
+//        }
+//        System.out.println("End post-process: " + String.valueOf(System.currentTimeMillis()-startTime));
+        long startTime = System.currentTimeMillis();
+        Vector2[] positions = new Vector2[]{new Vector2(-16, 0), new Vector2(16, 0),
+                                            new Vector2(0, -16), new Vector2(0, 16)};
+        Tile nextTile;
+        for (Tile tile : this.tilesToAdd.values()) {
+            for (Vector2 position : positions) {
+                nextTile = tilesToAdd.get(tile.position.cpy().add(position));
+                if (nextTile == null) {
+                    continue;
+                }
+                if (nextTile.name.contains("water") && !tile.attrs.get("solid")) {
+                    this.edges.add(tile);
                 }
             }
-            currTiles.remove(0);
         }
         System.out.println("End post-process: " + String.valueOf(System.currentTimeMillis()-startTime));
+//        this.edges.add(this.tilesToAdd.get(new Vector2(0,0)));
         
 //        // place pokemon mansion
 //        while (true) {
@@ -1880,7 +1904,7 @@ class GenIsland1 extends Action {
                                         pokemon.happiness = 0;
                                     }
                                     pokemon.standingAction = pokemon.new Standing();
-                                    game.insertAction(pokemon.standingAction);
+//                                    game.insertAction(pokemon.standingAction);
                                     this.pokemonToAdd.put(pokemon.position.cpy(), pokemon);
                                 }
                                 if (isMaze == 0) {
@@ -2607,7 +2631,6 @@ class GenIsland1 extends Action {
                 mtnTiles2.put(tile.position.cpy(), newTile);
             }
         }
-
         // add all mtnTiles in bulk
         tilesToAdd.putAll(mtnTiles);
         tilesToAdd.putAll(mtnTiles2);
@@ -2615,6 +2638,13 @@ class GenIsland1 extends Action {
         return endPoints;
     }
 
+    /**
+     * Generate pokemon mansion dungeon to be placed on the map:
+     *  - Generate the exterior (including locked door)
+     *  - Generate 5 interior levels: 2F, 1F, 1B, 2B, 3B, 4B.
+     *  - Starting with the top level, add stairs, statues and doors.
+     *  - Add the 5B level which contains armored mewtwo.
+     */
     public void generateMansion(Game game,
                                 HashMap<Vector2, Tile> mansionExteriorTiles,
                                 ArrayList<HashMap<Vector2, Tile>> mansionInteriorTiles,
@@ -4098,6 +4128,11 @@ class GenIsland1 extends Action {
             game.map.interiorTiles.get(i).putAll(this.interiorTilesToAdd.get(i));
         }
         this.interiorTilesToAdd.clear();
+
+        for (Pokemon pokemon : this.pokemonToAdd.values()) {
+            game.insertAction(pokemon.standingAction);
+        }
+        this.pokemonToAdd.clear();
 
         if (this.tilesToAdd.isEmpty()) {
             if (this.doActions.isEmpty()) {

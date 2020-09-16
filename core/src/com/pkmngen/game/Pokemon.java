@@ -859,12 +859,14 @@ public class Pokemon {
         return 0;
     }
 
-    // when generating a pokemon, this will select which attacks it knows
-     // by default
+    /**
+     * When generating a pokemon, this will select which attacks it knows by default
+     */
     void getCurrentAttacks() {
         int i = 0;
         for (Integer level : this.learnSet.keySet()) {
             for (String attack : this.learnSet.get(level)) {
+                // TODO: debug, remove
                 if (attack.contains("whirlwind") && this.name.contains("pidgeot")) {
                     System.out.println(this.learnSet.get(level));
                 }
@@ -879,6 +881,9 @@ public class Pokemon {
         }
     }
 
+    /**
+     * Load pokemon sprites and data from crystal_pokemon files.
+     */
     void loadCrystalPokemon(String name) {
         name = name.toLowerCase();
 
@@ -933,7 +938,7 @@ public class Pokemon {
         // load sprite and animation data
         // load front sprite
         if (!Pokemon.textures.containsKey(name+"_front")) {
-            Texture text = new Texture(Gdx.files.internal("crystal_pokemon/pokemon/" + name + "/front.png"));
+            Texture text = TextureCache.get(Gdx.files.internal("crystal_pokemon/pokemon/" + name + "/front.png"));
             // unown sprites have color data only stored in one channel (alpha)
             // convert this to regular texture
             if (name.contains("unown")) {
@@ -1036,11 +1041,11 @@ public class Pokemon {
                 }
                 newPixmap.drawPixel(i, j, Color.rgba8888(color.r, color.g, color.b, 1f));
             }
-            text = new Texture(newPixmap);
+            text = TextureCache.get(newPixmap);
             Pokemon.textures.put(name+"_front_shiny", text);
 
             // back sprites
-            text = new Texture(Gdx.files.internal("crystal_pokemon/pokemon/" + name + "/back.png"));
+            text = TextureCache.get(Gdx.files.internal("crystal_pokemon/pokemon/" + name + "/back.png"));
             Pokemon.textures.put(name+"_back", text);
             temp = text.getTextureData();
             if (!temp.isPrepared()) {
@@ -1065,7 +1070,7 @@ public class Pokemon {
                 }
                 newPixmap.drawPixel(i, j, Color.rgba8888(color.r, color.g, color.b, 1f));
             }
-            text = new Texture(newPixmap);
+            text = TextureCache.get(newPixmap);
             Pokemon.textures.put(name+"_back_shiny", text);
         }
         String isShiny = "";
@@ -1279,6 +1284,9 @@ public class Pokemon {
         }
     }
 
+    /**
+     * Load pokemon sprites and data from crystal_pokemon/prism files.
+     */
     void loadPrismPokemon(String name) {
         name = name.toLowerCase();
 
@@ -1324,7 +1332,7 @@ public class Pokemon {
         // load sprite and animation data
         // load front sprite
         if (!Pokemon.textures.containsKey(name+"_front")) {
-            Texture text = new Texture(Gdx.files.internal("crystal_pokemon/prism/pics/" + name + "/front.png"));
+            Texture text = TextureCache.get(Gdx.files.internal("crystal_pokemon/prism/pics/" + name + "/front.png"));
             Pokemon.textures.put(name+"_front", text);
 
             // Swap palette for shiny texture (load by appending '_shiny' to the texture name)
@@ -1410,11 +1418,11 @@ public class Pokemon {
                 }
                 newPixmap.drawPixel(i, j, Color.rgba8888(color.r, color.g, color.b, 1f));
             }
-            text = new Texture(newPixmap);
+            text = TextureCache.get(newPixmap);
             Pokemon.textures.put(name+"_front_shiny", text);
 
             // Back sprites
-            text = new Texture(Gdx.files.internal("crystal_pokemon/prism/pics/" + name + "/back.png"));
+            text = TextureCache.get(Gdx.files.internal("crystal_pokemon/prism/pics/" + name + "/back.png"));
             Pokemon.textures.put(name+"_back_shiny", text);
             temp = text.getTextureData();
             if (!temp.isPrepared()) {
@@ -1443,7 +1451,7 @@ public class Pokemon {
                 }
                 newPixmap.drawPixel(i, j, Color.rgba8888(color.r, color.g, color.b, 1f));
             }
-            text = new Texture(newPixmap);
+            text = TextureCache.get(newPixmap);
             Pokemon.textures.put(name+"_back", text);
         }
 //        Texture pokemonText = new Texture(Gdx.files.internal("crystal_pokemon/prism/pics/" + name + "/front.png"));  // TODO: remove
@@ -2198,10 +2206,10 @@ class SpecialMegaGengar1 extends Pokemon {
         this.baseStats.put("catchRate", 3);
 
         // sprite
-        Texture pokemonText = new Texture(Gdx.files.internal("pokemon/mgengar_base1.png"));
+        Texture pokemonText = TextureCache.get(Gdx.files.internal("pokemon/mgengar_base1.png"));
         this.breathingSprite = new Sprite(pokemonText, 0, 0, 56, 56);
 
-        pokemonText = new Texture(Gdx.files.internal("pokemon/mgengar_over1.png"));
+        pokemonText = TextureCache.get(Gdx.files.internal("pokemon/mgengar_over1.png"));
         this.sprite = new Sprite(pokemonText, 0, 0, 56, 56);
 
 //        this.learnSet.put(1, new String[]{"Confusion", "Disable", "Psychic", "Swift"});
@@ -2239,10 +2247,10 @@ class SpecialMewtwo1 extends Pokemon {
 //        this.baseStats.put("catchRate", 3);
 
         // sprite
-        Texture pokemonText = new Texture(Gdx.files.internal("pokemon/mewtwo_special1.png"));
+        Texture pokemonText = TextureCache.get(Gdx.files.internal("pokemon/mewtwo_special1.png"));
         this.sprite = new Sprite(pokemonText, 0, 0, 56, 56);
 
-        pokemonText = new Texture(Gdx.files.internal("pokemon/mewtwo_special2.png"));
+        pokemonText = TextureCache.get(Gdx.files.internal("pokemon/mewtwo_special2.png"));
         this.breathingSprite = new Sprite(pokemonText, 0, 0, 56, 56);
 
         // Gen 1 moves instead of Gen 2

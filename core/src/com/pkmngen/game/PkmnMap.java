@@ -515,6 +515,15 @@ class EnterBuilding extends Action {
     public int getLayer(){return this.layer;}
 
     @Override
+    public void firstStep(Game game) {
+        if (this.slow != 1) {
+            for (int i=0; i < 12*this.slow; i++) {
+                this.step(game);
+            }
+        }
+    }
+
+    @Override
     public void step(Game game) {
         if (this.timer < 2*slow) {
             if (this.timer == 0 && this.action.equals("enter") || this.action.equals("exit")) {

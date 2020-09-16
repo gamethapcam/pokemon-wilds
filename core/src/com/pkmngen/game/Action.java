@@ -1488,6 +1488,7 @@ class DrawSetupMenu extends Action {
                             }
 
                             // if hosting, then start server
+                            Action hostAction = null;
                             if (this.localHostJoinIndex == 1) {
                                 try {
                                     game.initServer();
@@ -1496,9 +1497,9 @@ class DrawSetupMenu extends Action {
                                 }
                                 game.insertAction(new ServerBroadcast(game));
                                 game.debugInputEnabled = true;  // allow player to look around
-                                game.insertAction(new DisplayText(game, "Welcome to host mode!           WASD moves camera     Q and E zooms",
-                                                                  null, null, 
-                                                  null));
+                                hostAction = new DisplayText(game, "Welcome to host mode!           WASD moves camera     Q and E zooms",
+                                                             null, null, 
+                                                             null);
 //                                game.insertAction(new WaitFrames(game, 340,
 //                                                  new SetField(game, "displayTextAction", null,
 //                                                  null)));
@@ -1508,6 +1509,7 @@ class DrawSetupMenu extends Action {
                                 game.server = new Server();
                                 Network.register(game.server);
                             }
+                            final Action hostActionFinal = hostAction;
                             game.map = new PkmnMap(mapName);
                             // player chose new game
                             if (this.newLoadIndex == 0) {
@@ -1517,7 +1519,6 @@ class DrawSetupMenu extends Action {
 //                                    return;
 //                                }
                                 game.actionStack.remove(this);
-                                game.start();
 
                                 // Size
                                 // TODO: uncomment
@@ -1526,22 +1527,58 @@ class DrawSetupMenu extends Action {
                                     this.sizeIndex = -1;
                                 }
                                 // TODO: would ideally be bigger, like 100*200*this.sizeIndex
-                                int size = 100*100*(this.sizeIndex+2);
+                                final int size = 100*100*(this.sizeIndex+2);
                                 // TODO: debug, comment or removee
 //                                size = 100*100;  // 100*300 // 100*500 // 100*180 // 100*100 // 20*30 // 60*100 // 100*120
 
-                                System.out.println("Generating map...");
-                                System.out.println(java.time.LocalTime.now());
-
-                                // Note reg. full-res screenshot using pixmap:
-                                //  Tried 100*800, pixmap save didn't work.
-                                //  Tried 100*700, pixmap error loading tiles/water2.png
-                                Action genIsland = new GenIsland1(game, new Vector2(0, 0), size);
-                                genIsland.step(game);  // fixes issue where player would try to move into tiles that didn't exist yet
-                                game.insertAction(genIsland);
-
-                                System.out.println("Done.");
-                                System.out.println(java.time.LocalTime.now());
+                                // attempt at threaded create - doesn't work b/c 
+                                // needs opengl context when generating tiles
+                                // might be able to make texturecache post runnable to fix this.
+                                // 
+                                Thread thread = new Thread(new Runnable() {
+                                    public void run() {
+                                        try {
+                                            System.out.println("Generating map...");
+                                            System.out.println(java.time.LocalTime.now());
+                                            final Action genIsland = new GenIsland1(Game.staticGame, new Vector2(0, 0), size);
+                                            System.out.println("Done.");
+                                            System.out.println(java.time.LocalTime.now());
+                                            Runnable runnable = new Runnable() {
+                                                public void run() {
+                                                    Game.staticGame.start();
+                                                    Game.staticGame.insertAction(genIsland);
+                                                    genIsland.step(Game.staticGame);
+                                                    EnterBuilding enterBuilding = new EnterBuilding(Game.staticGame, "", null);
+                                                    enterBuilding.slow = 8;
+                                                    Game.staticGame.insertAction(enterBuilding);
+                                                    Game.staticGame.insertAction(new DisplayText.Clear(Game.staticGame, 
+                                                    hostActionFinal));
+                                                }
+                                            };
+                                            Gdx.app.postRunnable(runnable);
+                                        } catch (Exception e) {
+                                            e.printStackTrace();
+                                        }
+                                    }
+                                });
+                                thread.start();
+                                
+                                
+//                                System.out.println("Generating map...");
+//                                System.out.println(java.time.LocalTime.now());
+//
+//                                // Note reg. full-res screenshot using pixmap:
+//                                //  Tried 100*800, pixmap save didn't work.
+//                                //  Tried 100*700, pixmap error loading tiles/water2.png
+//                                game.start();  // TODO: test
+//                                Action genIsland = new GenIsland1(game, new Vector2(0, 0), size);
+//                                genIsland.step(game);  // fixes issue where player would try to move into tiles that didn't exist yet
+//                                game.insertAction(genIsland);
+//
+//                                System.out.println("Done.");
+//                                System.out.println(java.time.LocalTime.now());
+                                
+                                game.insertAction(new DisplayText(game, "Generating... please wait...", null, true, false, null));
 
                                 // Set player name
                                 String name = "";
@@ -1574,6 +1611,9 @@ class DrawSetupMenu extends Action {
                                 game.actionStack.remove(this);
                                 game.start();
                                 game.map.loadFromFile(game);
+                                EnterBuilding enterBuilding = new EnterBuilding(game, "", null);
+                                enterBuilding.slow = 8;
+                                game.insertAction(enterBuilding);
                             }
                             // periodically save game in both host/local cases
                             // TODO: this lags too much for large maps, which causes server desync.
@@ -1605,13 +1645,16 @@ class DrawSetupMenu extends Action {
                             } catch (IOException e) {
                                 e.printStackTrace();
                             }
+                            EnterBuilding enterBuilding = new EnterBuilding(game, "", null);
+                            enterBuilding.slow = 8;
+                            game.insertAction(enterBuilding);
                         }
-                        EnterBuilding enterBuilding = new EnterBuilding(game, "", null);
-                        enterBuilding.slow = 8;
-                        game.insertAction(enterBuilding);
-                        for (int i=0; i < 12*enterBuilding.slow; i++) {
-                            enterBuilding.step(game);
-                        }
+//                        EnterBuilding enterBuilding = new EnterBuilding(game, "", null);
+//                        enterBuilding.slow = 8;
+//                        game.insertAction(enterBuilding);
+//                        for (int i=0; i < 12*enterBuilding.slow; i++) {
+//                            enterBuilding.step(game);
+//                        }
                     }
                 }
             }
@@ -2394,11 +2437,23 @@ class CallMethod extends Action {
     Object[] params;
     Class<?>[] paramTypes;
 
-    public CallMethod(Object object, String method, Object[] params, Action nextAction) {
-        this.nextAction = nextAction;
+    /**
+     * Use this constructor if you want to pass null to a function (type can't be inferred from null, 
+     * so you need to pass the type manually).
+     */
+    public CallMethod(Object object, String method, Class<?>[] paramTypes, Object[] params, Action nextAction) {
         this.object = object;
         this.method = method;
         this.params = params;
+        this.paramTypes = paramTypes;
+        this.nextAction = nextAction;
+    }
+
+    public CallMethod(Object object, String method, Object[] params, Action nextAction) {
+        this.object = object;
+        this.method = method;
+        this.params = params;
+        this.nextAction = nextAction;
         this.paramTypes = new Class[params.length];
         for (int i = 0; i < params.length; i++) {
             this.paramTypes[i] = params[i].getClass();
@@ -2425,14 +2480,6 @@ class CallMethod extends Action {
     @Override
     public void step(Game game) {
         try {
-//            Method[] methods = this.object.getClass().getMethods();
-//            for (Method m : methods) {
-//                System.out.println(m.getName());
-//                for (Parameter p : m.getParameters()) {
-//                    System.out.println(p.getName());
-//                    System.out.println(p.getType());
-//                }
-//            }
             Method method = this.object.getClass().getMethod(this.method, this.paramTypes);
             method.invoke(this.object, this.params);
         } catch (NoSuchMethodException e) {

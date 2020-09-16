@@ -73,6 +73,7 @@ public class Game extends ApplicationAdapter {
     public Server server;
     Type type;
     public static Random rand = new Random();
+    public Thread gameThread;
 
     public Game() {
         super();
@@ -91,6 +92,7 @@ public class Game extends ApplicationAdapter {
     public void create() {
         // Annoying - used for music completion listener
         Game.staticGame = this;
+        this.gameThread = Thread.currentThread();
 
         this.mapBatch = new SpriteBatch();
         this.uiBatch = new SpriteBatch();
