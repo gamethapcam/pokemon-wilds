@@ -5,6 +5,7 @@
 ## How to Play
  - Download /builds/latest/pokemon-wilds.exe and run.
    - *Alternatively, download and run /builds/latest/pokemon-wilds.jar if the exe doesn't work.*
+     - If you want to generate large maps, you will need to run 'java -jar -Xmx1024M pokemon-wilds.jar' in a command window to launch the game. In order to support large maps the java heap space needs to be increased, which is what the -Xmx1024M argument does. I know this is annoying but unfortunately there isn't a way around this step, the game will crash without it if you try to generate any map above size M.
  - Java is required in order to run (it's required by libGDX, the engine this is built on). If you don't have java installed, a popup may appear pointing you to java installation instructions.
  - **NOTE:** this is currently in Alpha. Things are getting there, but still not fully complete. If you find a bug, please create an issue here on github describing it (that would help me out a ton).
  - Controls: Arrow keys to move, keyboard Z = A button, keyboard X = B button, keyboard Enter = Start button. Hold keyboard X to run.
