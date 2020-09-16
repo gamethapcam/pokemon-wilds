@@ -5,6 +5,7 @@
 ## How to Play
  - Download /builds/latest/pokemon-wilds.exe and run.
    - *Alternatively, download and run /builds/latest/pokemon-wilds.jar if the exe doesn't work.*
+     - If you want to generate large maps, you will need to run 'java -jar -Xmx1024M pokemon-wilds.jar' in a command window to launch the game. In order to support large maps the java heap space needs to be increased, which is what the -Xmx1024M argument does. I know this is annoying but unfortunately there isn't a way around this step, the game will crash without it if you try to generate any map above size M.
  - Java is required in order to run (it's required by libGDX, the engine this is built on). If you don't have java installed, a popup may appear pointing you to java installation instructions.
  - **NOTE:** this is currently in Alpha. Things are getting there, but still not fully complete. If you find a bug, please create an issue here on github describing it (that would help me out a ton).
  - Controls: Arrow keys to move, keyboard Z = A button, keyboard X = B button, keyboard Enter = Start button. Hold keyboard X to run.
@@ -28,9 +29,9 @@ In the future I hope that the game can also support graphics from other generati
 
 # v0.3 (Latest)
  - Pokemon mansion dungeon now will spawn in a random location in the overworld!
-  - Getting inside will require a secret key that also spawns in the overworld.
-  - Navigating the dungeon will require you to complete a puzzle involving hidden switches and doors.
-  - Make it to the end of the dungeon for a surprise (okay not anymore I guess) battle with a Legendary Pokemon!
+   - Getting inside will require a secret key that also spawns in the overworld.
+   - Navigating the dungeon will require you to complete a puzzle involving hidden switches and doors.
+   - Make it to the end of the dungeon for a surprise (okay not anymore I guess) battle with a Legendary Pokemon!
  - Pokemon can be placed in the overworld and will roam around.
  - Shinies.
  - Various fixes and enhancements.
@@ -61,11 +62,11 @@ In the future I hope that the game can also support graphics from other generati
 
 # FAQ
  - Is it possible to migrate my save from a previous version?
-  - This currently isn't supported, but there's a chance it will work. If it doesn't work, PM me with your save file and I should be able to migrate it for you.
+   - This currently isn't supported, but there's a chance it will work. If it doesn't work, PM me with your save file and I should be able to migrate it for you.
  - Can I cheat just to see what the game is like lol?
-  - Yeah
-   - Open a command window in the same folder as pokemon-wilds.exe by shift+right-clicking in the folder and selecting "Open command window here."
-   - Run the command "pokemon-wilds.exe dev". Once you have generated a map, you will spawn with some high-level pokemon, a secret key and 99 master balls. You can zoom the camera around the map like you can in host mode, and can walk through walls by holding the space bar while moving.
+   - Yeah
+     - Open a command window in the same folder as pokemon-wilds.exe by shift+right-clicking in the folder and selecting "Open command window here."
+     - Run the command "pokemon-wilds.exe dev". Once you have generated a map, you will spawn with some high-level pokemon, a secret key and 99 master balls. You can zoom the camera around the map like you can in host mode, and can walk through walls by holding the space bar while moving.
  
 # Contributing
 
