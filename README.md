@@ -25,7 +25,17 @@ I have been using a set of techniques to 'rip' sprites and animations from the c
 
 In the future I hope that the game can also support graphics from other generations, as well as a map editor mode that could serve as a platform for custom games.
 
-# v0.2 (Latest)
+
+# v0.3 (Latest)
+ - Pokemon mansion dungeon now will spawn in a random location in the overworld!
+  - Getting inside will require a secret key that also spawns in the overworld.
+  - Navigating the dungeon will require you to complete a puzzle involving hidden switches and doors.
+  - Make it to the end of the dungeon for a surprise (okay not anymore I guess) battle with a Legendary Pokemon!
+ - Pokemon can be placed in the overworld and will roam around.
+ - Shinies.
+ - Various fixes and enhancements.
+
+# v0.2
  - Pokefarms - you can build fences, let your pokemon out to walk around, and grow trees by planting Apricorns.
  - Crafting - you can craft Apricorns into Pokeballs at a campfire.
  - Smart building - tiles that you build will 'snap' together and form the structure as you build it.
@@ -48,6 +58,14 @@ In the future I hope that the game can also support graphics from other generati
  - Pokemon breeding / shinies
  - Full Gen 2 engine replication (battle mechanics, attacks, etc).
  - Other Generations.
+
+# FAQ
+ - Is it possible to migrate my save from a previous version?
+  - This currently isn't supported, but there's a chance it will work. If it doesn't work, PM me with your save file and I should be able to migrate it for you.
+ - Can I cheat just to see what the game is like lol?
+  - Yeah
+   - Open a command window in the same folder as pokemon-wilds.exe by shift+right-clicking in the folder and selecting "Open command window here."
+   - Run the command "pokemon-wilds.exe dev". Once you have generated a map, you will spawn with some high-level pokemon, a secret key and 99 master balls. You can zoom the camera around the map like you can in host mode, and can walk through walls by holding the space bar while moving.
  
 # Contributing
 
