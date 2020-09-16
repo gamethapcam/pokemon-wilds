@@ -2376,6 +2376,10 @@ class SetField extends Action {
  * Call an arbitrary method with params when step() is called. Useful if you don't
  * want to call a method right away in an action chain, but want it to be called
  * at a certain step.
+ * 
+ * Note: you can't instantiate this on an object that will change down the road.
+ * Ex: CallMethod(game.currMusic, ...) if game.currMusic changes, this will still
+ * use what it was previously pointing to.
  *
  * @see Tile.onPressA()
  *
@@ -2407,7 +2411,6 @@ class CallMethod extends Action {
                 this.paramTypes[i] = int.class;
             }
             else if (this.paramTypes[i].getName().equals("java.lang.Boolean")) {
-                System.out.println("here");
                 this.paramTypes[i] = boolean.class;
             }
             else if (this.paramTypes[i].getName().equals("java.lang.Long")) {
@@ -2445,7 +2448,6 @@ class CallMethod extends Action {
         }
         game.actionStack.remove(this);
         game.insertAction(this.nextAction);
-        System.out.println(game.currMusic.isLooping());
     }
 }
 

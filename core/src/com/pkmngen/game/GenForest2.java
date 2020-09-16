@@ -1539,13 +1539,7 @@ class GenIsland1 extends Action {
                     Pokemon pokemon = this.pokemonToAdd.remove(tile.position);
                     game.actionStack.remove(pokemon.standingAction);
                 }
-
                 // Generate the pokemon mansion dungeon'
-                // TODO: on small and S maps, just put it in the middle
-//                if (this.radius >= 100*100*(4)) {
-//                    
-//                }
-                //
                 if (tile.biome.equals("deep_forest") && !GenIsland1.donePkmnMansion
                     && !mtnTiles.containsKey(tile.position.cpy().add(0, -16*23))
                     && !mtnTiles.containsKey(tile.position.cpy().add(-16*14, 0))
@@ -1554,8 +1548,12 @@ class GenIsland1 extends Action {
                     i = -1;  // start over. it's iterating on a copy of tilesToAdd right now.
                     HashMap<Vector2, Tile> mansionExteriorTiles = new HashMap<Vector2, Tile>();
                     ArrayList<HashMap<Vector2, Tile>> mansionInteriorTiles = new ArrayList<HashMap<Vector2, Tile>>();
-//                    this.generateMansion(game, mansionExteriorTiles, mansionInteriorTiles, tile.position.cpy());
-                    this.generateMansion(game, mansionExteriorTiles, mansionInteriorTiles, new Vector2(0, 16*14));  // TODO: debug, remove
+                    Vector2 mansionPos = tile.position.cpy();
+                    if (this.radius < 100*100*(4)) {
+                        mansionPos = new Vector2(0, 16*14);
+                    }
+//                    this.generateMansion(game, mansionExteriorTiles, mansionInteriorTiles, tile.position.cpy());  // TODO: debug, remove
+                    this.generateMansion(game, mansionExteriorTiles, mansionInteriorTiles, mansionPos);
                     tilesToAdd.putAll(mansionExteriorTiles);
                     this.interiorTilesToAdd.addAll(mansionInteriorTiles);
                     break;
@@ -3288,7 +3286,7 @@ class GenIsland1 extends Action {
         while (true) {
             Vector2 pos = bl.cpy().add((5+10)*16, (yMax-1)*16);
             if (layerAbove.get(pos) != null && layerAbove.get(pos).attrs.get("solid")) {
-                System.out.println(yMax);
+//                System.out.println(yMax);
                 yMax++;
             }
             else {
@@ -3801,9 +3799,9 @@ class GenIsland1 extends Action {
                         // TODO: i don't think this check works.
         //                else if (!stairsDownDoors.contains(door) && !statueDoors.contains(door)) {
                             for (Tile tile : door) {
-                                if (tile.nameUpper.contains("stairs")) {
-                                    System.out.println(tile.nameUpper);
-                                }
+//                                if (tile.nameUpper.contains("stairs")) {
+//                                    System.out.println(tile.nameUpper);
+//                                }
                                 currLayer.put(tile.position.cpy(), new Tile("pkmnmansion_floor1", tile.position.cpy(), true, null));
                                 prevStatue.doorTiles.remove(tile.position);
                             }
@@ -4114,9 +4112,9 @@ class GenIsland1 extends Action {
 //                System.out.println(startLoc);
                 
                 // TODO: uncomment
-//                game.player.position.set(startLoc);
-//                game.player.spawnLoc.set(startLoc);
-//                game.cam.position.set(startLoc.x+16, startLoc.y, 0);
+                game.player.position.set(startLoc);
+                game.player.spawnLoc.set(startLoc);
+                game.cam.position.set(startLoc.x+16, startLoc.y, 0);
 
                 return;
             }

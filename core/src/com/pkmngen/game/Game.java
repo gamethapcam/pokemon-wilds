@@ -574,9 +574,9 @@ public class Game extends ApplicationAdapter {
 //        this.player.pokemon.add(new Pokemon("weavile", 6, Pokemon.Generation.CRYSTAL));
 //        this.player.pokemon.add(new Pokemon("Magikarp", 6, Pokemon.Generation.CRYSTAL));
 //        this.player.pokemon.get(1).currentStats.put("hp", 0);
-        this.player.pokemon.add(new Pokemon("jumpluff", 45, Pokemon.Generation.CRYSTAL));
-        this.player.pokemon.add(new Pokemon("pidgeot", 45, Pokemon.Generation.CRYSTAL));
-        this.player.pokemon.add(new Pokemon("tauros", 45, Pokemon.Generation.CRYSTAL));
+//        this.player.pokemon.add(new Pokemon("ampharos", 55, Pokemon.Generation.CRYSTAL));
+//        this.player.pokemon.add(new Pokemon("pidgeot", 55, Pokemon.Generation.CRYSTAL));
+//        this.player.pokemon.add(new Pokemon("tauros", 55, Pokemon.Generation.CRYSTAL));
 
 //        this.player.pokemon.add(new Pokemon("Celebi", 6, Pokemon.Generation.CRYSTAL));
 //        this.player.pokemon.add(new Pokemon("Mareep", 6, Pokemon.Generation.CRYSTAL));

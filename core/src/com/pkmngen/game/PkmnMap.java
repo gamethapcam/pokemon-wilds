@@ -23,6 +23,7 @@ import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.esotericsoftware.kryo.io.Output;
+import com.pkmngen.game.util.LinkedMusic;
 import com.pkmngen.game.util.TextureCache;
 
 import box2dLight.PointLight;
@@ -553,13 +554,15 @@ class EnterBuilding extends Action {
                                        null));
                     if (newRoute.name.contains("pkmnmansion")) {
                         game.mapBatch.setColor(new Color(0.8f, 0.8f, 0.8f, 1f));
-//                        Music.OnCompletionListener l = new Music.OnCompletionListener(){
-//                            @Override
-//                            public void onCompletion(Music aMusic) {};
-//                        };
+                        if (!game.loadedMusic.containsKey(nextMusicName)) {
+                            Music temp = new LinkedMusic("music/"+nextMusicName, "");
+                            temp.setVolume(0.1f);
+                            game.loadedMusic.put(nextMusicName, temp);
+                        }
+                        game.loadedMusic.get(nextMusicName).stop();
                         nextMusic.append(// TODO: this didn't really work, still doesn't loop
                                          new FadeMusic(nextMusicName, "in", "", .2f, true, 1f, null,
-                                         new CallMethod(game.currMusic, "setLooping", new Object[]{true},
+                                         new CallMethod(game.loadedMusic.get(nextMusicName), "setLooping", new Object[]{true},
                                          null)));
                     }
                     else {
@@ -2657,7 +2660,7 @@ class Tile {
                               new DisplayText(game, "...", null, false, true,
                               new WaitFrames(game, 100,
                               new SpecialBattleMewtwo(game, mewtwo))))));
-            game.fadeMusicAction = fadeMusic;
+//            game.fadeMusicAction = fadeMusic;
         }
         else if (this.nameUpper.contains("bush") || this.name.contains("grass")) {  // && !this.name.contains("large")
             game.playerCanMove = false;

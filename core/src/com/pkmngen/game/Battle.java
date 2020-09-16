@@ -7599,7 +7599,7 @@ class DrawUseTossMenu extends MenuAction {
                     this.disabled = true;
                     game.actionStack.remove(this);
                     // Canì use this while in tall grass!
-                    game.insertAction(new DisplayText(game, "Canì use this while Pokemon are nearby!", null, false, true,
+                    game.insertAction(new DisplayText(game, "Canì use this while Pokémon are nearby!", null, false, true,
                                       new SetField(this.prevMenu, "disabled", false,
                                       this.prevMenu)));
                     return;

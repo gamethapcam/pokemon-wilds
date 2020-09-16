@@ -1964,8 +1964,8 @@ public class Player {
 //        this.itemsDict.put("ultra ball", 99);
 //        this.itemsDict.put("blue apricorn", 99);
 //        this.itemsDict.put("Poké Ball", 99);
-        this.itemsDict.put("secret key", 1);
-        this.itemsDict.put("master ball", 1);  // TODO: debug, remove
+//        this.itemsDict.put("secret key", 1);
+//        this.itemsDict.put("master ball", 1);  // TODO: debug, remove
 
         this.network = new Network(this.position);
         this.type = Type.LOCAL;
