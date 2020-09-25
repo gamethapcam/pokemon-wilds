@@ -2268,6 +2268,8 @@ class SpecialMewtwo1 extends Pokemon {
 
         getCurrentAttacks(); // fill this.attacks with what it can currently know
 
+        this.baseStats.put("catchRate", 55);
+        
 //        // stats formulas here
 //        calcMaxStats();
 //        this.currentStats = new HashMap<String, Integer>(this.maxStats); // copy maxStats

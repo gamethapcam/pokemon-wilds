@@ -163,7 +163,7 @@ class CycleDayNight extends Action {
     public static int dayTimer;
     public int layer = 114;
 
-    int[] currFrames;;
+    int[] currFrames; 
 
     boolean fadeToDay;
 
@@ -266,14 +266,24 @@ class CycleDayNight extends Action {
 //                game.currMusic.play();
 
                 if (game.type != Game.Type.SERVER) {
-                    String nextMusicName = game.map.currRoute.getNextMusic(true);
-                    BattleFadeOutMusic.playerFainted = true;  // TODO: this is just a hack around issues with FadeMusic
-                    Action nextMusic = new BattleFadeOutMusic(game,
-                                       new WaitFrames(game, 360,
-                                       new FadeMusic(nextMusicName, "in", "", 0.2f, true, 1f, game.musicCompletionListener,
-                                       null)));
-                    game.fadeMusicAction = nextMusic;
-                    game.insertAction(nextMusic);
+                    if (game.battle.oppPokemon == null || !SpecialMewtwo1.class.isInstance(game.battle.oppPokemon)) {
+                        String nextMusicName = game.map.currRoute.getNextMusic(true);
+                        BattleFadeOutMusic.playerFainted = true;  // TODO: this is just a hack around issues with FadeMusic
+                        Action nextMusic = new BattleFadeOutMusic(game,
+                                           new WaitFrames(game, 360,
+                                           new FadeMusic(nextMusicName, "in", "", 0.2f, true, 1f, game.musicCompletionListener,
+                                           null)));
+                        game.fadeMusicAction = nextMusic;
+                        game.insertAction(nextMusic);
+                    }
+                    // set brightness according to player location (ie, if in pokemon mansion, set to dim light.)
+                    // TODO: enable once player position doesn't vary like this.
+//                    Route currRoute = game.map.tiles.get(game.player.position).routeBelongsTo;
+//                    if (currRoute != null) {
+//                        if (currRoute.name.contains("pkmnmansion")) {
+//                            game.mapBatch.setColor(new Color(0.8f, 0.8f, 0.8f, 1f));
+//                        }
+//                    }
                 }
 
                 // state which day it is
@@ -323,7 +333,7 @@ class CycleDayNight extends Action {
 
                 // TODO test
 //                game.currMusic.pause();
-                if (game.type != Game.Type.SERVER) {
+                if (game.type != Game.Type.SERVER && (game.battle.oppPokemon == null || !SpecialMewtwo1.class.isInstance(game.battle.oppPokemon))) {
                     game.currMusic.stop();
                     game.actionStack.remove(game.fadeMusicAction);
                     // start night music

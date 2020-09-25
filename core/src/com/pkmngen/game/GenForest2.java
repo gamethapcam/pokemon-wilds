@@ -1560,11 +1560,15 @@ class GenIsland1 extends Action {
                     break;
                 }
                 if (tile.biome.equals("deep_forest") && tile.name.contains("green") && !GenIsland1.donePkmnMansionKey) {
-                    GenIsland1.donePkmnMansionKey = true;
-//                    i = -1;  // start over. it's iterating on a copy of tilesToAdd right now.
-                    complete = false;
-                    tilesToAdd.put(tile.position, new Tile(tile.name, "pokemon_mansion_key", tile.position.cpy(), true, null));
-                    break;
+                    // make sure that it's not trying to spawn the secret key above a tree (makes it really hard to find)
+                    down = tile.position.cpy().add(0f, -16f);
+                    if (tilesToAdd.containsKey(down) && !tilesToAdd.get(down).attrs.get("tree")) {
+                        GenIsland1.donePkmnMansionKey = true;
+//                        i = -1;  // start over. it's iterating on a copy of tilesToAdd right now.
+                        complete = false;
+                        tilesToAdd.put(tile.position, new Tile(tile.name, "pokemon_mansion_key", tile.position.cpy(), true, null));
+                        break;
+                    }
                 }
             }
         }
@@ -1896,7 +1900,8 @@ class GenIsland1 extends Action {
                                     Pokemon pokemon = blotchRoute.pokemon.remove(0);
 //                                    blotchRoute.genPokemon(256);
                                     pokemon.position = edge.cpy();
-                                    pokemon.mapTiles = game.map.tiles;
+//                                    pokemon.mapTiles = game.map.tiles;  // TODO: test
+                                    pokemon.mapTiles = game.map.overworldTiles;
                                     // TODO: uncomment
                                     if (pokemon.name.toLowerCase().equals("tauros") || pokemon.name.toLowerCase().equals("ekans")
                                             || pokemon.name.toLowerCase().equals("pidgey") || pokemon.name.toLowerCase().equals("spearow")
@@ -3311,7 +3316,6 @@ class GenIsland1 extends Action {
         HashMap<Vector2, Tile> layerAbove = mansionInteriorTiles.get(101);
         currRoute = new Route("pkmnmansion1", 30);  // TODO: up level later
         // Entrance area
-        // TODO: might keep increasing yMax until you find free upstairs tile for stairs.
         int yMax = this.rand.nextInt(4)*2 +6;  // from 6 to 18  // this.rand.nextInt(7)*2 +6
         while (true) {
             Vector2 pos = bl.cpy().add((5+10)*16, (yMax-1)*16);
@@ -4150,14 +4154,12 @@ class GenIsland1 extends Action {
                 game.player.position.set(startLoc);
                 game.player.spawnLoc.set(startLoc);
                 game.cam.position.set(startLoc.x+16, startLoc.y, 0);
-
                 return;
             }
             Action currAction = this.doActions.get(0);
             this.doActions.remove(0);
             game.insertAction(currAction);
             game.actionStack.remove(this);
-
             return;
         }
 

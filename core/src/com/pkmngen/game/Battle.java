@@ -2838,7 +2838,10 @@ public class Battle {
         int e = 1; // TODO: 1.5 if curr pokemon holding lucky egg
         int l = this.oppPokemon.level;
         int s = 1; // TODO: equals number of pokemon participated in battle that didn't faint
-        return (a*t*b*e*l)/(7*s);
+        int exp = (a*t*b*e*l)/(7*s);
+        // TODO: leveling takes too long, doing exp*2 for now. May remove this in the future if way
+        // to get more exp is added.
+        return exp*2;
     }
 
     /**
@@ -2850,9 +2853,10 @@ public class Battle {
      */
     boolean calcIfRunSuccessful(Game game, Player player) {
         // special case for special mewtwo battle - can't run.
-        if (SpecialMewtwo1.class.isInstance(this.oppPokemon)) {
-            return false;
-        }
+        // TODO: uncomment in the future.
+//        if (SpecialMewtwo1.class.isInstance(this.oppPokemon)) {
+//            return false;
+//        }
         int currSpeed = player.currPokemon.currentStats.get("speed");
         int b = (int)(this.oppPokemon.currentStats.get("speed")/4) % 256;
 //        System.out.println("opp speed:" + String.valueOf(this.oppPokemon.currentStats.get("speed")));
@@ -5199,6 +5203,7 @@ class DrawAttacksMenu extends Action {
  // TODO - on destroy, set drawAction to null?
 class DrawBattle extends Action {
     public static boolean shouldDrawOppPokemon = true;
+    boolean doneNightOverlay = false;
     Sprite bgSprite;
     Sprite bgSprite2;
     DrawFriendlyHealth drawFriendlyHealthAction;
@@ -5221,14 +5226,14 @@ class DrawBattle extends Action {
     public int getLayer(){return this.layer;}
 
     @Override
-    public void firstStep(Game game) {
-        if (game.map.timeOfDay.equals("Night")) {
-            game.insertAction(this.new DrawNightOverlay());
-        }
-    }
-
-    @Override
     public void step(Game game) {
+        if (!this.doneNightOverlay) {
+            if (game.map.timeOfDay.equals("Night") && (game.battle.oppPokemon == null || !SpecialMewtwo1.class.isInstance(game.battle.oppPokemon))) {
+                game.insertAction(this.new DrawNightOverlay());
+                this.doneNightOverlay = true;
+            }
+        }
+        
         this.bgSprite.draw(game.uiBatch);
 
         if (DrawBattle.shouldDrawOppPokemon) {
@@ -5261,7 +5266,7 @@ class DrawBattle extends Action {
 
         @Override
         public void step(Game game) {
-            if (!game.actionStack.contains(DrawBattle.this)) {
+            if (!game.actionStack.contains(DrawBattle.this) || game.map.timeOfDay.equals("Day")) {
                 game.actionStack.remove(this);
                 return;
             }
@@ -8212,35 +8217,25 @@ class EvolutionAnim extends Action {
         EvolutionAnim.bgSprite = new Sprite(text, 0, 0, 176, 160);
         this.preEvoSprite = new Sprite(targetPokemon.sprite);
         this.preEvoSprite.flip(true, false);
-        // TODO: this might not work for prism pokemon
-        if (!Pokemon.textures.containsKey(evolveTo+"_front")) {
-            String dexNumber = Pokemon.nameToIndex(evolveTo);
-            if (Integer.valueOf(dexNumber) <= 251 && Integer.valueOf(dexNumber) > 0) {
-                Pokemon.textures.put(evolveTo+"_front", new Texture(Gdx.files.internal("crystal_pokemon/pokemon/" + evolveTo + "/front.png")));
-            }
-            // else assume prism pokemon
-            else {
-                Pokemon.textures.put(evolveTo+"_front", new Texture(Gdx.files.internal("crystal_pokemon/prism/pics/" + evolveTo + "/front.png")));
-            }
-        }
-        this.postEvoSprite = new Sprite(Pokemon.textures.get(evolveTo+"_front"));
-        this.postEvoSprite.flip(true, false);
+//        // TODO: this might not work for prism pokemon
+//        if (!Pokemon.textures.containsKey(evolveTo+"_front")) {
+//            String dexNumber = Pokemon.nameToIndex(evolveTo);
+//            if (Integer.valueOf(dexNumber) <= 251 && Integer.valueOf(dexNumber) > 0) {
+//                Pokemon.textures.put(evolveTo+"_front", new Texture(Gdx.files.internal("crystal_pokemon/pokemon/" + evolveTo + "/front.png")));
+//            }
+//            // else assume prism pokemon
+//            else {
+//                Pokemon.textures.put(evolveTo+"_front", new Texture(Gdx.files.internal("crystal_pokemon/prism/pics/" + evolveTo + "/front.png")));
+//            }
+//        }
 
+//        this.postEvoSprite = new Sprite(Pokemon.textures.get(evolveTo+"_front"));
         this.preEvoSpriteBottom = new Sprite(this.preEvoSprite);
         this.preEvoSpriteBottom.setRegionY((int)this.preEvoSprite.getWidth()/2);
         this.preEvoSpriteBottom.setRegionHeight((int)this.preEvoSprite.getWidth()/2);
-
-        this.postEvoSpriteBottom = new Sprite(this.postEvoSprite);
-        this.postEvoSpriteBottom.setRegionY((int)this.postEvoSprite.getWidth()-(int)this.preEvoSprite.getWidth()+(int)this.preEvoSprite.getWidth()/2);
-        this.postEvoSpriteBottom.setRegionHeight((int)this.preEvoSprite.getWidth()/2);
-
         this.preEvoSpriteTop = new Sprite(this.preEvoSprite);
         this.preEvoSpriteTop.setRegionY(0);
         this.preEvoSpriteTop.setRegionHeight((int)this.preEvoSprite.getWidth()/2);
-
-        this.postEvoSpriteTop = new Sprite(this.postEvoSprite);
-        this.postEvoSpriteTop.setRegionY(0);
-        this.postEvoSpriteTop.setRegionHeight((int)this.postEvoSprite.getWidth()-(int)this.preEvoSprite.getWidth()+(int)this.preEvoSprite.getWidth()/2);
     }
 
     @Override
@@ -8251,6 +8246,17 @@ class EvolutionAnim extends Action {
         EvolutionAnim.isGreyscale = false;
         EvolutionAnim.playSound = false;
         EvolutionAnim.isDone = false;
+        // Evolve pokemon, use it's new sprite in evo animation.
+        this.targetPokemon.evolveTo(this.targetName);
+        this.postEvoSprite = new Sprite(this.targetPokemon.sprite);
+        this.postEvoSprite.flip(true, false);
+        this.postEvoSpriteBottom = new Sprite(this.postEvoSprite);
+        this.postEvoSpriteBottom.setRegionY((int)this.postEvoSprite.getWidth()-(int)this.preEvoSprite.getWidth()+(int)this.preEvoSprite.getWidth()/2);
+        this.postEvoSpriteBottom.setRegionHeight((int)this.preEvoSprite.getWidth()/2);
+        this.postEvoSpriteTop = new Sprite(this.postEvoSprite);
+        this.postEvoSpriteTop.setRegionY(0);
+        this.postEvoSpriteTop.setRegionHeight((int)this.postEvoSprite.getWidth()-(int)this.preEvoSprite.getWidth()+(int)this.preEvoSprite.getWidth()/2);
+        
         // TODO: refactor to using a flag in DrawBattle instead
         game.actionStack.remove(game.battle.drawAction); // stop drawing the battle
         game.battle.drawAction = null;
@@ -8318,7 +8324,7 @@ class EvolutionAnim extends Action {
             game.actionStack.remove(this);
             // Actually evolve the pokemon
             // TODO: add this logic to network code
-            this.targetPokemon.evolveTo(this.targetName);
+//            this.targetPokemon.evolveTo(this.targetName);
         }
         this.timer++;
     }

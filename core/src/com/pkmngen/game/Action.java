@@ -1040,6 +1040,73 @@ class DrawMobileControls extends Action {
 //    }
 //}
 
+/**
+ * Displayed at the beginning of the game to show player how to play the game.
+ * 
+ * TODO: change displayed options for android, controlling input, etc.
+ */
+class DrawControls extends Action {
+    public boolean remove = false;
+
+    public String getCamera() {return "gui";}
+
+    @Override
+    public void step(Game game) {
+        if (this.remove) {
+            game.actionStack.remove(this);
+        }
+        for (int j=0; j < 8; j++) {
+            if (j == 0) {
+                char[] textArray = "   - Controls -".toCharArray();
+                Sprite letterSprite;
+                for (int i=0; i < textArray.length; i++) {
+                    letterSprite = game.textDict.get(textArray[i]);
+                    game.uiBatch.draw(letterSprite, 8 +8*i, 128 -16*j);
+                }
+            }
+            else if (j == 1) {
+                char[] textArray = "Arrows  - Movement".toCharArray();
+                Sprite letterSprite;
+                for (int i=0; i < textArray.length; i++) {
+                    letterSprite = game.textDict.get(textArray[i]);
+                    game.uiBatch.draw(letterSprite, 8 +8*i, 128 -16*j);
+                }
+            }
+            else if (j == 2) {
+                char[] textArray = "Z       - A button".toCharArray();
+                Sprite letterSprite;
+                for (int i=0; i < textArray.length; i++) {
+                    letterSprite = game.textDict.get(textArray[i]);
+                    game.uiBatch.draw(letterSprite, 8 +8*i, 128 -16*j);
+                }
+            }
+            else if (j == 3) {
+                char[] textArray = "X       - B button".toCharArray();
+                Sprite letterSprite;
+                for (int i=0; i < textArray.length; i++) {
+                    letterSprite = game.textDict.get(textArray[i]);
+                    game.uiBatch.draw(letterSprite, 8 +8*i, 128 -16*j);
+                }
+            }
+            else if (j == 4) {
+                char[] textArray = "Enter   - Menu".toCharArray();
+                Sprite letterSprite;
+                for (int i=0; i < textArray.length; i++) {
+                    letterSprite = game.textDict.get(textArray[i]);
+                    game.uiBatch.draw(letterSprite, 8 +8*i, 128 -16*j);
+                }
+            }
+            else if (j == 5) {
+                char[] textArray = "Hold X to run".toCharArray();
+                Sprite letterSprite;
+                for (int i=0; i < textArray.length; i++) {
+                    letterSprite = game.textDict.get(textArray[i]);
+                    game.uiBatch.draw(letterSprite, 8 +8*i, 128 -16*j);
+                }
+            }
+        }
+    }
+}
 
 /**
  * Displayed at the beginning of the game so that the player can specify setup options.
@@ -1510,6 +1577,7 @@ class DrawSetupMenu extends Action {
                                 Network.register(game.server);
                             }
                             final Action hostActionFinal = hostAction;
+                            final Action drawControls = new DrawControls();
                             game.map = new PkmnMap(mapName);
                             // player chose new game
                             if (this.newLoadIndex == 0) {
@@ -1551,8 +1619,9 @@ class DrawSetupMenu extends Action {
                                                     EnterBuilding enterBuilding = new EnterBuilding(Game.staticGame, "", null);
                                                     enterBuilding.slow = 8;
                                                     Game.staticGame.insertAction(enterBuilding);
-                                                    Game.staticGame.insertAction(new DisplayText.Clear(Game.staticGame, 
-                                                    hostActionFinal));
+                                                    Game.staticGame.insertAction(new DisplayText.Clear(Game.staticGame,
+                                                                                 new SetField(drawControls, "remove", true,
+                                                                                 hostActionFinal)));
                                                 }
                                             };
                                             Gdx.app.postRunnable(runnable);
@@ -1579,6 +1648,7 @@ class DrawSetupMenu extends Action {
 //                                System.out.println(java.time.LocalTime.now());
                                 
                                 game.insertAction(new DisplayText(game, "Generating... please wait...", null, true, false, null));
+                                game.insertAction(drawControls);
 
                                 // Set player name
                                 String name = "";

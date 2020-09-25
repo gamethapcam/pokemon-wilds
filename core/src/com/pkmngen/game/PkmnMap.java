@@ -1054,7 +1054,23 @@ public class PkmnMap {
                 if (tileDatas != null) {
                     tiles = new HashMap<Vector2, Tile>();
                     for (Network.TileData tileData : tileDatas.values()) {
-                        Tile newTile = Tile.get(tileData, null);
+                        if (tileData.routeBelongsTo == null && tileData.tileName.contains("pkmnmansion") && !tileData.tileName.contains("stairs")) {
+//                            System.out.println(tileData.tileName);
+//                            System.out.println(tileData.routeBelongsTo);
+                            // TODO: eventually remove this 'else' block.
+                            // pkmnmansion didn't save interior tiles. this is a temp fix to load based on route name
+                            Route route = null;
+                            tileData.routeBelongsTo = "pkmnmansion_temp";
+                            if (!loadedRoutes.containsKey(tileData.routeBelongsTo)) {
+                                route = new Route("pkmnmansion1", 30);  // won't vary level but that's okay
+                                loadedRoutes.put(tileData.routeBelongsTo, route);
+                            }
+                        }
+                        if (tileData.routeBelongsTo != null && !loadedRoutes.containsKey(tileData.routeBelongsTo)) {
+                            loadedRoutes.put(tileData.routeBelongsTo, new Route(saveData.mapTiles.routes.get(tileData.routeBelongsTo)));
+                        }
+                        Route tempRoute = loadedRoutes.get(tileData.routeBelongsTo);
+                        Tile newTile = Tile.get(tileData, tempRoute);
                         tiles.put(newTile.position.cpy(), newTile);
                     }
                 }
@@ -1324,6 +1340,9 @@ class Route {
         for (Network.PokemonData pokemonData : routeData.pokemon) {
             this.pokemon.add(new Pokemon(pokemonData));
         }
+        if (name.equals("pkmnmansion1")) {
+            this.transitionMusic = true;
+        }
     }
 
     public Route(String name, int level) {
@@ -1542,7 +1561,7 @@ class Route {
 //            this.music.setLooping(true);
 //            this.music.setVolume(.3f);
         }
-        else if (name.equals("pkmnmansion1")) {
+        else if (this.name.equals("pkmnmansion1")) {
             this.allowedPokemon.add("magmar");
             this.allowedPokemon.add("grimer");
             this.allowedPokemon.add("rattata");
@@ -2412,7 +2431,8 @@ class Tile {
             // just load from image file
             Texture playerText = TextureCache.get(Gdx.files.internal("tiles/buildings/"+tileName+".png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
-            if (!tileName.contains("door") && !tileName.contains("floor") && !tileName.contains("rug")) {
+            if (!tileName.contains("door") && !tileName.contains("floor") && 
+                !tileName.contains("rug") && !tileName.contains("__off")) {
                 this.attrs.put("solid", true);
             }
         }
@@ -2662,6 +2682,13 @@ class Tile {
             game.playerCanMove = false;
             SpecialMewtwo1 mewtwo = new SpecialMewtwo1(50, this);
             game.battle.oppPokemon = mewtwo;
+            // The first Pokemon the player sends out in battle should have > 0 hp.
+            for (Pokemon currPokemon : game.player.pokemon) {
+                if (currPokemon.currentStats.get("hp") > 0) {
+                    game.player.currPokemon = currPokemon;
+                    break;
+                }
+            }
             Action fadeMusic = new FadeMusic("currMusic", "out", "pause", 0.025f, 
                                new CallMethod(game.currMusic, "setVolume", new Object[]{1f}, null));
             game.insertAction(new SplitAction(fadeMusic,

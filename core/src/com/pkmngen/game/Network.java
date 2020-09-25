@@ -762,7 +762,7 @@ public class Network {
         
         // overworld-related
         Vector2 position;
-        boolean isInterior;
+        boolean isInterior = false;
 
         public PokemonData() {}
 
@@ -779,7 +779,9 @@ public class Network {
             // TODO: psn, para etc status
 
             this.position = pokemon.position;
-            this.isInterior = (pokemon.mapTiles != Game.staticGame.map.overworldTiles);
+            if (pokemon.mapTiles != null) {
+                this.isInterior = (pokemon.mapTiles != Game.staticGame.map.overworldTiles);
+            }
         }
 
         public PokemonData(Pokemon pokemon, int index) {
@@ -851,6 +853,10 @@ public class Network {
                 if (tiles != null) {
                     tileDatas  = new HashMap<Vector2, TileData>();
                     for (Tile tile : tiles.values()) {
+                        // store unique routes as hashmap ClassID->Route
+                        if (tile.routeBelongsTo != null && !this.mapTiles.routes.containsKey(tile.routeBelongsTo.toString())) {
+                            this.mapTiles.routes.put(tile.routeBelongsTo.toString(), new RouteData(tile.routeBelongsTo));
+                        }
                         tileDatas.put(tile.position, new TileData(tile));
                     }
                 }

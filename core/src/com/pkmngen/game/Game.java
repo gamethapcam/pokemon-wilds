@@ -195,10 +195,10 @@ public class Game extends ApplicationAdapter {
                     System.out.println(pokemon.name + " hp: " + pokemon.currentStats.get("hp"));
                 }
             }
-            System.out.println("oppPokemon attacks:");
-            for (String attack : this.battle.oppPokemon.attacks) {
-                System.out.println(attack);
-            }
+//            System.out.println("oppPokemon attacks:");
+//            for (String attack : this.battle.oppPokemon.attacks) {
+//                System.out.println(attack);
+//            }
         }
 
         if (Gdx.input.isKeyJustPressed(Input.Keys.PAGE_UP)) {
@@ -239,6 +239,16 @@ public class Game extends ApplicationAdapter {
                 this.initClient("127.0.0.1");
             } catch (IOException e) {
                 e.printStackTrace();
+            }
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.O)) {
+            for (Tile tile : this.map.overworldTiles.values()) {
+                if (tile.nameUpper.equals("pokemon_mansion_key")) {
+                    System.out.println(this.cam.position);
+                    System.out.println(tile.position);
+                    this.cam.position.set(tile.position.x, tile.position.y, 1.0f);
+                    break;
+                }
             }
         }
         // Screenshot
