@@ -591,6 +591,9 @@ public class Game extends ApplicationAdapter {
             this.player.pokemon.add(new Pokemon("tauros", 60, Pokemon.Generation.CRYSTAL));
             this.player.pokemon.add(new Pokemon("pidgeot", 60, Pokemon.Generation.CRYSTAL));
             this.player.pokemon.add(new Pokemon("meganium", 60, Pokemon.Generation.CRYSTAL));
+            this.player.pokemon.add(new Pokemon("lapras", 60, Pokemon.Generation.CRYSTAL));
+            this.player.pokemon.add(new Pokemon("snorlax", 60, Pokemon.Generation.CRYSTAL));
+            Log.set(Log.LEVEL_DEBUG);
         }
 
 //        this.player.pokemon.add(new Pokemon("Celebi", 6, Pokemon.Generation.CRYSTAL));

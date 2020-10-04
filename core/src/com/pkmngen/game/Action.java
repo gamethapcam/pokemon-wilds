@@ -2602,10 +2602,12 @@ class SplitAction extends Action {
 class WaitFrames extends Action {
     int length;
     public int layer = 110;
+
     public WaitFrames(Game game, int length, Action nextAction) {
         this.nextAction = nextAction;
         this.length = length;
     }
+
     public String getCamera() {return "gui";}
 
     public int getLayer() {return this.layer;}

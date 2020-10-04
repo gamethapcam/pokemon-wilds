@@ -2795,12 +2795,13 @@ class TrainerTipsTile extends Tile {
         TrainerTipsTile.messages.add("If you white out during battle, you will return to the last place you used a sleeping bag.");
         TrainerTipsTile.messages.add("Using a sleeping bag will slowly restore your party' hp.");
 //        TrainerTipsTile.messages.add("Ghosts will chase you at night, but remember! A campfire will deter them.");
-        TrainerTipsTile.messages.add("Ghosts are lurking in the woods at night. A campfire will ward them off.");
+        TrainerTipsTile.messages.add("Ghosts may appear in the woods at night. A campfire will ward them off.");
         TrainerTipsTile.messages.add("Use CUT on trees and tall grass to get building materials.");
 //        TrainerTipsTile.messages.add("Build fences to prevent your pokemon from running away when you let them out of their POKÈBALL.");
-        TrainerTipsTile.messages.add("Build fences to prevent your pokemon from wandering when you let them out of their POKÈBALL.");
+        TrainerTipsTile.messages.add("Build fences to prevent your pokemon from wandering off when you let them out of their POKÈBALL.");
         TrainerTipsTile.messages.add("You can build a door between two roof tiles to build a back door to your house.");
         TrainerTipsTile.messages.add("Sleeping indoors will restore hp twice as fast as sleeping outdoors.");
+        TrainerTipsTile.messages.add("Use CUT on buildings to remove them.");
     }
 
     @Override

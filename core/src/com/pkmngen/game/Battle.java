@@ -27,6 +27,7 @@ import com.badlogic.gdx.utils.GdxRuntimeException;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.pkmngen.game.DrawCraftsMenu.SelectAmount;
 import com.pkmngen.game.Network.BattleTurnData;
+import com.pkmngen.game.Pokemon.Standing;
 import com.pkmngen.game.util.LinkedMusic;
 
 class AfterFriendlyFaint extends Action {
@@ -110,6 +111,7 @@ class AfterFriendlyFaint extends Action {
 
 class Attack {
     String name;
+    String effect;
     int power;
     String type;
     int accuracy;
@@ -122,8 +124,9 @@ class Attack {
 
     public Attack() {}
 
-    public Attack(String name, int power, String type, int accuracy, int pp, int effectChance) {
+    public Attack(String name, String effect, int power, String type, int accuracy, int pp, int effectChance) {
         this.name = name;
+        this.effect = effect;
         this.power = power;
         this.type = type;
         this.accuracy = accuracy;
@@ -1828,7 +1831,7 @@ class AttackAnim extends Action {
 }
 
 public class Battle {
-    /*
+    /**
      * Calculate an attack's damage.
      *
      * Note: below is taken based off of Gen 2.
@@ -1837,11 +1840,17 @@ public class Battle {
         if (attack.name.equals("Mewtwo_Special1")) {
             return 30;
         }
+        // TODO: remove if unused
+//        if (attack.power == 0) {
+//            // TODO: not sure if there are corner cases or not
+//            // 0 power attacks include defense curl, swords dance, etc.
+//            return 0;
+//        }
         int attackStat = attack.isPhysical ? source.currentStats.get("attack") : source.currentStats.get("specialAtk");
         int defenseStat = attack.isPhysical ? target.currentStats.get("defense") : target.currentStats.get("specialDef");
         int damage = (int)Math.floor(Math.floor(Math.floor(2 * source.level / 5 + 2) * attackStat * attack.power / defenseStat) / 50) + 2;
         if (source.types.contains(attack.type)) {damage = (int)(damage * 1.5f);}  // STAB
-        // factor in type effectiveness
+        // Factor in type effectiveness
         float multiplier = 1f;
         for (String type : target.types){
             multiplier *= Game.staticGame.battle.gen2TypeEffectiveness.get(attack.type).get(type.toLowerCase());
@@ -2131,14 +2140,38 @@ public class Battle {
             String effectiveness;
             String text_string = "";
             Action attackAction;
+            // TODO: why the if block? can't I just set Pokemon target = ?
+            // TODO: try
+            Pokemon friendlyPokemon;
+            Pokemon enemyPokemon;
+
             if (isFriendly) {
-                // TODO: string based on effectiveness
-                // TODO: 'no effect' attacks
-                // attack data loaded from Crystal
-                String attackType = attack.type;
-                float multiplier = game.battle.gen2TypeEffectiveness.get(attackType).get(game.battle.oppPokemon.types.get(0).toLowerCase());
-                if (game.battle.oppPokemon.types.size() > 1) {
-                    multiplier *= game.battle.gen2TypeEffectiveness.get(attackType).get(game.battle.oppPokemon.types.get(1).toLowerCase());
+                friendlyPokemon = game.player.currPokemon;
+                enemyPokemon = game.battle.oppPokemon;
+            }
+            else {
+                friendlyPokemon = game.battle.oppPokemon;
+                enemyPokemon = game.player.currPokemon;
+            }
+            
+//            if (isFriendly) {
+            // TODO: 'no effect' attacks
+            // Attack data loaded from Crystal
+//                String attackType = attack.type;  // TODO: remove
+            
+            // if does any damage, do multiplier stuff and text.
+            // if does any stat change (how to tell?) then add text.
+
+            attackAction =  new LoadAndPlayAnimation(game, attack.name, enemyPokemon,
+                            null);
+            // If it's an attack that does damage,
+            // - play enemy 'hit' animation
+            // - deplete enemy health
+            // - if super or not very effect, display text.
+            if (attack.power != 0) {
+                float multiplier = game.battle.gen2TypeEffectiveness.get(attack.type).get(enemyPokemon.types.get(0).toLowerCase());
+                if (enemyPokemon.types.size() > 1) {
+                    multiplier *= game.battle.gen2TypeEffectiveness.get(attack.type).get(enemyPokemon.types.get(1).toLowerCase());
                 }
                 if (multiplier > 1f) {
                     effectiveness = "super_effective";
@@ -2151,70 +2184,143 @@ public class Battle {
                     effectiveness = "not_very_effective";
                     text_string = "It' not very effective...";
                 }
-                attackAction =  new LoadAndPlayAnimation(game, attack.name, game.battle.oppPokemon,
-                                new LoadAndPlayAnimation(game, effectiveness, game.battle.oppPokemon,
-                                new DepleteEnemyHealth(game, attack.damage,
-                                new WaitFrames(game, 13,
-                                !effectiveness.equals("neutral_effective") ?
-                                    new DisplayText.Clear(game,
-                                    new WaitFrames(game, 3,
-                                    new DisplayText(game,
-                                                    text_string,
-                                                    null, true, true,
-                                    null)))
-                                :
+                attackAction.append(new LoadAndPlayAnimation(game, effectiveness, enemyPokemon,
+                                    Battle.depleteHealth(game, isFriendly, attack.damage,  // TODO: generic DepleteHealth class
+                                    new WaitFrames(game, 13,
                                     null))));
-                // check if attack traps target pokemon
-                if (game.battle.oppPokemon.trappedBy != null) {
+                if (!effectiveness.equals("neutral_effective")) {
                     attackAction.append(new DisplayText.Clear(game,
                                         new WaitFrames(game, 3,
-                                        new DisplayText(game, game.battle.oppPokemon.name.toUpperCase()+" was trapped!",
+                                        new DisplayText(game,
+                                                        text_string,
                                                         null, true, true,
                                         null))));
                 }
             }
-            else {
-                String attackType = game.battle.attacks.get(attack.name.toLowerCase()).type;
-                float multiplier = game.battle.gen2TypeEffectiveness.get(attackType).get(game.player.currPokemon.types.get(0).toLowerCase());
-                if (game.player.currPokemon.types.size() > 1) {
-                    multiplier *= game.battle.gen2TypeEffectiveness.get(attackType).get(game.player.currPokemon.types.get(1).toLowerCase());
+            // If this is a stat-change attack, then:
+            // - attempt to apply stat change
+            // - add appropriate text (<> went up!; <> can't go any higher!)
+            String stat = null;
+            if (attack.effect.contains("EFFECT_ATTACK")) {
+                stat = "attack";
+            }
+            else if (attack.effect.contains("EFFECT_DEFENSE")) {
+                stat = "defense";
+            }
+            else if (attack.effect.contains("EFFECT_SPEED")) {
+                stat = "speed";
+            }
+            else if (attack.effect.contains("EFFECT_SP_ATK")) {
+                stat = "special_attack";
+            }
+            else if (attack.effect.contains("EFFECT_SP_DEF")) {
+                stat = "special_defense";
+            }
+            if (stat != null) {
+                int stage = 1;
+                if (attack.effect.contains("2")) {
+                    stage = 2;
                 }
-                if (multiplier > 1f) {
-                    effectiveness = "super_effective";
-                    text_string = "It' super- effective!";
+                if (attack.effect.contains("DOWN")) {
+                    stage *= -1;
                 }
-                else if (multiplier == 1f) {
-                    effectiveness = "neutral_effective";
+                Pokemon target = friendlyPokemon;
+                // If this comes as a side-effect to a damaging move,
+                // then the stat change is applied to the opposing pokemon.
+                // Or if it just targets the other pokemon.
+                if (attack.effect.contains("HIT") || 
+                    attack.name.equals("growl") || attack.name.equals("leer") ||
+                    attack.name.equals("screech") || attack.name.equals("spider web") ||
+                    attack.name.equals("string shot") || attack.name.equals("tail whip")) {
+                    target = enemyPokemon;
+                }
+                boolean worked = target.gen2ApplyStatStage(stat, stage);
+                String text = null;
+                // Only show failed text when applying to friendly.
+                if (!worked) {
+                    if (!attack.effect.contains("HIT")) {
+                        text = target.name.toUpperCase()+"' "+stat.toUpperCase()+" wonì go any "+(stage > 0 ? "higher!" : "lower!");
+                    }
                 }
                 else {
-                    effectiveness = "not_very_effective";
-                    text_string = "It' not very effective...";
+                    if (stage == 2) {
+                        text = target.name.toUpperCase()+"' "+stat.toUpperCase()+" went way up!";
+                    }
+                    else if (stage == 1) {
+                        text = target.name.toUpperCase()+"' "+stat.toUpperCase()+" went up!";
+                    }
+                    else if (stage == -1) {
+                        text = target.name.toUpperCase()+"' "+stat.toUpperCase()+" fell!";
+                    }
+                    else if (stage == -2) {
+                        text = target.name.toUpperCase()+"' "+stat.toUpperCase()+" sharply fell!";
+                    }
                 }
-                attackAction = new LoadAndPlayAnimation(game, attack.name, game.player.currPokemon,
-                               new LoadAndPlayAnimation(game, effectiveness, game.player.currPokemon,
-                               new DepleteFriendlyHealth(game.player.currPokemon, attack.damage,
-                               new WaitFrames(game, 13,
-                               !effectiveness.equals("neutral_effective") ?
-                                   new DisplayText.Clear(game,
-                                   new WaitFrames(game, 3,
-                                   new DisplayText(game, text_string,
-                                                   null, true, true,
-                                   new WaitFrames(game, 3,
-                                   null))))
-                               :
-                                   null))));
-                // Check if attack traps target pokemon
-                if (game.player.currPokemon.trappedBy != null) {
+                if (text != null) {
+                    if (!attack.effect.contains("HIT")) {
+                        // TODO: there's like a 'hit' animation that goes here where screen shakes.
+                        // TODO: check and see if the 30 frames are necessary here. Also, how many?
+                        // They might not be - I remember that text might appear immediately after shake.
+                        attackAction.append(new WaitFrames(game, 30, null)); 
+                    }
                     attackAction.append(new DisplayText.Clear(game,
-                                          new WaitFrames(game, 3,
-                                          new DisplayText(game,
-                                                          game.player.currPokemon.name.toUpperCase()+" was trapped!",
-                                                          null,
-                                                          true,
-                                                          true,
-                                          null))));
+                                        new WaitFrames(game, 3,
+                                        new DisplayText(game, text, null, true, true,
+                                        null))));
                 }
             }
+            
+            // Check if attack traps target pokemon
+            if (enemyPokemon.trappedBy != null) {
+                attackAction.append(new DisplayText.Clear(game,
+                                    new WaitFrames(game, 3,
+                                    new DisplayText(game, enemyPokemon.name.toUpperCase()+" was trapped!",
+                                                    null, true, true,
+                                    null))));
+            }
+//            }
+//            else {
+//                String attackType = game.battle.attacks.get(attack.name.toLowerCase()).type;
+//                float multiplier = game.battle.gen2TypeEffectiveness.get(attackType).get(game.player.currPokemon.types.get(0).toLowerCase());
+//                if (game.player.currPokemon.types.size() > 1) {
+//                    multiplier *= game.battle.gen2TypeEffectiveness.get(attackType).get(game.player.currPokemon.types.get(1).toLowerCase());
+//                }
+//                if (multiplier > 1f) {
+//                    effectiveness = "super_effective";
+//                    text_string = "It' super- effective!";
+//                }
+//                else if (multiplier == 1f) {
+//                    effectiveness = "neutral_effective";
+//                }
+//                else {
+//                    effectiveness = "not_very_effective";
+//                    text_string = "It' not very effective...";
+//                }
+//                attackAction = new LoadAndPlayAnimation(game, attack.name, game.player.currPokemon,
+//                               new LoadAndPlayAnimation(game, effectiveness, game.player.currPokemon,
+//                               new DepleteFriendlyHealth(game.player.currPokemon, attack.damage,
+//                               new WaitFrames(game, 13,
+//                               !effectiveness.equals("neutral_effective") ?
+//                                   new DisplayText.Clear(game,
+//                                   new WaitFrames(game, 3,
+//                                   new DisplayText(game, text_string,
+//                                                   null, true, true,
+//                                   new WaitFrames(game, 3,
+//                                   null))))
+//                               :
+//                                   null))));
+//                // Check if attack traps target pokemon
+//                if (game.player.currPokemon.trappedBy != null) {
+//                    attackAction.append(new DisplayText.Clear(game,
+//                                          new WaitFrames(game, 3,
+//                                          new DisplayText(game,
+//                                                          game.player.currPokemon.name.toUpperCase()+" was trapped!",
+//                                                          null,
+//                                                          true,
+//                                                          true,
+//                                          null))));
+//                }
+//            }
             attackAction.append(nextAction);
             return attackAction;
         }
@@ -2772,8 +2878,8 @@ public class Battle {
 //                } else
                 if (lineNum > 14 && lineNum < 266) {
                     String[] attrs = line.split("\tmove ")[1].split(",\\s+");
-                    Attack attack = new Attack(attrs[0].toLowerCase().replace('_', ' '), Integer.valueOf(attrs[2]),
-                                               attrs[3].toLowerCase(), Integer.valueOf(attrs[4]),
+                    Attack attack = new Attack(attrs[0].toLowerCase().replace('_', ' '), attrs[1], 
+                                               Integer.valueOf(attrs[2]), attrs[3].toLowerCase(), Integer.valueOf(attrs[4]),
                                                Integer.valueOf(attrs[5]), Integer.valueOf(attrs[6]));
                     if (gen2PhysicalTypes.contains(attack.type.toLowerCase())) {
                         attack.isPhysical = true;
@@ -2806,8 +2912,8 @@ public class Battle {
                     // TODO: prism moves.asm includes info about physical/special/status
                     // Not using 'STATUS' type for gen2, so ignoring for now.
                     String[] attrs = line.split("\tmove ")[1].split(",\\s+");
-                    Attack attack = new Attack(attrs[0].toLowerCase().replace('_', ' '), Integer.valueOf(attrs[2]),
-                                               attrs[3].toLowerCase(), Integer.valueOf(attrs[5]),
+                    Attack attack = new Attack(attrs[0].toLowerCase().replace('_', ' '), attrs[1], 
+                                               Integer.valueOf(attrs[2]), attrs[3].toLowerCase(), Integer.valueOf(attrs[5]),
                                                Integer.valueOf(attrs[6]), Integer.valueOf(attrs[7].split(" ")[0]));
                     if (gen2PhysicalTypes.contains(attack.type.toLowerCase())) {
                         attack.isPhysical = true;
@@ -2824,7 +2930,7 @@ public class Battle {
         }
 
         // power 0 because the attack will apply extra damage that ignores stats.
-        Attack attack = new Attack("Mewtwo_Special1", 0, "psychic", 100, 1, 100);
+        Attack attack = new Attack("Mewtwo_Special1", "EFFECT_NORMAL_HIT", 0, "psychic", 100, 1, 100);
         this.attacks.put(attack.name, attack);
     }
 
@@ -2872,6 +2978,16 @@ public class Battle {
             return true;
         }
         return false;
+    }
+    
+    /**
+     * TODO: just make DepleteHealth generic class
+     */
+    public static Action depleteHealth(Game game, boolean isFriendly, int damage, Action nextAction) {
+        if (!isFriendly) {
+            return new DepleteFriendlyHealth(game.player.currPokemon, damage, nextAction);
+        }
+        return new DepleteEnemyHealth(game, damage, nextAction);
     }
 
     /*
@@ -3124,8 +3240,7 @@ public class Battle {
                     game.player.currPokemon.trappedBy = turnData.playerTrappedBy;
                     game.player.currPokemon.trapCounter = turnData.playerTrapCounter;
                 }
-                playerAction =  new DisplayText(game,
-                                                game.player.currPokemon.name.toUpperCase()+" used "+playerAttack.name.toUpperCase()+"!",
+                playerAction =  new DisplayText(game, game.player.currPokemon.name.toUpperCase()+" used "+playerAttack.name.toUpperCase()+"!",
                                                 null, true, false,
                                 new AttackAnim(game, playerAttack, isFriendly,
                                 null));
@@ -3253,7 +3368,6 @@ public class Battle {
         public int layer = 110;
         String name;
         HashMap<Integer, String> metadata = new HashMap<Integer, String>();
- 
         Music sound;
         int frameNum = 1;
         Texture currText;
@@ -4654,7 +4768,24 @@ class CatchPokemonWobblesThenCatch extends Action {
         // if done with anim, do nextAction
         if (positions.isEmpty() || sprites.isEmpty()) {
             // Since pkmn was caught, add to players pokemon
-            game.player.pokemon.add(game.battle.oppPokemon);
+            Action newAction = new PokemonCaughtEvents(game,
+                                new SplitAction(new BattleFadeOut(game, null),
+                                new BattleFadeOutMusic(game,
+                                null)));
+            if (game.player.pokemon.size() < 6) {
+                game.player.pokemon.add(game.battle.oppPokemon);
+            }
+            else {
+                // If player inventory is full, then send the pokemon to player's spawn location
+                game.battle.oppPokemon.position = game.player.spawnLoc.cpy();
+                game.battle.oppPokemon.mapTiles = game.map.overworldTiles;  // TODO: might be interior, update when fixed.
+                newAction.append(new SetField(game, "playerCanMove", false,
+                                 new DisplayText(game, "Your party is full! "+game.battle.oppPokemon.name.toUpperCase()+" was sent to the last known safe place.", null, null,
+                                 new SetField(game, "playerCanMove", true,
+                                 null))));
+                // TODO: there will probably be bugs if pokemon overlaps in game.map.pokemon with another pokemon.
+                game.insertAction(game.battle.oppPokemon.new Standing());
+            }
             if (SpecialMewtwo1.class.isInstance(game.battle.oppPokemon)) {
                 // Remove mewtwo from it's tile
                 Tile tile = ((SpecialMewtwo1)game.battle.oppPokemon).tile;
@@ -4667,10 +4798,6 @@ class CatchPokemonWobblesThenCatch extends Action {
                 game.map.currRoute.pokemon.remove(game.battle.oppPokemon);
                 game.map.currRoute.genPokemon(game.battle.oppPokemon.baseStats.get("catchRate"));
             }
-            Action newAction = new PokemonCaughtEvents(game,
-                               new SplitAction(new BattleFadeOut(game, null),
-                               new BattleFadeOutMusic(game,
-                               null)));
             if (game.player.pokemon.size() >= 6 && !game.player.displayedMaxPartyText) {
                 game.player.displayedMaxPartyText = true;
                 newAction.append(new SetField(game, "playerCanMove", false,
@@ -4876,7 +5003,7 @@ class DepleteEnemyHealth extends Action {
             game.actionStack.remove(this);
             // If enemy health is 0, do EnemyFaint
             if (game.battle.oppPokemon.currentStats.get("hp") <= 0) {
-                int exp = game.battle.calcFaintExp();
+                int exp = 10000; //game.battle.calcFaintExp();
                 game.player.currPokemon.exp += exp;
                 Action nextAction = new EnemyFaint(game,
                                     new RemoveDisplayText(  // TODO: refactor to stop using this
@@ -7678,13 +7805,15 @@ class DrawUseTossMenu extends MenuAction {
             game.insertAction(this.prevMenu);
             return;
         }
-        if (itemName.contains("ball") && game.player.pokemon.size() >= 6) {
-            game.insertAction(this.prevMenu);
-            game.insertAction(new DisplayText(game, "Not enough room in your party!", null, false, true,
-                              new SetField(this.prevMenu, "disabled", false,
-                              null)));
-            return;
-        }
+        // TODO: enable this code to prevent pokeball from being thrown if not enough room
+        // currently sending pokemon to last safe spot in case where pokemon doesn't fit.
+//        if (itemName.contains("ball") && game.player.pokemon.size() >= 6) {
+//            game.insertAction(this.prevMenu);
+//            game.insertAction(new DisplayText(game, "Not enough room in your party!", null, false, true,
+//                              new SetField(this.prevMenu, "disabled", false,
+//                              null)));
+//            return;
+//        }
         // if this item can't be used in battle, player error noise.
         if (!itemName.contains("ball") && !itemName.contains("berry")) {  // TODO: more items
             game.insertAction(this.prevMenu);
@@ -8517,7 +8646,8 @@ class GainExpAnimation extends Action {
             // TODO: debug, remove
 //            System.out.println("Curr exp: " + String.valueOf(game.player.currPokemon.exp));
 //            System.out.println("Needed for next level: " + String.valueOf(game.player.currPokemon.gen2CalcExpForLevel(game.player.currPokemon.level+1)));
-            game.player.currPokemon.level += 1;
+//            game.player.currPokemon.level += 1;  // TODO: remove
+            game.player.currPokemon.gainLevel(1);
             game.actionStack.remove(this);
             Action action = new DisplayText.Clear(game,
                             new WaitFrames(game, 3,
@@ -8820,7 +8950,7 @@ class PokemonCaughtEvents extends Action {
             return; // won't have left AS on this first iteration, might as well return
         }
 
-        // for now, if displayTextAction not in AS, remove and return
+        // For now, if displayTextAction not in AS, remove and return
         if (!game.actionStack.contains(this.displayTextAction) && this.startLooking == true) {
             // set oppPokemon alpha back to normal
             game.battle.oppPokemon.sprite.setAlpha(1);
@@ -9255,7 +9385,7 @@ class SpecialBattleMegaGengar extends Action {
                     + "    v_color = a_color;\n"
                     + "    v_texCoords = a_texCoord0;\n"
                     + "    gl_Position =  u_projTrans * a_position;\n"
-                    // below can be used to translate screen pixels (for attacks, etc
+                    // below be used to translate screen pixels (for attacks, etc
 //                    + "    gl_Position =  u_projTrans * vec4(a_position.x, a_position.y, a_position.z, 1.0);\n"
                     + "}\n";
         }

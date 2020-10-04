@@ -3669,7 +3669,7 @@ class PlayerStanding extends Action {
                     game.battle.oppPokemon = new Pokemon("unown_"+unownLetter, 13, Pokemon.Generation.CRYSTAL);
                 }
                 // The first Pokemon the player sends out in battle should
-                // have >0 hp.
+                // have > 0 hp.
                 for (Pokemon currPokemon : this.player.pokemon) {
                     if (currPokemon.currentStats.get("hp") > 0) {
                         this.player.currPokemon = currPokemon;

@@ -771,6 +771,15 @@ public class Pokemon {
         this.currentStats = new HashMap<String, Integer>(this.maxStats); // copy maxStats
     }
 
+    /** Attempt to apply stat change during battle.
+     * 
+     * return false if stat stage is already at max or min value.
+     */
+    boolean gen2ApplyStatStage(String stat, int stage) {
+        // TODO: this is stubbed for now
+        return true;
+    }
+
     // TODO - this doesn't take IV's or EV's into account.
      // for EV's - I think they only get factored in on pokemon level up. So only call calcMaxStats on level up.
      // if you ever need to reset currentStats, just make a copy of maxStats - like after battle, mist attack, etc
@@ -788,8 +797,17 @@ public class Pokemon {
         // hp = (((IV + Base + (sqrt(EV)/8) + 50)*Level)/50 + 10
         // other stat = (((IV + Base + (sqrt(EV)/8))*Level)/50 + 5
     }
+    /**
+     * Compute changes required by leveling up.
+     */
+    void gainLevel(int numLevels) {
+        this.level += numLevels;
+        this.calcMaxStats();
+        // TODO: remove when getting rid of currentStats.
+        this.currentStats = new HashMap<String, Integer>(this.maxStats);
+    }
 
-    /*
+    /**
      * Compute changes required by evolution.
      */
     void evolveTo(String targetName) {
