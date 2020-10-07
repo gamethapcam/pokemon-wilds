@@ -199,6 +199,56 @@ public class Game extends ApplicationAdapter {
 //            for (String attack : this.battle.oppPokemon.attacks) {
 //                System.out.println(attack);
 //            }
+
+            // Debug related to stat stages
+            if (this.battle.oppPokemon != null) {
+                System.out.println("oppPokemon stats:");
+                System.out.println("attack");
+                System.out.println(this.battle.oppPokemon.statStages.get("attack"));
+                System.out.println(this.battle.oppPokemon.currentStats.get("attack"));
+                System.out.println("defense");
+                System.out.println(this.battle.oppPokemon.statStages.get("defense"));
+                System.out.println(this.battle.oppPokemon.currentStats.get("defense"));
+                System.out.println("specialAtk");
+                System.out.println(this.battle.oppPokemon.statStages.get("specialAtk"));
+                System.out.println(this.battle.oppPokemon.currentStats.get("specialAtk"));
+                System.out.println("specialDef");
+                System.out.println(this.battle.oppPokemon.statStages.get("specialDef"));
+                System.out.println(this.battle.oppPokemon.currentStats.get("specialDef"));
+                System.out.println("speed");
+                System.out.println(this.battle.oppPokemon.statStages.get("speed"));
+                System.out.println(this.battle.oppPokemon.currentStats.get("speed"));
+                System.out.println("accuracy");
+                System.out.println(this.battle.oppPokemon.statStages.get("accuracy"));
+                System.out.println(this.battle.oppPokemon.currentStats.get("accuracy"));
+                System.out.println("evasion");
+                System.out.println(this.battle.oppPokemon.statStages.get("evasion"));
+                System.out.println(this.battle.oppPokemon.currentStats.get("evasion"));
+            }
+            if (this.player.currPokemon != null) {
+                System.out.println("currPokemon stats:");
+                System.out.println("attack");
+                System.out.println(this.player.currPokemon.statStages.get("attack"));
+                System.out.println(this.player.currPokemon.currentStats.get("attack"));
+                System.out.println("defense");
+                System.out.println(this.player.currPokemon.statStages.get("defense"));
+                System.out.println(this.player.currPokemon.currentStats.get("defense"));
+                System.out.println("specialAtk");
+                System.out.println(this.player.currPokemon.statStages.get("specialAtk"));
+                System.out.println(this.player.currPokemon.currentStats.get("specialAtk"));
+                System.out.println("specialDef");
+                System.out.println(this.player.currPokemon.statStages.get("specialDef"));
+                System.out.println(this.player.currPokemon.currentStats.get("specialDef"));
+                System.out.println("speed");
+                System.out.println(this.player.currPokemon.statStages.get("speed"));
+                System.out.println(this.player.currPokemon.currentStats.get("speed"));
+                System.out.println("accuracy");
+                System.out.println(this.player.currPokemon.statStages.get("accuracy"));
+                System.out.println(this.player.currPokemon.currentStats.get("accuracy"));
+                System.out.println("evasion");
+                System.out.println(this.player.currPokemon.statStages.get("evasion"));
+                System.out.println(this.player.currPokemon.currentStats.get("evasion"));
+            }
         }
 
         if (Gdx.input.isKeyJustPressed(Input.Keys.PAGE_UP)) {
@@ -589,6 +639,10 @@ public class Game extends ApplicationAdapter {
 //        this.player.pokemon.add(new Pokemon("ampharos", 55, Pokemon.Generation.CRYSTAL));
         if (this.debugInputEnabled) {
             this.player.pokemon.add(new Pokemon("tauros", 60, Pokemon.Generation.CRYSTAL));
+            this.player.pokemon.get(1).attacks[0] = "hypnosis";
+            this.player.pokemon.get(1).attacks[1] = "confuse ray";
+            this.player.pokemon.get(1).attacks[2] = "toxic";
+            this.player.pokemon.get(1).attacks[3] = "sweet scent";
             this.player.pokemon.add(new Pokemon("pidgeot", 60, Pokemon.Generation.CRYSTAL));
             this.player.pokemon.add(new Pokemon("meganium", 60, Pokemon.Generation.CRYSTAL));
             this.player.pokemon.add(new Pokemon("lapras", 60, Pokemon.Generation.CRYSTAL));

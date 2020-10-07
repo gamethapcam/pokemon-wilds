@@ -1612,10 +1612,10 @@ class Route {
 //        this.pokemon.clear();
 //        Pokemon debug = new Pokemon("machamp", 22, Pokemon.Generation.CRYSTAL);  // 22
 //        Pokemon debug = new Pokemon("garchompbeta", 70, Pokemon.Generation.CRYSTAL);  // 22
-//        debug.attacks[0] = "Whirlpool";
-//        debug.attacks[1] = "Whirlpool";
-//        debug.attacks[2] = "Whirlpool";
-//        debug.attacks[3] = "Whirlpool";
+//        debug.attacks[0] = "toxic";
+//        debug.attacks[1] = "sweet scent";
+//        debug.attacks[2] = "thunder wave";
+//        debug.attacks[3] = "sing";
 //        this.pokemon.add(debug);
 
         /*

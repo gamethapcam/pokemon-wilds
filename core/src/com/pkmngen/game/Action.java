@@ -102,7 +102,11 @@ public class Action {
     /**
      * Define what do to at each step (this is called once per frame).
      */
-    public void step(Game game) {}
+    public void step(Game game) {
+        game.actionStack.remove(this);
+        game.insertAction(this.nextAction);
+        this.nextAction.step(game);
+    }
 }
 
 /**

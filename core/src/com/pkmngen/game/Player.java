@@ -3316,7 +3316,7 @@ class PlayerStanding extends Action {
                 int randomNum = game.map.rand.nextInt(100) + 1; // rate determine by player? // 1 - 100
                 int rate = 10;
                 if (game.map.tiles == game.map.interiorTiles.get(game.map.interiorTilesIndex)) {
-                    rate = 3;
+                    rate = 4;
                 }
                 if (randomNum < rate) { //  < 20
                     // disable player movement
@@ -4425,11 +4425,11 @@ class PlayerStanding extends Action {
                 game.insertAction(new PlayerMoving(game, this.player, this.alternate));
             }
             if (game.type == Game.Type.SERVER) {
-                // check wild encounter on next position, send back if yes
+                // Check wild encounter on next position, send back if yes
                 Pokemon pokemon = checkWildEncounter(game, newPos);
                 if (pokemon != null) {
                     // The first Pokemon the player sends out in battle should
-                    // have >0 hp.
+                    // have > 0 hp.
                     for (Pokemon currPokemon : this.player.pokemon) {
                         if (currPokemon.currentStats.get("hp") > 0) {
                             this.player.currPokemon = currPokemon;

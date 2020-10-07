@@ -71,6 +71,16 @@ public class Pokemon {
 
     Map<String, Integer> baseStats = new HashMap<String, Integer>();
     Map<String, Integer> currentStats = new HashMap<String, Integer>();
+    Map<String, Integer> statStages = new HashMap<String, Integer>();
+    {
+        this.statStages.put("attack", 0);
+        this.statStages.put("defense", 0);
+        this.statStages.put("specialAtk", 0);
+        this.statStages.put("specialDef", 0);
+        this.statStages.put("speed", 0);
+        this.statStages.put("accuracy", 0);
+        this.statStages.put("evasion", 0);
+    }
 
     // note - this doesn't go in 'maxStats' map
     // int catchRate; // may put into some other map later
@@ -78,6 +88,10 @@ public class Pokemon {
     Map<String, Integer> maxStats = new HashMap<String, Integer>(); // needed for various calculations
     ArrayList<String> hms = new ArrayList<String>();
     Map<String, Integer> IVs = new HashMap<String, Integer>();
+    
+    // Store current status (sleep, poison, paralyze etc) here.
+    public String status = null;
+    public int statusCounter = 0;
 
     Sprite sprite;
     Sprite backSprite;
@@ -771,15 +785,6 @@ public class Pokemon {
         this.currentStats = new HashMap<String, Integer>(this.maxStats); // copy maxStats
     }
 
-    /** Attempt to apply stat change during battle.
-     * 
-     * return false if stat stage is already at max or min value.
-     */
-    boolean gen2ApplyStatStage(String stat, int stage) {
-        // TODO: this is stubbed for now
-        return true;
-    }
-
     // TODO - this doesn't take IV's or EV's into account.
      // for EV's - I think they only get factored in on pokemon level up. So only call calcMaxStats on level up.
      // if you ever need to reset currentStats, just make a copy of maxStats - like after battle, mist attack, etc
@@ -854,6 +859,40 @@ public class Pokemon {
         if (this.types.contains("GRASS")) {
             this.hms.add("CUT");
         }
+    }
+
+    /** Attempt to apply stat change during battle.
+     * Source - https://www.dragonflycave.com/mechanics/stat-stages
+     * Also - https://web.archive.org/web/20140712063943/http://www.upokecenter.com/content/pokemon-gold-version-silver-version-and-crystal-version-timing-notes
+     * 
+     * return false if stat stage is already at max or min value.
+     */
+    boolean gen2ApplyStatStage(String stat, int stage) {
+        // TODO: this is stubbed for now
+        int newStage = this.statStages.get(stat)+stage;
+        if (newStage < -6 || newStage > 6) {
+            // Would result in a stat stage that is too high/low, so fail.
+            return false;
+        }
+        this.statStages.put(stat, newStage);
+        // Modify currentStats to use the correct value.
+        float multiplier;
+        if (stat.equals("accuracy") || stat.equals("evasion")) {
+            // Unique to gen 2; gen 1 uses same formula for all stats
+//            multiplier = (float)Math.max(3, 3 + newStage)/(float)Math.max(3, 3 - newStage);
+            return true;
+        }
+        multiplier = (float)Math.max(2, 2 + newStage)/(float)Math.max(2, 2 - newStage);
+        int newStat = (int)(multiplier*this.maxStats.get(stat));
+        // This is a Gen 2 mechanic - stat value is capped at 999.
+        if (newStat < 1) {
+            newStat = 1;
+        }
+        if (newStat > 999) {
+            newStat = 999;
+        }
+        this.currentStats.put(stat, newStat);
+        return true;
     }
 
     /*
@@ -1594,6 +1633,20 @@ public class Pokemon {
             }
         }
         this.learnSet = Pokemon.gen2Attacks.get(name);
+    }
+
+    /**
+     * When you send out a pokemon, reset all of it's stat stages to 0 (and corresponding stats).
+     */
+    void resetStatStages() {
+        this.statStages.put("attack", 0);
+        this.statStages.put("defense", 0);
+        this.statStages.put("specialAtk", 0);
+        this.statStages.put("specialDef", 0);
+        this.statStages.put("speed", 0);
+        this.statStages.put("accuracy", 0);
+        this.statStages.put("evasion", 0);
+        this.currentStats = new HashMap<String, Integer>(this.maxStats);
     }
 
     /**

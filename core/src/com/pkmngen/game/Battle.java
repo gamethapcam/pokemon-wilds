@@ -1824,19 +1824,76 @@ class AttackAnim extends Action {
 
     @Override
     public void step(Game game) {
-        // TODO: move the Battle_Actions.getAttackAction code here
         game.actionStack.remove(this);
-        game.insertAction(Battle.getAttackAction(game, attack, isFriendly, nextAction));
+        Action action = Battle.getAttackAction(game, attack, isFriendly, null);
+        
+        // Resolve poison/burn
+        // TODO: friendlyPokemon/enemyPokemon are duplicates of stuff in getAttackAction()
+        Pokemon friendlyPokemon;
+        Pokemon enemyPokemon;
+        if (isFriendly) {
+            friendlyPokemon = game.player.currPokemon;
+            enemyPokemon = game.battle.oppPokemon;
+        }
+        else {
+            friendlyPokemon = game.battle.oppPokemon;
+            enemyPokemon = game.player.currPokemon;
+        }
+        String enemy = isFriendly ? "" : "Enemy ";
+        if (friendlyPokemon.status != null) {
+            if (friendlyPokemon.status.equals("poison")) {
+                // Poison damage is 1/8 of hp
+                int damage = friendlyPokemon.maxStats.get("hp")/8;
+                if (damage < 1) {
+                    damage = 1;
+                }
+                action.append(new DisplayText.Clear(game,
+                              new WaitFrames(game, 3,
+                              new DisplayText(game, enemy+friendlyPokemon.name.toUpperCase()+"' hurt by poison!", null, true, false,
+                              Battle.depleteHealth(game, !isFriendly, damage,
+                              new WaitFrames(game, 13,
+                              null))))));
+            }
+            else if (friendlyPokemon.status.equals("burn")) {
+                // Burn damage is 1/8 of hp
+                int damage = friendlyPokemon.maxStats.get("hp")/8;
+                if (damage < 1) {
+                    damage = 1;
+                }
+                action.append(new DisplayText.Clear(game,
+                              new WaitFrames(game, 3,
+                              new DisplayText(game, enemy+friendlyPokemon.name.toUpperCase()+"' hurt by it' burn!", null, true, false,
+                              Battle.depleteHealth(game, !isFriendly, damage,
+                              new WaitFrames(game, 13,
+                              null))))));
+            }
+            else if (friendlyPokemon.status.equals("toxic")) {
+                // TODO: toxic reverts to regular poison in gen2 if switched out
+                // also reverts to regular poison after battle
+                // Should I mimic this?
+                int damage = (friendlyPokemon.maxStats.get("hp")*friendlyPokemon.statusCounter)/16;
+                if (damage < 1) {
+                    damage = 1;
+                }
+                action.append(new DisplayText.Clear(game,
+                              new WaitFrames(game, 3,
+                              new DisplayText(game, enemy+friendlyPokemon.name.toUpperCase()+"' hurt by poison!", null, true, false,
+                              Battle.depleteHealth(game, !isFriendly, damage,
+                              new WaitFrames(game, 13,
+                              null))))));
+                friendlyPokemon.statusCounter++;
+            }
+        }
+        action.append(nextAction);
+        game.insertAction(action);
     }
 }
 
 public class Battle {
     /**
-     * Calculate an attack's damage.
-     *
-     * Note: below is taken based off of Gen 2.
+     * Calculate an attack's damage. Based off of Gen 2 mechanics.
      */
-    static int calcDamage(Pokemon source, Attack attack, Pokemon target) {
+    static int gen2CalcDamage(Pokemon source, Attack attack, Pokemon target) {
         if (attack.name.equals("Mewtwo_Special1")) {
             return 30;
         }
@@ -1987,7 +2044,16 @@ public class Battle {
         if (rateModified > 255){
             rateModified = 255;
         }
-        int bonusStatus = 0;  // TODO: sleep/frozen bonus 
+        int bonusStatus = 0;
+        if (pokemon.status != null) {
+            if (pokemon.status.equals("sleep") || pokemon.status.equals("freeze")) {
+                bonusStatus = 10;
+            }
+            // TODO: enable for para, poison etc if changed in advanced settings menu?
+//            else {
+//                bonusStatus = 5;
+//            }
+        }
         int m = 3*pokemon.maxStats.get("hp");
         int h = 2*pokemon.currentStats.get("hp");
         if (m > 255) {
@@ -2021,7 +2087,6 @@ public class Battle {
             i++;
         }
         int b = bLookup[i];
-        System.out.println(b);
         if (game.map.rand.nextInt(256) >= b) {
             return 0;  // 0 shakes
         }
@@ -2125,7 +2190,7 @@ public class Battle {
                 SpecialBattleMewtwo.specialAttackCounter++;
                 if (SpecialBattleMewtwo.specialAttackCounter >= 3) {
                     Attack mewtwoSpecial1 = game.battle.attacks.get("Mewtwo_Special1");
-                    mewtwoSpecial1.damage = Battle.calcDamage(game.battle.oppPokemon, mewtwoSpecial1, game.player.currPokemon);
+                    mewtwoSpecial1.damage = Battle.gen2CalcDamage(game.battle.oppPokemon, mewtwoSpecial1, game.player.currPokemon);
                     nextAction = new DisplayText.Clear(game,
                                  new WaitFrames(game, 3,
                                  new DisplayText(game, "A wave of psychic power unleashes!", null, true, false,
@@ -2137,14 +2202,8 @@ public class Battle {
                     SpecialBattleMewtwo.specialAttackCounter = 0;
                 }
             }
-            String effectiveness;
-            String text_string = "";
-            Action attackAction;
-            // TODO: why the if block? can't I just set Pokemon target = ?
-            // TODO: try
             Pokemon friendlyPokemon;
             Pokemon enemyPokemon;
-
             if (isFriendly) {
                 friendlyPokemon = game.player.currPokemon;
                 enemyPokemon = game.battle.oppPokemon;
@@ -2153,23 +2212,145 @@ public class Battle {
                 friendlyPokemon = game.battle.oppPokemon;
                 enemyPokemon = game.player.currPokemon;
             }
+            // This is just so that I can append to it below.
+            // Blank action will just immediately insert next Action and step()
+            Action attackAction = new Action() {
+                public String getCamera() {
+                    return "gui";
+                }
+            };
+            String enemy = isFriendly ? "" : "Enemy ";
+            // Status check - display appropriate text if asleep, confused, etc
+            // If snap out of status (confusion, sleep), then proceed normally.
+            if (friendlyPokemon.status != null) {
+                if (friendlyPokemon.status.equals("sleep")) {
+                    friendlyPokemon.statusCounter--;
+                    if (friendlyPokemon.statusCounter > 0) {
+                        return new DisplayText.Clear(game,
+                               new WaitFrames(game, 3,
+                               new DisplayText(game, enemy+friendlyPokemon.name.toUpperCase()+" is fast asleep!", null, true, true,
+                               nextAction)));
+                    }
+//                    friendlyPokemon.status = null;
+                    attackAction.append(new DisplayText.Clear(game,
+                                        new WaitFrames(game, 3,
+                                        new DisplayText(game, enemy+friendlyPokemon.name.toUpperCase()+" woke up!", null, true, true,
+                                        new SetField(friendlyPokemon, "status", null,  // Delay to emulate vgc
+                                        null)))));
+                }
+                else if (friendlyPokemon.status.equals("paralyze")) {
+                    if (game.map.rand.nextInt(2) == 0) {
+                        return new DisplayText.Clear(game,
+                               new WaitFrames(game, 3,
+                               new DisplayText(game, enemy+friendlyPokemon.name.toUpperCase()+" is fully paralyzed!", null, true, true,
+                               nextAction)));
+                    }
+                }
+                else if (friendlyPokemon.status.equals("freeze")) {
+                    // 20% chance to thaw each turn
+                    // - Gen 1 is no thaw.
+                    if (game.map.rand.nextInt(5) != 0) {
+                        return new DisplayText.Clear(game,
+                               new WaitFrames(game, 3,
+                               new DisplayText(game, enemy+friendlyPokemon.name.toUpperCase()+" is frozen solid!", null, true, true,
+                               nextAction)));
+                    }
+//                    friendlyPokemon.status = null;
+                    attackAction.append(new DisplayText.Clear(game,
+                                        new WaitFrames(game, 3,
+                                        new DisplayText(game, enemy+friendlyPokemon.name.toUpperCase()+" thawed out!", null, true, true,
+                                        new SetField(friendlyPokemon, "status", null,
+                                        null)))));
+                }
+                else if (friendlyPokemon.status.equals("confuse")) {
+                    friendlyPokemon.statusCounter--;
+                    attackAction.append(new DisplayText.Clear(game,
+                                        new WaitFrames(game, 3,
+                                        new DisplayText(game, enemy+friendlyPokemon.name.toUpperCase()+" is confused!", null, true, false,
+                                        null))));
+                    if (friendlyPokemon.statusCounter > 0 && game.map.rand.nextInt(2) == 0) {
+                        // TODO: what is the damage calc here? Assuming stab, type effectiveness etc all apply.
+                        // https://bulbapedia.bulbagarden.net/wiki/Status_condition
+                        // "The damage is done as if the Pokémon attacked itself with a 40-power typeless physical attack"
+                        // TODO: can't handle typeless. Probably need a 'typeless' attack specially stored.
+                        Attack confustionAtk = game.battle.attacks.get("confusion_hit");
+                        confustionAtk.damage = Battle.gen2CalcDamage(friendlyPokemon, confustionAtk, friendlyPokemon);
+                        attackAction.append(new DisplayText.Clear(game,
+                                            new WaitFrames(game, 3,
+                                            new DisplayText(game, "It hurt itself in confusion!", null, true, false,
+                                            Battle.depleteHealth(game, !isFriendly, confustionAtk.damage,
+                                            new WaitFrames(game, 13,
+                                            nextAction))))));
+                        return attackAction;
+                    }
+                    friendlyPokemon.status = null;
+                    attackAction.append(new DisplayText.Clear(game,
+                                        new WaitFrames(game, 3,
+                                        new DisplayText(game, enemy+friendlyPokemon.name.toUpperCase()+" snapped out of confusion!", null, true, true,
+                                        null))));
+                }
+                // TODO: remove
+//                attackAction.append(new WaitFrames(game, 30, null));
+            }
             
+            // Check if attack misses or not
+            // If it does, just return 'Attack Missed!' text
+            // Source - https://web.archive.org/web/20140712063943/http://www.upokecenter.com/content/pokemon-gold-version-silver-version-and-crystal-version-timing-notes
+            // Percentages - https://github.com/pret/pokecrystal/blob/master/macros/data.asm
+            // - best I can tell, formula to convert percentage to number out of 256 is (n * 255) / 100;
+            int accuracyStage = friendlyPokemon.statStages.get("accuracy");
+            float multiplier = (float)Math.max(3, 3 + accuracyStage)/(float)Math.max(3, 3 - accuracyStage);
+            accuracy = (int)(((attack.accuracy*255)/100)*multiplier);  // convert from 0-100 percent to 0-255
+            if (accuracy < 1) {
+                accuracy = 1;
+            }
+            int evasionStage = enemyPokemon.statStages.get("evasion");
+            multiplier = (float)Math.max(3, 3 - evasionStage)/(float)Math.max(3, 3 + evasionStage);  // this is inverse of accuracy formula
+            accuracy = (int)(accuracy*multiplier);
+            if (accuracy < 1) {
+                accuracy = 1;
+            }
+            if (accuracy > 255) {
+                accuracy = 255;
+            }
+            // TODO: debug, remove
+//            System.out.println(attack.name);
+//            System.out.println(attack.accuracy);
+//            System.out.println(accuracy);
+            boolean attackMisses = accuracy < 255 && game.map.rand.nextInt(256) >= accuracy;
+            
+            String effectiveness;
+            String text_string = "";
+
 //            if (isFriendly) {
             // TODO: 'no effect' attacks
             // Attack data loaded from Crystal
 //                String attackType = attack.type;  // TODO: remove
-            
+
             // if does any damage, do multiplier stuff and text.
             // if does any stat change (how to tell?) then add text.
+            attackAction.append(new DisplayText.Clear(game,
+                                new WaitFrames(game, 3,
+                                new DisplayText(game, enemy+friendlyPokemon.name.toUpperCase()+" used "+attack.name.toUpperCase()+"!",
+                                                null, true, false,
+                                null))));
 
-            attackAction =  new LoadAndPlayAnimation(game, attack.name, enemyPokemon,
-                            null);
             // If it's an attack that does damage,
             // - play enemy 'hit' animation
             // - deplete enemy health
             // - if super or not very effect, display text.
             if (attack.power != 0) {
-                float multiplier = game.battle.gen2TypeEffectiveness.get(attack.type).get(enemyPokemon.types.get(0).toLowerCase());
+                if (attackMisses) {
+                    attackAction.append(new WaitFrames(game, 30,
+                                        new DisplayText.Clear(game,
+                                        new WaitFrames(game, 3,
+                                        new DisplayText(game, "The attack missed!", null, true, true,
+                                        nextAction)))));
+                    return attackAction;
+                }
+                attackAction.append(new LoadAndPlayAnimation(game, attack.name, enemyPokemon, null));
+                // Attack didn't miss so continue with damage calc.
+                multiplier = game.battle.gen2TypeEffectiveness.get(attack.type).get(enemyPokemon.types.get(0).toLowerCase());
                 if (enemyPokemon.types.size() > 1) {
                     multiplier *= game.battle.gen2TypeEffectiveness.get(attack.type).get(enemyPokemon.types.get(1).toLowerCase());
                 }
@@ -2191,12 +2372,15 @@ public class Battle {
                 if (!effectiveness.equals("neutral_effective")) {
                     attackAction.append(new DisplayText.Clear(game,
                                         new WaitFrames(game, 3,
-                                        new DisplayText(game,
-                                                        text_string,
-                                                        null, true, true,
+                                        new DisplayText(game, text_string, null, true, true,
                                         null))));
                 }
             }
+            // TODO: I'm probably going to have to move the effects with the additional HIT effects
+            // - if opposing pokemon faints, that effect isn't supposed to trigger. it will currently.
+            // - See: 'End of Attack' section, https://web.archive.org/web/20140712063943/http://www.upokecenter.com/content/pokemon-gold-version-silver-version-and-crystal-version-timing-notes
+            // TODO: actually the effect may not apply. we'll see.
+            
             // If this is a stat-change attack, then:
             // - attempt to apply stat change
             // - add appropriate text (<> went up!; <> can't go any higher!)
@@ -2211,65 +2395,193 @@ public class Battle {
                 stat = "speed";
             }
             else if (attack.effect.contains("EFFECT_SP_ATK")) {
-                stat = "special_attack";
+                stat = "specialAtk";
             }
             else if (attack.effect.contains("EFFECT_SP_DEF")) {
-                stat = "special_defense";
+                stat = "specialDef";
+            }
+            else if (attack.effect.contains("EFFECT_ACCURACY")) {
+                stat = "accuracy";
+            }
+            else if (attack.effect.contains("EFFECT_EVASION")) {
+                stat = "evasion";
             }
             if (stat != null) {
-                int stage = 1;
-                if (attack.effect.contains("2")) {
-                    stage = 2;
+                // If this is a side-effect of an attack, then use effect chance instead of accuracy.
+                if (attack.effect.contains("HIT")) {
+                    accuracy = (attack.effectChance*255)/100;
+                    attackMisses = accuracy < 255 && game.map.rand.nextInt(256) >= accuracy;
                 }
-                if (attack.effect.contains("DOWN")) {
-                    stage *= -1;
-                }
-                Pokemon target = friendlyPokemon;
-                // If this comes as a side-effect to a damaging move,
-                // then the stat change is applied to the opposing pokemon.
-                // Or if it just targets the other pokemon.
-                if (attack.effect.contains("HIT") || 
-                    attack.name.equals("growl") || attack.name.equals("leer") ||
-                    attack.name.equals("screech") || attack.name.equals("spider web") ||
-                    attack.name.equals("string shot") || attack.name.equals("tail whip")) {
-                    target = enemyPokemon;
-                }
-                boolean worked = target.gen2ApplyStatStage(stat, stage);
-                String text = null;
-                // Only show failed text when applying to friendly.
-                if (!worked) {
+                if (attackMisses) {
                     if (!attack.effect.contains("HIT")) {
-                        text = target.name.toUpperCase()+"' "+stat.toUpperCase()+" wonì go any "+(stage > 0 ? "higher!" : "lower!");
+                        attackAction.append(new WaitFrames(game, 30,
+                                            new DisplayText.Clear(game,
+                                            new WaitFrames(game, 3,
+                                            new DisplayText(game, "But it failed!", null, true, true,
+                                            nextAction)))));
+                        return attackAction;
                     }
+                    // Fails silently if it's the result of a hit.
                 }
                 else {
-                    if (stage == 2) {
-                        text = target.name.toUpperCase()+"' "+stat.toUpperCase()+" went way up!";
+                    int stage = 1;
+                    if (attack.effect.contains("2")) {
+                        stage = 2;
                     }
-                    else if (stage == 1) {
-                        text = target.name.toUpperCase()+"' "+stat.toUpperCase()+" went up!";
+                    if (attack.effect.contains("DOWN")) {
+                        stage *= -1;
                     }
-                    else if (stage == -1) {
-                        text = target.name.toUpperCase()+"' "+stat.toUpperCase()+" fell!";
+                    Pokemon target = friendlyPokemon;
+                    // If this comes as a side-effect to a damaging move,
+                    // then the stat change is applied to the opposing pokemon.
+                    // Or if it just targets the other pokemon.
+                    if (attack.effect.contains("HIT") || 
+                        attack.name.equals("growl") || attack.name.equals("leer") ||
+                        attack.name.equals("screech") || attack.name.equals("spider web") ||
+                        attack.name.equals("string shot") || attack.name.equals("tail whip") ||
+                        attack.name.equals("sand attack") || attack.name.equals("smokescreen") ||
+                        attack.name.equals("kinesis") || attack.name.equals("flash") ||
+                        attack.name.equals("mud slap") || attack.name.equals("octazooka") ||
+                        attack.name.equals("sweet scent") || attack.name.equals("scary face")) {
+                        target = enemyPokemon;
                     }
-                    else if (stage == -2) {
-                        text = target.name.toUpperCase()+"' "+stat.toUpperCase()+" sharply fell!";
+                    boolean worked = target.gen2ApplyStatStage(stat, stage);
+                    String text = null;
+                    // Only show failed text when applying to friendly.
+                    if (!worked) {
+                        if (!attack.effect.contains("HIT")) {
+                            text = target.name.toUpperCase()+"' "+stat.toUpperCase()+" wonì go any "+(stage > 0 ? "higher!" : "lower!");
+                        }
                     }
-                }
-                if (text != null) {
-                    if (!attack.effect.contains("HIT")) {
-                        // TODO: there's like a 'hit' animation that goes here where screen shakes.
-                        // TODO: check and see if the 30 frames are necessary here. Also, how many?
-                        // They might not be - I remember that text might appear immediately after shake.
-                        attackAction.append(new WaitFrames(game, 30, null)); 
+                    else {
+                        if (stage == 2) {
+                            text = target.name.toUpperCase()+"' "+stat.toUpperCase()+" went way up!";
+                        }
+                        else if (stage == 1) {
+                            text = target.name.toUpperCase()+"' "+stat.toUpperCase()+" went up!";
+                        }
+                        else if (stage == -1) {
+                            text = target.name.toUpperCase()+"' "+stat.toUpperCase()+" fell!";
+                        }
+                        else if (stage == -2) {
+                            text = target.name.toUpperCase()+"' "+stat.toUpperCase()+" sharply fell!";
+                        }
                     }
-                    attackAction.append(new DisplayText.Clear(game,
-                                        new WaitFrames(game, 3,
-                                        new DisplayText(game, text, null, true, true,
-                                        null))));
+                    if (text != null) {
+                        if (!attack.effect.contains("HIT")) {
+                            // TODO: there's like a 'hit' animation that goes here where screen shakes.
+                            // TODO: check and see if the 30 frames are necessary here. Also, how many?
+                            // They might not be - I remember that text might appear immediately after shake.
+                            attackAction.append(new WaitFrames(game, 30, null)); 
+                        }
+                        attackAction.append(new DisplayText.Clear(game,
+                                            new WaitFrames(game, 3,
+                                            new DisplayText(game, text, null, true, false,
+                                            new WaitFrames(game, 30,
+                                            null)))));
+                    }
                 }
             }
-            
+            // If this is a status-change attack, then:
+            // - attempt to apply status change
+            // - add appropriate text (<> fell to sleep! etc)
+            // https://web.archive.org/web/20140712063943/http://www.upokecenter.com/content/pokemon-gold-version-silver-version-and-crystal-version-timing-notes
+            // https://bulbapedia.bulbagarden.net/wiki/Status_condition
+            // TODO: confuse actually stacks with all other statuses, just handle it differently
+            // - ie pokemon.confuseStatus or something (also needs to denote attract? can pokemon be confused and attracted at same time?)
+            String status = null;
+            if (attack.effect.contains("EFFECT_PARALYZE")) {
+                status = "paralyze";
+            }
+            else if (attack.effect.equals("EFFECT_SLEEP")) {
+                // Fun fact - EFFECT_SLEEP_TALK exists so don't collide with that
+                // also - there is no EFFECT_SLEEP_HIT so not an issue.
+                status = "sleep";
+            }
+            else if (attack.effect.contains("EFFECT_POISON")) {
+                status = "poison";
+            }
+            else if (attack.effect.contains("EFFECT_CONFUSE")) {
+                status = "confuse";
+            }
+            else if (attack.effect.contains("EFFECT_BURN")) {
+                status = "burn";
+            }
+            else if (attack.effect.contains("EFFECT_FREEZE")) {
+                status = "freeze";
+            }
+            else if (attack.effect.contains("EFFECT_TOXIC")) {
+                status = "toxic";
+            }
+            else if (attack.effect.contains("EFFECT_ATTRACT")) {
+                status = "attract";
+            }
+            if (status != null) {
+                // If this is a side-effect of an attack, then use effect chance instead of accuracy.
+                if (attack.effect.contains("HIT")) {
+                    accuracy = (attack.effectChance*255)/100;
+                    attackMisses = accuracy < 255 && game.map.rand.nextInt(256) >= accuracy;
+                }
+                // Target is always enemy for status moves
+                // Note: for moves like REST, game doesnt denote EFFECT_SLEEP for effect.
+                Pokemon target = enemyPokemon;
+                if (attackMisses || target.status != null) {
+                    if (!attack.effect.contains("HIT") || target.status != null) {
+                        attackAction.append(new WaitFrames(game, 30,
+                                            new DisplayText.Clear(game,
+                                            new WaitFrames(game, 3,
+                                            new DisplayText(game, "But it failed!", null, true, true,
+                                            nextAction)))));
+                        return attackAction;
+                    }
+                }
+                if (!attackMisses) {
+//                    target.status = status;  // TODO: remove if unused
+                    attackAction.append(new WaitFrames(game, 30, null));
+                    String text = null;
+                    if (status.equals("paralyze")) {
+                        // Reduce speed to 1/4
+                        target.currentStats.put("speed", target.currentStats.get("speed")/4);
+                        text = "Enemy "+target.name.toUpperCase()+" was PARALYZED! It might not be able to attack!";
+                        
+                    }
+                    else if (status.equals("burn")) {
+                        // Reduce speed to 1/4
+                        target.currentStats.put("attack", target.currentStats.get("attack")/4);
+                        text = "Enemy "+target.name.toUpperCase()+" was burned!";
+                    }
+                    else if (status.equals("sleep")) {
+                        // Add to statusCounter
+                        target.statusCounter = game.map.rand.nextInt(5) + 1;
+                        text = "Enemy "+target.name.toUpperCase()+" fell asleep!";
+                    }
+                    else if (status.equals("poison")) {
+                        text = "Enemy "+target.name.toUpperCase()+" was poisoned!";
+                    }
+                    else if (status.equals("confuse")) {
+                        target.statusCounter = game.map.rand.nextInt(5) + 1;
+                        text = "Enemy "+target.name.toUpperCase()+" is confused!";
+                    }
+                    else if (status.equals("freeze")) {
+                        text = "Enemy "+target.name.toUpperCase()+"' frozen solid!";
+                    }
+                    else if (status.equals("toxic")) {
+                        // Use statusCounter to count how many turns toxic has been in effect.
+                        target.statusCounter = 1;
+                        text = "Enemy "+target.name.toUpperCase()+"' badly poisoned!";
+                    }
+                    else if (status.equals("attract")) {
+                        text = "Enemy "+enemyPokemon.name.toUpperCase()+" became infatuated with "+friendlyPokemon.name.toUpperCase()+"!";
+                    }
+                    if (text != null) {
+                        attackAction.append(new DisplayText.Clear(game,
+                                            new WaitFrames(game, 3,
+                                            new DisplayText(game, text, null, true, true,
+                                            new SetField(target, "status", status,  // Delay to emulate vgc
+                                            null)))));
+                    }
+                }
+            }
             // Check if attack traps target pokemon
             if (enemyPokemon.trappedBy != null) {
                 attackAction.append(new DisplayText.Clear(game,
@@ -2494,6 +2806,11 @@ public class Battle {
 //                Game.staticGame.currMusic = music2;
 //            }
 //        });
+        // TODO: just doing for fun, remove
+//        this.music = Gdx.audio.newMusic(Gdx.files.internal("music/wild_battle_johto_by_familyjules2.ogg"));
+//        this.music.setLooping(true);
+//        this.music.setVolume(0.3f);
+        
         this.music = new LinkedMusic("battle/battle-vs-wild-pokemon3", "battle/battle-vs-wild-pokemon2");
         this.music.setVolume(0.3f);
 
@@ -2932,6 +3249,8 @@ public class Battle {
         // power 0 because the attack will apply extra damage that ignores stats.
         Attack attack = new Attack("Mewtwo_Special1", "EFFECT_NORMAL_HIT", 0, "psychic", 100, 1, 100);
         this.attacks.put(attack.name, attack);
+        attack = new Attack("confusion_hit", "EFFECT_NORMAL_HIT", 40, "normal", 100, 1, 100);  // TODO: typeless
+        this.attacks.put(attack.name, attack);
     }
 
     /*
@@ -3016,8 +3335,7 @@ public class Battle {
                                   new WaitFrames(Game.staticGame, 3,
                                   new DisplayText(Game.staticGame,
                                                   Battle.this.oppPokemon.name.toUpperCase()+"' hurt by "+Battle.this.oppPokemon.trappedBy.toUpperCase()+"!",
-                                                  null,
-                                                  true,
+                                                  null, true,
                                   new DepleteEnemyHealth(Game.staticGame,
                                   new WaitFrames(Game.staticGame, 13,
                                   this.nextAction))))));
@@ -3220,7 +3538,7 @@ public class Battle {
                     }
                     // TODO: determine if hit/miss, crit, effect hit, etc
                     playerAttack = game.battle.attacks.get(game.player.currPokemon.attacks[DrawAttacksMenu.curr].toLowerCase());
-                    playerAttack.damage = Battle.calcDamage(game.player.currPokemon, playerAttack, game.battle.oppPokemon);
+                    playerAttack.damage = Battle.gen2CalcDamage(game.player.currPokemon, playerAttack, game.battle.oppPokemon);
 
                     if (game.battle.oppPokemon.trappedBy == null &&
                         playerAttack.name.toLowerCase().equals("whirlpool") ||
@@ -3240,13 +3558,12 @@ public class Battle {
                     game.player.currPokemon.trappedBy = turnData.playerTrappedBy;
                     game.player.currPokemon.trapCounter = turnData.playerTrapCounter;
                 }
-                playerAction =  new DisplayText(game, game.player.currPokemon.name.toUpperCase()+" used "+playerAttack.name.toUpperCase()+"!",
-                                                null, true, false,
+                playerAction =  //new DisplayText(game, game.player.currPokemon.name.toUpperCase()+" used "+playerAttack.name.toUpperCase()+"!",
+                                //                null, true, false,
                                 new AttackAnim(game, playerAttack, isFriendly,
-                                null));
+                                null);
             }
-
-            // If expecting player to switch, enemy does nothing
+            // If expecting player to switch (after friendly pokemon fainted), enemy does nothing
             if (game.battle.network.expectPlayerSwitch) {
                 game.battle.network.expectPlayerSwitch = false;
                 doTurn = playerAction;
@@ -3272,7 +3589,7 @@ public class Battle {
 //                }
 //                System.out.println(attackChoice);
 //                System.out.println(enemyAttack.name);
-                enemyAttack.damage = Battle.calcDamage(game.battle.oppPokemon, enemyAttack, game.player.currPokemon);
+                enemyAttack.damage = Battle.gen2CalcDamage(game.battle.oppPokemon, enemyAttack, game.player.currPokemon);
 
                 // check if attack traps player pokemon
                 if (game.player.currPokemon.trappedBy == null &&
@@ -3295,11 +3612,10 @@ public class Battle {
 //                System.out.println("enemyAttack.damage");
 //                System.out.println(enemyAttack.damage);
             }
-
-            Action enemyAction =  new DisplayText(game, "Enemy "+game.battle.oppPokemon.name.toUpperCase()+" used "+enemyAttack.name.toUpperCase()+"!",
-                                                  null, true, false,
+            Action enemyAction =  //new DisplayText(game, "Enemy "+game.battle.oppPokemon.name.toUpperCase()+" used "+enemyAttack.name.toUpperCase()+"!",
+                                  //                null, true, false, // TODO: remove if unused
                                   new AttackAnim(game, enemyAttack, !isFriendly,
-                                  null));
+                                  null);
             if (!oppFirst) {
                 doTurn = playerAction;
                 doTurn.append(new DisplayText.Clear(game,
@@ -3316,7 +3632,7 @@ public class Battle {
             // Always goes you, then opponent for trap check
             if (game.player.currPokemon.trappedBy != null) {
                 Attack trap = game.battle.attacks.get(game.player.currPokemon.trappedBy);
-                trap.damage = Battle.calcDamage(game.battle.oppPokemon, trap, game.player.currPokemon);  // TODO: does STAB apply to traps?
+                trap.damage = Battle.gen2CalcDamage(game.battle.oppPokemon, trap, game.player.currPokemon);  // TODO: does STAB apply to traps?
                 doTurn.append(new Battle.LoadAndPlayAnimation(game, game.player.currPokemon.trappedBy, game.player.currPokemon,
                               new DisplayText.Clear(game,
                               new WaitFrames(game, 3,
@@ -3332,7 +3648,7 @@ public class Battle {
             }
             if (game.battle.oppPokemon.trappedBy != null) {
                 Attack trap = game.battle.attacks.get(game.battle.oppPokemon.trappedBy);
-                trap.damage = Battle.calcDamage(game.battle.oppPokemon, trap, game.player.currPokemon);  // TODO: does STAB apply to traps?
+                trap.damage = Battle.gen2CalcDamage(game.battle.oppPokemon, trap, game.player.currPokemon);  // TODO: does STAB apply to traps?
                 doTurn.append(new Battle.LoadAndPlayAnimation(game, game.battle.oppPokemon.trappedBy, game.battle.oppPokemon,
                               new DisplayText.Clear(game,
                               new WaitFrames(game, 3,
@@ -3346,6 +3662,7 @@ public class Battle {
                     game.battle.oppPokemon.trappedBy = null;
                 }
             }
+            
             doTurn.append(new DisplayText.Clear(game,
                           new WaitFrames(game, 3,
                           this.nextAction)));
@@ -5003,7 +5320,7 @@ class DepleteEnemyHealth extends Action {
             game.actionStack.remove(this);
             // If enemy health is 0, do EnemyFaint
             if (game.battle.oppPokemon.currentStats.get("hp") <= 0) {
-                int exp = 10000; //game.battle.calcFaintExp();
+                int exp = game.battle.calcFaintExp();
                 game.player.currPokemon.exp += exp;
                 Action nextAction = new EnemyFaint(game,
                                     new RemoveDisplayText(  // TODO: refactor to stop using this
@@ -5991,21 +6308,6 @@ class DrawEnemyHealth extends Action {
              // probly remove
             this.bgSprite.draw(game.uiBatch);
 
-            // draw pkmn level bars
-            int tensPlace = game.battle.oppPokemon.level/10;
-            // System.out.println("level: "+String.valueOf(tensPlace));
-            Sprite tensPlaceSprite = game.textDict.get(Character.forDigit(tensPlace, 10));
-            game.uiBatch.draw(tensPlaceSprite, 40, 128);
-
-            int offset = 0;
-            if (game.battle.oppPokemon.level < 10) {
-                offset = -8;
-            }
-
-            int onesPlace = game.battle.oppPokemon.level % 10;
-            Sprite onesPlaceSprite = game.textDict.get(Character.forDigit(onesPlace, 10));
-            game.uiBatch.draw(onesPlaceSprite, 48+offset, 128);
-
             char[] textArray = game.battle.oppPokemon.name.toUpperCase().toCharArray();
             Sprite letterSprite;
             for (int i=0; i < textArray.length; i++) {
@@ -6013,7 +6315,48 @@ class DrawEnemyHealth extends Action {
                 game.uiBatch.draw(letterSprite, 8+8*i, 136);
             }
 
-            // draw health bar
+            // Draw pkmn level text
+            if (game.battle.oppPokemon.status == null || 
+                game.battle.oppPokemon.status.equals("confuse") || 
+                game.battle.oppPokemon.status.equals("attract")) {
+                int tensPlace = game.battle.oppPokemon.level/10;
+                // System.out.println("level: "+String.valueOf(tensPlace));
+                Sprite tensPlaceSprite = game.textDict.get(Character.forDigit(tensPlace, 10));
+                game.uiBatch.draw(tensPlaceSprite, 40, 128);
+
+                int offset = 0;
+                if (game.battle.oppPokemon.level < 10) {
+                    offset = -8;
+                }
+
+                int onesPlace = game.battle.oppPokemon.level % 10;
+                Sprite onesPlaceSprite = game.textDict.get(Character.forDigit(onesPlace, 10));
+                game.uiBatch.draw(onesPlaceSprite, 48+offset, 128);
+            }
+            else {
+                String text = "";
+                if (game.battle.oppPokemon.status.equals("poison") || game.battle.oppPokemon.status.equals("toxic")) {
+                    text = "PSN";
+                }
+                else if (game.battle.oppPokemon.status.equals("paralyze")) {
+                    text = "PAR";
+                }
+                else if (game.battle.oppPokemon.status.equals("frozen")) {
+                    text = "FRZ";
+                }
+                else if (game.battle.oppPokemon.status.equals("sleep")) {
+                    text = "SLP";
+                }
+                else if (game.battle.oppPokemon.status.equals("burn")) {
+                    text = "BRN";
+                }
+                textArray = text.toCharArray();
+                for (int i=0; i < textArray.length; i++) {
+                    letterSprite = game.textDict.get(textArray[i]);
+                    game.uiBatch.draw(letterSprite, 48-8-8+8*i, 128);
+                }
+            }
+            // Draw health bar
             for (Sprite bar : this.healthBar) {
                 bar.draw(game.uiBatch);
             }
@@ -6041,6 +6384,7 @@ class DrawFriendlyHealth extends Action {
     public DrawFriendlyHealth(Game game) {
         this(game, null);
     }
+
     public DrawFriendlyHealth(Game game, Action nextAction) {
         this.nextAction = nextAction;
 
@@ -6091,24 +6435,9 @@ class DrawFriendlyHealth extends Action {
 
     //        this.helperSprite.draw(game.floatingBatch);    // debug
 
-            // draw pkmn level bars
-            int tensPlace = game.player.currPokemon.level/10;
-            // System.out.println("level: "+String.valueOf(tensPlace));
-            Sprite tensPlaceSprite = game.textDict.get(Character.forDigit(tensPlace,10));
-            game.uiBatch.draw(tensPlaceSprite, 120, 72);
-
-            int offset = 0;
-            if (game.player.currPokemon.level < 10) {
-                offset = -8;
-            }
-
-            int onesPlace = game.player.currPokemon.level % 10;
-            Sprite onesPlaceSprite = game.textDict.get(Character.forDigit(onesPlace,10));
-            game.uiBatch.draw(onesPlaceSprite, 128+offset, 72);
-
             char[] textArray = game.player.currPokemon.name.toUpperCase().toCharArray();
             Sprite letterSprite;
-            offset = 0;
+            int offset = 0;
             if (textArray.length > 5) {
                 offset = -16;
             }
@@ -6120,7 +6449,48 @@ class DrawFriendlyHealth extends Action {
                 game.uiBatch.draw(letterSprite, offset+96+8*i, 80);
             }
 
-            // draw health bar
+            // Draw pkmn level text or current status ailment
+            if (game.player.currPokemon.status == null || 
+                    game.player.currPokemon.status.equals("confuse") || 
+                    game.player.currPokemon.status.equals("attract")) {
+                int tensPlace = game.player.currPokemon.level/10;
+                // System.out.println("level: "+String.valueOf(tensPlace));
+                Sprite tensPlaceSprite = game.textDict.get(Character.forDigit(tensPlace,10));
+                game.uiBatch.draw(tensPlaceSprite, 120, 72);
+
+                offset = 0;
+                if (game.player.currPokemon.level < 10) {
+                    offset = -8;
+                }
+
+                int onesPlace = game.player.currPokemon.level % 10;
+                Sprite onesPlaceSprite = game.textDict.get(Character.forDigit(onesPlace,10));
+                game.uiBatch.draw(onesPlaceSprite, 128+offset, 72);
+            }
+            else {
+                String text = "";
+                if (game.player.currPokemon.status.equals("poison") || game.player.currPokemon.status.equals("toxic")) {
+                    text = "PSN";
+                }
+                else if (game.player.currPokemon.status.equals("paralyze")) {
+                    text = "PAR";
+                }
+                else if (game.player.currPokemon.status.equals("frozen")) {
+                    text = "FRZ";
+                }
+                else if (game.player.currPokemon.status.equals("sleep")) {
+                    text = "SLP";
+                }
+                else if (game.player.currPokemon.status.equals("burn")) {
+                    text = "BRN";
+                }
+                textArray = text.toCharArray();
+                for (int i=0; i < textArray.length; i++) {
+                    letterSprite = game.textDict.get(textArray[i]);
+                    game.uiBatch.draw(letterSprite, 128-8-8+i*8, 72);
+                }
+            }
+            // Draw health bar
             for (Sprite bar : this.healthBar) {
                 bar.draw(game.uiBatch);
             }
@@ -6720,32 +7090,59 @@ class DrawPokemonMenu extends MenuAction {
             // draw status bar
             game.uiBatch.draw(this.healthBar, 0, 128 -16*i);
 
-            // draw pkmn level text
-            int tensPlace = currPokemon.level/10;
-            Sprite tensPlaceSprite = game.textDict.get(Character.forDigit(tensPlace,10));
-            game.uiBatch.draw(tensPlaceSprite, 112, 136 -16*i);
-            int offset = 0;
-            if (currPokemon.level >= 10) {
-                offset = 8;
+            // Draw pkmn level text
+            if (currPokemon.status == null ||
+                    currPokemon.status.equals("confuse") || 
+                    currPokemon.status.equals("attract")) {
+                int tensPlace = currPokemon.level/10;
+                Sprite tensPlaceSprite = game.textDict.get(Character.forDigit(tensPlace,10));
+                game.uiBatch.draw(tensPlaceSprite, 112, 136 -16*i);
+                int offset = 0;
+                if (currPokemon.level >= 10) {
+                    offset = 8;
+                }
+                int onesPlace = currPokemon.level % 10;
+                Sprite onesPlaceSprite = game.textDict.get(Character.forDigit(onesPlace,10));
+                game.uiBatch.draw(onesPlaceSprite, 112 +offset, 136 -16*i);
             }
-            int onesPlace = currPokemon.level % 10;
-            Sprite onesPlaceSprite = game.textDict.get(Character.forDigit(onesPlace,10));
-            game.uiBatch.draw(onesPlaceSprite, 112 +offset, 136 -16*i);
+            else {
+                String text = "";
+                if (currPokemon.status.equals("poison") || currPokemon.status.equals("toxic")) {
+                    text = "PSN";
+                }
+                else if (currPokemon.status.equals("paralyze")) {
+                    text = "PAR";
+                }
+                else if (currPokemon.status.equals("frozen")) {
+                    text = "FRZ";
+                }
+                else if (currPokemon.status.equals("sleep")) {
+                    text = "SLP";
+                }
+                else if (currPokemon.status.equals("burn")) {
+                    text = "BRN";
+                }
+                char[] textArray = text.toCharArray();
+                for (int j=0; j < textArray.length; j++) {
+                    Sprite letterSprite = game.textDict.get(textArray[j]);
+                    game.uiBatch.draw(letterSprite, 112-8 +8*j, 136 -16*i);
+                }
+            }
 
-            // draw pkmn max health text
+            // Draw pkmn max health text
             int maxHealth = currPokemon.maxStats.get("hp");
             int hundredsPlace = maxHealth/100;
             if (hundredsPlace > 0) {
                 Sprite hudredsPlaceSprite = game.textDict.get(Character.forDigit(hundredsPlace,10));
                 game.uiBatch.draw(hudredsPlaceSprite, 136, 128 -16*i);
             }
-            tensPlace = (maxHealth % 100) / 10;
+            int tensPlace = (maxHealth % 100) / 10;
             if (tensPlace > 0 || hundredsPlace > 0) {
-                tensPlaceSprite = game.textDict.get(Character.forDigit(tensPlace,10));
+                Sprite tensPlaceSprite = game.textDict.get(Character.forDigit(tensPlace,10));
                 game.uiBatch.draw(tensPlaceSprite, 136 +8, 128 -16*i);
             }
-            onesPlace = maxHealth % 10;
-            onesPlaceSprite = game.textDict.get(Character.forDigit(onesPlace,10));
+            int onesPlace = maxHealth % 10;
+            Sprite onesPlaceSprite = game.textDict.get(Character.forDigit(onesPlace,10));
             game.uiBatch.draw(onesPlaceSprite, 136 +16, 128 -16*i);
 
             // draw pkmn current health text
@@ -6757,7 +7154,7 @@ class DrawPokemonMenu extends MenuAction {
             }
             tensPlace = (currHealth % 100) / 10;
             if (tensPlace > 0 || hundredsPlace > 0) {
-                tensPlaceSprite = game.textDict.get(Character.forDigit(tensPlace,10));
+                Sprite tensPlaceSprite = game.textDict.get(Character.forDigit(tensPlace,10));
                 game.uiBatch.draw(tensPlaceSprite, 104 +8, 128 -16*i);
             }
             onesPlace = currHealth % 10;
@@ -9167,8 +9564,7 @@ class SpecialBattleMegaGengar extends Action {
                                  new WaitFrames(game, 39,
                                  new MovePlayerOffScreen(game,
                                  new DisplayText(game, "Go! "+game.player.currPokemon.name.toUpperCase()+"!", null, triggerAction,
-                                 new SplitAction(
-                                         new DrawFriendlyHealth(game),
+                                 new SplitAction(new DrawFriendlyHealth(game),
                                  new ThrowOutPokemon(game, // this draws pkmn sprite permanently until battle ends, ie until game.battle.drawAction == null
                                  triggerAction
                                  )))))))))));
@@ -11378,6 +11774,15 @@ class ThrowOutPokemonCrystal extends Action {
       if (this.firstStep == true) {
           game.battle.drawAction.drawFriendlyPokemonAction = this;
           this.firstStep = false;
+
+          // Reset stat stages of Pokemon sending out.
+          game.player.currPokemon.resetStatStages();
+
+          // Clear confusion/attract
+          if (game.player.currPokemon.status != null && (game.player.currPokemon.status.equals("confuse") || game.player.currPokemon.status.equals("attract"))) {
+              game.player.currPokemon.status = null;
+              game.player.currPokemon.statusCounter = 0;
+          }
       }
 
       // get next frame

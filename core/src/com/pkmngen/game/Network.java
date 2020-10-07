@@ -1345,7 +1345,7 @@ class ServerBroadcast extends Action {
                                 if (!turnData.oppFirst) {
                                     int finalHealth = battle.oppPokemon.currentStats.get("hp");
                                     if (battleAction.type == Battle.DoTurn.Type.ATTACK) {
-                                        int damage = Battle.calcDamage(player.currPokemon, turnData.playerAttack, battle.oppPokemon);
+                                        int damage = Battle.gen2CalcDamage(player.currPokemon, turnData.playerAttack, battle.oppPokemon);
                                         int currHealth = battle.oppPokemon.currentStats.get("hp");
                                         finalHealth = currHealth - damage > 0 ? currHealth - damage : 0;
                                         battle.oppPokemon.currentStats.put("hp", finalHealth);
@@ -1376,7 +1376,7 @@ class ServerBroadcast extends Action {
                                     if ((battleAction.type == Battle.DoTurn.Type.ATTACK && finalHealth > 0) ||
                                         (battleAction.type == Battle.DoTurn.Type.RUN && !turnData.runSuccessful) ||
                                         (battleAction.type == Battle.DoTurn.Type.ITEM && turnData.numWobbles != -1)) {
-                                        int damage = Battle.calcDamage(battle.oppPokemon, turnData.enemyAttack, player.currPokemon);
+                                        int damage = Battle.gen2CalcDamage(battle.oppPokemon, turnData.enemyAttack, player.currPokemon);
                                         int currHealth = player.currPokemon.currentStats.get("hp");
                                         finalHealth = currHealth - damage > 0 ? currHealth - damage : 0;
                                         player.currPokemon.currentStats.put("hp", finalHealth);
@@ -1387,13 +1387,13 @@ class ServerBroadcast extends Action {
                                     }
                                 }
                                 else {
-                                    int damage = Battle.calcDamage(battle.oppPokemon, turnData.enemyAttack, player.currPokemon);
+                                    int damage = Battle.gen2CalcDamage(battle.oppPokemon, turnData.enemyAttack, player.currPokemon);
                                     int currHealth = player.currPokemon.currentStats.get("hp");
                                     int finalHealth = currHealth - damage > 0 ? currHealth - damage : 0;
                                     player.currPokemon.currentStats.put("hp", finalHealth);
                                     turnData.enemyAttack.damage = damage;
                                     if (finalHealth > 0) {
-                                        damage = Battle.calcDamage(player.currPokemon, turnData.playerAttack, battle.oppPokemon);
+                                        damage = Battle.gen2CalcDamage(player.currPokemon, turnData.playerAttack, battle.oppPokemon);
                                         currHealth = battle.oppPokemon.currentStats.get("hp");
                                         finalHealth = currHealth - damage > 0 ? currHealth - damage : 0;
                                         battle.oppPokemon.currentStats.put("hp", finalHealth);
