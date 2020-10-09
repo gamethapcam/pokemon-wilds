@@ -20,9 +20,9 @@ import com.badlogic.gdx.math.Vector2;
 import com.pkmngen.game.util.TextureCache;
 
 public class Pokemon {
-    // contains all loaded pkmn textures, so that only one is used for each pkmn. ie don't load duplicate textures.
+    // Contains all loaded pkmn textures, so that only one is used for each pkmn. ie don't load duplicate textures.
     public static HashMap<String, Texture> textures = new HashMap<String, Texture>();
-    // add to this when loading pokemon
+    // Add to this when loading pokemon
     public static HashMap<String, Map<String, String>> gen2Evos = new HashMap<String, Map<String, String>>();
     public static HashMap<String, Map<Integer, String[]>> gen2Attacks = new HashMap<String, Map<Integer, String[]>>();
 
@@ -244,6 +244,34 @@ public class Pokemon {
                 // Later, once there (hopefully) are riding sprites, this can be changed to ride.
                 // My current idea is that RIDE increases movement speed and can perform jumps up ledges.
                 this.hms.add("JUMP");
+            }
+
+            if (name.equals("pidgeot") ||
+                name.equals("aerodactyl") ||
+                name.equals("charizard") ||
+                name.equals("dragonite") ||
+                name.equals("salamence") ||
+                name.equals("ho_oh") ||
+                name.equals("lugia") ||
+                name.equals("skarmory") ||
+                name.equals("articuno") ||
+                name.equals("zapdos") ||
+                name.equals("moltres") ||
+                name.equals("crobat") ||
+                name.equals("noctowl") ||
+                name.equals("xatu") ||
+                // the animations starting here fit pretty well
+                name.equals("flygon") ||
+                name.equals("togekiss") ||
+                name.equals("swellow") ||
+                name.equals("altaria") ||
+                name.equals("rayquaza") ||
+                name.equals("farfetch_d") ||
+                name.equals("drifblim") ||
+                name.equals("honchkrow") ||
+                name.equals("fearow")) {
+                //
+                this.hms.add("FLY");
             }
         }
 
@@ -809,7 +837,13 @@ public class Pokemon {
         this.level += numLevels;
         this.calcMaxStats();
         // TODO: remove when getting rid of currentStats.
-        this.currentStats = new HashMap<String, Integer>(this.maxStats);
+//        this.currentStats = new HashMap<String, Integer>(this.maxStats);
+        for (String stat : this.maxStats.keySet()) {
+            if (stat.equals("hp")) {
+                continue;
+            }
+            this.currentStats.put(stat, this.maxStats.get(stat));
+        }
     }
 
     /**
@@ -854,6 +888,32 @@ public class Pokemon {
             // Later, once there (hopefully) are riding sprites, this can be changed to ride.
             // My current idea is that RIDE increases movement speed and can perform jumps up ledges.
             this.hms.add("JUMP");
+
+            if (name.equals("pidgeot") ||
+                name.equals("aerodactyl") ||
+                name.equals("charizard") ||
+                name.equals("dragonite") ||
+                name.equals("salamence") ||
+                name.equals("ho_oh") ||
+                name.equals("lugia") ||
+                name.equals("skarmory") ||
+                name.equals("articuno") ||
+                name.equals("zapdos") ||
+                name.equals("moltres") ||
+                name.equals("crobat") ||
+                name.equals("noctowl") ||
+                name.equals("xatu") ||
+                name.equals("flygon") ||
+                name.equals("togekiss") ||
+                name.equals("swellow") ||
+                name.equals("altaria") ||
+                name.equals("rayquaza") ||
+                name.equals("farfetch_d") ||
+                name.equals("drifblim") ||
+                name.equals("honchkrow") ||
+                name.equals("fearow")) {
+                this.hms.add("FLY");
+            }
         }
         // TODO: for now, all grass types can cut
         if (this.types.contains("GRASS")) {
@@ -883,7 +943,17 @@ public class Pokemon {
             return true;
         }
         multiplier = (float)Math.max(2, 2 + newStage)/(float)Math.max(2, 2 - newStage);
-        int newStat = (int)(multiplier*this.maxStats.get(stat));
+        int currStat = this.maxStats.get(stat);
+        // Handle stat changes caused by status
+        if (this.status != null) {
+            if (stat.equals("speed") && this.status.equals("paralyze")) {
+                currStat = currStat/4;
+            }
+            else if (stat.equals("attack") && this.status.equals("burn")) {
+                currStat = currStat/4;
+            }
+        }
+        int newStat = (int)(multiplier*currStat);
         // This is a Gen 2 mechanic - stat value is capped at 999.
         if (newStat < 1) {
             newStat = 1;
@@ -1221,8 +1291,10 @@ public class Pokemon {
                         String vals[] = line.split(", ");
                         evos.put(vals[1], vals[2].toLowerCase());
                     }
-                    else if (line.contains("EVOLVE_ITEM") || line.contains("EVOLVE_TRADE") || line.contains("EVOLVE_HAPPINESS")) {
+                    else if (line.contains("EVOLVE_ITEM") || line.contains("EVOLVE_TRADE") || line.contains("EVOLVE_HAPPINESS") || line.contains("EVOLVE_MOVE")) {
                         // TODO
+                        String vals[] = line.split(", ");
+                        evos.put(vals[1].toLowerCase().replace("_", " "), vals[2].toLowerCase());
                     }
                     else if (!line.contains("\t")) {
                         inSection = false;
@@ -1315,6 +1387,10 @@ public class Pokemon {
             // If failed to load from prism animations, load from crystal
             Texture text = TextureCache.get(Gdx.files.internal("crystal_pokemon/crystal-overworld-sprites1.png"));
             int dexNumber = Integer.valueOf(this.dexNumber)-1;
+            // TODO: no honchkrow o/w sprite that I know of, just make it equal to murkrow's for now
+            if (name.equals("honchkrow")) {
+                dexNumber = 197;
+            }
 //            if (dexNumber > 123) {
 //                dexNumber += 3;
 //            }
@@ -1599,6 +1675,8 @@ public class Pokemon {
                     }
                     else if (line.contains("EVOLVE_ITEM") || line.contains("EVOLVE_TRADE")) {
                         // TODO
+                        String vals[] = line.split(", ");
+                        evos.put(vals[1].toLowerCase().replace("_", " "), vals[2].toLowerCase());
                     }
                     else if (!line.contains("db 0")) {
                         String vals[] = line.split(", ");
@@ -1646,7 +1724,24 @@ public class Pokemon {
         this.statStages.put("speed", 0);
         this.statStages.put("accuracy", 0);
         this.statStages.put("evasion", 0);
-        this.currentStats = new HashMap<String, Integer>(this.maxStats);
+//        this.currentStats = new HashMap<String, Integer>(this.maxStats);
+        for (String stat : this.maxStats.keySet()) {
+            if (stat.equals("hp")) {
+                continue;
+            }
+            this.currentStats.put(stat, this.maxStats.get(stat));
+        }
+        // Handle stat changes caused by status
+        if (this.status != null) {
+            if (status.equals("paralyze")) {
+                // Reduce speed to 1/4
+                this.currentStats.put("speed", this.currentStats.get("speed")/4);
+            }
+            else if (status.equals("burn")) {
+                // Reduce attack to 1/4
+                this.currentStats.put("attack", this.currentStats.get("attack")/4);
+            }
+        }
     }
 
     /**

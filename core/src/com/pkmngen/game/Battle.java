@@ -2543,10 +2543,9 @@ public class Battle {
                         // Reduce speed to 1/4
                         target.currentStats.put("speed", target.currentStats.get("speed")/4);
                         text = "Enemy "+target.name.toUpperCase()+" was PARALYZED! It might not be able to attack!";
-                        
                     }
                     else if (status.equals("burn")) {
-                        // Reduce speed to 1/4
+                        // Reduce attack to 1/4
                         target.currentStats.put("attack", target.currentStats.get("attack")/4);
                         text = "Enemy "+target.name.toUpperCase()+" was burned!";
                     }
@@ -2810,7 +2809,7 @@ public class Battle {
 //        this.music = Gdx.audio.newMusic(Gdx.files.internal("music/wild_battle_johto_by_familyjules2.ogg"));
 //        this.music.setLooping(true);
 //        this.music.setVolume(0.3f);
-        
+
         this.music = new LinkedMusic("battle/battle-vs-wild-pokemon3", "battle/battle-vs-wild-pokemon2");
         this.music.setVolume(0.3f);
 
@@ -5399,7 +5398,6 @@ class DepleteFriendlyHealth extends Action {
             this.targetSize = (int)Math.ceil( (this.pokemon.currentStats.get("hp")*48) / this.pokemon.maxStats.get("hp"));
             this.firstStep = false;
         }
-
         this.timer++;
         if (this.timer < 4) {
             return;
@@ -6341,7 +6339,7 @@ class DrawEnemyHealth extends Action {
                 else if (game.battle.oppPokemon.status.equals("paralyze")) {
                     text = "PAR";
                 }
-                else if (game.battle.oppPokemon.status.equals("frozen")) {
+                else if (game.battle.oppPokemon.status.equals("freeze")) {
                     text = "FRZ";
                 }
                 else if (game.battle.oppPokemon.status.equals("sleep")) {
@@ -6475,7 +6473,7 @@ class DrawFriendlyHealth extends Action {
                 else if (game.player.currPokemon.status.equals("paralyze")) {
                     text = "PAR";
                 }
-                else if (game.player.currPokemon.status.equals("frozen")) {
+                else if (game.player.currPokemon.status.equals("freeze")) {
                     text = "FRZ";
                 }
                 else if (game.player.currPokemon.status.equals("sleep")) {
@@ -7113,7 +7111,7 @@ class DrawPokemonMenu extends MenuAction {
                 else if (currPokemon.status.equals("paralyze")) {
                     text = "PAR";
                 }
-                else if (currPokemon.status.equals("frozen")) {
+                else if (currPokemon.status.equals("freeze")) {
                     text = "FRZ";
                 }
                 else if (currPokemon.status.equals("sleep")) {
@@ -7403,8 +7401,45 @@ class DrawPokemonMenu extends MenuAction {
 //            if (word.equals("STATS")) {
 //                return new SelectedMenu.Switch(prevMenu); // TODO - Stats menu
 //            }
+            if (word.equals("SWITCH")) {
+                if (game.battle.drawAction == null) {
+                    return new SelectedMenu.Switch(prevMenu);
+                }
+                else if (game.player.pokemon.get(DrawPokemonMenu.currIndex).currentStats.get("hp") <= 0) {
+                    this.disabled = true;
+                    game.insertAction(this.prevMenu);
+                    return new PlaySound("error1",
+                           new SetField(this.prevMenu, "disabled", false, null));
+                }
+                else if (game.player.pokemon.get(DrawPokemonMenu.currIndex) == game.player.currPokemon) {
+                    this.disabled = true;
+                    game.insertAction(this.prevMenu);
+                    return new PlaySound("error1",
+                           new SetField(this.prevMenu, "disabled", false, null));
+                }
+                else {
+                    if (game.type == Game.Type.CLIENT) {
+                        game.client.sendTCP(new com.pkmngen.game.Network.DoBattleAction(game.player.network.id,
+                                                                                        Battle.DoTurn.Type.SWITCH,
+                                                                                        DrawPokemonMenu.currIndex));
+                    }
+                    return new SplitAction(new PlaySound("click1", null),
+                           new Battle.DoTurn(game, Battle.DoTurn.Type.SWITCH,
+                           new WaitFrames(game, 15,
+                           new DrawBattleMenuNormal(game,
+                           null))));
+                }
+            }
+            // Return here if player is flying
+            if (game.player.isFlying) {
+                this.disabled = true;
+                game.insertAction(this.prevMenu);
+                return new PlaySound("error1",
+                       new SetField(this.prevMenu, "disabled", false,
+                       null));
+            }
             if (word.equals("DROP")) {
-                Vector2 pos = new Vector2(0,0);
+                Vector2 pos;
                 if (game.player.dirFacing.equals("right")) {
                     pos = game.player.position.cpy().add(16, 0);
                 }
@@ -7441,34 +7476,27 @@ class DrawPokemonMenu extends MenuAction {
                        new PlaySound(pokemon,
                        pokemon.new RemoveFromInventory()));
             }
-            else if (word.equals("SWITCH")) {
-                if (game.battle.drawAction == null) {
-                    return new SelectedMenu.Switch(prevMenu);
-                }
-                else if (game.player.pokemon.get(DrawPokemonMenu.currIndex).currentStats.get("hp") <= 0) {
-                    this.disabled = true;
-                    game.insertAction(this.prevMenu);
-                    return new PlaySound("error1",
-                           new SetField(this.prevMenu, "disabled", false, null));
-                }
-                else if (game.player.pokemon.get(DrawPokemonMenu.currIndex) == game.player.currPokemon) {
-                    this.disabled = true;
-                    game.insertAction(this.prevMenu);
-                    return new PlaySound("error1",
-                           new SetField(this.prevMenu, "disabled", false, null));
-                }
-                else {
-                    if (game.type == Game.Type.CLIENT) {
-                        game.client.sendTCP(new com.pkmngen.game.Network.DoBattleAction(game.player.network.id,
-                                                                                        Battle.DoTurn.Type.SWITCH,
-                                                                                        DrawPokemonMenu.currIndex));
+            else if (word.equals("FLY")) {
+                // TODO: hack to make playerStanding work for now.
+                PlayerStanding standingAction = null;
+                for (Action action : game.actionStack) {
+                    if (PlayerStanding.class.isInstance(action)) {
+                        standingAction = (PlayerStanding)action;
+                        break;
                     }
-                    return new SplitAction(new PlaySound("click1", null),
-                           new Battle.DoTurn(game, Battle.DoTurn.Type.SWITCH,
-                           new WaitFrames(game, 15,
-                           new DrawBattleMenuNormal(game,
-                           null))));
                 }
+//                game.player.standingAction = standingAction;
+                game.actionStack.remove(standingAction);  // TODO: what if not?
+//                game.cam.translate(0f, 16f);  // TODO: remove
+                game.player.isFlying = true;
+                return new SelectedMenu.ExitAfterActions(this.prevMenu,
+                       new PlaySound(pokemon,
+                       // trick ExitAfterActions
+                       new SplitAction(new WaitFrames(game, 40,
+                                       game.player.new Flying(pokemon, true,
+                                       null)),
+                       null)));
+                                         
             }
             // generate actions for HMs
             else if (word.equals("BUILD")) {
@@ -8113,6 +8141,13 @@ class DrawUseTossMenu extends MenuAction {
 //
 //        }
         if (game.battle.drawAction == null) {
+            if (game.player.isFlying) {
+                game.insertAction(this.prevMenu);
+                game.insertAction(new PlaySound("error1",
+                                  new SetField(this.prevMenu, "disabled", false,
+                                  null)));
+                return;
+            }
             if (itemName.equals("sleeping bag")) {
                 // TODO: 'cant use this' text while in battle.
                 if (game.map.tiles.get(game.player.position.cpy().add(16,0)).attrs.get("solid") ||
@@ -11779,10 +11814,14 @@ class ThrowOutPokemonCrystal extends Action {
           game.player.currPokemon.resetStatStages();
 
           // Clear confusion/attract
+          // TODO: confusion needs to be handled outside of pokemon.status.
           if (game.player.currPokemon.status != null && (game.player.currPokemon.status.equals("confuse") || game.player.currPokemon.status.equals("attract"))) {
               game.player.currPokemon.status = null;
               game.player.currPokemon.statusCounter = 0;
           }
+          // Reset attacks cursor to 0. 
+          // If you don't do this, player can select null attack which causes softlock.
+          DrawAttacksMenu.curr = 0;
       }
 
       // get next frame

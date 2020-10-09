@@ -105,7 +105,9 @@ public class Action {
     public void step(Game game) {
         game.actionStack.remove(this);
         game.insertAction(this.nextAction);
-        this.nextAction.step(game);
+        if (this.nextAction != null) {
+            this.nextAction.step(game);
+        }
     }
 }
 

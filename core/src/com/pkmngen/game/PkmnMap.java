@@ -23,6 +23,7 @@ import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.esotericsoftware.kryo.io.Output;
+import com.pkmngen.game.Player.Flying;
 import com.pkmngen.game.util.LinkedMusic;
 import com.pkmngen.game.util.TextureCache;
 
@@ -814,6 +815,9 @@ public class PkmnMap {
     // locations of all pokemon currently located on the map
     Map<Vector2, Pokemon> pokemon = new HashMap<Vector2, Pokemon>();
 
+    Vector2 bottomLeft = null;
+    Vector2 topRight = null;
+
     // use this to drop the tops of trees over the player
     //  hopefully makes drawing take less time
 //    Map<Vector2, Tile> trees = new HashMap<Vector2, Tile>();
@@ -1038,6 +1042,8 @@ public class PkmnMap {
             Network.SaveData saveData = game.server.getKryo().readObject(input, Network.SaveData.class);
             input.close();
             this.tiles.clear();
+            this.bottomLeft = new Vector2();
+            this.topRight = new Vector2();
             HashMap<String, Route> loadedRoutes = new HashMap<String, Route>();
             for (Network.TileData tileData : saveData.mapTiles.tiles) {
                 // store unique routes as hashmap ClassID->Route
@@ -1046,6 +1052,19 @@ public class PkmnMap {
                 }
                 Route tempRoute = loadedRoutes.get(tileData.routeBelongsTo);
                 this.tiles.put(tileData.pos.cpy(), Tile.get(tileData, tempRoute));
+
+                if (this.topRight.x < tileData.pos.x) {
+                    this.topRight.x = tileData.pos.x;
+                }
+                if (this.topRight.y < tileData.pos.y) {
+                    this.topRight.y = tileData.pos.y;
+                }
+                if (this.bottomLeft.x > tileData.pos.x) {
+                    this.bottomLeft.x = tileData.pos.x;
+                }
+                if (this.bottomLeft.y > tileData.pos.y) {
+                    this.bottomLeft.y = tileData.pos.y;
+                }
             }
             // Load interior tiles
             this.interiorTiles.clear();
@@ -1072,6 +1091,7 @@ public class PkmnMap {
                         Route tempRoute = loadedRoutes.get(tileData.routeBelongsTo);
                         Tile newTile = Tile.get(tileData, tempRoute);
                         tiles.put(newTile.position.cpy(), newTile);
+
                     }
                 }
                 this.interiorTiles.add(tiles);
@@ -1093,6 +1113,19 @@ public class PkmnMap {
             game.player.type = Player.Type.LOCAL;
             if (saveData.playerData.isInterior) {
                 game.map.tiles = game.map.interiorTiles.get(game.map.interiorTilesIndex);
+            }
+            if (game.player.isFlying) {
+                // TODO: this is a hack
+                PlayerStanding standingAction = null;
+                for (Action action : game.actionStack) {
+                    if (PlayerStanding.class.isInstance(action)) {
+                        standingAction = (PlayerStanding)action;
+                        break;
+                    }
+                }
+                game.actionStack.remove(standingAction);
+                game.insertAction(game.player.new Flying(game.player.pokemon.get(saveData.playerData.flyingIndex), false, null));
+                game.cam.translate(0f, 16f, 0f);
             }
             // Load overworld pokemon
             game.map.pokemon.clear();
@@ -1437,7 +1470,10 @@ class Route {
             this.allowedPokemon.add("rhyhorn");
             this.allowedPokemon.add("onix");
             this.allowedPokemon.add("machop");
-            this.allowedPokemon.add("solrock");
+            this.allowedPokemon.add("machoke");
+//            this.allowedPokemon.add("solrock");  // TODO: permissions
+            // lunatone, zubat?
+//            this.allowedPokemon.add("skarmory");  // fly animation doesn't look great for now.
             // TODO: remove
 //            this.music = Gdx.audio.newMusic(Gdx.files.internal("route1_1.ogg"));
 //            this.music.setLooping(true);
@@ -1448,6 +1484,7 @@ class Route {
             // zubat, houndour, murkrow, nidorana/o, scyther, pinsir, stantler, tangela, teddiursa, weepinbell, 
             // absol, growlithe, vulpix,
           this.allowedPokemon.add("zubat");
+          this.allowedPokemon.add("golbat");
           this.allowedPokemon.add("houndour");
           this.allowedPokemon.add("stantler");
           this.allowedPokemon.add("murkrow");
@@ -1463,6 +1500,8 @@ class Route {
 //            this.allowedPokemon.add("gloom");  // TODO: remove, no evos.
             this.allowedPokemon.add("pidgey");
             this.allowedPokemon.add("spearow");
+//            this.allowedPokemon.add("swablu");  // TODO: permissions
+//            this.allowedPokemon.add("taillow");
             this.allowedPokemon.add("hoppip");
 //            this.allowedPokemon.add("machop");
             this.allowedPokemon.add("bulbasaur");
@@ -1495,6 +1534,7 @@ class Route {
                 this.allowedPokemon.add("bulbasaur");
                 this.allowedPokemon.add("hoppip");
                 this.allowedPokemon.add("pidgey");
+//                this.allowedPokemon.add("taillow");
 //                for (int j = 0; j < 2; j++) {
                 this.allowedPokemon.add("charmander");
                 this.allowedPokemon.add("cyndaquil");
@@ -1504,6 +1544,7 @@ class Route {
                 this.allowedPokemon.add("doduo");
                 this.allowedPokemon.add("sentret");
                 this.allowedPokemon.add("rattata");
+                this.allowedPokemon.add("yanma");
             }
             // feels like it's getting too diluted
 //            this.allowedPokemon.add("snubbul");
@@ -1527,6 +1568,8 @@ class Route {
             this.allowedPokemon.add("shuckle");
             this.allowedPokemon.add("staryu");
             this.allowedPokemon.add("marill");
+            this.allowedPokemon.add("slowpoke");
+            this.allowedPokemon.add("poliwag");
         }
         else if (name.equals("desert1")) {
             // TODO: these are just some ideas
@@ -1612,6 +1655,7 @@ class Route {
 //        this.pokemon.clear();
 //        Pokemon debug = new Pokemon("machamp", 22, Pokemon.Generation.CRYSTAL);  // 22
 //        Pokemon debug = new Pokemon("garchompbeta", 70, Pokemon.Generation.CRYSTAL);  // 22
+//        Pokemon debug = new Pokemon("honchkrow", 44, Pokemon.Generation.CRYSTAL);
 //        debug.attacks[0] = "toxic";
 //        debug.attacks[1] = "sweet scent";
 //        debug.attacks[2] = "thunder wave";
@@ -1656,8 +1700,8 @@ class Route {
 //            System.out.println("debug:");
 //            System.out.println(this.allowedPokemon);
 //            System.out.println(Game.staticGame.map.rand);
-            randomNum = Game.rand.nextInt(this.allowedPokemon.size()); // 0, 1, 2
-            randomLevel = Game.rand.nextInt(3); // 0, 1, 2
+            randomNum = Game.rand.nextInt(this.allowedPokemon.size());
+            randomLevel = Game.rand.nextInt(3);
             pokemonName = this.allowedPokemon.get(randomNum);
             // this breaks if less than 5 available pokemon in route
             if (usedPokemon.contains(pokemonName) && this.allowedPokemon.size() > 4) {
@@ -1668,12 +1712,39 @@ class Route {
             // (this makes it so that fully evolved pokemon are 'hazards')
             String evolveTo = null;
             int timesEvolved = 0;
-            for (int i=1; i <= tempPokemon.level; i++) {
-                if (Pokemon.gen2Evos.get(tempPokemon.name.toLowerCase()).containsKey(String.valueOf(i)) && 
-                    Game.rand.nextInt(2) == 0) {
-                    evolveTo = Pokemon.gen2Evos.get(tempPokemon.name.toLowerCase()).get(String.valueOf(i));
-                    tempPokemon.evolveTo(evolveTo);
-                    timesEvolved++;
+            Map<String, String> evos = Pokemon.gen2Evos.get(tempPokemon.name.toLowerCase());
+            boolean failed = false;
+            while (!failed) {
+                failed = true;
+                for (String evo : evos.keySet()) {
+                    try {
+                        int evoLevel = Integer.valueOf(evo);
+                        if (evoLevel <= tempPokemon.level && Game.rand.nextInt(2) == 0) {
+                            evolveTo = evos.get(evo);
+                            tempPokemon.evolveTo(evolveTo);
+                            timesEvolved++;
+                            failed = false;
+                            break;
+                        }
+                    }
+                    catch (NumberFormatException e) {
+                        // item-based or other type of evo, so just do it regardless of requirement
+                        if (Game.rand.nextInt(2) == 0) {
+                            evolveTo = evos.get(evo);
+                            tempPokemon.evolveTo(evolveTo);
+                            timesEvolved++;
+                            failed = false;
+                            break;
+                        }
+                    }
+//                    for (int i=1; i <= tempPokemon.level; i++) {
+//                        if (evos.containsKey(String.valueOf(i)) && 
+//                            Game.rand.nextInt(2) == 0) {
+//                            evolveTo = Pokemon.gen2Evos.get(tempPokemon.name.toLowerCase()).get(String.valueOf(i));
+//                            tempPokemon.evolveTo(evolveTo);
+//                            timesEvolved++;
+//                        }
+//                    }
                 }
             }
             if (evolveTo != null) {

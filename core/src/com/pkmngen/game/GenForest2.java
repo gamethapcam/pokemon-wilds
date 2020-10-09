@@ -1380,9 +1380,8 @@ class GenIsland1 extends Action {
     
     ArrayList<Action> doActions;
 
-    Vector2 topLeft;
-
-    Vector2 bottomRight;
+    Vector2 bottomLeft = null;
+    Vector2 topRight = null;
     Vector2 origin;
     int radius;
     // Edges where players can spawn
@@ -1444,6 +1443,8 @@ class GenIsland1 extends Action {
                 minPos.y = tile.position.y;
             }
         }
+        this.bottomLeft = minPos.cpy();
+        this.topRight = maxPos.cpy();
         maxPos.add(16*14, 16*14);
         minPos.sub(16*14, 16*14);
         Vector2 pos;
@@ -4149,7 +4150,10 @@ class GenIsland1 extends Action {
                 Vector2 startLoc = this.edges.get(game.map.rand.nextInt(this.edges.size())).position;
 //                System.out.println("startLoc");
 //                System.out.println(startLoc);
-                
+
+                game.map.bottomLeft = this.bottomLeft;
+                game.map.topRight = this.topRight;
+
                 // TODO: uncomment
                 game.player.position.set(startLoc);
                 game.player.spawnLoc.set(startLoc);

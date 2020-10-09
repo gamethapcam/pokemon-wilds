@@ -726,6 +726,9 @@ public class Network {
         public Vector2 spawnLoc;
         boolean isInterior;
         boolean displayedMaxPartyText;
+        
+        boolean isFlying;
+        int flyingIndex = 0;
 
         public PlayerData(){}
 
@@ -748,6 +751,10 @@ public class Network {
             this.dirFacing = player.dirFacing;
             this.spawnLoc = player.spawnLoc;
             this.displayedMaxPartyText = player.displayedMaxPartyText;
+            this.isFlying = player.isFlying;
+            if (player.flyingAction != null) {
+                this.flyingIndex = player.pokemon.indexOf(player.flyingAction.pokemon);
+            }
         }
     }
 

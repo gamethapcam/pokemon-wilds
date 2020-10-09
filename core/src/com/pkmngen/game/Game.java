@@ -200,55 +200,55 @@ public class Game extends ApplicationAdapter {
 //                System.out.println(attack);
 //            }
 
-            // Debug related to stat stages
-            if (this.battle.oppPokemon != null) {
-                System.out.println("oppPokemon stats:");
-                System.out.println("attack");
-                System.out.println(this.battle.oppPokemon.statStages.get("attack"));
-                System.out.println(this.battle.oppPokemon.currentStats.get("attack"));
-                System.out.println("defense");
-                System.out.println(this.battle.oppPokemon.statStages.get("defense"));
-                System.out.println(this.battle.oppPokemon.currentStats.get("defense"));
-                System.out.println("specialAtk");
-                System.out.println(this.battle.oppPokemon.statStages.get("specialAtk"));
-                System.out.println(this.battle.oppPokemon.currentStats.get("specialAtk"));
-                System.out.println("specialDef");
-                System.out.println(this.battle.oppPokemon.statStages.get("specialDef"));
-                System.out.println(this.battle.oppPokemon.currentStats.get("specialDef"));
-                System.out.println("speed");
-                System.out.println(this.battle.oppPokemon.statStages.get("speed"));
-                System.out.println(this.battle.oppPokemon.currentStats.get("speed"));
-                System.out.println("accuracy");
-                System.out.println(this.battle.oppPokemon.statStages.get("accuracy"));
-                System.out.println(this.battle.oppPokemon.currentStats.get("accuracy"));
-                System.out.println("evasion");
-                System.out.println(this.battle.oppPokemon.statStages.get("evasion"));
-                System.out.println(this.battle.oppPokemon.currentStats.get("evasion"));
-            }
-            if (this.player.currPokemon != null) {
-                System.out.println("currPokemon stats:");
-                System.out.println("attack");
-                System.out.println(this.player.currPokemon.statStages.get("attack"));
-                System.out.println(this.player.currPokemon.currentStats.get("attack"));
-                System.out.println("defense");
-                System.out.println(this.player.currPokemon.statStages.get("defense"));
-                System.out.println(this.player.currPokemon.currentStats.get("defense"));
-                System.out.println("specialAtk");
-                System.out.println(this.player.currPokemon.statStages.get("specialAtk"));
-                System.out.println(this.player.currPokemon.currentStats.get("specialAtk"));
-                System.out.println("specialDef");
-                System.out.println(this.player.currPokemon.statStages.get("specialDef"));
-                System.out.println(this.player.currPokemon.currentStats.get("specialDef"));
-                System.out.println("speed");
-                System.out.println(this.player.currPokemon.statStages.get("speed"));
-                System.out.println(this.player.currPokemon.currentStats.get("speed"));
-                System.out.println("accuracy");
-                System.out.println(this.player.currPokemon.statStages.get("accuracy"));
-                System.out.println(this.player.currPokemon.currentStats.get("accuracy"));
-                System.out.println("evasion");
-                System.out.println(this.player.currPokemon.statStages.get("evasion"));
-                System.out.println(this.player.currPokemon.currentStats.get("evasion"));
-            }
+//            // Debug related to stat stages
+//            if (this.battle.oppPokemon != null) {
+//                System.out.println("oppPokemon stats:");
+//                System.out.println("attack");
+//                System.out.println(this.battle.oppPokemon.statStages.get("attack"));
+//                System.out.println(this.battle.oppPokemon.currentStats.get("attack"));
+//                System.out.println("defense");
+//                System.out.println(this.battle.oppPokemon.statStages.get("defense"));
+//                System.out.println(this.battle.oppPokemon.currentStats.get("defense"));
+//                System.out.println("specialAtk");
+//                System.out.println(this.battle.oppPokemon.statStages.get("specialAtk"));
+//                System.out.println(this.battle.oppPokemon.currentStats.get("specialAtk"));
+//                System.out.println("specialDef");
+//                System.out.println(this.battle.oppPokemon.statStages.get("specialDef"));
+//                System.out.println(this.battle.oppPokemon.currentStats.get("specialDef"));
+//                System.out.println("speed");
+//                System.out.println(this.battle.oppPokemon.statStages.get("speed"));
+//                System.out.println(this.battle.oppPokemon.currentStats.get("speed"));
+//                System.out.println("accuracy");
+//                System.out.println(this.battle.oppPokemon.statStages.get("accuracy"));
+//                System.out.println(this.battle.oppPokemon.currentStats.get("accuracy"));
+//                System.out.println("evasion");
+//                System.out.println(this.battle.oppPokemon.statStages.get("evasion"));
+//                System.out.println(this.battle.oppPokemon.currentStats.get("evasion"));
+//            }
+//            if (this.player.currPokemon != null) {
+//                System.out.println("currPokemon stats:");
+//                System.out.println("attack");
+//                System.out.println(this.player.currPokemon.statStages.get("attack"));
+//                System.out.println(this.player.currPokemon.currentStats.get("attack"));
+//                System.out.println("defense");
+//                System.out.println(this.player.currPokemon.statStages.get("defense"));
+//                System.out.println(this.player.currPokemon.currentStats.get("defense"));
+//                System.out.println("specialAtk");
+//                System.out.println(this.player.currPokemon.statStages.get("specialAtk"));
+//                System.out.println(this.player.currPokemon.currentStats.get("specialAtk"));
+//                System.out.println("specialDef");
+//                System.out.println(this.player.currPokemon.statStages.get("specialDef"));
+//                System.out.println(this.player.currPokemon.currentStats.get("specialDef"));
+//                System.out.println("speed");
+//                System.out.println(this.player.currPokemon.statStages.get("speed"));
+//                System.out.println(this.player.currPokemon.currentStats.get("speed"));
+//                System.out.println("accuracy");
+//                System.out.println(this.player.currPokemon.statStages.get("accuracy"));
+//                System.out.println(this.player.currPokemon.currentStats.get("accuracy"));
+//                System.out.println("evasion");
+//                System.out.println(this.player.currPokemon.statStages.get("evasion"));
+//                System.out.println(this.player.currPokemon.currentStats.get("evasion"));
+//            }
         }
 
         if (Gdx.input.isKeyJustPressed(Input.Keys.PAGE_UP)) {

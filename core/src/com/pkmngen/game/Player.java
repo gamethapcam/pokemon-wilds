@@ -358,6 +358,8 @@ class CycleDayNight extends Action {
         // If player is near a campfire, don't deduct from ghost spawn timer
         if (game.map.timeOfDay.equals("Night") && game.playerCanMove == true && !game.player.isNearCampfire && game.map.currBiome.equals("deep_forest")) {
             countDownToGhost--;
+            // TODO: not working?
+            System.out.println(this.countDownToGhost);
             if (game.player.currState != "Running") {
                 countDownToGhost--;
             }
@@ -1401,7 +1403,7 @@ class DrawPlayerLower extends Action {
 
     @Override
     public void step(Game game) {
-        if (game.player.isSleeping) {
+        if (game.player.isSleeping || game.player.isFlying) {
             return;
         }
 
@@ -1429,6 +1431,9 @@ class DrawPlayerUpper extends Action {
         if (game.player.isSleeping) {
             game.player.zSprite.draw(game.mapBatch);
             game.mapBatch.draw(game.player.sleepingSprite, game.player.position.x, game.player.position.y);
+            return;
+        }
+        if (game.player.isFlying) {
             return;
         }
         // Have draw sleeping bag on ground separately for 'getting into sleeping bag' animation.
@@ -1786,6 +1791,8 @@ public class Player {
     boolean isJumping = false; // player will jump up ledges using 'fast' ledge jump animation.
     public boolean isCrafting = false;
     public boolean isSleeping = false;
+    public boolean isFlying = false;
+    public Flying flyingAction = null;
     public boolean drawSleepingBag = false;
     public boolean acceptInput = true;
     boolean isNearCampfire = false;
@@ -1793,7 +1800,7 @@ public class Player {
     int buildTileIndex = 0;
     ArrayList<Tile> buildTiles = new ArrayList<Tile>();
     HashMap<String, HashMap<String, Integer>> buildTileRequirements = new HashMap<String, HashMap<String, Integer>>();
-    boolean canMove = true;  // TODO: migrate to start using this
+    public boolean canMove = true;  // TODO: migrate to start using this
     int numFlees = 0;  // used in battle run away mechanic
     Sprite zSprite;
     int zsTimer = 0;
@@ -2015,6 +2022,7 @@ public class Player {
         else {
             this.network.tiles = Game.staticGame.map.overworldTiles;
         }
+        this.isFlying = playerData.isFlying;
     }
 
     /**
@@ -2117,6 +2125,279 @@ public class Player {
             pos = this.position.cpy().add(0, -16);
         }
         return pos;
+    }
+
+    public class Flying extends Action {
+        Pokemon pokemon;
+        Sprite shadow;
+        int animIndex = 0;
+        int xOffset = 0;
+        int yOffset = 32;
+        int yOffsetCounter = 0;
+        boolean acceptInput = true;
+        Sprite spritePart;
+        boolean takingOff = false;
+
+        public Flying(Pokemon pokemon, boolean takingOff, Action nextAction) {
+            this.pokemon = pokemon;
+            this.takingOff = takingOff;
+            Texture text = TextureCache.get(Gdx.files.internal("shadow1.png"));
+            this.shadow = new Sprite(text, 0, 0, 16, 16);
+            this.nextAction = nextAction;
+        }
+
+        @Override
+        public void firstStep(Game game) {
+            game.insertAction(this.nextAction);
+            Player.this.flyingAction = this;
+            if (this.takingOff) {
+                game.insertAction(this.new TakingOff(true, null));
+                this.yOffset = 0;
+            }
+        }
+
+        @Override
+        public void step(Game game) {
+            // Draw drop shadow
+            game.mapBatch.draw(this.shadow, Player.this.position.x, Player.this.position.y);
+
+            // Draw flying Pokemon sprite.
+            int otherOffsetY = 0;
+            if (this.animIndex < 80-12) {
+                this.pokemon.currOwSprite = this.pokemon.standingSprites.get(Player.this.dirFacing);
+            }
+            else if (this.animIndex < 80-8) {
+                this.pokemon.currOwSprite = this.pokemon.movingSprites.get(Player.this.dirFacing);
+                otherOffsetY = -2;
+            }
+            else if (this.animIndex < 80-4) {
+                this.pokemon.currOwSprite = this.pokemon.standingSprites.get(Player.this.dirFacing);
+            }
+            else if (this.animIndex < 80) {
+                this.pokemon.currOwSprite = this.pokemon.movingSprites.get(Player.this.dirFacing);
+                otherOffsetY = -2;
+            }
+
+            // Draw player riding?
+            int offsetX = 0;
+            int offsetY = 0;
+            if (game.player.dirFacing.equals("up")) {
+                offsetY += 1;
+            }
+            if (game.player.dirFacing.equals("down")) {
+                offsetY += 2;
+            }
+            else if (game.player.dirFacing.equals("right")) {
+                offsetX += -2;
+            }
+            else if (game.player.dirFacing.equals("left")) {
+                offsetX += 2;
+            }
+            Player.this.currSprite = new Sprite(Player.this.standingSprites.get(Player.this.dirFacing));
+            this.spritePart = new Sprite(game.player.currSprite);
+            this.spritePart.setRegionY(0);
+            this.spritePart.setRegionHeight(14);
+            if (Player.this.dirFacing.equals("down")) {
+                game.mapBatch.draw(this.spritePart, game.player.position.x+offsetX+this.xOffset, game.player.position.y+12+9+offsetY+this.yOffset);
+            }
+            // TODO: probably use +otherOffsetY for sprites of specific pokemon.
+            game.mapBatch.draw(this.pokemon.currOwSprite, Player.this.position.x+this.xOffset, Player.this.position.y+16+this.yOffset);  //+otherOffsetY
+            if (!Player.this.dirFacing.equals("down")) {
+                game.mapBatch.draw(this.spritePart, game.player.position.x+offsetX+this.xOffset, game.player.position.y+12+9+offsetY+this.yOffset);
+            }
+
+            if (this.takingOff) {
+                return;
+            }
+
+            this.animIndex = (this.animIndex + 1) % 80;
+            this.yOffsetCounter++;
+            if (this.yOffsetCounter % 4 == 0) {
+                if ((this.yOffsetCounter % 32) > 15) {
+                    this.yOffset++;
+                }
+                else {
+                    this.yOffset--;
+                }
+            }
+            // didn't quite like the way this looked.
+//            if (this.yOffsetCounter % 64 == 0) {
+//                if (this.yOffsetCounter > 95 && this.yOffsetCounter <= 192) {
+//                    this.xOffset--;
+//                }
+//                else {
+//                    this.xOffset++;
+//                }
+//            }
+            if (this.yOffsetCounter % 32 >= 31) {
+                this.yOffset = 32;
+            }
+            if (this.yOffsetCounter >= 255) {
+                this.yOffsetCounter = 0;
+                this.xOffset = 0;
+            }
+            if (!Player.this.canMove) {
+                return;
+            }
+            // Check if player wants to access the menu
+            if (InputProcessor.startJustPressed) {
+                game.insertAction(new DrawPlayerMenu.Intro(game,
+                                  new DrawPlayerMenu(game,
+                                  new WaitFrames(game, 1,
+                                  new SetField(Player.this, "canMove", true,
+                                  null)))));
+                Player.this.canMove = false;
+                return;
+            }
+
+            if (!this.acceptInput) {
+                return;
+            }
+
+            boolean shouldMove = false;
+            // Accept player input, change direction depending
+            if (InputProcessor.upPressed) {
+                game.player.dirFacing = "up";
+                if (Player.this.position.y < game.map.topRight.y-32) {
+                    shouldMove = true;
+                }
+            }
+            else  if (InputProcessor.downPressed) {
+                game.player.dirFacing = "down";
+                if (Player.this.position.y > game.map.bottomLeft.y+32) {
+                    shouldMove = true;
+                }
+            }
+            else  if (InputProcessor.leftPressed) {
+                game.player.dirFacing = "left";
+                if (Player.this.position.x > game.map.bottomLeft.x+32) {
+                    shouldMove = true;
+                }
+            }
+            else  if (InputProcessor.rightPressed) {
+                game.player.dirFacing = "right";
+                if (Player.this.position.x < game.map.topRight.x-32) {
+                    shouldMove = true;
+                }
+            }
+            // If player presses B, stop flying.
+            else if (InputProcessor.bJustPressed) {
+                if (!game.map.tiles.get(game.player.position).attrs.get("solid") &&
+                    !game.map.tiles.get(game.player.position).attrs.get("ledge")) {
+//                    Player.this.isFlying = false;  // TODO: do this after outro anim (setfield)
+//                    game.cam.translate(0f, -16f);  // TODO: do this after outro anim (setfield?)
+//                    game.actionStack.remove(this);
+//                    game.insertAction(Player.this.standingAction);  // TODO: enable once standingAction works.
+                    this.takingOff = true;
+                    game.insertAction(this.new TakingOff(false,
+                                      new PlayerStanding(game)));
+                    return;
+                }
+            }
+            if (shouldMove) {
+                this.acceptInput = false;
+                game.insertAction(this.new Moving());
+            }
+        }
+        
+        public class Moving extends Action {
+            int timer = 0;
+
+            @Override
+            public void step(Game game) {
+                if (Player.this.dirFacing.equals("up")) {
+                    Player.this.position.y += 2;
+                }
+                else if (Player.this.dirFacing.equals("down")) {
+                    Player.this.position.y -= 2;
+                }
+                else if (Player.this.dirFacing.equals("right")) {
+                    Player.this.position.x += 2;
+                }
+                else if (Player.this.dirFacing.equals("left")) {
+                    Player.this.position.x -= 2;
+                }
+                game.cam.position.set(Player.this.position.x+16, Player.this.position.y+16, 0);
+                this.timer++;
+                if (this.timer >= 8) {
+                    game.actionStack.remove(this);
+                    Flying.this.acceptInput = true;
+                }
+            }
+        }
+
+        public class TakingOff extends Action {
+            int timer = 0;
+            boolean takingOff = true;
+            
+            public TakingOff(boolean takingOff, Action nextAction) {
+                this.takingOff = takingOff;
+                this.nextAction = nextAction;
+            }
+
+            @Override
+            public void firstStep(Game game) {
+                if (this.takingOff) {
+                    game.insertAction(new PlaySound("fly_takingoff1", null));
+                }
+                else {
+                    game.insertAction(new PlaySound("fly_landing1", null));
+                }
+            }
+
+//            @Override
+//            public int getLayer() {
+//                return Flying.this.getLayer()-1;
+//            }
+
+            @Override
+            public void step(Game game) {
+                int extra = 0;
+                if (this.takingOff && this.timer >= 64) {
+                    extra = 8;
+                }
+                else if (this.timer % 4 == 0) {
+                    if (this.takingOff) {
+                        Flying.this.yOffset+=2;
+                    }
+                    else {
+                        Flying.this.yOffset-=2;
+                    }
+                }
+                // Flap the wings
+                Flying.this.animIndex = ((Flying.this.animIndex-80 + 1) % (8+extra)) +80;
+                if (Flying.this.animIndex < 84+(extra/2)) {
+                    Flying.this.pokemon.currOwSprite = Flying.this.pokemon.standingSprites.get(Player.this.dirFacing);
+                }
+                else {
+                    Flying.this.pokemon.currOwSprite = Flying.this.pokemon.movingSprites.get(Player.this.dirFacing);
+                }
+
+                this.timer++;
+                if (!this.takingOff && this.timer < 80 && this.timer >= 64) {
+                    game.cam.translate(0f, -1f);
+                }
+                if (this.takingOff && this.timer < 17 && this.timer >= 0) {
+                    game.cam.translate(0f, 1f);
+                }
+                if (!this.takingOff && this.timer >= 80) {
+//                    Flying.this.takingOff = false; // this causes issue where player will move once at bottom.
+                    game.actionStack.remove(this);
+                    game.insertAction(this.nextAction);
+                    Player.this.isFlying = false;
+//                    game.cam.translate(0f, -16f);
+                    game.actionStack.remove(Flying.this);
+                    return;
+                }
+                if (this.takingOff && this.timer >= 96) {
+                    Flying.this.takingOff = false;
+                    game.actionStack.remove(this);
+                    game.insertAction(this.nextAction);
+                    return;
+                }
+            }
+        }
+
     }
 
     public class RemoveFromInventory extends Action {
@@ -2449,7 +2730,7 @@ class PlayerLedgeJump extends Action {
         }
 
         // shadow sprite
-        Texture shadowText = new Texture(Gdx.files.internal("shadow1.png"));
+        Texture shadowText = TextureCache.get(Gdx.files.internal("shadow1.png"));
         this.shadow = new Sprite(shadowText, 0, 0, 16, 16);
 
         // play sound
@@ -2647,7 +2928,7 @@ class PlayerLedgeJumpFast extends Action {
         }
 
         // shadow sprite
-        Texture shadowText = new Texture(Gdx.files.internal("shadow1.png"));
+        Texture shadowText = TextureCache.get(Gdx.files.internal("shadow1.png"));
         this.shadow = new Sprite(shadowText, 0, 0, 16, 16);
 
         // Play ledge jumping sound
