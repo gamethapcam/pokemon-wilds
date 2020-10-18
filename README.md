@@ -3,7 +3,7 @@
 ![Pokemon Wilds](https://github.com/SheerSt/pokemon-wilds/blob/master/android/assets/8.png)
 
 ## How to Play
- - **DISCLAIMER:** this is currently in Alpha. Things are getting there, but still not fully complete. I am working hard to find and fix bugs; however, **expect to find bugs (especially in multiplayer).** If you find a bug, please consider creating an issue here on github describing it (that would help me out a ton).
+ - **DISCLAIMER:** this is currently in Alpha. Things are getting there, but still not fully complete. I am working hard to find and fix bugs; however, **expect to find bugs.** If you find a bug, please consider creating an issue here on github describing it (that would help me out a ton).
  - Windows - Download /builds/latest/pokemon-wilds.exe and run.
    - *Alternatively, download and run /builds/latest/pokemon-wilds.jar if the exe doesn't work.*
  - Mac - Download /builds/latest/pokemon-wilds.jar and run.
@@ -28,8 +28,10 @@ I have been using a set of techniques to 'rip' sprites and animations from the c
 
 In the future I hope that the game can also support graphics from other generations, as well as a map editor mode that could serve as a platform for custom games.
 
+# v0.4 (Latest)
+ - **NOTE:** Previously I had advertised multiplayer support - however, this has proven to be too costly to maintain during development and I don't want to maintain it if nobody is using it yet. I am currently focusing on single player, with multiplayer planned for down the road. The option for multiplayer still exists, but many things are not working in it currently (flying, battle mechanics, pokemon item harvesting, and others).
 
-# v0.3 (Latest)
+# v0.3
  - Pokemon mansion dungeon now will spawn in a random location in the overworld!
    - Getting inside will require a secret key that also spawns in the overworld.
    - Navigating the dungeon will require you to complete a puzzle involving hidden switches and doors.
@@ -50,7 +52,6 @@ In the future I hope that the game can also support graphics from other generati
  - Support for the most battle mechanics (wild battle, level up, evolution, attacks, running, catching, etc.)
  - Rips of some attack animations.
  - Building stuff.
- - Multiplayer support.
  - Saving/Loading worlds.
  - Currently desktop and Android support only.
 
@@ -62,6 +63,11 @@ In the future I hope that the game can also support graphics from other generati
  - Full Gen 2 engine replication (battle mechanics, attacks, etc).
  - Other Generations.
 
+## Known Issues
+ - Music will occasionally get messed up (I'm working to fix it). Restart the game as a temporary workaround.
+ - Some attacks aren't implemented and do nothing (mirror move, metronome, rain dance, and similar attacks.)
+ - If your party is full and you catch a pokemon and you previously slept indoors, the pokemon (may?) duplicate and do weird stuff.
+
 # FAQ
  - Is it possible to migrate my save from a previous version?
    - This currently isn't supported, but there's a chance it will work. If it doesn't work, PM me with your save file and I should be able to migrate it for you.
@@ -72,10 +78,12 @@ In the future I hope that the game can also support graphics from other generati
  
 # Contributing
 
-This project is still in the early stages. If you are interested in joining the project, please pm me and we can work out the details of what currently needs done. Loosely, here is the current list:
+This project is still in the early stages. If you are interested in joining the project, please create an issue here saying that you're interested and we can work out the details of what currently needs done. Loosely, here is the current list:
  - Rips of Gen 2 attack animations
  - Battle system mechanics and animations (trainer battles, status effects, temporary stat changes, etc)
  - Network code for anything added
 
-
-
+# Credits
+ - Megaman-Omega on Deviantart for the overworld pokemon sprites.
+ - Manik-Needlemouse on Deviantart for the ghost overworld sprite.
+ - GlitchxCity on Youtube for the Pokemon Mansion Remix music.
