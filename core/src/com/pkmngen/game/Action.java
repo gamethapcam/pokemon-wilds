@@ -1663,6 +1663,7 @@ class DrawSetupMenu extends Action {
                                 }
                                 game.player.name = name;
 
+
                                 // TODO: debug, remove
     //                            if (Gdx.app.getType() != ApplicationType.Android) {
     //                                try {
@@ -2105,6 +2106,7 @@ class InputProcessor extends Action {
 class MenuAction extends Action {
     public boolean disabled;
     boolean drawArrowWhite; // for DrawPlayerMenu
+    public boolean goAway = false;
 
     MenuAction prevMenu;
     int currIndex;

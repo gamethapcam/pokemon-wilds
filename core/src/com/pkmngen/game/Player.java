@@ -89,6 +89,9 @@ class CutTreeAnim extends Action {
             else if (name.equals("grass_sand1")) {
                 name = "sand1";
             }
+            else if (name.equals("grass4")) {
+                name = "green1";
+            }
             game.map.tiles.put(this.tile.position.cpy(),
                                new Tile(name, this.tile.position.cpy(),
                                         true, this.tile.routeBelongsTo));
@@ -294,8 +297,25 @@ class CycleDayNight extends Action {
                 if (game.type != Game.Type.CLIENT) {
                     // All planted trees become full size trees
                     for (Tile tile : game.map.overworldTiles.values()) {
-                        if (tile.nameUpper.equals("tree_planted")) {
-                            game.map.overworldTiles.put(tile.position, new Tile("bush1", "", tile.position.cpy(), true, tile.routeBelongsTo));
+                        if (tile.nameUpper.contains("tree_planted")) {
+                            Tile tree = new Tile("bush1", "", tile.position.cpy(), true, tile.routeBelongsTo);
+                            game.map.overworldTiles.put(tile.position, tree);
+                            // If fertilized, double existing apricorns. If no apricorns, place 1.
+                            if (tile.nameUpper.contains("fertilized")) {
+                                String[] items = {"black apricorn", "blue apricorn", "green apricorn", "pink apricorn",
+                                                  "red apricorn", "white apricorn", "yellow apricorn"};
+                                boolean found = false;
+                                for (String item : items) {
+                                    if (tree.items.containsKey(item)) {
+                                        tree.items.put(item, tree.items.get(item)+1);
+                                        found = true;
+                                        break;
+                                    }
+                                }
+                                if (!found) {
+                                    tree.items.put(items[game.map.rand.nextInt(items.length)], 1);
+                                }
+                            }
                         }
                     }
                     // Mewtwo respawns
@@ -682,12 +702,12 @@ class DrawCraftsMenu extends MenuAction {
             this.prevMenu.step(game);
         }
 
-        // draw text box
+        // Draw text box
         this.titleTextbox.draw(game.uiBatch);
         this.craftReqsTextbox.draw(game.uiBatch);
         this.textBox.draw(game.uiBatch);
 
-        // draw the menu items
+        // Draw the menu items
         int j = 0;
         for (int i = 0; i < this.spritesToDraw.size(); i++) {
             if (i >= this.currIndex && i < this.currIndex +4) { // only draw range of 4 starting at currIndex
@@ -731,8 +751,8 @@ class DrawCraftsMenu extends MenuAction {
                 }
             }
         }
-        // draw requirements of current item being crafted
-        char[] textArray = "CRAFTING MENU".toCharArray(); // iterate elements
+        // Draw requirements of current item being crafted
+        char[] textArray = "CRAFTING MENU".toCharArray();
         j=0;
         for (char letter : textArray) {
             Sprite letterSprite = game.textDict.get((char)letter);
@@ -747,7 +767,7 @@ class DrawCraftsMenu extends MenuAction {
             String word = this.craftReqs.get(i);
             for (int k=0; k < word.length(); k++) {
                 char letter = word.charAt(k);
-                // convert string to text
+                // Convert string to text
                 letterSprite = new Sprite(game.textDict.get(letter));
 //                game.uiBatch.draw(letterSprite, this.topLeft.x +8 +8*j, this.topLeft.y -16*(this.words.size()-2+i));
                 letterSprite.setPosition(this.topLeft.x +8 +8*k, this.topLeft.y -16*i);
@@ -797,7 +817,7 @@ class DrawCraftsMenu extends MenuAction {
             this.cursorDelay+=1;
         }
 
-        // draw downarrow if applicable
+        // draw down arrow if applicable
         if ( (this.craftsList.size() - this.currIndex) > 4 ) {
             if (this.downArrowTimer < 22) {
                 this.downArrow.draw(game.uiBatch);
@@ -812,17 +832,19 @@ class DrawCraftsMenu extends MenuAction {
             this.downArrowTimer = 0;
         }
 
-        // if press a, draw craft/cancel for item
+        // If press A, draw craft/cancel for item
         if (InputProcessor.aJustPressed) {
             game.insertAction(new PlaySound("click1", null));
             String name = this.craftsList.get(currIndex + cursorPos);
             if ("Cancel".equals(name)) {
+                DrawCraftsMenu.lastCurrIndex = this.currIndex;
+                DrawCraftsMenu.lastCursorPos = this.cursorPos;
                 if (this.prevMenu != null) {
                     this.prevMenu.disabled = false;
                 }
-                game.insertAction(this.prevMenu);
-                game.insertAction(this.nextAction);
                 game.actionStack.remove(this);
+                game.insertAction(new WaitFrames(game, 3, this.prevMenu));
+                game.insertAction(new WaitFrames(game, 3, this.nextAction));
                 return;
             }
             else {
@@ -1429,8 +1451,19 @@ class DrawPlayerUpper extends Action {
     @Override
     public void step(Game game) {
         if (game.player.isSleeping) {
-            game.player.zSprite.draw(game.mapBatch);
-            game.mapBatch.draw(game.player.sleepingSprite, game.player.position.x, game.player.position.y);
+            if (game.player.sleepingDir == null) {
+                game.player.zSprite.draw(game.mapBatch);
+                game.mapBatch.draw(game.player.sleepingSprite, game.player.position.x, game.player.position.y);
+            }
+            else {
+                Vector2 pos = game.player.sleepingDir.cpy().sub(game.player.position);
+                game.mapBatch.draw(game.player.zSprite, game.player.zSprite.getX() + pos.x -12,
+                                                        game.player.zSprite.getY() + pos.y +16);
+                this.spritePart = new Sprite(game.player.currSprite);
+                this.spritePart.setRegionY(0);
+                this.spritePart.setRegionHeight(6);
+                game.mapBatch.draw(this.spritePart, game.player.sleepingDir.x, game.player.sleepingDir.y+12 +8);
+            }
             return;
         }
         if (game.player.isFlying) {
@@ -1787,10 +1820,12 @@ public class Player {
     String currState; // need for ghost spawn
     boolean isBuilding = false; // player has building tile in front of them
     boolean isCutting = false; // player will try to cut tree on A press
+    boolean isSmashing = false; // rock smash
     boolean isHeadbutting = false; // player will try to headbutt tree on A press
     boolean isJumping = false; // player will jump up ledges using 'fast' ledge jump animation.
     public boolean isCrafting = false;
     public boolean isSleeping = false;
+    public Vector2 sleepingDir = null;
     public boolean isFlying = false;
     public Flying flyingAction = null;
     public boolean drawSleepingBag = false;
@@ -1804,9 +1839,12 @@ public class Player {
     int numFlees = 0;  // used in battle run away mechanic
     Sprite zSprite;
     int zsTimer = 0;
+    public int repelCounter = 0;  // counts down, item sets at 100/200.
     Vector2 spawnLoc = new Vector2(0, 0);
     PlayerStanding standingAction;
     public boolean displayedMaxPartyText = false;
+
+    ArrayList<String> alreadyDoneHarvestables = new ArrayList<String>();
 
     public Type type;
     Network network;
@@ -1843,6 +1881,43 @@ public class Player {
         Player.crafts.add(craft);
         craft = new Craft("moon ball", 1);
         craft.requirements.add(new Craft("yellow apricorn", 1));
+        Player.crafts.add(craft);
+
+        //
+        craft = new Craft("soft bedding", 1);
+        craft.requirements.add(new Craft("soft feather", 3));
+        craft.requirements.add(new Craft("silky thread", 3));
+        Player.crafts.add(craft);
+//        craft = new Craft("HQ bedding", 1);
+//        craft.requirements.add(new Craft("soft bedding", 1));
+//        craft.requirements.add(new Craft("soft wool", 3));
+//        Player.crafts.add(craft);
+        craft = new Craft("repel", 1);
+        craft.requirements.add(new Craft("manure", 2));  // + charcoal? moomoo milk?
+        Player.crafts.add(craft);  // max repel? gloom - foul ooze?
+        // charcoal makes sense b/c it's like it makes it go farther by making it a 'powder'
+        craft = new Craft("max repel", 1);
+        craft.requirements.add(new Craft("charcoal", 2));
+        craft.requirements.add(new Craft("repel", 1));
+        Player.crafts.add(craft);
+        // TODO: make harder to get, maybe add gold berry to reqs
+        // mysticpowder? stardust? ancientpowder (unowns?)?
+        craft = new Craft("rare candy", 1);
+        craft.requirements.add(new Craft("berry juice", 3));
+        craft.requirements.add(new Craft("ancientpowder", 3));
+        Player.crafts.add(craft);
+        //
+        craft = new Craft("poké ball", 1);
+        craft.requirements.add(new Craft("metal coat", 1));
+        craft.requirements.add(new Craft("psi energy", 1));
+        Player.crafts.add(craft);
+        craft = new Craft("great ball", 1);
+        craft.requirements.add(new Craft("poké ball", 1));
+        craft.requirements.add(new Craft("hard shell", 1));
+        Player.crafts.add(craft);
+        craft = new Craft("ultra ball", 1);
+        craft.requirements.add(new Craft("great ball", 1));
+        craft.requirements.add(new Craft("dark energy", 1));  // dusk ball? nugget + dark energy? idk.
         Player.crafts.add(craft);
     }
 
@@ -1938,6 +2013,7 @@ public class Player {
 //        this.buildTiles.add(new Tile("house5_roof_right1", new Vector2(0,0)));
         this.buildTiles.add(new Tile("campfire1", new Vector2(0,0)));
         this.buildTiles.add(new Tile("fence1", new Vector2(0,0)));
+        this.buildTiles.add(new Tile("house_bed1", new Vector2(0,0)));
         // TODO: remove
 //        this.buildTiles.add(new Tile("sleeping_bag1", new Vector2(0,0)));
         this.currBuildTile = this.buildTiles.get(this.buildTileIndex);
@@ -1952,6 +2028,16 @@ public class Player {
             if (tile.name.contains("campfire")) {
                 this.buildTileRequirements.get(tile.name).put("log", 4);
                 this.buildTileRequirements.get(tile.name).put("grass", 2);
+                continue;
+            }
+//            else if (tile.name.equals("hq bed")) {
+//                this.buildTileRequirements.get(tile.name).put("log", 4);
+//                this.buildTileRequirements.get(tile.name).put("hq bedding", 1);
+//                continue;
+//            }
+            else if (tile.name.equals("house_bed1")) {
+                this.buildTileRequirements.get(tile.name).put("log", 4);
+                this.buildTileRequirements.get(tile.name).put("soft bedding", 1);
                 continue;
             }
             this.buildTileRequirements.get(tile.name).put("grass", 1);
@@ -1986,6 +2072,9 @@ public class Player {
             this.itemsDict.put("master ball", 99);
             this.itemsDict.put("grass", 99);
             this.itemsDict.put("log", 99);
+            this.itemsDict.put("black apricorn", 99);
+            this.itemsDict.put("berry juice", 99);
+            this.itemsDict.put("ancientpowder", 99);
         }
 
         this.network = new Network(this.position);
@@ -3745,10 +3834,10 @@ class PlayerStanding extends Action {
         String ext = "_";
         if (currTile.nameUpper.contains("fence") && !currTile.nameUpper.contains("house")) {
             // bend fences towards houses?
-            if (up.nameUpper.contains("house") && !up.nameUpper.contains("roof")) {
+            if (up.nameUpper.contains("house")) { //  && !up.nameUpper.contains("roof")
                 touchUp = true;
             }
-            if (down.nameUpper.contains("house") && !down.nameUpper.contains("roof")) {
+            if (down.nameUpper.contains("house")) {  // && !down.nameUpper.contains("roof")
                 touchDown = true;
             }
             if (left.nameUpper.contains("house") && !left.nameUpper.contains("roof")) {
@@ -3919,36 +4008,9 @@ class PlayerStanding extends Action {
                                   null))));
             }
         }
-        
         // Check wild encounter
         if (this.checkWildEncounter && game.type != Game.Type.CLIENT) {
             if (this.checkWildEncounter(game) == true) {
-                game.playerCanMove = false;
-                if (game.map.unownSpawn == null) {
-                    // if night, no music transition
-                    if (!game.map.timeOfDay.equals("Night")) {
-                        game.currMusic.pause();
-                        game.currMusic = game.battle.music; 
-//                        game.battle.music2.stop();
-//                        game.battle.music2.setVolume(0.3f);
-                        game.battle.music.stop();
-                        game.battle.music.setVolume(0.3f);
-//                        game.battle.music.setVolume(0.3f);
-                        BattleFadeOutMusic.stop = true;
-                        FadeMusic.pause = true;
-                        // TODO: debug, remove
-//                        game.currMusic.play();
-//                        game.currMusic.pause();
-//                        game.currMusic.setPosition(11f);  
-                        game.currMusic.play();
-//                        game.insertAction(new FadeMusic("currMusic", "in", "", 1f, false, game.battle.music.getVolume(), null));
-                    }
-                }
-                else {
-                    String unownLetter = game.map.unownUsed.get(game.map.rand.nextInt(game.map.unownUsed.size()));
-                    game.map.unownUsed.remove(unownLetter);
-                    game.battle.oppPokemon = new Pokemon("unown_"+unownLetter, 13, Pokemon.Generation.CRYSTAL);
-                }
                 // The first Pokemon the player sends out in battle should
                 // have > 0 hp.
                 for (Pokemon currPokemon : this.player.pokemon) {
@@ -3957,9 +4019,49 @@ class PlayerStanding extends Action {
                         break;
                     }
                 }
-                game.insertAction(Battle.getIntroAction(game));
-                this.checkWildEncounter = false;
-                return;
+                // TODO: should this just go in checkWildEncounter?
+                boolean repelling = game.player.repelCounter > 0 && game.battle.oppPokemon.level < game.player.currPokemon.level;
+                if (!repelling) {
+                    game.playerCanMove = false;
+                    if (game.map.unownSpawn == null) {
+                        // if night, no music transition
+                        if (!game.map.timeOfDay.equals("Night")) {
+                            game.currMusic.pause();
+                            game.currMusic = game.battle.music; 
+//                            game.battle.music2.stop();
+//                            game.battle.music2.setVolume(0.3f);
+                            game.battle.music.stop();
+                            game.battle.music.setVolume(0.3f);
+//                            game.battle.music.setVolume(0.3f);
+                            BattleFadeOutMusic.stop = true;
+                            FadeMusic.pause = true;
+                            // TODO: debug, remove
+//                            game.currMusic.play();
+//                            game.currMusic.pause();
+//                            game.currMusic.setPosition(11f);  
+                            game.currMusic.play();
+//                            game.insertAction(new FadeMusic("currMusic", "in", "", 1f, false, game.battle.music.getVolume(), null));
+                        }
+                    }
+                    else {
+                        String unownLetter = game.map.unownUsed.get(game.map.rand.nextInt(game.map.unownUsed.size()));
+//                        game.map.unownUsed.remove(unownLetter);
+                        game.battle.oppPokemon = new Pokemon("unown_"+unownLetter, 13, Pokemon.Generation.CRYSTAL);
+                    }
+                    game.insertAction(Battle.getIntroAction(game));
+                    this.checkWildEncounter = false;
+                    return;
+                }
+            }
+            if (game.player.repelCounter > 0) {
+                game.player.repelCounter--;
+                if (game.player.repelCounter == 0) {
+                    game.playerCanMove = false;
+                    game.insertAction(new DisplayText(game, "The effects of REPEL wore off.", null, null,
+                                      new WaitFrames(game, 3,  // TODO: see if this fixes issue where grass text is triggered.
+                                      new SetField(game, "playerCanMove", true, null))));
+                    return;
+                }
             }
             this.checkWildEncounter = false;
         }
@@ -4028,19 +4130,24 @@ class PlayerStanding extends Action {
                     game.client.sendTCP(new com.pkmngen.game.Network.Sleep(game.player.network.id, false));
                 }
                 game.player.isSleeping = false;
-                game.player.dirFacing = "left";
-                game.insertAction(new WaitFrames(game, 24,
-                                  new SetField(game.player, "dirFacing", "right",
-                                  new PlayerMoving(game, game.player, false,
-                                  new SetField(game.player, "dirFacing", "left",
-                                  new SetField(game.player, "currSprite", game.player.standingSprites.get("left"),
-                                  new WaitFrames(game, 24,
-                                  new SetField(game.player, "drawSleepingBag", false,
-                                  new WaitFrames(game, 24,
-                                  new PlayerMoving(game, game.player, true,
-                                  new SetField(game.player, "acceptInput", true,
-                                  new SetField(game.player, "currSprite", game.player.standingSprites.get("down"),
-                                  null))))))))))));
+                if (game.player.sleepingDir == null) {
+                    game.player.dirFacing = "left";
+                    game.insertAction(new WaitFrames(game, 24,
+                                                     new SetField(game.player, "dirFacing", "right",
+                                                     new PlayerMoving(game, game.player, false,
+                                                     new SetField(game.player, "dirFacing", "left",
+                                                     new SetField(game.player, "currSprite", game.player.standingSprites.get("left"),
+                                                     new WaitFrames(game, 24,
+                                                     new SetField(game.player, "drawSleepingBag", false,
+                                                     new WaitFrames(game, 24,
+                                                     new PlayerMoving(game, game.player, true,
+                                                     new SetField(game.player, "acceptInput", true,
+                                                     new SetField(game.player, "currSprite", game.player.standingSprites.get("down"),
+                                                     null))))))))))));
+                }
+                else {
+                    game.player.sleepingDir = null;
+                }
 
                 // TODO: remove
 //                Tile currTile = game.map.tiles.get(game.player.position);
@@ -4116,7 +4223,7 @@ class PlayerStanding extends Action {
 
         if (InputProcessor.bJustPressed) {
             // TODO: this is broken, no idea what's going on.
-            if (game.type == Game.Type.CLIENT && (game.player.isBuilding || game.player.isCutting || game.player.isHeadbutting || game.player.isJumping)) {
+            if (game.type == Game.Type.CLIENT && (game.player.isBuilding || game.player.isCutting || game.player.isSmashing || game.player.isHeadbutting || game.player.isJumping)) {
                 game.client.sendTCP(new com.pkmngen.game.Network.UseHM(game.player.network.id,
                                                                        DrawPokemonMenu.currIndex,
                                                                        "STOP"));
@@ -4136,6 +4243,9 @@ class PlayerStanding extends Action {
             if (game.player.isJumping) {
                 // player wants to stop building
                 game.player.isJumping = false;
+            }
+            if (game.player.isSmashing) {
+                game.player.isSmashing = false;
             }
         }
 
@@ -4201,6 +4311,11 @@ class PlayerStanding extends Action {
                         game.map.tiles.remove(currTile.position.cpy());
                         game.map.tiles.put(currTile.position.cpy(), newTile);
                         PlayerStanding.adjustSurroundingTiles(newTile);
+                        if (game.player.currBuildTile.name.contains("bed")) {
+                            game.map.tiles.remove(currTile.position.cpy().add(0, 16));
+                            Tile upTile = new Tile("black1", currTile.position.cpy().add(0, 16));
+                            game.map.tiles.put(currTile.position.cpy().add(0, 16), upTile);
+                        }
                     }
                     else {
                         // Send request to build new tile to server
@@ -4244,10 +4359,9 @@ class PlayerStanding extends Action {
                         nextAction = new WaitFrames(game, 16, new BattleIntroMusic(Battle.getIntroAction(game)));
                         this.checkWildEncounter = false;
                         shouldMove = false;  // for safety
-
                     }
                     game.insertAction(new HeadbuttTreeAnim(game, game.map.tiles.get(pos),
-                                                     nextAction));
+                                      nextAction));
                     game.playerCanMove = false;
                 }
             }
@@ -4263,7 +4377,7 @@ class PlayerStanding extends Action {
                     // Get items from tile
                     if (!currTile.items.isEmpty()) {
                         for (String item : currTile.items.keySet()) {
-                            System.out.println(item);
+//                            System.out.println(item);
 //                            game.insertAction(new ItemPickupNotify(game, item, currTile.items.get(item)));
                             String plural = "";
                             if (currTile.items.get(item) > 1) {
@@ -4286,6 +4400,54 @@ class PlayerStanding extends Action {
                     if (game.type == Game.Type.CLIENT) {
                         game.client.sendTCP(new Network.UseHM(game.player.network.id, 0, "CUT", game.player.dirFacing));
                     }
+                }
+                this.detectIsHouseBuilt(game, currTile);
+            }
+            else if (game.player.isSmashing) {
+                if (currTile.attrs.get("smashable")) {
+                    Action action = new CutTreeAnim(game, game.map.tiles.get(pos), null);
+                    game.playerCanMove = false;
+                    if (currTile.routeBelongsTo != null && !currTile.routeBelongsTo.pokemon.isEmpty()
+                            && game.map.rand.nextInt(2) == 0) {
+                        for (Pokemon currPokemon : game.player.pokemon) {
+                            if (currPokemon.currentStats.get("hp") > 0) {
+                                game.player.currPokemon = currPokemon;
+                                break;
+                            }
+                        }
+                        game.playerCanMove = false;
+                        game.battle.oppPokemon = currTile.routeBelongsTo.pokemon.get(game.map.rand.nextInt(currTile.routeBelongsTo.pokemon.size()));
+//                        game.insertAction(Battle_Actions.get(game));
+                        // new DisplayText(game, "A wild pokémon attacked!", null, null,
+                        action.append(new WaitFrames(game, 16, new BattleIntroMusic(Battle.getIntroAction(game))));
+                        this.checkWildEncounter = false;
+                        shouldMove = false;  // for safety
+                    }
+                    // Get items from tile
+                    if (!currTile.items.isEmpty()) {
+                        for (String item : currTile.items.keySet()) {
+                            String plural = "";
+                            if (currTile.items.get(item) > 1) {
+                                plural = "s";
+                            }
+                            action.append(new DisplayText(game, "Picked up "+currTile.items.get(item)+" "+item.toUpperCase()+plural+".", null, null,
+                                          null));
+                            if (game.player.itemsDict.containsKey(item)) {
+                                int currQuantity = game.player.itemsDict.get(item);
+                                game.player.itemsDict.put(item, currQuantity+currTile.items.get(item));
+                            }
+                            else {
+                                game.player.itemsDict.put(item, currTile.items.get(item));
+                            }
+                        }
+                        currTile.items.clear();
+                    }
+                    action.append(new SetField(game, "playerCanMove", true, null));
+                    game.insertAction(action);
+                    // TODO: for rock smash, depending on how network works in the future.
+//                    if (game.type == Game.Type.CLIENT) {
+//                        game.client.sendTCP(new Network.UseHM(game.player.network.id, 0, "CUT", game.player.dirFacing));
+//                    }
                 }
                 this.detectIsHouseBuilt(game, currTile);
             }
@@ -4711,6 +4873,7 @@ class PlayerStanding extends Action {
                 if (pokemon != null) {
                     // The first Pokemon the player sends out in battle should
                     // have > 0 hp.
+                    // TODO: this really needs to go in an action somewhere in the action chain (DrawBattle?)
                     for (Pokemon currPokemon : this.player.pokemon) {
                         if (currPokemon.currentStats.get("hp") > 0) {
                             this.player.currPokemon = currPokemon;
@@ -4822,22 +4985,29 @@ class PlayerStanding extends Action {
             }
             this.player.zsTimer++;
             if (this.player.zsTimer >= 128 ) {
+                boolean outdoors = (this.player.network.tiles == game.map.overworldTiles);
+//                if (game.type == Game.Type.CLIENT) {
+                if (this.player.type == Player.Type.LOCAL) {
+                    outdoors = (game.map.tiles == game.map.overworldTiles);
+                }
                 // Restore pokemon hp
                 // TODO: restore player hp
                 // TODO: this needs to go in remoteStep or something for remote player
                 for (Pokemon pokemon : this.player.pokemon) {
-                    boolean indoors = (this.player.network.tiles == game.map.overworldTiles);
-                    if (game.type == Game.Type.CLIENT) {
-                        indoors = (game.map.tiles == game.map.overworldTiles);
-                    }
-                    if (indoors) {
+                    if (outdoors) {
                         pokemon.currentStats.put("hp", pokemon.currentStats.get("hp")+1);
                     }
                     else {
                         pokemon.currentStats.put("hp", pokemon.currentStats.get("hp")+2);
                     }
+                    if (this.player.sleepingDir != null) {  // If using bed, not sleeping bag
+                        pokemon.currentStats.put("hp", pokemon.currentStats.get("hp")+2);
+                    }
                     if (pokemon.currentStats.get("hp") >= pokemon.maxStats.get("hp")) {
                         pokemon.currentStats.put("hp", pokemon.maxStats.get("hp"));
+                        if (this.player.sleepingDir != null) {  // If using bed, not sleeping bag
+                            pokemon.status = null;
+                        }
                     }
                 }
                 this.player.zsTimer = 0;

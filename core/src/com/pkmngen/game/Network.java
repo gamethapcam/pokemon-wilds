@@ -766,10 +766,13 @@ public class Network {
         boolean isShiny;
         String[] attacks = new String[4];
         int index;  // index in player inventory
+        String status = null;
+        String previousOwnerName = null;
         
         // overworld-related
         Vector2 position;
         boolean isInterior = false;
+        int harvestTimer = 0;
 
         public PokemonData() {}
 
@@ -788,6 +791,11 @@ public class Network {
             this.position = pokemon.position;
             if (pokemon.mapTiles != null) {
                 this.isInterior = (pokemon.mapTiles != Game.staticGame.map.overworldTiles);
+            }
+            this.status = pokemon.status;
+            this.harvestTimer = pokemon.harvestTimer;
+            if (pokemon.previousOwner != null) {
+                this.previousOwnerName = pokemon.previousOwner.name;
             }
         }
 
@@ -931,6 +939,7 @@ public class Network {
         HashMap<String, Integer> items;
         public String hasItem;
         public int hasItemAmount;
+        String biome;
 
         // TrainerTipsTile stuff
         boolean isUnown;
@@ -961,6 +970,7 @@ public class Network {
             this.hasItem = tile.hasItem;
             this.hasItemAmount = tile.hasItemAmount;
             this.doorTiles = tile.doorTiles;
+            this.biome = tile.biome;
         }
     }
 

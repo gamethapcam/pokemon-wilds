@@ -29,6 +29,7 @@ import com.pkmngen.game.DrawCraftsMenu.SelectAmount;
 import com.pkmngen.game.Network.BattleTurnData;
 import com.pkmngen.game.Pokemon.Standing;
 import com.pkmngen.game.util.LinkedMusic;
+import com.pkmngen.game.util.TextureCache;
 
 class AfterFriendlyFaint extends Action {
     public int layer = 129;
@@ -118,6 +119,7 @@ class Attack {
     int pp;
     int effectChance; // chance to paralyze, lower speed, poison, etc.
     boolean isPhysical = false;
+    boolean isCrit = false;
 
     // Network-related things
     int damage;
@@ -1913,7 +1915,43 @@ public class Battle {
             multiplier *= Game.staticGame.battle.gen2TypeEffectiveness.get(attack.type).get(type.toLowerCase());
         }
         damage = (int)(damage * multiplier);
+        if (attack.isCrit) {
+            // TODO: ignore reflect, etc.
+            // https://web.archive.org/web/20140712063943/http://www.upokecenter.com/content/pokemon-gold-version-silver-version-and-crystal-version-timing-notes
+            damage *= 2;
+        }
         return damage;
+    }
+
+    /**
+     * Calculate an attack's damage. Based off of Gen 2 mechanics.
+     * 
+     * Source: https://web.archive.org/web/20140712063943/http://www.upokecenter.com/content/pokemon-gold-version-silver-version-and-crystal-version-timing-notes
+     */
+    static boolean gen2DetermineCrit(Pokemon source, Attack attack) {
+        int c = 0;
+        // TODO: focus energy (use boolean in pokemon class)
+        // If attack is Aero Blast, Crab Hammer, Cross Chop, Karate Chop, Razor Leaf, or Slash, add 2 to C. 
+        if (attack.name.equals("aero blast") || attack.name.equals("crab hammer") || attack.name.equals("cross chop") ||
+                attack.name.equals("karate chop") || attack.name.equals("razor leaf") || attack.name.equals("slash")) {
+            c += 2;
+        }
+        if (c == 0) {
+            c = 17;
+        }
+        else if (c == 1) {
+            c = 32;
+        }
+        else if (c == 2) {
+            c = 64;
+        }
+        else if (c == 3) {
+            c = 85;
+        }
+        else {
+            c = 128;
+        }
+        return Game.staticGame.map.rand.nextInt(256) < c;
     }
 
     // your pokemon // probly use this
@@ -2220,6 +2258,18 @@ public class Battle {
                 }
             };
             String enemy = isFriendly ? "" : "Enemy ";
+            // Handle disable.
+            if (friendlyPokemon.disabledCounter > 0) {
+                friendlyPokemon.disabledCounter--;
+            }
+            if (friendlyPokemon.disabledCounter <= 0 && friendlyPokemon.disabledIndex != -1) {
+                attackAction.append(new DisplayText.Clear(game,
+                                    new WaitFrames(game, 3,
+                                    new DisplayText(game, enemy+friendlyPokemon.name.toUpperCase()+"' "+friendlyPokemon.attacks[friendlyPokemon.disabledIndex]+" is no longer disabled!", null, true, false,
+                                    null))));
+                friendlyPokemon.disabledIndex = -1;
+            }
+            
             // Status check - display appropriate text if asleep, confused, etc
             // If snap out of status (confusion, sleep), then proceed normally.
             if (friendlyPokemon.status != null) {
@@ -2264,33 +2314,55 @@ public class Battle {
                 }
                 else if (friendlyPokemon.status.equals("confuse")) {
                     friendlyPokemon.statusCounter--;
-                    attackAction.append(new DisplayText.Clear(game,
-                                        new WaitFrames(game, 3,
-                                        new DisplayText(game, enemy+friendlyPokemon.name.toUpperCase()+" is confused!", null, true, false,
-                                        null))));
-                    if (friendlyPokemon.statusCounter > 0 && game.map.rand.nextInt(2) == 0) {
-                        // TODO: what is the damage calc here? Assuming stab, type effectiveness etc all apply.
-                        // https://bulbapedia.bulbagarden.net/wiki/Status_condition
-                        // "The damage is done as if the PokÈmon attacked itself with a 40-power typeless physical attack"
-                        // TODO: can't handle typeless. Probably need a 'typeless' attack specially stored.
-                        Attack confustionAtk = game.battle.attacks.get("confusion_hit");
-                        confustionAtk.damage = Battle.gen2CalcDamage(friendlyPokemon, confustionAtk, friendlyPokemon);
+                    if (friendlyPokemon.statusCounter > 0) {
                         attackAction.append(new DisplayText.Clear(game,
                                             new WaitFrames(game, 3,
-                                            new DisplayText(game, "It hurt itself in confusion!", null, true, false,
-                                            Battle.depleteHealth(game, !isFriendly, confustionAtk.damage,
-                                            new WaitFrames(game, 13,
-                                            nextAction))))));
-                        return attackAction;
+                                            new DisplayText(game, enemy+friendlyPokemon.name.toUpperCase()+" is confused!", null, true, false,
+                                            null))));
+                        if (game.map.rand.nextInt(256) < 128) {
+                            // TODO: what is the damage calc here? Assuming stab, type effectiveness etc all apply.
+                            // https://bulbapedia.bulbagarden.net/wiki/Status_condition
+                            // "The damage is done as if the PokÈmon attacked itself with a 40-power typeless physical attack"
+                            // TODO: can't handle typeless. Probably need a 'typeless' attack specially stored.
+                            Attack confustionAtk = game.battle.attacks.get("confusion_hit");
+                            confustionAtk.damage = Battle.gen2CalcDamage(friendlyPokemon, confustionAtk, friendlyPokemon);
+                            attackAction.append(new DisplayText.Clear(game,
+                                                new WaitFrames(game, 3,
+                                                new DisplayText(game, "It hurt itself in confusion!", null, true, false,
+                                                Battle.depleteHealth(game, !isFriendly, confustionAtk.damage,
+                                                new WaitFrames(game, 13,
+                                                nextAction))))));
+                            return attackAction;
+                        }
                     }
-                    friendlyPokemon.status = null;
-                    attackAction.append(new DisplayText.Clear(game,
-                                        new WaitFrames(game, 3,
-                                        new DisplayText(game, enemy+friendlyPokemon.name.toUpperCase()+" snapped out of confusion!", null, true, true,
-                                        null))));
+                    else {
+                        friendlyPokemon.status = null;
+                        attackAction.append(new DisplayText.Clear(game,
+                                            new WaitFrames(game, 3,
+                                            new DisplayText(game, enemy+friendlyPokemon.name.toUpperCase()+" snapped out of confusion!", null, true, true,
+                                            null))));
+                    }
                 }
                 // TODO: remove
 //                attackAction.append(new WaitFrames(game, 30, null));
+            }
+            
+            // Set previous attack used (used by disable)
+            int attackIndex = -1;
+            for (int i=0; i < friendlyPokemon.attacks.length; i++) {
+                if (friendlyPokemon.attacks[i] == null) {
+                    continue;
+                }
+                if (friendlyPokemon.attacks[i].equals(attack.name)) {
+                    attackIndex = i;
+                    break;
+                }
+            }
+            if (isFriendly) {
+                DrawBattle.prevFriendlyAttackIndex = attackIndex;
+            }
+            else {
+                DrawBattle.prevEnemyAttackIndex = attackIndex;
             }
             
             // Check if attack misses or not
@@ -2318,6 +2390,9 @@ public class Battle {
 //            System.out.println(attack.accuracy);
 //            System.out.println(accuracy);
             boolean attackMisses = accuracy < 255 && game.map.rand.nextInt(256) >= accuracy;
+            if (attack.name.equals("swift")) {
+                attackMisses = false;
+            }
             
             String effectiveness;
             String text_string = "";
@@ -2369,6 +2444,13 @@ public class Battle {
                                     Battle.depleteHealth(game, isFriendly, attack.damage,  // TODO: generic DepleteHealth class
                                     new WaitFrames(game, 13,
                                     null))));
+                // If crit, display text.
+                if (attack.isCrit) {
+                    attackAction.append(new DisplayText.Clear(game,
+                                        new WaitFrames(game, 3,
+                                        new DisplayText(game, "Critical hit!", null, null,
+                                        null))));
+                }
                 if (!effectiveness.equals("neutral_effective")) {
                     attackAction.append(new DisplayText.Clear(game,
                                         new WaitFrames(game, 3,
@@ -2525,15 +2607,15 @@ public class Battle {
                 // Target is always enemy for status moves
                 // Note: for moves like REST, game doesnt denote EFFECT_SLEEP for effect.
                 Pokemon target = enemyPokemon;
-                if (attackMisses || target.status != null) {
-                    if (!attack.effect.contains("HIT") || target.status != null) {
-                        attackAction.append(new WaitFrames(game, 30,
-                                            new DisplayText.Clear(game,
-                                            new WaitFrames(game, 3,
-                                            new DisplayText(game, "But it failed!", null, true, true,
-                                            nextAction)))));
-                        return attackAction;
-                    }
+                if ((attackMisses || target.status != null) && !attack.effect.contains("HIT")) {
+//                    if (!attack.effect.contains("HIT") || target.status != null) {
+                    attackAction.append(new WaitFrames(game, 30,
+                                        new DisplayText.Clear(game,
+                                        new WaitFrames(game, 3,
+                                        new DisplayText(game, "But it failed!", null, true, true,
+                                        nextAction)))));
+                    return attackAction;
+//                    }
                 }
                 if (!attackMisses) {
 //                    target.status = status;  // TODO: remove if unused
@@ -2579,6 +2661,54 @@ public class Battle {
                                             new SetField(target, "status", status,  // Delay to emulate vgc
                                             null)))));
                     }
+                }
+            }
+            if (attack.name.equals("disable")) {
+                // Last attack
+                attackIndex = DrawBattle.prevFriendlyAttackIndex;
+                if (isFriendly) {
+                    attackIndex = DrawBattle.prevEnemyAttackIndex;
+                }
+                if (attackIndex == -1 || enemyPokemon.disabledIndex >= 0) {
+                    attackAction.append(new DisplayText.Clear(game,
+                                        new WaitFrames(game, 3,
+                                        new DisplayText(game, "But it failed!",
+                                                        null, false, true,
+                                        null))));
+                }
+//                else if (attackIndex == enemyPokemon.disabledIndex) {
+//                    attackAction.append(new DisplayText.Clear(game,
+//                                        new WaitFrames(game, 3,
+//                                        new DisplayText(game, enemy+enemyPokemon.name.toUpperCase()+"' "+enemyPokemon.attacks[attackIndex]+" is already disabled!",
+//                                                        null, false, true,
+//                                        null))));
+//                }
+                else {
+                    enemyPokemon.disabledIndex = attackIndex;
+                    enemyPokemon.disabledCounter = game.map.rand.nextInt(7) + 2;
+                    attackAction.append(new DisplayText.Clear(game,
+                                        new WaitFrames(game, 3,
+                                        new DisplayText(game, enemy+enemyPokemon.name.toUpperCase()+"' "+enemyPokemon.attacks[attackIndex].toUpperCase()+" was disabled!",
+                                                        null, false, true,
+                                        null))));
+                }
+            }
+            // Recover effects
+            if (attack.effect.equals("EFFECT_HEAL")) {
+                if (friendlyPokemon.currentStats.get("hp") >= friendlyPokemon.maxStats.get("hp")) {
+                    attackAction.append(new DisplayText.Clear(game,
+                                        new WaitFrames(game, 3,
+                                        new DisplayText(game, "But it failed!",
+                                                        null, false, true,
+                                        null))));
+                }
+                else {
+                    int amount = friendlyPokemon.maxStats.get("hp")/2;
+                    attackAction.append(new RestoreHealth(friendlyPokemon, -amount,
+                                        new DisplayText.Clear(game,
+                                        new WaitFrames(game, 3,
+                                        new DisplayText(game, friendlyPokemon.name.toUpperCase()+" gained health!", null, false, true,
+                                        null)))));
                 }
             }
             // Check if attack traps target pokemon
@@ -3537,6 +3667,7 @@ public class Battle {
                     }
                     // TODO: determine if hit/miss, crit, effect hit, etc
                     playerAttack = game.battle.attacks.get(game.player.currPokemon.attacks[DrawAttacksMenu.curr].toLowerCase());
+                    playerAttack.isCrit = Battle.gen2DetermineCrit(game.player.currPokemon, playerAttack);
                     playerAttack.damage = Battle.gen2CalcDamage(game.player.currPokemon, playerAttack, game.battle.oppPokemon);
 
                     if (game.battle.oppPokemon.trappedBy == null &&
@@ -3576,8 +3707,10 @@ public class Battle {
             }
             // Select enemy attack
             if (game.type != Game.Type.CLIENT) {
-                // set up enemy attack
-                String attackChoice = game.battle.oppPokemon.attacks[game.map.rand.nextInt(game.battle.oppPokemon.attacks.length)];
+                // Set up enemy attack. Can't choose disabled move.
+                int attackIndex = game.map.rand.nextInt(game.battle.oppPokemon.attacks.length);
+                // TODO: don't select disabled attack.
+                String attackChoice = game.battle.oppPokemon.attacks[attackIndex];
                 if (attackChoice == null) {
                     attackChoice = "Struggle";
                 }
@@ -3588,6 +3721,7 @@ public class Battle {
 //                }
 //                System.out.println(attackChoice);
 //                System.out.println(enemyAttack.name);
+                enemyAttack.isCrit = Battle.gen2DetermineCrit(game.battle.oppPokemon, enemyAttack);
                 enemyAttack.damage = Battle.gen2CalcDamage(game.battle.oppPokemon, enemyAttack, game.player.currPokemon);
 
                 // check if attack traps player pokemon
@@ -4085,6 +4219,9 @@ class BattleFadeOut extends Action {
             // TODO: gameboy game handles this differently
             // TODO: remove
 //            game.player.currPokemon = game.player.pokemon.get(0);
+            
+            DisplayText.unownText = false;
+            game.map.unownSpawn = null;
             return;
         }
 
@@ -5090,6 +5227,7 @@ class CatchPokemonWobblesThenCatch extends Action {
                                 null)));
             if (game.player.pokemon.size() < 6) {
                 game.player.pokemon.add(game.battle.oppPokemon);
+                game.battle.oppPokemon.previousOwner = game.player;
             }
             else {
                 // If player inventory is full, then send the pokemon to player's spawn location
@@ -5262,6 +5400,7 @@ class DepleteEnemyHealth extends Action {
     int timer;
 
     int removeNumber;
+    // TODO: remove if unused
     int targetSize; // reduce enemy health bar to this number
     int damage = 0;
     public DepleteEnemyHealth(Game game, Action nextAction) {
@@ -5289,6 +5428,7 @@ class DepleteEnemyHealth extends Action {
                 int finalHealth = currHealth - this.damage > 0 ? currHealth - this.damage : 0;
                 game.battle.oppPokemon.currentStats.put("hp", finalHealth);
             }
+            // TODO: remove if unused
             this.targetSize = (int)Math.ceil( (game.battle.oppPokemon.currentStats.get("hp")*48) / game.battle.oppPokemon.maxStats.get("hp"));
             this.firstStep = false;
         }
@@ -5299,14 +5439,15 @@ class DepleteEnemyHealth extends Action {
         }
         this.timer = 0;
 
-        int size = 0;
-        for (int i = 0; i < this.removeNumber; i++) {
-            size = game.battle.drawAction.drawEnemyHealthAction.healthBar.size();
-            if (size <= targetSize) {
-                break;
-            }
-            game.battle.drawAction.drawEnemyHealthAction.healthBar.remove(size-1);
-        }
+//        int size = 0;
+//        for (int i = 0; i < this.removeNumber; i++) {
+//            size = game.battle.drawAction.drawEnemyHealthAction.healthBar.size();
+//            if (size <= targetSize) {
+//                break;
+//            }
+//            game.battle.drawAction.drawEnemyHealthAction.healthBar.remove(size-1);
+//        }
+        game.battle.drawAction.drawEnemyHealthAction.currHealth -= this.removeNumber;
 
         if (this.removeNumber == 2) {
             this.removeNumber = 1;
@@ -5315,7 +5456,9 @@ class DepleteEnemyHealth extends Action {
             this.removeNumber = 2;
         }
 
-        if (size <= targetSize) {
+//        if (size <= targetSize) {
+        if (game.battle.drawAction.drawEnemyHealthAction.currHealth <= this.targetSize) {
+            game.battle.drawAction.drawEnemyHealthAction.currHealth = this.targetSize;
             game.actionStack.remove(this);
             // If enemy health is 0, do EnemyFaint
             if (game.battle.oppPokemon.currentStats.get("hp") <= 0) {
@@ -5359,6 +5502,85 @@ class DepleteEnemyHealth extends Action {
     }
 }
 
+/**
+ * Restore health animation.
+ *
+ * Used in battle by Recover, Rest, etc. Used outside of battle by potion, moomoo milk, etc.
+ */
+class RestoreHealth extends Action {
+    Pokemon pokemon;
+    int damage = 0;  // amount hp gained/lost
+    int finalHealth;
+    int timer = 3;
+    int removeNumber = 1;  // 2;
+    int sign = 1;
+
+    public RestoreHealth(Pokemon pokemon, int damage, Action nextAction) {
+        this.pokemon = pokemon;
+        this.damage = damage;
+        this.nextAction = nextAction;
+    }
+
+    public String getCamera() {return "gui";}
+
+    @Override
+    public void firstStep(Game game) {
+        int currHealth = this.pokemon.currentStats.get("hp");
+        this.finalHealth = currHealth - this.damage;
+        if (this.finalHealth > this.pokemon.maxStats.get("hp")) {
+            this.finalHealth = this.pokemon.maxStats.get("hp");
+        }
+        else if (this.finalHealth < 0) {
+            this.finalHealth = 0;
+        }
+        if (this.finalHealth > this.pokemon.currentStats.get("hp")) {
+            this.sign = -1;
+        }
+        this.removeNumber *= this.sign;
+    }
+
+    @Override
+    public void step(Game game) {
+        this.timer++;
+        if (this.timer < 2) {
+            return;
+        }
+        this.timer = 0;
+        int removeHealth = (int)Math.ceil((((float)this.removeNumber)/48f) * (float)this.pokemon.maxStats.get("hp"));
+        if (removeHealth <= 0) {
+            removeHealth = 1*this.sign;
+        }
+        this.pokemon.currentStats.put("hp", this.pokemon.currentStats.get("hp") - removeHealth);
+
+        if (game.battle.drawAction != null) {
+            if (this.pokemon == game.battle.oppPokemon) {
+                game.battle.drawAction.drawEnemyHealthAction.currHealth = (int)Math.ceil( (this.pokemon.currentStats.get("hp")*48) / this.pokemon.maxStats.get("hp"));
+            }
+            else {
+                game.battle.drawAction.drawFriendlyHealthAction.currHealth = (int)Math.ceil( (this.pokemon.currentStats.get("hp")*48) / this.pokemon.maxStats.get("hp"));
+            }
+        }
+
+        // Alternate between removing 2 and removing 1
+//        if (this.removeNumber % 2 == 0) {
+//            this.removeNumber = 1;
+//        }
+//        else {
+//            this.removeNumber = 2;
+//        }
+        this.removeNumber = 1;
+        this.removeNumber *= this.sign;
+
+        // If health is 0, this pokemon should faint
+        if ((sign == 1 && this.pokemon.currentStats.get("hp") <= this.finalHealth) ||
+            (sign == -1 && this.pokemon.currentStats.get("hp") >= this.finalHealth)) {
+            this.pokemon.currentStats.put("hp", this.finalHealth);
+            game.actionStack.remove(this);
+            game.insertAction(this.nextAction);
+        }
+    }
+}
+
 // instance of this assigned to DrawBattle.drawEnemyHealthAction
 class DepleteFriendlyHealth extends Action {
     public int layer = 129;
@@ -5389,12 +5611,13 @@ class DepleteFriendlyHealth extends Action {
     @Override
     public void step(Game game) {
         if (this.firstStep == true) {
-            // apply damage if there is any (otherwise assume it's already applied)
+            // Apply damage if there is any (otherwise assume it's already applied)
             if (this.damage > 0) {
                 int currHealth = game.player.currPokemon.currentStats.get("hp");
                 int finalHealth = currHealth - this.damage > 0 ? currHealth - this.damage : 0;
                 game.player.currPokemon.currentStats.put("hp", finalHealth);
             }
+            // TODO: remove if unused
             this.targetSize = (int)Math.ceil( (this.pokemon.currentStats.get("hp")*48) / this.pokemon.maxStats.get("hp"));
             this.firstStep = false;
         }
@@ -5404,14 +5627,16 @@ class DepleteFriendlyHealth extends Action {
         }
         this.timer = 0;
 
-        int size = 0;
-        for (int i = 0; i < this.removeNumber; i++) {
-            size = game.battle.drawAction.drawFriendlyHealthAction.healthBar.size();
-            if (size <= targetSize) {
-                break;
-            }
-            game.battle.drawAction.drawFriendlyHealthAction.healthBar.remove(size-1);
-        }
+        // TODO: remove if unused
+//        int size = 0;
+//        for (int i = 0; i < this.removeNumber; i++) {
+//            size = game.battle.drawAction.drawFriendlyHealthAction.healthBar.size();
+//            if (size <= targetSize) {
+//                break;
+//            }
+//            game.battle.drawAction.drawFriendlyHealthAction.healthBar.remove(size-1);
+//        }
+        game.battle.drawAction.drawFriendlyHealthAction.currHealth -= this.removeNumber;
 
         // alternate between removing 2 and removing 1
         if (this.removeNumber == 2) {
@@ -5422,7 +5647,9 @@ class DepleteFriendlyHealth extends Action {
         }
 
         // If health is 0, this pokemon should faint
-        if (size <= targetSize) {
+//        if (size <= targetSize) {
+        if (game.battle.drawAction.drawFriendlyHealthAction.currHealth <= this.targetSize) {
+            game.battle.drawAction.drawFriendlyHealthAction.currHealth = this.targetSize;
             game.actionStack.remove(this);
             if (this.pokemon.currentStats.get("hp") <= 0) {
                 game.insertAction(new FriendlyFaint(game,
@@ -5575,13 +5802,25 @@ class DrawAttacksMenu extends Action {
                 }
                 return;
             }
+            // Warning text if attack is disabled.
+            if (game.player.currPokemon.disabledIndex == DrawAttacksMenu.curr) {
+                game.actionStack.remove(this);
+                game.insertAction(new DisplayText.Clear(game,
+                                  new WaitFrames(game, 3,
+                                  new DisplayText(game, game.player.currPokemon.attacks[DrawAttacksMenu.curr].toUpperCase()+" is disabled!",
+                                                  null, null,
+                                  new WaitFrames(game, 3,
+                                  this)))));
+                return;
+            }
+            
             // Reset counter keeping track of number flees done by player this battle (used in run away mechanic).
             game.player.numFlees = 0;
 
             // explanation of speed move priority: http:// bulbapedia.bulbagarden.net/wiki/Stats#Speed
              // pkmn with higher speed moves first
 
-            // play select sound
+            // Play select sound
             Action attack = new SplitAction(new PlaySound("click1", null), null);
             if (game.type == Game.Type.CLIENT) {
                 // send move to server, wait response
@@ -5642,7 +5881,6 @@ class DrawAttacksMenu extends Action {
 
 // draw battle elements
  // TODO - don't draw the options frame (ie fight, run etc)
- // TODO - on destroy, set drawAction to null?
 class DrawBattle extends Action {
     public static boolean shouldDrawOppPokemon = true;
     boolean doneNightOverlay = false;
@@ -5650,6 +5888,9 @@ class DrawBattle extends Action {
     Sprite bgSprite2;
     DrawFriendlyHealth drawFriendlyHealthAction;
     DrawEnemyHealth drawEnemyHealthAction;
+
+    public static int prevFriendlyAttackIndex = -1;
+    public static int prevEnemyAttackIndex = -1;
 
     Action drawFriendlyPokemonAction;
     public int layer = 130;
@@ -5666,6 +5907,12 @@ class DrawBattle extends Action {
     public String getCamera() {return "gui";}
 
     public int getLayer(){return this.layer;}
+
+    @Override
+    public void firstStep(Game game) {
+        DrawBattle.prevFriendlyAttackIndex = -1;
+        DrawBattle.prevEnemyAttackIndex = -1;
+    }
 
     @Override
     public void step(Game game) {
@@ -6267,9 +6514,12 @@ class DrawBattleMenuSafariZone extends Action {
 class DrawEnemyHealth extends Action {
     public static boolean shouldDraw = true;
     Sprite bgSprite;
+    Sprite healthSprite;
+    int currHealth;
 
-    public ArrayList<Sprite> healthBar;
+//    public ArrayList<Sprite> healthBar;
     public int layer = 129;
+
     public DrawEnemyHealth(Game game) {
         Texture text = new Texture(Gdx.files.internal("battle/enemy_healthbar1.png"));
         this.bgSprite = new Sprite(text, 0, 0, 160, 144);
@@ -6281,18 +6531,19 @@ class DrawEnemyHealth extends Action {
         // fill sprite array according to enemy health
          // healthbar is 48 pixels long
          // round up when counting
-        this.healthBar = new ArrayList<Sprite>();
-        int numElements = (int)Math.ceil( (game.battle.oppPokemon.currentStats.get("hp")*48f) / game.battle.oppPokemon.maxStats.get("hp") );
+//        this.healthBar = new ArrayList<Sprite>();
+        this.currHealth = (int)Math.ceil( (game.battle.oppPokemon.currentStats.get("hp")*48f) / game.battle.oppPokemon.maxStats.get("hp") );
 
         // System.out.println("numElements: "+String.valueOf(numElements)); // debug
 
         text = new Texture(Gdx.files.internal("battle/health1.png"));
-        Sprite temp = new Sprite(text, 0,0,1,2);
-        for (int i = 0; i < numElements; i++) {
-            Sprite temp2 = new Sprite(temp); // to avoid long loading
-            temp2.setPosition(32 + i, 123);
-            this.healthBar.add(temp2);
-        }
+        this.healthSprite = new Sprite(text, 0,0,1,2);
+//        Sprite temp = new Sprite(text, 0,0,1,2);
+//        for (int i = 0; i < numElements; i++) {
+//            Sprite temp2 = new Sprite(temp); // to avoid long loading
+//            temp2.setPosition(32 + i, 123);
+//            this.healthBar.add(temp2);
+//        }
 
     }
     public String getCamera() {return "gui";}
@@ -6355,8 +6606,12 @@ class DrawEnemyHealth extends Action {
                 }
             }
             // Draw health bar
-            for (Sprite bar : this.healthBar) {
-                bar.draw(game.uiBatch);
+            // TODO: remove if unused
+//            for (Sprite bar : this.healthBar) {
+//                bar.draw(game.uiBatch);
+//            }
+            for (int i=0; i < this.currHealth; i++) {
+                game.uiBatch.draw(this.healthSprite, 32 +i, 123);
             }
         }
         // detect when battle is over,
@@ -6373,9 +6628,10 @@ class DrawEnemyHealth extends Action {
 class DrawFriendlyHealth extends Action {
     public static boolean shouldDraw = true;
     Sprite bgSprite;
-    Sprite helperSprite;
+    Sprite healthSprite;
 
-    public ArrayList<Sprite> healthBar;
+//    public ArrayList<Sprite> healthBar;  // TODO: remove if unused
+    int currHealth;
     public int layer = 129;
 
     boolean firstStep = true;
@@ -6397,18 +6653,20 @@ class DrawFriendlyHealth extends Action {
         // fill sprite array according to enemy health
          // healthbar is 48 pixels long
          // round up when counting
-        this.healthBar = new ArrayList<Sprite>();
-        int numElements = (int)Math.ceil( (game.player.currPokemon.currentStats.get("hp")*48f) / game.player.currPokemon.maxStats.get("hp") );
+//        this.healthBar = new ArrayList<Sprite>();
+        this.currHealth = (int)Math.ceil( (game.player.currPokemon.currentStats.get("hp")*48f) / game.player.currPokemon.maxStats.get("hp") );
 
         // System.out.println("numElements: "+String.valueOf(numElements)); // debug
 
-        text = new Texture(Gdx.files.internal("battle/health1.png"));
-        Sprite temp = new Sprite(text, 0,0,1,2);
-        for (int i = 0; i < numElements; i++) {
-            Sprite temp2 = new Sprite(temp); // to avoid long loading
-            temp2.setPosition(96 + i, 67);
-            this.healthBar.add(temp2);
-        }
+        text = TextureCache.get(Gdx.files.internal("battle/health1.png"));
+        this.healthSprite = new Sprite(text, 0, 0, 1, 2);
+        // TODO: remove if unused
+//        Sprite temp = new Sprite(text, 0, 0, 1, 2);
+//        for (int i = 0; i < numElements; i++) {
+//            Sprite temp2 = new Sprite(temp); // to avoid long loading
+//            temp2.setPosition(96 + i, 67);
+//            this.healthBar.add(temp2);
+//        }
     }
 
     public String getCamera() {return "gui";}
@@ -6489,8 +6747,12 @@ class DrawFriendlyHealth extends Action {
                 }
             }
             // Draw health bar
-            for (Sprite bar : this.healthBar) {
-                bar.draw(game.uiBatch);
+            // TODO: remove if unused
+//            for (Sprite bar : this.healthBar) {
+//                bar.draw(game.uiBatch);
+//            }
+            for (int i=0; i < this.currHealth; i++) {
+                game.uiBatch.draw(this.healthSprite, 96 +i, 67);
             }
         }
         // detect when battle is over,
@@ -6518,22 +6780,20 @@ class DrawItemMenu extends MenuAction {
     Map<Integer, Vector2> arrowCoords;
     Vector2 newPos;
     Sprite helperSprite;
-    ArrayList<ArrayList<Sprite>> spritesToDraw;
+    ArrayList<ArrayList<Sprite>> spritesToDraw = new ArrayList<ArrayList<Sprite>>();
     int cursorDelay; // this is just extra detail. cursor has 2 frame delay before showing in R/B
-
     int cursorPos;
     int currIndex;
     ArrayList<String> itemsList;
-
     Sprite downArrow;
     int downArrowTimer;
+    boolean refresh = false;
 
     public DrawItemMenu(Game game, MenuAction prevMenu) {
         this.prevMenu = prevMenu;
         this.disabled = false;
         this.cursorDelay = 0;
         this.arrowCoords = new HashMap<Integer, Vector2>();
-        this.spritesToDraw = new ArrayList<ArrayList<Sprite>>();
         Texture text = new Texture(Gdx.files.internal("battle/arrow_right1.png"));
         this.arrow = new Sprite(text, 0, 0, 5, 7);
         text = new Texture(Gdx.files.internal("battle/arrow_right_white.png"));
@@ -6560,12 +6820,18 @@ class DrawItemMenu extends MenuAction {
 
         newPos = arrowCoords.get(cursorPos);
         this.arrow.setPosition(newPos.x, newPos.y);
+    }
+    
+    public String getCamera() {return "gui";}
 
-        // add 'cancel' to the items list
-//        this.itemsList = new ArrayList<String>(game.player.itemsList); // TODO: delete
+    public int getLayer(){return this.layer;}
+
+    @Override
+    public void firstStep(Game game) {
         this.itemsList = new ArrayList<String>(game.player.itemsDict.keySet());
         this.itemsList.add("Cancel");
-        // convert player item list to sprites
+        this.spritesToDraw.clear();
+        // Convert player item list to sprites
         for (String entry : this.itemsList) {
             char[] textArray = entry.toUpperCase().toCharArray(); // iterate elements
             Sprite currSprite;
@@ -6576,13 +6842,9 @@ class DrawItemMenu extends MenuAction {
                 if (letterSprite == null) {
                     letterSprite = game.textDict.get(null);
                 }
-                currSprite = new Sprite(letterSprite); // copy sprite from char-to-Sprite dictionary
-
-                currSprite.setPosition(48+8*i, 104); // was *j
+                currSprite = new Sprite(letterSprite);
+                currSprite.setPosition(48+8*i, 104);
                 word.add(currSprite);
-                // go down a line if needed
-                 // TODO - do this for words, not chars. split on space, array
-
                 i++;
             }
             if (game.player.itemsDict.containsKey(entry)) {
@@ -6590,7 +6852,7 @@ class DrawItemMenu extends MenuAction {
                 i = 10;
                 for (char letter : numItemsArray) {
                     i += 1;
-                    if (letter == '0') {
+                    if (letter == '0' && i == 11) {
                         continue;
                     }
                     Sprite letterSprite = game.textDict.get((char)letter);
@@ -6599,15 +6861,9 @@ class DrawItemMenu extends MenuAction {
                     word.add(currSprite);
                 }
             }
-            spritesToDraw.add(word);
+            this.spritesToDraw.add(word);
         }
     }
-    public String getCamera() {return "gui";}
-
-    // don't do this - idk why, but will occasionally overwrite prevMenu
-//    MenuAction prevMenu;
-
-    public int getLayer(){return this.layer;}
 
     @Override
     public void step(Game game) {
@@ -6637,12 +6893,17 @@ class DrawItemMenu extends MenuAction {
         }
 
         // return at this point if this menu is disabled
-        if (this.disabled == true) {
+        if (this.disabled) {
+            this.refresh = true;
             this.arrowWhite.setPosition(newPos.x, newPos.y);
             this.arrowWhite.draw(game.uiBatch);
             return;
         }
-        // check user input
+        if (this.refresh) {
+            this.firstStep(game);
+            this.refresh = false;
+        }
+        // Check user input
          //'tl' = top left, etc.
          // modify position by modifying curr to tl, tr, bl or br
         if (InputProcessor.upJustPressed) {
@@ -6665,7 +6926,7 @@ class DrawItemMenu extends MenuAction {
             }
         }
 
-        // draw arrow
+        // Draw arrow
         if (this.cursorDelay >= 5) {
             this.arrow.setPosition(newPos.x, newPos.y);
             this.arrow.draw(game.uiBatch);
@@ -6674,7 +6935,7 @@ class DrawItemMenu extends MenuAction {
             this.cursorDelay+=1;
         }
 
-        // draw downarrow if applicable
+        // Draw downarrow if applicable
         if ( (this.itemsList.size() - this.currIndex) > 4 ) {
             if (this.downArrowTimer < 22) {
                 this.downArrow.draw(game.uiBatch);
@@ -6689,8 +6950,8 @@ class DrawItemMenu extends MenuAction {
             this.downArrowTimer = 0;
         }
 
-        // button interaction is below drawing b/c I want to be able to return here
-        // if press a, draw use/toss for item
+        // Button interaction is below drawing b/c I want to be able to return here
+        // If press A, draw use/toss for item
         if (InputProcessor.aJustPressed) {
             game.insertAction(new PlaySound("click1", null));
             String name = this.itemsList.get(currIndex + cursorPos);
@@ -6706,9 +6967,8 @@ class DrawItemMenu extends MenuAction {
             }
             else {
                 this.disabled = true;
-//                System.out.println(String.valueOf(this.prevMenu));
-                game.insertAction(new DrawUseTossMenu(game, this, name));
                 game.actionStack.remove(this);
+                game.insertAction(new DrawUseTossMenu(game, this, name));
                 return;
             }
         }
@@ -6759,18 +7019,15 @@ class DrawItemMenu extends MenuAction {
 }
 
 /**
- * Draw player menu, ie pokedex, pokemon, items, etc. only appears in overworld, ie not a battle menu
+ * Draw player menu, ie pokedex, pokemon, items, etc. only appears while in overworld, ie not a battle menu.
  */
 class DrawPlayerMenu extends MenuAction {
     public static int lastIndex = 0;
     Sprite arrow;
     Sprite arrowWhite;
-
     Sprite textBox;
     public int layer = 108;
-
     Map<Integer, Vector2> arrowCoords;
-
     Vector2 newPos;
     Sprite helperSprite;
     ArrayList<ArrayList<Sprite>> spritesToDraw;
@@ -6795,11 +7052,13 @@ class DrawPlayerMenu extends MenuAction {
         this.arrowWhite = new Sprite(text, 0, 0, 5, 7);
 
         // text box bg
-        text = new Texture(Gdx.files.internal("attack_menu/menu3_smaller.png"));
+//        text = new Texture(Gdx.files.internal("attack_menu/menu3_smaller.png"));  // TODO: remove
+        text = new Texture(Gdx.files.internal("attack_menu/menu4.png"));
         this.textBox = new Sprite(text, 0,0, 16*10, 16*9);
 
         this.arrowCoords.put(0, new Vector2(89, 72+32+16));
         this.arrowCoords.put(1, new Vector2(89, 72+16+16));
+        this.arrowCoords.put(2, new Vector2(89, 72+16));
 
         // this.newPos =  new Vector2(32, 79); // post scaling change
         this.currIndex = DrawPlayerMenu.lastIndex;
@@ -6809,7 +7068,7 @@ class DrawPlayerMenu extends MenuAction {
 //        this.menuActions = new ArrayList<Action>();  // TODO: remove
 
         // populate sprites for entries in menu
-        this.entries = new String[]{"POKÈMON", "ITEM"};
+        this.entries = new String[]{"POKÈMON", "ITEM", "SAVE"};
         for (String entry : this.entries) {
             char[] textArray = entry.toCharArray(); // iterate elements
             Sprite currSprite;
@@ -6884,20 +7143,17 @@ class DrawPlayerMenu extends MenuAction {
 
         }
         else if (InputProcessor.downJustPressed) {
-            if (this.currIndex < 1) {
+            if (this.currIndex < 2) {
                 this.currIndex += 1;
                 newPos = arrowCoords.get(this.currIndex);
             }
         }
 
-        // if press a, do attack
-        if (InputProcessor.aJustPressed) { // using isKeyJustPressed rather than isKeyPressed
-
+        if (InputProcessor.aJustPressed) {
             game.insertAction(new PlaySound("click1", null));
 
             String currEntry = this.entries[this.currIndex];
-
-            // we also need to create an 'action' that each of these items goes to
+            // We also need to create an 'action' that each of these items goes to
             if (currEntry.equals("POKÈMON")) {
                 game.insertAction(new DrawPokemonMenu.Intro(
                                   new DrawPokemonMenu(game,
@@ -6907,6 +7163,13 @@ class DrawPlayerMenu extends MenuAction {
                 game.insertAction(new DrawItemMenu.Intro(this, 9,
                                   new DrawItemMenu(game,
                                   this)));
+            }
+            else if (currEntry.equals("SAVE")) {
+                Action saveAction = new PkmnMap.PeriodicSave(game);
+                saveAction.step(game);
+                game.insertAction(new DisplayText(game, game.player.name+" saved the game!", "save1.ogg", null,
+                                  new SetField(game, "playerCanMove", true,
+                                  null)));
             }
 
             game.actionStack.remove(this);
@@ -6944,7 +7207,8 @@ class DrawPlayerMenu extends MenuAction {
         public Intro(Game game, Action nextAction) {
             this.nextAction = nextAction;
 
-            Texture text = new Texture(Gdx.files.internal("attack_menu/menu3_smaller.png"));
+//            Texture text = new Texture(Gdx.files.internal("attack_menu/menu3_smaller.png"));
+            Texture text = new Texture(Gdx.files.internal("attack_menu/menu4.png"));
 
             this.sprites = new ArrayList<Sprite>(); // may use this in future
             this.sprite = new Sprite(text, 0, 0, 160, 144);
@@ -7022,6 +7286,12 @@ class DrawPokemonMenu extends MenuAction {
     Sprite healthSprite;
     Vector2 newPos;
     Map<Integer, Vector2> arrowCoords;
+    String item = null;
+
+    public DrawPokemonMenu(Game game, String item, MenuAction prevMenu) {
+        this(game, prevMenu);
+        this.item = item;
+    }
 
     public DrawPokemonMenu(Game game, MenuAction prevMenu) {
         this.prevMenu = prevMenu;
@@ -7167,14 +7437,14 @@ class DrawPokemonMenu extends MenuAction {
                 game.uiBatch.draw(letterSprite, 24 +8*j, 136 -16*i);
             }
 
-            // draw health bar
+            // Draw health bar
             int targetSize = (int)Math.ceil( (currPokemon.currentStats.get("hp")*48) / currPokemon.maxStats.get("hp"));
             for (int j=0; j < targetSize; j++) {
                 game.uiBatch.draw(this.healthSprite, 48 +1*j, 131 -16*i);
             }
         }
 
-        // draw 'Choose a pokemon' text
+        // Draw 'Choose a pokemon' text
         if (DrawPokemonMenu.drawChoosePokemonText == true) {
             char[] textArray = "Choose a POKÈMON.".toCharArray();
             Sprite letterSprite;
@@ -7184,24 +7454,30 @@ class DrawPokemonMenu extends MenuAction {
             }
         }
 
-        if (this.drawArrowWhite == true) {
+        if (this.drawArrowWhite) {
             // draw white arrow
             this.arrowWhite.setPosition(this.newPos.x, this.newPos.y);
             this.arrowWhite.draw(game.uiBatch);
         }
+        
 
-        // return at this point if this menu is disabled
-        if (this.disabled == true) {
+        if (this.goAway) {
+            game.actionStack.remove(this);
             return;
         }
 
-        // decrement avatar anim counter
+        // return at this point if this menu is disabled
+        if (this.disabled) {
+            return;
+        }
+
+        // Decrement avatar anim counter
         DrawPokemonMenu.avatarAnimCounter--;
         if (DrawPokemonMenu.avatarAnimCounter <= 0) {
             DrawPokemonMenu.avatarAnimCounter = 23;
         }
 
-        // handle arrow input
+        // Handle arrow input
         if (InputProcessor.upJustPressed) {
             if (DrawPokemonMenu.currIndex > 0) {
                 DrawPokemonMenu.currIndex -= 1;
@@ -7220,7 +7496,7 @@ class DrawPokemonMenu extends MenuAction {
         this.arrow.setPosition(this.newPos.x, this.newPos.y);
         this.arrow.draw(game.uiBatch);
 
-        // button interaction is below drawing b/c I want to be able to return here
+        // Button interaction is below drawing b/c I want to be able to return here
         // if press a, draw use/toss for item
         if (InputProcessor.aJustPressed) { // using isKeyJustPressed rather than isKeyPressed
             game.insertAction(new PlaySound("click1", null));
@@ -7264,13 +7540,70 @@ class DrawPokemonMenu extends MenuAction {
 //                game.insertAction(switchAction);
 //                return;
 //            }
-
             this.disabled = true;
             this.drawArrowWhite = true;
-            // once player hits b in selected menu, avatar anim starts over
+            // Once player hits b in selected menu, avatar anim starts over
             Pokemon currPokemon = game.player.pokemon.get(DrawPokemonMenu.currIndex);
-            game.insertAction(new DrawPokemonMenu.SelectedMenu(this, currPokemon));
+            // TODO: wouldn't need this if had yield, could insert yield in DrawUseTossMenu
+            if (this.item != null) {
+                if (this.item.equals("moomoo milk") || this.item.equals("berry juice")) {
+                    int diff = currPokemon.maxStats.get("hp") - currPokemon.currentStats.get("hp");
+                    if (diff <= 0 || currPokemon.currentStats.get("hp") <= 0) {
+                        game.insertAction(new DisplayText(game, "It wonÏ have any effect.", null, null,
+                                          new SetField(this, "goAway", true,
+                                          new DrawPokemonMenu.Outro(
+                                          this.prevMenu))));
+                        return;
+                    }
+                    // Deduct from inventory
+                    game.player.itemsDict.put(this.item, game.player.itemsDict.get(this.item)-1);
+                    if (game.player.itemsDict.get(this.item) <= 0) {
+                        game.player.itemsDict.remove(this.item);
+                    }
+                    int restoreAmt = 100;
+                    if (this.item.equals("berry juice")) {
+                        restoreAmt = 20;
+                    }
+                    if (diff < restoreAmt) {
+                        restoreAmt = diff;
+                    }
+                    game.insertAction(new PlaySound("potion1", null));
+                    game.insertAction(new RestoreHealth(currPokemon, -restoreAmt,
+                                      new DisplayText(game, currPokemon.name.toUpperCase()+" gained "+String.valueOf(restoreAmt)+" hp!", null, null,
+                                      new SetField(this, "goAway", true,
+                                      new DrawPokemonMenu.Outro(
+                                      this.prevMenu)))));
+                    return;
+                }
+                if (this.item.equals("rare candy")) {
+                    if (currPokemon.level >= 99) {
+                        game.insertAction(new DisplayText(game, "It wonÏ have any effect.", null, null,
+                                          new SetField(this, "goAway", true,
+                                          new DrawPokemonMenu.Outro(
+                                          this.prevMenu))));
+                        return;
+                    }
+                    // Deduct from inventory
+                    game.player.itemsDict.put(this.item, game.player.itemsDict.get(this.item)-1);
+                    if (game.player.itemsDict.get(this.item) <= 0) {
+                        game.player.itemsDict.remove(this.item);
+                    }
+                    currPokemon.gainLevel(1);
+                    currPokemon.currentStats.put("hp", currPokemon.maxStats.get("hp"));
+                    game.insertAction(new DisplayText(game, currPokemon.name.toUpperCase()+" grew to level "+String.valueOf(currPokemon.level)+"!", "fanfare1.ogg", null,
+                                      new SetField(this, "goAway", true,
+                                      new DrawPokemonMenu.Outro(
+                                      this.prevMenu))));
+                    return;
+                }
+                game.insertAction(new DisplayText(game, "Dev note - invalid item.", null, null,
+                                                  new SetField(this, "goAway", true,
+                                                  new DrawPokemonMenu.Outro(
+                                                  this.prevMenu))));
+                return;
+            }
             game.actionStack.remove(this);
+            game.insertAction(new DrawPokemonMenu.SelectedMenu(this, currPokemon));
             return;
         }
         // player presses b, ie wants to go back
@@ -7477,6 +7810,13 @@ class DrawPokemonMenu extends MenuAction {
                        pokemon.new RemoveFromInventory()));
             }
             else if (word.equals("FLY")) {
+                if (game.map.tiles != game.map.overworldTiles) {
+                    game.insertAction(this.prevMenu);
+                    return new PlaySound("error1",
+                           new DisplayText(game, "CanÏ do this here!", null, null,
+                           new SetField(this.prevMenu, "disabled", false, null)));
+                }
+                
                 // TODO: hack to make playerStanding work for now.
                 PlayerStanding standingAction = null;
                 for (Action action : game.actionStack) {
@@ -7489,6 +7829,11 @@ class DrawPokemonMenu extends MenuAction {
                 game.actionStack.remove(standingAction);  // TODO: what if not?
 //                game.cam.translate(0f, 16f);  // TODO: remove
                 game.player.isFlying = true;
+                game.player.isBuilding = false;
+                game.player.isCutting = false;
+                game.player.isSmashing = false;
+                game.player.isHeadbutting = false;
+                game.player.isJumping = false;
                 return new SelectedMenu.ExitAfterActions(this.prevMenu,
                        new PlaySound(pokemon,
                        // trick ExitAfterActions
@@ -7520,6 +7865,7 @@ class DrawPokemonMenu extends MenuAction {
 //                DrawPokemonMenu.lastIndex = prevMenu.currIndex;
                 game.player.isBuilding = true;  // tile to build appears in front of player
                 game.player.isCutting = false;
+                game.player.isSmashing = false;
                 game.player.isHeadbutting = false;
                 game.player.isJumping = false;
                 return new SelectedMenu.ExitAfterActions(this.prevMenu,
@@ -7535,12 +7881,24 @@ class DrawPokemonMenu extends MenuAction {
 //                                                                           word));
 //                }
                 game.player.isCutting = true;
+                game.player.isSmashing = false;
                 game.player.isBuilding = false;
                 game.player.isHeadbutting = false;
                 game.player.isJumping = false;
                 return new SelectedMenu.ExitAfterActions(this.prevMenu,
                        new DisplayText(game, game.player.pokemon.get(DrawPokemonMenu.currIndex).name.toUpperCase()+" is using CUT!", null, null,
                        null));
+            }
+            else if (word.equals("SMASH")) {
+                game.player.isCutting = false;
+                game.player.isSmashing = true;
+                game.player.isBuilding = false;
+                game.player.isHeadbutting = false;
+                game.player.isJumping = false;
+                return new SelectedMenu.ExitAfterActions(this.prevMenu,
+                       new PlaySound(game.player.pokemon.get(DrawPokemonMenu.currIndex),
+                       new DisplayText(game, game.player.pokemon.get(DrawPokemonMenu.currIndex).name.toUpperCase()+" is using ROCK SMASH!", null, null,
+                       null)));
             }
             else if (word.equals("HEADBUTT")) {
                 if (game.type == Game.Type.CLIENT) {
@@ -7551,6 +7909,7 @@ class DrawPokemonMenu extends MenuAction {
                 game.player.isHeadbutting = true;
                 game.player.isBuilding = false;
                 game.player.isCutting = false;
+                game.player.isSmashing = false;
                 game.player.isJumping = false;
                 return new SelectedMenu.ExitAfterActions(this.prevMenu,
                        new DisplayText(game, game.player.pokemon.get(DrawPokemonMenu.currIndex).name.toUpperCase()+" is using HEADBUTT!", null, null,
@@ -7565,6 +7924,7 @@ class DrawPokemonMenu extends MenuAction {
                 game.player.isHeadbutting = false;
                 game.player.isBuilding = false;
                 game.player.isCutting = false;
+                game.player.isSmashing = false;
                 game.player.isJumping = true;
                 return new SelectedMenu.ExitAfterActions(this.prevMenu,
                        new DisplayText(game, game.player.pokemon.get(DrawPokemonMenu.currIndex).name.toUpperCase()+" is using JUMP!", null, null,
@@ -8159,7 +8519,16 @@ class DrawUseTossMenu extends MenuAction {
                                       this.prevMenu)));
                     return;
                 }
-                if (game.map.tiles.get(game.player.position.cpy().add(0,0)).attrs.get("grass")) {
+                Tile currTile = game.map.tiles.get(game.player.position.cpy().add(0,0));
+                if (currTile.name.contains("mountain") || currTile.name.contains("snow")) {
+                    this.disabled = true;
+                    game.actionStack.remove(this);
+                    game.insertAction(new DisplayText(game, "CanÏ sleep on harsh terrain!", null, false, true,
+                                      new SetField(this.prevMenu, "disabled", false,
+                                      this.prevMenu)));
+                    return;
+                }
+                if (currTile.attrs.get("grass")) {
                     this.disabled = true;
                     game.actionStack.remove(this);
                     // CanÏ use this while in tall grass!
@@ -8189,6 +8558,22 @@ class DrawUseTossMenu extends MenuAction {
                                   null)))))))));
                 return;
             }
+            if (itemName.contains("repel")) {
+                // Deduct from inventory
+                game.player.itemsDict.put(itemName, game.player.itemsDict.get(itemName)-1);
+                if (game.player.itemsDict.get(itemName) <= 0) {
+                    game.player.itemsDict.remove(itemName);
+                }
+                game.player.repelCounter = 100;
+                if (itemName.contains("max")) {
+                    game.player.repelCounter = 250;
+                }
+                game.insertAction(this.prevMenu);
+                game.insertAction(new DisplayText(game, "Applied "+itemName.toUpperCase()+"!", "fanfare1.ogg", null,
+                                  new SetField(this.prevMenu, "disabled", false,
+                                  null)));
+                return;
+            }
             if (itemName.contains("apricorn")) {
                 // Perform this action on the tile in from of the player.
                 Vector2 pos = game.player.position.cpy();
@@ -8204,7 +8589,7 @@ class DrawUseTossMenu extends MenuAction {
                 else if (game.player.dirFacing.equals("left")) {
                     pos.add(-16, 0);
                 }
-                if (!game.map.tiles.get(pos).name.equals("green1")) {
+                if (!game.map.tiles.get(pos).name.equals("green1") || game.map.tiles.get(pos).nameUpper.contains("tree_planted")) {
                     this.disabled = true;
                     game.actionStack.remove(this);
                     game.insertAction(new DisplayText(game, "Seeds must be planted in good soil!", null, false, true,  //CanÏ plant here!
@@ -8233,8 +8618,66 @@ class DrawUseTossMenu extends MenuAction {
                 }
                 return;
             }
-            this.prevMenu.disabled = false;
+            if (itemName.contains("manure")) {
+                // Perform this action on the tile in from of the player.
+                Vector2 pos = game.player.position.cpy();
+                if (game.player.dirFacing.equals("up")) {
+                    pos.add(0, 16);
+                }
+                else if (game.player.dirFacing.equals("down")) {
+                    pos.add(0, -16);
+                }
+                else if (game.player.dirFacing.equals("right")) {
+                    pos.add(16, 0);
+                }
+                else if (game.player.dirFacing.equals("left")) {
+                    pos.add(-16, 0);
+                }
+                Tile tile = game.map.tiles.get(pos);
+                if (tile.nameUpper.contains("fertilized")) {
+                    this.disabled = true;
+                    game.actionStack.remove(this);
+                    game.insertAction(new DisplayText(game, "Already fertilized!", null, false, true, 
+                                      new SetField(this.prevMenu, "disabled", false,
+                                      this.prevMenu)));
+                    return;
+                }
+                if (!tile.nameUpper.contains("tree_planted")) {
+                    this.disabled = true;
+                    game.actionStack.remove(this);
+                    game.insertAction(new DisplayText(game, "Nothing here to fertilize!", null, false, true, 
+                                      new SetField(this.prevMenu, "disabled", false,
+                                      this.prevMenu)));
+                    return;
+                }
+                tile.nameUpper = tile.nameUpper+"_fertilized";
+                // Deduct from inventory
+                game.player.itemsDict.put(itemName, game.player.itemsDict.get(itemName)-1);
+                if (game.player.itemsDict.get(itemName) <= 0) {
+                    game.player.itemsDict.remove(itemName);
+                }
+                // Change lower appearance
+                game.map.tiles.put(tile.position, new Tile("mountain1", tile.nameUpper, tile.position.cpy(), true, tile.routeBelongsTo));
+                this.disabled = true;
+                game.actionStack.remove(this);
+                game.insertAction(new DisplayText(game, "The manure fertilized the plant!", "fanfare1.ogg", false, true, 
+                                  new SetField(this.prevMenu, "disabled", false,
+                                  this.prevMenu)));
+                // TODO: Tell server (?)
+                return;
+            }
+            if (itemName.equals("moomoo milk") || itemName.equals("berry juice") || itemName.equals("rare candy")) {
+                this.disabled = true;
+                game.insertAction(new DrawPokemonMenu.Intro(
+                                  new DrawPokemonMenu(game, itemName,
+                                  this.prevMenu)));
+                return;
+            }
+//            this.prevMenu.disabled = false;  // TODO: remove
             game.insertAction(this.prevMenu);
+            game.insertAction(new PlaySound("error1",
+                              new SetField(this.prevMenu, "disabled", false,
+                              null)));
             return;
         }
         // TODO: enable this code to prevent pokeball from being thrown if not enough room
@@ -9019,7 +9462,11 @@ class FriendlyFaint extends Action {
             // stop drawing friendly sprite
             game.actionStack.remove(game.battle.drawAction.drawFriendlyPokemonAction);
             game.battle.drawAction.drawFriendlyPokemonAction = null;
-
+            
+            // Remove status ailments
+            // TODO: this should probably just keep a concept of this.pokemon,
+            // and move it's backsprite.
+            game.player.currPokemon.status = null;
             this.firstStep = false;
         }
         // if done with anim, do nextAction

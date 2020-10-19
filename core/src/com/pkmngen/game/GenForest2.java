@@ -1392,6 +1392,7 @@ class GenIsland1 extends Action {
     // used to know if this has spawned the pokemon mansion yet or not (only spawn one)
     public static boolean donePkmnMansion = false;
     public static boolean donePkmnMansionKey = false;
+    public static int unownCounter = 0;
 
     public GenIsland1(Game game, Vector2 origin, int radius) {
         this.radius = radius;
@@ -1550,13 +1551,20 @@ class GenIsland1 extends Action {
                     }
                     // TODO: occasional bug with mansion generation when it
                     // fails to find enough endpoint tiles for statues/stairs
-                    try {
-                        this.generateMansion(game, mansionExteriorTiles, mansionInteriorTiles, mansionPos);
-                        tilesToAdd.putAll(mansionExteriorTiles);
-                        this.interiorTilesToAdd.addAll(mansionInteriorTiles);
-                    } catch (Exception e) {
-                        System.out.println("Failed to generate mansion: " + e.getMessage());
-                        e.printStackTrace();
+                    int tries = 0;
+                    // only thing I know to do is retry
+                    while (tries < 4) {
+                        try {
+                            this.generateMansion(game, mansionExteriorTiles, mansionInteriorTiles, mansionPos);
+                            tilesToAdd.putAll(mansionExteriorTiles);
+                            this.interiorTilesToAdd.addAll(mansionInteriorTiles);
+                            break;
+                        } catch (Exception e) {
+                            System.out.println("Failed to generate mansion: " + e.getMessage());
+                            System.out.println("Retrying...");
+                            tries++;
+                            e.printStackTrace();
+                        }
                     }
                     break;
                 }
@@ -1617,18 +1625,33 @@ class GenIsland1 extends Action {
         Vector2[] positions = new Vector2[]{new Vector2(-16, 0), new Vector2(16, 0),
                                             new Vector2(0, -16), new Vector2(0, 16)};
         Tile nextTile;
-        for (Tile tile : this.tilesToAdd.values()) {
+//        for (Tile tile : this.tilesToAdd.values()) {
+        for (Tile tile : new ArrayList<Tile>(this.tilesToAdd.values())) {
             for (Vector2 position : positions) {
                 nextTile = tilesToAdd.get(tile.position.cpy().add(position));
                 if (nextTile == null) {
                     continue;
                 }
-                if (nextTile.name.contains("water") && !tile.attrs.get("solid")) {
-                    this.edges.add(tile);
+//                if (nextTile.name.contains("water") && !tile.attrs.get("solid")) {
+//                    this.edges.add(tile);
+//                }
+                if (nextTile.name.contains("water")) {
+                    if (!tile.attrs.get("solid")) {
+                        this.edges.add(tile);
+                    }
+                    // Issues with this. Removes pieces of pkmn mansion. also, rocks are too sparse.
+//                    else if (!tile.name.contains("water")) {
+//                        // Remove if solid and touching water. Doing this in an effort to remove blocked-in spawns.
+//                        // Have to replace with sand b/c rock1 and tree5 both don't use nameUpper
+//                        tilesToAdd.put(tile.position, new Tile("green1", tile.position, true, tile.routeBelongsTo));
+//                    }
+                    break;
                 }
             }
         }
         System.out.println("End post-process: " + String.valueOf(System.currentTimeMillis()-startTime));
+
+        
 //        this.edges.add(this.tilesToAdd.get(new Vector2(0,0)));
         
 //        // place pokemon mansion
@@ -1833,7 +1856,7 @@ class GenIsland1 extends Action {
 //                                            newTile = new Tile("green5", edge);
 //                                        }
                                         if (this.rand.nextInt(24) == 0) {
-                                            newTile = new Tile("green4", edge, true, currRoute);
+                                            newTile = new Tile("flower4", edge, true, currRoute);
                                         }
                                         else {
                                             newTile = new Tile("green1", edge, true, currRoute);
@@ -1862,7 +1885,7 @@ class GenIsland1 extends Action {
                                     // small chance this becomes a trainer-tips sign
                                     // TODO: they are a little too prolific on large maps
                                     if (this.rand.nextInt(10) == 0) {
-                                        newTile = new TrainerTipsTile(edge, tempRoute);
+                                        newTile = new TrainerTipsTile(edge, tempRoute, GenIsland1.unownCounter++ % 64 == 0, "");
                                     }
                                     else {
                                         newTile = new Tile("tree5", edge, true, tempRoute);
@@ -1903,7 +1926,6 @@ class GenIsland1 extends Action {
                                     pokemon.position = edge.cpy();
 //                                    pokemon.mapTiles = game.map.tiles;  // TODO: test
                                     pokemon.mapTiles = game.map.overworldTiles;
-                                    // TODO: uncomment
                                     if (pokemon.name.toLowerCase().equals("tauros") || pokemon.name.toLowerCase().equals("ekans")
                                             || pokemon.name.toLowerCase().equals("pidgey") || pokemon.name.toLowerCase().equals("spearow")
                                             || pokemon.name.toLowerCase().equals("rattata")) {
@@ -1989,7 +2011,11 @@ class GenIsland1 extends Action {
                                 edgeTiles.put(newTile.position.cpy(), newTile);
                             // grass blotch
                             } else if (type.equals("grass")) {
-                                Tile newTile = new Tile("grass2", edge, false, currRoute);
+                                String name = "grass2";
+                                if (currRoute.name.contains("savanna")) {
+                                    name = "grass4";
+                                }
+                                Tile newTile = new Tile(name, edge, false, currRoute);
                                 if ((int)distance < 2*maxDist/8 && maxDist > 300) {
                                     newTile.biome = "deep_forest";
                                 }
@@ -2021,13 +2047,14 @@ class GenIsland1 extends Action {
 
                                 }
                                 else if (this.rand.nextInt(10) == 0) {
+                                    Route tempRoute = new Route("rock_smash1", currRoute.level);
                                     if (type.equals("mtn_snow1")) {
 //                                        newTile = new Tile("snow1", edge);
 //                                        Texture text = new Texture(Gdx.files.internal("tiles/rock1_color.png"));
 //                                        newTile.overSprite = new Sprite(text, 0, 0, 16, 16);
 //                                        newTile.overSprite.setPosition(newTile.position.x, newTile.position.y+4);
 //                                        newTile.attrs.put("solid", true);
-                                        newTile = new Tile("snow1", "rock1_color", edge.cpy(), true, currRoute);
+                                        newTile = new Tile("snow1", "rock1_color", edge.cpy(), true, tempRoute);
                                     }
                                     else {
 //                                        newTile = new Tile("green1", edge);
@@ -2035,18 +2062,18 @@ class GenIsland1 extends Action {
 //                                        newTile.overSprite = new Sprite(text, 0, 0, 16, 16);
 //                                        newTile.overSprite.setPosition(newTile.position.x, newTile.position.y+4);
 //                                        newTile.attrs.put("solid", true);
-                                        newTile = new Tile("green1", "rock1_color", edge.cpy(), true, currRoute);
+                                        newTile = new Tile("green1", "rock1_color", edge.cpy(), true, tempRoute);
                                     }
                                 }
                                 else if (this.rand.nextInt(8) == 0) {
                                     if (type.equals("mtn_green1")) {
                                         if (this.rand.nextInt(2) == 0) {
                                             // flowery green
-                                            newTile = new Tile("green2", edge, false, currRoute);
+                                            newTile = new Tile("flower2", edge, false, currRoute);
                                         }
                                         else {
                                             // flowery green
-                                            newTile = new Tile("green3", edge, false, currRoute);
+                                            newTile = new Tile("flower3", edge, false, currRoute);
                                         }
                                     }
                                     else {
@@ -2060,6 +2087,9 @@ class GenIsland1 extends Action {
                                     else {
                                         newTile = new Tile("snow1", edge, false, currRoute);
                                     }
+                                }
+                                if (type.equals("mtn_green1")) {
+                                    newTile.biome = "deep_forest";
                                 }
                                 tilesToAdd.put(newTile.position.cpy(), newTile);
                                 edgeTiles.put(newTile.position.cpy(), newTile);
@@ -2633,7 +2663,8 @@ class GenIsland1 extends Action {
 //                newTile.overSprite = new Sprite(text, 0, 0, 16, 16);
 //                newTile.overSprite.setPosition(newTile.position.x, newTile.position.y+4);
 //                newTile.attrs.put("solid", true);
-                Tile newTile = new Tile(tile.name, "rock1_color", tile.position.cpy(), true, tile.routeBelongsTo);
+                Route tempRoute = new Route("rock_smash1", tile.routeBelongsTo.level);
+                Tile newTile = new Tile(tile.name, "rock1_color", tile.position.cpy(), true, tempRoute);
                 mtnTiles2.put(tile.position.cpy(), newTile);
             }
         }
@@ -2685,7 +2716,7 @@ class GenIsland1 extends Action {
                 else if (i == -2) {
                     String name = "green1";
                     if (this.rand.nextInt(24) == 0) {
-                        name = "green4";
+                        name = "flower4";
                     }
                     mansionExteriorTiles.put(bl.cpy().add(j*16, i*16), new Tile(name, bl.cpy().add(j*16, i*16), true, null));
                 }

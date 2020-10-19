@@ -92,6 +92,9 @@ public class Pokemon {
     // Store current status (sleep, poison, paralyze etc) here.
     public String status = null;
     public int statusCounter = 0;
+    // index of disabled attack.
+    public int disabledIndex = -1;
+    public int disabledCounter = 0;  // Number of turns left disabled.
 
     Sprite sprite;
     Sprite backSprite;
@@ -112,6 +115,19 @@ public class Pokemon {
     public boolean shouldMove = false;  // used by client listener to trigger remote pokemon to move.
     Player.Type type = Player.Type.LOCAL;
     Player previousOwner = null;
+    // Related to overworld habitat
+    public boolean inHabitat = false;
+    public boolean inShelter = false;
+    public ArrayList<String> habitats = new ArrayList<String>();
+    {
+        habitats.add("green");
+    }
+    public String hasItem = null;  // harvestable item that the pokemon is holding
+    public int harvestTimer = 0;  // counts up to when pokemon has harvestable item.
+    public ArrayList<String> harvestables = new ArrayList<String>();
+    {
+        harvestables.add("manure");
+    }
 
     // this reference is used when needing to stop drawing pokemon in battle screen
      // could also just be oppPokemonDrawAction in battle, I think
@@ -151,6 +167,24 @@ public class Pokemon {
         else {
             this.mapTiles = Game.staticGame.map.overworldTiles;
         }
+        this.initHabitatValues();
+        this.status = pokemonData.status;
+        this.harvestTimer = pokemonData.harvestTimer;
+        if (pokemonData.previousOwnerName != null) {
+            this.previousOwner = Game.staticGame.player;
+            if (Game.staticGame.players.containsKey(pokemonData.previousOwnerName)) {
+                // on Server, player.name == player.network.id, so can get from game.players
+                // based on player.name.
+                this.previousOwner = Game.staticGame.players.get(pokemonData.previousOwnerName);
+            }
+        }
+        // TODO: load from file once happiness is tied to things other than if pokemon runs in overworld.
+        if (this.name.toLowerCase().equals("tauros") || this.name.toLowerCase().equals("ekans")
+                || this.name.toLowerCase().equals("pidgey") || this.name.toLowerCase().equals("spearow")
+                || this.name.toLowerCase().equals("rattata")) {
+            this.happiness = 0;
+        }
+        
     }
 
     public Pokemon (String name, int level) {
@@ -218,6 +252,9 @@ public class Pokemon {
             if (this.types.contains("GRASS")) {
                 this.hms.add("CUT");
             }
+            if (this.types.contains("ROCK")) {
+                this.hms.add("SMASH");
+            }
             if (this.types.contains("FIGHTING")) {
                 this.hms.add("BUILD");
             }
@@ -227,6 +264,16 @@ public class Pokemon {
 //            if (name.equals("machop")) {
 //                this.hms.add("HEADBUTT");
 //            }
+            if (name.equals("hypno") ||
+                name.equals("nidorina") ||
+                name.equals("nidoqueen") ||
+                name.equals("nidorino") ||
+                name.equals("nidoking") ||
+                name.equals("granbull") ||
+                name.equals("jynx") ||
+                name.equals("ursaring")) {
+                this.hms.add("HEADBUTT");
+            }
 
             // Custom attributes - better way to handle this?
             if (name.equals("stantler") ||
@@ -811,6 +858,7 @@ public class Pokemon {
         // stats formulas here
         calcMaxStats();
         this.currentStats = new HashMap<String, Integer>(this.maxStats); // copy maxStats
+        this.initHabitatValues();
     }
 
     // TODO - this doesn't take IV's or EV's into account.
@@ -830,6 +878,54 @@ public class Pokemon {
         // hp = (((IV + Base + (sqrt(EV)/8) + 50)*Level)/50 + 10
         // other stat = (((IV + Base + (sqrt(EV)/8))*Level)/50 + 5
     }
+
+    /**
+     * Determine if pokemon near farm structures and habitat.
+     */
+    void checkHabitat(Game game) {
+        Vector2 startPos = Pokemon.this.position.cpy().add(-16*3, -16*3);
+        startPos.x = (int)startPos.x - (int)startPos.x % 16;
+        startPos.y = (int)startPos.y - (int)startPos.y % 16;
+        Vector2 endPos = Pokemon.this.position.cpy().add(16*3, 16*3);
+        endPos.x = (int)endPos.x - (int)endPos.x % 16;
+        endPos.y = (int)endPos.y - (int)endPos.y % 16;
+        int fenceCount = 0;
+        int roofCount = 0;
+        int habitatCount = 0;
+        for (Vector2 currPos = new Vector2(startPos.x, startPos.y); currPos.y < endPos.y;) {
+            Tile tile = game.map.tiles.get(currPos);
+            currPos.x += 16;
+            if (currPos.x > endPos.x) {
+                currPos.x = startPos.x;
+                currPos.y += 16;
+            }
+            if (tile == null) {
+                continue;
+            }
+            if (tile.nameUpper.contains("fence")) {
+                fenceCount++;
+            }
+            else if (tile.nameUpper.contains("roof")) {
+                roofCount++;
+            }
+            // Dual-types require multiple habitats.
+            for (String habitat : Pokemon.this.habitats) {
+                if (tile.name.contains(habitat) || tile.nameUpper.contains(habitat)) {
+                    habitatCount++;
+                }
+            }
+        }
+        // Dark types are only happy at night.
+        if (Pokemon.this.types.contains("DARK") && !game.map.timeOfDay.equals("Night")) {
+            habitatCount = 0;
+        }
+//        if (satisfiedCount > ) {
+//            habitatCount++;
+//        }
+        Pokemon.this.inHabitat = habitatCount >= Pokemon.this.habitats.size();
+        Pokemon.this.inShelter = roofCount >= 3 && fenceCount >= 2;
+    }
+    
     /**
      * Compute changes required by leveling up.
      */
@@ -868,12 +964,21 @@ public class Pokemon {
         // TODO: probably move this to function somewhere
         if (name.equals("machop")) {
             this.hms.add("BUILD");
+        }
+        if (name.equals("hypno") ||
+            name.equals("nidorina") ||
+            name.equals("nidoqueen") ||
+            name.equals("nidorino") ||
+            name.equals("nidoking") ||
+            name.equals("granbull") ||
+            name.equals("jynx") ||
+            name.equals("ursaring")) {
             this.hms.add("HEADBUTT");
         }
-        else if (name.equals("sneasel")) {
+        if (name.equals("sneasel")) {
             this.hms.add("CUT");
         }
-        else if (name.equals("stantler") ||
+        if (name.equals("stantler") ||
             name.equals("ponyta") ||
             name.equals("arcanine") ||
             name.equals("donphan") ||
@@ -888,36 +993,127 @@ public class Pokemon {
             // Later, once there (hopefully) are riding sprites, this can be changed to ride.
             // My current idea is that RIDE increases movement speed and can perform jumps up ledges.
             this.hms.add("JUMP");
-
-            if (name.equals("pidgeot") ||
-                name.equals("aerodactyl") ||
-                name.equals("charizard") ||
-                name.equals("dragonite") ||
-                name.equals("salamence") ||
-                name.equals("ho_oh") ||
-                name.equals("lugia") ||
-                name.equals("skarmory") ||
-                name.equals("articuno") ||
-                name.equals("zapdos") ||
-                name.equals("moltres") ||
-                name.equals("crobat") ||
-                name.equals("noctowl") ||
-                name.equals("xatu") ||
-                name.equals("flygon") ||
-                name.equals("togekiss") ||
-                name.equals("swellow") ||
-                name.equals("altaria") ||
-                name.equals("rayquaza") ||
-                name.equals("farfetch_d") ||
-                name.equals("drifblim") ||
-                name.equals("honchkrow") ||
-                name.equals("fearow")) {
-                this.hms.add("FLY");
-            }
+        }
+        if (name.equals("pidgeot") ||
+            name.equals("aerodactyl") ||
+            name.equals("charizard") ||
+            name.equals("dragonite") ||
+            name.equals("salamence") ||
+            name.equals("ho_oh") ||
+            name.equals("lugia") ||
+            name.equals("skarmory") ||
+            name.equals("articuno") ||
+            name.equals("zapdos") ||
+            name.equals("moltres") ||
+            name.equals("crobat") ||
+            name.equals("noctowl") ||
+            name.equals("xatu") ||
+            name.equals("flygon") ||
+            name.equals("togekiss") ||
+            name.equals("swellow") ||
+            name.equals("altaria") ||
+            name.equals("rayquaza") ||
+            name.equals("farfetch_d") ||
+            name.equals("drifblim") ||
+            name.equals("honchkrow") ||
+            name.equals("fearow")) {
+            this.hms.add("FLY");
         }
         // TODO: for now, all grass types can cut
         if (this.types.contains("GRASS")) {
             this.hms.add("CUT");
+        }
+        if (this.types.contains("ROCK")) {
+            this.hms.add("SMASH");
+        }
+        this.initHabitatValues();
+    }
+
+    /**
+     * .
+     */
+    void initHabitatValues() {
+        String name = this.name.toLowerCase();
+        this.harvestables.clear();
+        this.habitats.clear();
+        // Type-specific
+        if (this.types.contains("BUG")) {
+            this.habitats.add("flower");
+            this.harvestables.add("silky thread");
+        }
+        if (this.types.contains("WATER")) {
+            this.habitats.add("water");
+            this.harvestables.add("hard shell");
+        }
+        if (this.types.contains("FLYING")) {
+            this.habitats.add("tree");
+            this.harvestables.add("soft feather");
+        }
+        if (this.types.contains("ROCK")) {
+            this.habitats.add("rock");
+            this.harvestables.add("stone");
+        }
+        if (this.types.contains("FIRE")) {
+            this.habitats.add("campfire");
+            this.harvestables.add("charcoal");
+        }
+        // GRASS, grass, grass
+        if (this.types.contains("GRASS")) {
+            this.habitats.add("grass");
+            this.harvestables.add("grass");
+        }
+        if (this.types.contains("GROUND")) {
+            this.habitats.add("mountain");
+//            this.harvestables.add("soft clay");
+        }
+        if (this.types.contains("STEEL")) {
+            this.habitats.add("mountain");
+            this.harvestables.add("metal coat");
+        }
+        if (this.types.contains("PSYCHIC")) {
+            this.harvestables.add("psi energy");
+        }
+        if (this.types.contains("DARK")) {
+            this.harvestables.add("dark energy");
+        }
+        if (name.equals("mareep") || name.equals("flaaffy") || name.equals("ampharos")) {
+            this.habitats.clear();
+            this.habitats.add("grass");
+            this.harvestables.clear();
+            this.harvestables.add("soft wool");
+        }
+        // TODO: enable if used
+//        else if (name.equals("beedrill") || name.equals("butterfree")) {
+//            this.harvestables.clear();
+//            this.harvestables.add("sweet nectar");
+//        }
+        else if (name.equals("miltank")) {
+            this.harvestables.clear();
+            this.harvestables.add("moomoo milk");
+        }
+        else if (name.equals("unown")) {
+            this.harvestables.clear();
+            this.harvestables.add("ancientpowder");
+        }
+        // just ideas
+//        else if (name.equals("slowpoke")) {
+//            this.harvestables.clear();
+//            this.harvestables.add("slowpoketail");
+//        }
+//        else if (this.isShiny && (name.equals("onyx") || name.equals("steelix"))) {
+//            this.harvestables.clear();
+//            this.harvestables.add("gold nugget");
+//        }
+        else if (name.equals("shuckle")) {
+            this.harvestables.clear();
+            this.harvestables.add("berry juice");
+        }
+        // Fill in with defaults
+        if (this.habitats.size() <= 0) {
+            this.habitats.add("green");
+        }
+        if (this.harvestables.size() <= 0) {
+            this.harvestables.add("manure");
         }
     }
 
@@ -1014,12 +1210,12 @@ public class Pokemon {
     void loadCrystalPokemon(String name) {
         name = name.toLowerCase();
 
+        String newName = name;
+        if (name.contains("unown")) {
+            newName = "unown";
+        }
         // load base stats
         try {
-            String newName = name;
-            if (name.contains("unown")) {
-                newName = "unown";
-            }
             FileHandle file = Gdx.files.internal("crystal_pokemon/base_stats/" + newName + ".asm");
             Reader reader = file.reader();
             BufferedReader br = new BufferedReader(reader);
@@ -1097,7 +1293,7 @@ public class Pokemon {
             Color shinyColor1 = null;
             Color shinyColor2 = new Color();
             try {
-                FileHandle file = Gdx.files.internal("crystal_pokemon/pokemon/" + name + "/shiny.pal");
+                FileHandle file = Gdx.files.internal("crystal_pokemon/pokemon/" + newName + "/shiny.pal");
                 Reader reader = file.reader();
                 BufferedReader br = new BufferedReader(reader);
                 String line;
@@ -1118,8 +1314,13 @@ public class Pokemon {
                     }
                 }
                 reader.close();
-                
-                file = Gdx.files.internal("crystal_pokemon/pokemon/" + name + "/front.pal");
+
+                if (name.contains("unown")) {
+                    file = Gdx.files.internal("crystal_pokemon/pokemon/" + newName + "/normal.pal");
+                }
+                else {
+                    file = Gdx.files.internal("crystal_pokemon/pokemon/" + name + "/front.pal");
+                }
                 reader = file.reader();
                 br = new BufferedReader(reader);
                 while ((line = br.readLine()) != null)   {
@@ -1262,11 +1463,11 @@ public class Pokemon {
         }
 
         // load attacks from file
-        if (!Pokemon.gen2Attacks.containsKey(name) || !Pokemon.gen2Evos.containsKey(name)) {
+        if (!Pokemon.gen2Attacks.containsKey(newName) || !Pokemon.gen2Evos.containsKey(newName)) {
             Map<Integer, String[]> attacks = new HashMap<Integer, String[]>();
             Map<String, String> evos = new HashMap<String, String>();
-            Pokemon.gen2Attacks.put(name, attacks);
-            Pokemon.gen2Evos.put(name, evos);
+            Pokemon.gen2Attacks.put(newName, attacks);
+            Pokemon.gen2Evos.put(newName, evos);
             try {
                 FileHandle file = Gdx.files.internal("crystal_pokemon/evos_attacks.asm");
                 Reader reader = file.reader();
@@ -1280,11 +1481,15 @@ public class Pokemon {
 
                 for (int i=0; i < lines.size(); i++) {
                     line = lines.get(i);
-                    if (line.toLowerCase().contains(name)) {
+                    if (line.toLowerCase().contains(newName)) {
                         inSection = true;
                         continue;
                     }
                     if (!inSection) {
+                        continue;
+                    }
+                    if (line.contains(";")) {
+                        // skip commented line
                         continue;
                     }
                     if (line.contains("EVOLVE_LEVEL")) {
@@ -1322,7 +1527,7 @@ public class Pokemon {
                 e.printStackTrace();
             }
         }
-        this.learnSet = Pokemon.gen2Attacks.get(name);
+        this.learnSet = Pokemon.gen2Attacks.get(newName);
     }
 
     void loadOverworldSprites(String name) {
@@ -1388,6 +1593,7 @@ public class Pokemon {
             Texture text = TextureCache.get(Gdx.files.internal("crystal_pokemon/crystal-overworld-sprites1.png"));
             int dexNumber = Integer.valueOf(this.dexNumber)-1;
             // TODO: no honchkrow o/w sprite that I know of, just make it equal to murkrow's for now
+            // fun fact - polishedcrystal honchkrow uses identical pallete to houndoom.
             if (name.equals("honchkrow")) {
                 dexNumber = 197;
             }
@@ -1547,7 +1753,7 @@ public class Pokemon {
                     color.r = (shinyColor2.r*8f)/256f;
                     color.g = (shinyColor2.g*8f)/256f;
                     color.b = (shinyColor2.b*8f)/256f;
-                    color = shinyColor2;
+//                    color = shinyColor2;
                 }
                 newPixmap.drawPixel(i, j, Color.rgba8888(color.r, color.g, color.b, 1f));
             }
@@ -1766,7 +1972,6 @@ public class Pokemon {
                 game.client.sendTCP(new Network.DropPokemon(game.player.network.id,
                                                             Pokemon.this.position));
             }
-
             if (game.player.pokemon.size() < 6) {
                 Pokemon.this.previousOwner = game.player;
                 game.player.pokemon.add(Pokemon.this);
@@ -1803,6 +2008,21 @@ public class Pokemon {
                 game.actionStack.remove(this);
                 return;
             }
+            // Count up timer to when harvest-able
+            if (Pokemon.this.hasItem == null) {
+                if (Pokemon.this.inHabitat) {
+                    Pokemon.this.harvestTimer++;
+                    if (Pokemon.this.inShelter) {
+                        Pokemon.this.harvestTimer++;
+                    }
+                } 
+                // TODO: time required to harvest may vary per Pokemon
+//                if (Pokemon.this.harvestTimer >= 3600*2) {  // 2 irl minutes, 1 if near shelter
+                if (Pokemon.this.harvestTimer >= (int)(3600f*2.5f)) {
+                    Pokemon.this.hasItem = Pokemon.this.harvestables.get(game.map.rand.nextInt(Pokemon.this.harvestables.size()));
+                }
+            }
+            
             // Don't draw pokemon unless in same indoor/outdoor as player
             if (game.map.tiles != Pokemon.this.mapTiles) {
                 return;
@@ -1858,7 +2078,7 @@ public class Pokemon {
             this.type = type;
             Texture text = TextureCache.get(Gdx.files.internal("emotes.png"));
             int i = 0;
-            for (String name : new String[]{"!", "?", "happy", "skull", "heart", "bolt", "sleep", "fish"}) {
+            for (String name : new String[]{"!", "?", "happy", "skull", "heart", "bolt", "sleep", "fish", "uncomfortable"}) {
                 sprites.put(name, new Sprite(text, 16*i, 0, 16, 16));
                 i++;
             }
@@ -1893,7 +2113,7 @@ public class Pokemon {
         int delay = 1;
         int timer = 1;
         int numMove = 1;
-        
+
         public Moving(int delay, int numMove, boolean alternate, Action nextAction) {
             this.delay = delay;
             this.numMove = numMove;
@@ -1985,6 +2205,7 @@ public class Pokemon {
                 game.actionStack.remove(this);
                 game.insertAction(this.nextAction);
                 Pokemon.this.standingAction = this.nextAction;
+                Pokemon.this.checkHabitat(game);
             }
         }
     }
@@ -2049,6 +2270,7 @@ public class Pokemon {
         int moveTimer = 0;
         // Time until run animation starts
         int runTimer = 0;
+        int danceCounter = 0;
         boolean alternate = true;
         
         public Standing() {}
@@ -2069,11 +2291,8 @@ public class Pokemon {
             Pokemon.this.currOwSprite = Pokemon.this.standingSprites.get(Pokemon.this.dirFacing);
             game.insertAction(Pokemon.this.new DrawLower());
             game.insertAction(Pokemon.this.new DrawUpper());
-            // If pokemon has low happiness, it starts running animation
-            // TODO: this isn't used atm.
-//            if (Pokemon.this.happiness <= 0) {
-//                this.runTimer = 180;
-//            }
+            // Determine if pokemon near farm structures / habitat.
+            Pokemon.this.checkHabitat(game);
         }
         
         public void localStep(Game game) {
@@ -2094,7 +2313,7 @@ public class Pokemon {
                     }
                     currPos.x += 16;
                 }
-                if (Pokemon.this.happiness <= 0 && nearPlayer) {
+                if (Pokemon.this.previousOwner != game.player && Pokemon.this.happiness <= 0 && nearPlayer) {
                     this.runTimer = 180;
                 }
             }
@@ -2259,6 +2478,26 @@ public class Pokemon {
                 return;
             }
 
+            // If pokemon has a harvestable item, then have it 'dance'
+            if (Pokemon.this.hasItem != null) {
+                this.danceCounter++;
+                if (this.danceCounter <= 16) {
+                    Pokemon.this.currOwSprite = Pokemon.this.standingSprites.get(Pokemon.this.dirFacing);
+                }
+                else if (this.danceCounter <= 32) {
+                    Pokemon.this.currOwSprite = Pokemon.this.movingSprites.get(Pokemon.this.dirFacing);
+                }
+                else if (this.danceCounter <= 48) {
+                    Pokemon.this.currOwSprite = Pokemon.this.standingSprites.get(Pokemon.this.dirFacing);
+                }
+                else if (this.danceCounter < 64) {
+                    Pokemon.this.currOwSprite = Pokemon.this.altMovingSprites.get(Pokemon.this.dirFacing);
+                }
+                else {
+                    this.danceCounter = 0;
+                }
+            }
+
             if (!Pokemon.this.canMove) {
                 return;
             }
@@ -2390,6 +2629,7 @@ class SpecialMegaGengar1 extends Pokemon {
         // stats formulas here
         calcMaxStats();
         this.currentStats = new HashMap<String, Integer>(this.maxStats); // copy maxStats
+        this.initHabitatValues();
     }
 }
 
@@ -2421,9 +2661,9 @@ class SpecialMewtwo1 extends Pokemon {
 
         // Gen 1 moves instead of Gen 2
         this.learnSet.clear();
-        this.learnSet.put(1, new String[]{"confusion", "disable", "psychic", "swift"});
+        this.learnSet.put(1, new String[]{"disable", "psychic", "swift", "recover"});  //"confusion", 
         // Recover isn't in original moveset at lvl 1, but I want recover for a lvl 50 battle
-        this.learnSet.put(1, new String[]{"recover"});  
+//        this.learnSet.put(1, new String[]{"recover"});  
         this.learnSet.put(63, new String[]{"barrier"});
         this.learnSet.put(66, new String[]{"psychic"});
         this.learnSet.put(70, new String[]{"recover"});
@@ -2435,6 +2675,7 @@ class SpecialMewtwo1 extends Pokemon {
         getCurrentAttacks(); // fill this.attacks with what it can currently know
 
         this.baseStats.put("catchRate", 55);
+        this.initHabitatValues();
         
 //        // stats formulas here
 //        calcMaxStats();

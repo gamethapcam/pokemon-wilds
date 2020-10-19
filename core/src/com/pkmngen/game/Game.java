@@ -621,33 +621,26 @@ public class Game extends ApplicationAdapter {
 
         this.insertAction(new CycleDayNight(this));
 
-        // TODO: Some starting pokemon used for debugging
         // If you join a game as a Client, these go away, so only affects local play.
         this.player.pokemon.add(new Pokemon("Machop", 6, Pokemon.Generation.CRYSTAL));
-//        this.battle.attacks.get("low kick").power = 200;  // TODO: debug, remove
-//        this.player.pokemon.add(new Pokemon("Cyndaquil", 50, Pokemon.Generation.CRYSTAL));
-//        this.battle.attacks.get("flamethrower").power = 200;  // TODO: debug, remove
-//        this.player.pokemon.add(new Pokemon("sneasel", 50, Pokemon.Generation.CRYSTAL));
-//        this.player.pokemon.get(1).attacks[0] = "Bubblebeam";  // TODO: debug, remove
-//        this.player.pokemon.get(1).attacks[0] = "Ice Beam";  // TODO: debug, remove
-//        this.player.pokemon.add(new Pokemon("stantler", 50, Pokemon.Generation.CRYSTAL));
-//        this.player.pokemon.add(new Pokemon("Ditto", 6, Pokemon.Generation.CRYSTAL));
-//        this.player.pokemon.add(new Pokemon("Lunatone", 6, Pokemon.Generation.CRYSTAL));
-//        this.player.pokemon.add(new Pokemon("weavile", 6, Pokemon.Generation.CRYSTAL));
-//        this.player.pokemon.add(new Pokemon("Magikarp", 6, Pokemon.Generation.CRYSTAL));
-//        this.player.pokemon.get(1).currentStats.put("hp", 0);
-//        this.player.pokemon.add(new Pokemon("ampharos", 55, Pokemon.Generation.CRYSTAL));
         if (this.debugInputEnabled) {
+            // Some starting pokemon used for debugging
+//            this.player.pokemon.get(0).currentStats.put("hp", 1);
+//            this.player.pokemon.get(0).attacks[2] = "recover";
+//            this.player.pokemon.get(0).attacks[3] = "slash";
             this.player.pokemon.add(new Pokemon("tauros", 60, Pokemon.Generation.CRYSTAL));
-            this.player.pokemon.get(1).attacks[0] = "hypnosis";
-            this.player.pokemon.get(1).attacks[1] = "confuse ray";
-            this.player.pokemon.get(1).attacks[2] = "toxic";
-            this.player.pokemon.get(1).attacks[3] = "sweet scent";
+//            this.player.pokemon.get(1).attacks[0] = "disable";
+//            this.player.pokemon.get(1).attacks[1] = "confuse ray";
+//            this.player.pokemon.get(1).attacks[2] = "toxic";
+//            this.player.pokemon.get(1).attacks[3] = "sweet scent";
             this.player.pokemon.add(new Pokemon("pidgeot", 60, Pokemon.Generation.CRYSTAL));
             this.player.pokemon.add(new Pokemon("meganium", 60, Pokemon.Generation.CRYSTAL));
             this.player.pokemon.add(new Pokemon("lapras", 60, Pokemon.Generation.CRYSTAL));
-            this.player.pokemon.add(new Pokemon("snorlax", 60, Pokemon.Generation.CRYSTAL));
+            this.player.pokemon.add(new Pokemon("golem", 60, Pokemon.Generation.CRYSTAL));
             Log.set(Log.LEVEL_DEBUG);
+        }
+        for (Pokemon pokemon : this.player.pokemon) {
+            pokemon.previousOwner = this.player;
         }
 
 //        this.player.pokemon.add(new Pokemon("Celebi", 6, Pokemon.Generation.CRYSTAL));
