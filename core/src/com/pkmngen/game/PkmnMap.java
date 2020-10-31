@@ -1535,7 +1535,7 @@ class Route {
             this.allowedPokemon.add("miltank");
             for (int i = 0; i < 2; i++) {
                 this.allowedPokemon.add("drowzee");
-                this.allowedPokemon.add("abra");
+//                this.allowedPokemon.add("abra");
                 this.allowedPokemon.add("oddish");
                 this.allowedPokemon.add("chikorita");
                 this.allowedPokemon.add("bulbasaur");
@@ -1669,6 +1669,7 @@ class Route {
 //        Pokemon debug = new Pokemon("machamp", 22, Pokemon.Generation.CRYSTAL);  // 22
 //        Pokemon debug = new Pokemon("garchompbeta", 70, Pokemon.Generation.CRYSTAL);  // 22
 //        Pokemon debug = new Pokemon("honchkrow", 44, Pokemon.Generation.CRYSTAL);
+//        Pokemon debug = new Pokemon("ghost", 44, Pokemon.Generation.CRYSTAL);
 //        debug.currentStats.put("hp", 20);
 //        debug.attacks[0] = "slash";
 //        debug.attacks[1] = "slash";
@@ -1726,10 +1727,11 @@ class Route {
             // (this makes it so that fully evolved pokemon are 'hazards')
             String evolveTo = null;
             int timesEvolved = 0;
-            Map<String, String> evos = Pokemon.gen2Evos.get(tempPokemon.name.toLowerCase());
+            Map<String, String> evos; // = Pokemon.gen2Evos.get(tempPokemon.name.toLowerCase());
             boolean failed = false;
             while (!failed) {
                 failed = true;
+                evos = Pokemon.gen2Evos.get(tempPokemon.name.toLowerCase());
                 for (String evo : evos.keySet()) {
                     try {
                         int evoLevel = Integer.valueOf(evo);
@@ -1742,6 +1744,7 @@ class Route {
                         }
                     }
                     catch (NumberFormatException e) {
+//                        System.out.println(tempPokemon.name);
                         // item-based or other type of evo, so just do it regardless of requirement
                         if (Game.rand.nextInt(2) == 0) {
                             evolveTo = evos.get(evo);
@@ -2595,6 +2598,7 @@ class Tile {
             }
             if (this.nameUpper.equals("rock1_color")) {
                 this.attrs.put("smashable", true);
+                this.attrs.put("cuttable", false);  // not sure why but cuttable can be true here.
                 this.items.clear();
                 this.items.put("stone", 1);
             }
@@ -2810,8 +2814,8 @@ class Tile {
             }
             game.insertAction(nextAction);
         }
+        // Secret switch text
         else if (this.name.equals("pkmnmansion_statue1") && this.doorTiles != null && game.player.dirFacing.equals("up")) {
-            // TODO: secret switch text
             game.playerCanMove = false;
             ArrayList<Tile> flipDoors = new ArrayList<Tile>();
             for (Vector2 pos : this.doorTiles) {

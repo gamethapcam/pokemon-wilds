@@ -1911,7 +1911,12 @@ public class Battle {
         if (source.types.contains(attack.type)) {damage = (int)(damage * 1.5f);}  // STAB
         // Factor in type effectiveness
         float multiplier = 1f;
+        String prevType = "";
         for (String type : target.types){
+            if (type.equals(prevType)) {
+                continue;
+            }
+            prevType = type;
             multiplier *= Game.staticGame.battle.gen2TypeEffectiveness.get(attack.type).get(type.toLowerCase());
         }
         damage = (int)(damage * multiplier);
@@ -2425,9 +2430,19 @@ public class Battle {
                 }
                 attackAction.append(new LoadAndPlayAnimation(game, attack.name, enemyPokemon, null));
                 // Attack didn't miss so continue with damage calc.
-                multiplier = game.battle.gen2TypeEffectiveness.get(attack.type).get(enemyPokemon.types.get(0).toLowerCase());
-                if (enemyPokemon.types.size() > 1) {
-                    multiplier *= game.battle.gen2TypeEffectiveness.get(attack.type).get(enemyPokemon.types.get(1).toLowerCase());
+                // TODO: remove
+//                multiplier = game.battle.gen2TypeEffectiveness.get(attack.type).get(enemyPokemon.types.get(0).toLowerCase());
+//                if (enemyPokemon.types.size() > 1) {
+//                    multiplier *= game.battle.gen2TypeEffectiveness.get(attack.type).get(enemyPokemon.types.get(1).toLowerCase());
+//                }
+                multiplier = 1f;
+                String prevType = "";
+                for (String type : enemyPokemon.types){
+                    if (type.equals(prevType)) {
+                        continue;
+                    }
+                    prevType = type;
+                    multiplier *= game.battle.gen2TypeEffectiveness.get(attack.type).get(type.toLowerCase());
                 }
                 if (multiplier > 1f) {
                     effectiveness = "super_effective";
@@ -3558,7 +3573,7 @@ public class Battle {
                         numWobbles = Battle.gen2CalcIfCaught(game, game.battle.oppPokemon, itemName);
                     }
                     else {
-                        // Get run result from server
+                        // Get number of wobbles result from server
                         numWobbles = turnData.numWobbles;
                     }
                     // TODO: remove
@@ -4222,6 +4237,9 @@ class BattleFadeOut extends Action {
             
             DisplayText.unownText = false;
             game.map.unownSpawn = null;
+            // Traps go away from player's current Pokemon
+            game.player.currPokemon.trappedBy = null;
+            game.player.currPokemon.trapCounter = 0;
             return;
         }
 
@@ -7764,7 +7782,10 @@ class DrawPokemonMenu extends MenuAction {
                 }
             }
             // Return here if player is flying
-            if (game.player.isFlying) {
+//            if (game.player.isFlying) {
+            // just use player.currHm ? 
+            if (game.player.isFlying || game.player.isBuilding || game.player.isCutting || game.player.isSmashing 
+                    || game.player.isHeadbutting || game.player.isJumping) {
                 this.disabled = true;
                 game.insertAction(this.prevMenu);
                 return new PlaySound("error1",
@@ -7863,15 +7884,19 @@ class DrawPokemonMenu extends MenuAction {
                 //
 //                game.insertAction(this.prevMenu);  // keep drawing but don't enable
 //                DrawPokemonMenu.lastIndex = prevMenu.currIndex;
+                Pokemon pokemon = game.player.pokemon.get(DrawPokemonMenu.currIndex);
+                game.player.swapSprites(pokemon);
+                game.insertAction(pokemon.new Follow(game.player));
                 game.player.isBuilding = true;  // tile to build appears in front of player
                 game.player.isCutting = false;
                 game.player.isSmashing = false;
                 game.player.isHeadbutting = false;
                 game.player.isJumping = false;
                 return new SelectedMenu.ExitAfterActions(this.prevMenu,
-                       new DisplayText(game, game.player.pokemon.get(DrawPokemonMenu.currIndex).name.toUpperCase()+" used BUILD! Press C and V to select tiles.", null, null,
+                       new PlaySound(pokemon,
+                       new DisplayText(game, pokemon.name.toUpperCase()+" used BUILD! Press C and V to select tiles.", null, null,
                        null
-                       ));
+                       )));
             }
             else if (word.equals("CUT")) {
                 // TODO: only send when cutting tile
@@ -7880,24 +7905,31 @@ class DrawPokemonMenu extends MenuAction {
 //                                                                           DrawPokemonMenu.currIndex,
 //                                                                           word));
 //                }
+                Pokemon pokemon = game.player.pokemon.get(DrawPokemonMenu.currIndex);
+                game.player.swapSprites(pokemon);
+                game.insertAction(pokemon.new Follow(game.player));
                 game.player.isCutting = true;
                 game.player.isSmashing = false;
                 game.player.isBuilding = false;
                 game.player.isHeadbutting = false;
                 game.player.isJumping = false;
                 return new SelectedMenu.ExitAfterActions(this.prevMenu,
-                       new DisplayText(game, game.player.pokemon.get(DrawPokemonMenu.currIndex).name.toUpperCase()+" is using CUT!", null, null,
-                       null));
+                       new PlaySound(pokemon,
+                       new DisplayText(game, pokemon.name.toUpperCase()+" is using CUT!", null, null,
+                       null)));
             }
             else if (word.equals("SMASH")) {
+                Pokemon pokemon = game.player.pokemon.get(DrawPokemonMenu.currIndex);
+                game.player.swapSprites(pokemon);
+                game.insertAction(pokemon.new Follow(game.player));
                 game.player.isCutting = false;
                 game.player.isSmashing = true;
                 game.player.isBuilding = false;
                 game.player.isHeadbutting = false;
                 game.player.isJumping = false;
                 return new SelectedMenu.ExitAfterActions(this.prevMenu,
-                       new PlaySound(game.player.pokemon.get(DrawPokemonMenu.currIndex),
-                       new DisplayText(game, game.player.pokemon.get(DrawPokemonMenu.currIndex).name.toUpperCase()+" is using ROCK SMASH!", null, null,
+                       new PlaySound(pokemon,
+                       new DisplayText(game, pokemon.name.toUpperCase()+" is using ROCK SMASH!", null, null,
                        null)));
             }
             else if (word.equals("HEADBUTT")) {
@@ -7906,29 +7938,35 @@ class DrawPokemonMenu extends MenuAction {
                                                                            DrawPokemonMenu.currIndex,
                                                                            word));
                 }
+                Pokemon pokemon = game.player.pokemon.get(DrawPokemonMenu.currIndex);
+                game.player.swapSprites(pokemon);
+                game.insertAction(pokemon.new Follow(game.player));
                 game.player.isHeadbutting = true;
                 game.player.isBuilding = false;
                 game.player.isCutting = false;
                 game.player.isSmashing = false;
                 game.player.isJumping = false;
                 return new SelectedMenu.ExitAfterActions(this.prevMenu,
-                       new DisplayText(game, game.player.pokemon.get(DrawPokemonMenu.currIndex).name.toUpperCase()+" is using HEADBUTT!", null, null,
+                       new DisplayText(game, pokemon.name.toUpperCase()+" is using HEADBUTT!", null, null,
                        null));
             }
-            else if (word.equals("JUMP")) {
+            else if (word.equals("RIDE")) {
                 if (game.type == Game.Type.CLIENT) {
                     game.client.sendTCP(new com.pkmngen.game.Network.UseHM(game.player.network.id,
                                                                            DrawPokemonMenu.currIndex,
                                                                            word));
                 }
+                Pokemon pokemon = game.player.pokemon.get(DrawPokemonMenu.currIndex);
+                game.player.swapSprites(pokemon);
                 game.player.isHeadbutting = false;
                 game.player.isBuilding = false;
                 game.player.isCutting = false;
                 game.player.isSmashing = false;
                 game.player.isJumping = true;
                 return new SelectedMenu.ExitAfterActions(this.prevMenu,
-                       new DisplayText(game, game.player.pokemon.get(DrawPokemonMenu.currIndex).name.toUpperCase()+" is using JUMP!", null, null,
-                       null));
+                       new PlaySound(pokemon,
+                       new DisplayText(game, pokemon.name.toUpperCase()+" is using RIDE!", null, null,
+                       null)));
             }
             return null;
         }
@@ -8697,7 +8735,13 @@ class DrawUseTossMenu extends MenuAction {
                               null)));
             return;
         }
-
+        // Not allowed to catch ghosts (for now)
+        if (itemName.contains("ball") && game.battle.oppPokemon.name.equals("ghost")) {
+            game.insertAction(new DisplayText(game, game.battle.oppPokemon.name.toUpperCase()+" canì be caught!", null, null,
+                              new SetField(this.prevMenu, "disabled", false,
+                              this.prevMenu)));
+            return;
+        }
         this.prevMenu.prevMenu.disabled = false;
         Action action = new SplitAction(new PlaySound("click1", null), null);
         if (game.type == Game.Type.CLIENT) {
@@ -8712,7 +8756,7 @@ class DrawUseTossMenu extends MenuAction {
             game.battle.network.turnData = new BattleTurnData();
             game.battle.network.turnData.itemName = itemName;
         }
-        // deduct item from inventory
+        // Deduct item from inventory
         game.player.itemsDict.put(itemName, game.player.itemsDict.get(itemName)-1);
         if (game.player.itemsDict.get(itemName) <= 0) {
             game.player.itemsDict.remove(itemName);

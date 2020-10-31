@@ -1053,6 +1053,17 @@ class DrawMobileControls extends Action {
  */
 class DrawControls extends Action {
     public boolean remove = false;
+    boolean displayControls = true;
+    int timer = 0;
+    int timerPadding = 60*4;
+    float alpha = 1f;
+    String currTrainerTip = "";
+    int prevIndex = -1;
+    ArrayList<String> messages;
+    
+    public DrawControls() {
+        this.messages = new ArrayList<String>(TrainerTipsTile.messages);
+    }
 
     public String getCamera() {return "gui";}
 
@@ -1061,13 +1072,74 @@ class DrawControls extends Action {
         if (this.remove) {
             game.actionStack.remove(this);
         }
+        if (this.timer <= 60) {
+            if (this.timer % 10 == 0) {
+                this.alpha = (float)this.timer/60f;
+            }
+        }
+        else if (this.timer >= 5*60 + this.timerPadding) {
+            if (this.timer % 10 == 0) {
+                this.alpha = 1f - (float)(this.timer % 60)/60f;
+            }
+        }
+        else if (InputProcessor.aJustPressed) {
+            this.timer = 5*60 + this.timerPadding;
+        }
+        if (++this.timer >= 6*60 + this.timerPadding) {
+            this.timer = 0;
+            this.displayControls = false;
+            this.timerPadding = 1*60;
+            int randomIndex = Game.rand.nextInt(this.messages.size());
+            this.currTrainerTip = "   TRAINER TIPS!  "+this.messages.get(randomIndex);
+            // Don't pick a tip that is too long or is same as previous tip.
+            int tries = 0;
+            while (tries < 4 && randomIndex == this.prevIndex || this.currTrainerTip.length() > 105) {
+                randomIndex = Game.rand.nextInt(this.messages.size());
+                this.currTrainerTip = "   TRAINER TIPS!  "+this.messages.get(randomIndex);
+                tries++;
+            }
+            this.prevIndex = randomIndex;
+        }
+
+        if (!this.displayControls) {
+            char[] textArray = this.currTrainerTip.toCharArray();
+            int i = 0;
+            int j = 0;
+            Sprite letterSprite;
+            for (int k=0; k < textArray.length; k++) {
+                char character = textArray[k];
+                if (character == ' ' && k+1 < textArray.length) {
+                    int length = 1;
+                    char nextChar = textArray[k+length];
+                    while (nextChar != ' ' && k+length < textArray.length) {
+                        nextChar = textArray[k+length++];
+                    }
+                    if (i+length > 20) {
+                        i = 0;
+                        j++;
+                    }
+                }
+                letterSprite = game.textDict.get(character);
+                letterSprite.setPosition(8*i, 128 -16*j);
+                letterSprite.draw(game.uiBatch, this.alpha);
+                i++;
+                if (i > 20) {
+                    i = 0;
+                    j++;
+                }
+            }
+            return;
+        }
+        
         for (int j=0; j < 8; j++) {
             if (j == 0) {
                 char[] textArray = "   - Controls -".toCharArray();
                 Sprite letterSprite;
                 for (int i=0; i < textArray.length; i++) {
                     letterSprite = game.textDict.get(textArray[i]);
-                    game.uiBatch.draw(letterSprite, 8 +8*i, 128 -16*j);
+                    letterSprite.setPosition(8 +8*i, 128 -16*j);
+                    letterSprite.draw(game.uiBatch, this.alpha);
+//                    game.uiBatch.draw(letterSprite, 8 +8*i, 128 -16*j);
                 }
             }
             else if (j == 1) {
@@ -1075,7 +1147,9 @@ class DrawControls extends Action {
                 Sprite letterSprite;
                 for (int i=0; i < textArray.length; i++) {
                     letterSprite = game.textDict.get(textArray[i]);
-                    game.uiBatch.draw(letterSprite, 8 +8*i, 128 -16*j);
+                    letterSprite.setPosition(8 +8*i, 128 -16*j);
+                    letterSprite.draw(game.uiBatch, this.alpha);
+//                    game.uiBatch.draw(letterSprite, 8 +8*i, 128 -16*j);
                 }
             }
             else if (j == 2) {
@@ -1083,7 +1157,9 @@ class DrawControls extends Action {
                 Sprite letterSprite;
                 for (int i=0; i < textArray.length; i++) {
                     letterSprite = game.textDict.get(textArray[i]);
-                    game.uiBatch.draw(letterSprite, 8 +8*i, 128 -16*j);
+                    letterSprite.setPosition(8 +8*i, 128 -16*j);
+                    letterSprite.draw(game.uiBatch, this.alpha);
+//                    game.uiBatch.draw(letterSprite, 8 +8*i, 128 -16*j);
                 }
             }
             else if (j == 3) {
@@ -1091,7 +1167,9 @@ class DrawControls extends Action {
                 Sprite letterSprite;
                 for (int i=0; i < textArray.length; i++) {
                     letterSprite = game.textDict.get(textArray[i]);
-                    game.uiBatch.draw(letterSprite, 8 +8*i, 128 -16*j);
+                    letterSprite.setPosition(8 +8*i, 128 -16*j);
+                    letterSprite.draw(game.uiBatch, this.alpha);
+//                    game.uiBatch.draw(letterSprite, 8 +8*i, 128 -16*j);
                 }
             }
             else if (j == 4) {
@@ -1099,7 +1177,9 @@ class DrawControls extends Action {
                 Sprite letterSprite;
                 for (int i=0; i < textArray.length; i++) {
                     letterSprite = game.textDict.get(textArray[i]);
-                    game.uiBatch.draw(letterSprite, 8 +8*i, 128 -16*j);
+                    letterSprite.setPosition(8 +8*i, 128 -16*j);
+                    letterSprite.draw(game.uiBatch, this.alpha);
+//                    game.uiBatch.draw(letterSprite, 8 +8*i, 128 -16*j);
                 }
             }
             else if (j == 5) {
@@ -1107,7 +1187,9 @@ class DrawControls extends Action {
                 Sprite letterSprite;
                 for (int i=0; i < textArray.length; i++) {
                     letterSprite = game.textDict.get(textArray[i]);
-                    game.uiBatch.draw(letterSprite, 8 +8*i, 128 -16*j);
+                    letterSprite.setPosition(8 +8*i, 128 -16*j);
+                    letterSprite.draw(game.uiBatch, this.alpha);
+//                    game.uiBatch.draw(letterSprite, 8 +8*i, 128 -16*j);
                 }
             }
         }

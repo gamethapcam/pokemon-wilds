@@ -122,8 +122,9 @@ public class Pokemon {
     {
         habitats.add("green");
     }
-    public String hasItem = null;  // harvestable item that the pokemon is holding
-    public int harvestTimer = 0;  // counts up to when pokemon has harvestable item.
+    public String hasItem = null;  // Harvestable item that the pokemon is holding
+    public int harvestTimer = 0;  // Counts up to when pokemon has harvestable item.
+    public int harvestTimerMax = (int)(3600f*2.5f);  // Amount of time (number of frames) required to harvest. 2.5 irl minutes by default.
     public ArrayList<String> harvestables = new ArrayList<String>();
     {
         harvestables.add("manure");
@@ -149,6 +150,9 @@ public class Pokemon {
 
     Generation generation;
     ArrayList<Sprite> introAnim;
+    public ArrayList<String> moveDirs = new ArrayList<String>();
+    public ArrayList<Integer> ledgeJumps = new ArrayList<Integer>();  // 1 or 2, 2 is faster.
+    public ArrayList<Float> numMoves = new ArrayList<Float>();
 
     public static Random rand = new Random();
 
@@ -284,13 +288,13 @@ public class Pokemon {
                 name.equals("houndoom") ||
                 name.equals("rapidash") ||
                 name.equals("tauros") ||
-                name.equals("ninetails") ||
-                name.equals("mamomswine") ||
+                name.equals("ninetales") ||
+                name.equals("mamoswine") ||
                 name.equals("luxray")) {
                 // TODO: change to 'RIDE' later. Making it 'JUMP' for now so that it's not confusing.
                 // Later, once there (hopefully) are riding sprites, this can be changed to ride.
                 // My current idea is that RIDE increases movement speed and can perform jumps up ledges.
-                this.hms.add("JUMP");
+                this.hms.add("RIDE");
             }
 
             if (name.equals("pidgeot") ||
@@ -986,13 +990,13 @@ public class Pokemon {
             name.equals("houndoom") ||
             name.equals("rapidash") ||
             name.equals("tauros") ||
-            name.equals("ninetails") ||
-            name.equals("mamomswine") ||
+            name.equals("ninetales") ||
+            name.equals("mamoswine") ||
             name.equals("luxray")) {
             // TODO: change to 'RIDE' later. Making it 'JUMP' for now so that it's not confusing.
             // Later, once there (hopefully) are riding sprites, this can be changed to ride.
             // My current idea is that RIDE increases movement speed and can perform jumps up ledges.
-            this.hms.add("JUMP");
+            this.hms.add("RIDE");
         }
         if (name.equals("pidgeot") ||
             name.equals("aerodactyl") ||
@@ -1094,6 +1098,7 @@ public class Pokemon {
         else if (name.equals("unown")) {
             this.harvestables.clear();
             this.harvestables.add("ancientpowder");
+            this.harvestTimerMax = (int)(3600f*3.5f);
         }
         // just ideas
 //        else if (name.equals("slowpoke")) {
@@ -1580,6 +1585,15 @@ public class Pokemon {
                     this.avatarSprites.add(this.movingSprites.get("down"));
                     this.avatarSprites.add(this.standingSprites.get("down"));
                     this.avatarSprites.add(this.altMovingSprites.get("down"));
+                    for (String key : new ArrayList<String>(this.standingSprites.keySet())) {
+                        this.standingSprites.put(key+"_running", this.standingSprites.get(key));
+                    }
+                    for (String key : new ArrayList<String>(this.movingSprites.keySet())) {
+                        this.movingSprites.put(key+"_running", this.movingSprites.get(key));
+                    }
+                    for (String key : new ArrayList<String>(this.altMovingSprites.keySet())) {
+                        this.altMovingSprites.put(key+"_running", this.altMovingSprites.get(key));
+                    }
                     break;
                 }
                 i++;
@@ -1612,6 +1626,16 @@ public class Pokemon {
             this.avatarSprites.add(this.movingSprites.get("down"));
             this.avatarSprites.add(this.standingSprites.get("down"));
             this.avatarSprites.add(this.movingSprites.get("down"));
+
+            for (String key : new ArrayList<String>(this.standingSprites.keySet())) {
+                this.standingSprites.put(key+"_running", this.standingSprites.get(key));
+            }
+            for (String key : new ArrayList<String>(this.movingSprites.keySet())) {
+                this.movingSprites.put(key+"_running", this.movingSprites.get(key));
+            }
+            for (String key : new ArrayList<String>(this.altMovingSprites.keySet())) {
+                this.altMovingSprites.put(key+"_running", this.altMovingSprites.get(key));
+            }
 
             // TODO: load ghost overworld sprite from ghost sheet.
             
@@ -1987,9 +2011,17 @@ public class Pokemon {
                                   this.nextAction)))));
                 return;
             }
-            
+            Action newAction = new PlaySound("seed1", null);
+            if (game.player.pokemon.size() >= 6 && !game.player.displayedMaxPartyText) {
+                game.player.displayedMaxPartyText = true;
+                newAction.append(new SetField(game, "playerCanMove", false,
+                                 new DisplayText(game, "Your party is full! You will need to DROP some of them in order to catch more.", null, null,
+                                 new SetField(game, "playerCanMove", true,
+                                 null))));
+            }
+            newAction.append(this.nextAction);
             game.actionStack.remove(this);
-            game.insertAction(new PlaySound("seed1", this.nextAction));
+            game.insertAction(newAction);
         }
     }
 
@@ -2018,7 +2050,7 @@ public class Pokemon {
                 } 
                 // TODO: time required to harvest may vary per Pokemon
 //                if (Pokemon.this.harvestTimer >= 3600*2) {  // 2 irl minutes, 1 if near shelter
-                if (Pokemon.this.harvestTimer >= (int)(3600f*2.5f)) {
+                if (Pokemon.this.harvestTimer >= Pokemon.this.harvestTimerMax) {
                     Pokemon.this.hasItem = Pokemon.this.harvestables.get(game.map.rand.nextInt(Pokemon.this.harvestables.size()));
                 }
             }
@@ -2112,12 +2144,20 @@ public class Pokemon {
         boolean alternate;
         int delay = 1;
         int timer = 1;
-        int numMove = 1;
+        float numMove = 1f;
+        String dirFacing;
+        boolean isFollowing = false;
 
-        public Moving(int delay, int numMove, boolean alternate, Action nextAction) {
+        public Moving(int delay, float numMove, boolean alternate, Action nextAction) {
+            this(Pokemon.this.dirFacing, delay, numMove, alternate, false, nextAction);
+        }
+        
+        public Moving(String dirFacing, int delay, float numMove, boolean alternate, boolean isFollowing, Action nextAction) {
+            this.dirFacing = dirFacing;
             this.delay = delay;
             this.numMove = numMove;
             this.alternate = alternate;
+            this.isFollowing = isFollowing;
             this.nextAction = nextAction;
         }
 
@@ -2132,20 +2172,22 @@ public class Pokemon {
         @Override
         public void firstStep(Game game) {
             this.initialPos = new Vector2(Pokemon.this.position);
-            if (Pokemon.this.dirFacing.equals("up")) {
+            if (this.dirFacing.equals("up")) {
                 this.targetPos = new Vector2(Pokemon.this.position.x, Pokemon.this.position.y+16);
             }
-            else if (Pokemon.this.dirFacing.equals("down")) {
+            else if (this.dirFacing.equals("down")) {
                 this.targetPos = new Vector2(Pokemon.this.position.x, Pokemon.this.position.y-16);
             }
-            else if (Pokemon.this.dirFacing.equals("left")) {
+            else if (this.dirFacing.equals("left")) {
                 this.targetPos = new Vector2(Pokemon.this.position.x-16, Pokemon.this.position.y);
             }
-            else if (Pokemon.this.dirFacing.equals("right")) {
+            else if (this.dirFacing.equals("right")) {
                 this.targetPos = new Vector2(Pokemon.this.position.x+16, Pokemon.this.position.y);
             }
-            game.map.pokemon.remove(Pokemon.this.position);
-            game.map.pokemon.put(this.targetPos.cpy(), Pokemon.this);
+            if (!this.isFollowing) {
+                game.map.pokemon.remove(Pokemon.this.position);
+                game.map.pokemon.put(this.targetPos.cpy(), Pokemon.this);
+            }
             Pokemon.this.canMove = true;
 
             // For each player in range, move this pokemon
@@ -2172,16 +2214,16 @@ public class Pokemon {
             this.timer--;
             if (this.timer <= 0) {
                 this.timer = this.delay;
-                if (Pokemon.this.dirFacing.equals("up")) {
+                if (this.dirFacing.equals("up")) {
                     Pokemon.this.position.y += this.numMove;
                 }
-                else if (Pokemon.this.dirFacing.equals("down")) {
+                else if (this.dirFacing.equals("down")) {
                     Pokemon.this.position.y -= this.numMove;
                 }
-                else if (Pokemon.this.dirFacing.equals("left")) {
+                else if (this.dirFacing.equals("left")) {
                     Pokemon.this.position.x -= this.numMove;
                 }
-                else if (Pokemon.this.dirFacing.equals("right")) {
+                else if (this.dirFacing.equals("right")) {
                     Pokemon.this.position.x += this.numMove;
                 }
             }
@@ -2191,14 +2233,14 @@ public class Pokemon {
             if ((this.yDist < 13 && this.yDist > 2)
                 || (this.xDist < 13 && this.xDist > 2)) {
                 if (this.alternate == true) {
-                    Pokemon.this.currOwSprite = Pokemon.this.altMovingSprites.get(Pokemon.this.dirFacing);
+                    Pokemon.this.currOwSprite = Pokemon.this.altMovingSprites.get(this.dirFacing);
                 }
                 else {
-                    Pokemon.this.currOwSprite = Pokemon.this.movingSprites.get(Pokemon.this.dirFacing);
+                    Pokemon.this.currOwSprite = Pokemon.this.movingSprites.get(this.dirFacing);
                 }
             }
             else {
-                Pokemon.this.currOwSprite = Pokemon.this.standingSprites.get(Pokemon.this.dirFacing);
+                Pokemon.this.currOwSprite = Pokemon.this.standingSprites.get(this.dirFacing);
             }
             if (this.xDist >= 16 || this.yDist >= 16) {
                 Pokemon.this.position.set(this.targetPos);
@@ -2206,6 +2248,9 @@ public class Pokemon {
                 game.insertAction(this.nextAction);
                 Pokemon.this.standingAction = this.nextAction;
                 Pokemon.this.checkHabitat(game);
+                if (this.isFollowing) {
+                    this.nextAction.step(game);  // gets rid of 'jitter'
+                }
             }
         }
     }
@@ -2258,6 +2303,201 @@ public class Pokemon {
                                                              false));
             }
             game.actionStack.remove(this);
+        }
+    }
+
+    public class Follow extends Action {
+        public int layer = 151;
+        boolean alternate = true;
+        boolean onPlayer = false;
+        Player player;
+        
+        public Follow(Player player) {
+            this.player = player;
+        }
+
+        @Override
+        public void firstStep(Game game) {
+            Pokemon.this.standingAction = this;
+            Pokemon.this.dirFacing = this.player.dirFacing;
+            String oppDir = Player.oppDirs.get(this.player.dirFacing);
+            Vector2 pos = this.player.facingPos(oppDir);
+            if (game.map.tiles.get(pos) != null && !game.map.tiles.get(pos).attrs.get("solid") && !game.map.tiles.get(pos).attrs.get("ledge")) {
+                Pokemon.this.position = pos;
+            }
+            else {
+                Pokemon.this.position = this.player.position.cpy();
+                this.onPlayer = true;
+            }
+            Pokemon.this.mapTiles = game.map.tiles;
+            Pokemon.this.moveDirs.clear();
+            Pokemon.this.numMoves.clear();
+            Pokemon.this.ledgeJumps.clear();
+            game.insertAction(Pokemon.this.new DrawLower());
+            game.insertAction(Pokemon.this.new DrawUpper());
+        }
+
+        @Override
+        public void step(Game game) {
+            Pokemon.this.currOwSprite = Pokemon.this.standingSprites.get(Pokemon.this.dirFacing);
+            Pokemon.this.mapTiles = game.map.tiles;
+            if (Pokemon.this.moveDirs.size() > 0) {
+                String moveDir = Pokemon.this.moveDirs.remove(0);
+                float numMove = Pokemon.this.numMoves.remove(0);
+                int ledgeJump = 0;
+                // TODO: could break if multiple ledges in a row
+                if (Pokemon.this.ledgeJumps.size() > 0) {
+                    ledgeJump = Pokemon.this.ledgeJumps.remove(0);
+                }
+                if (!this.onPlayer) {
+                    game.actionStack.remove(this);
+                    Action action;
+                    if (ledgeJump <= 0) {
+                        action = Pokemon.this.new Moving(Pokemon.this.dirFacing, 1, numMove, this.alternate, true,
+                                 this);
+                    }
+                    else {
+                        action = Pokemon.this.new LedgeJump(Pokemon.this.dirFacing, ledgeJump, this);
+                    }
+                    this.alternate = !this.alternate;
+                    game.insertAction(action);
+                    Pokemon.this.standingAction = action;
+                }
+                this.onPlayer = false;
+                Pokemon.this.dirFacing = moveDir;
+//                Pokemon.this.moveDir = null;
+//                Pokemon.this.numMove = 1f;
+            }
+        }
+    }
+
+    class LedgeJump extends Action {
+        public int layer = 131;
+        float xDist, yDist;
+        Vector2 initialPos, targetPos;
+        Sprite shadow;
+        int timer1 = 0;
+        ArrayList<Integer> yMovesList = new ArrayList<Integer>();
+        ArrayList<Map<String, Sprite>> spriteAnim = new ArrayList<Map<String, Sprite>>();
+        int speed = 1;  // 1 or 2, 2 is faster
+        String dirFacing;
+
+        public LedgeJump(String dirFacing, int speed, Action nextAction) {
+            this.dirFacing = dirFacing;
+            this.speed = speed;
+            this.nextAction = nextAction;
+            this.initialPos = new Vector2(Pokemon.this.position);
+            if (Pokemon.this.dirFacing.equals("up")) {
+                this.targetPos = new Vector2(Pokemon.this.position.x, Pokemon.this.position.y+32/this.speed);
+            }
+            else if (Pokemon.this.dirFacing.equals("down")) {
+                this.targetPos = new Vector2(Pokemon.this.position.x, Pokemon.this.position.y-32/this.speed);
+            }
+            else if (Pokemon.this.dirFacing.equals("left")) {
+                this.targetPos = new Vector2(Pokemon.this.position.x-32/this.speed, Pokemon.this.position.y);
+            }
+            else if (Pokemon.this.dirFacing.equals("right")) {
+                this.targetPos = new Vector2(Pokemon.this.position.x+32/this.speed, Pokemon.this.position.y);
+            }
+
+            // Shadow sprite
+            Texture shadowText = TextureCache.get(Gdx.files.internal("shadow1.png"));
+            this.shadow = new Sprite(shadowText, 0, 0, 16, 16);
+
+            // below two lists are used to get exact sprite and
+             // y movement on every other frame
+            this.yMovesList.add(4);
+            this.yMovesList.add(2);
+            this.yMovesList.add(2);
+            this.yMovesList.add(2);
+            this.yMovesList.add(1);
+            this.yMovesList.add(1);
+            this.yMovesList.add(0);
+            this.yMovesList.add(0);
+            this.yMovesList.add(-1);
+            this.yMovesList.add(-1);
+            this.yMovesList.add(-1);
+            this.yMovesList.add(-1);
+            this.yMovesList.add(-2);
+            this.yMovesList.add(-3);
+            this.yMovesList.add(-3);
+            this.yMovesList.add(0);
+
+            // sprites to use (according to frame-by-frame)
+            this.spriteAnim.add(Pokemon.this.standingSprites);
+            this.spriteAnim.add(Pokemon.this.standingSprites);
+            this.spriteAnim.add(Pokemon.this.movingSprites);
+            this.spriteAnim.add(Pokemon.this.movingSprites);
+            this.spriteAnim.add(Pokemon.this.movingSprites);
+            this.spriteAnim.add(Pokemon.this.movingSprites);
+            this.spriteAnim.add(Pokemon.this.standingSprites);
+            this.spriteAnim.add(Pokemon.this.standingSprites);
+            this.spriteAnim.add(Pokemon.this.standingSprites);
+            this.spriteAnim.add(Pokemon.this.standingSprites);
+            this.spriteAnim.add(Pokemon.this.altMovingSprites);
+            this.spriteAnim.add(Pokemon.this.altMovingSprites);
+            this.spriteAnim.add(Pokemon.this.altMovingSprites);
+            this.spriteAnim.add(Pokemon.this.altMovingSprites);
+            this.spriteAnim.add(Pokemon.this.standingSprites);
+            this.spriteAnim.add(Pokemon.this.standingSprites);
+        }
+
+        public int getLayer(){return this.layer;}
+
+        @Override
+        public void firstStep(Game game) {
+            // Play ledge jumping sound
+            if (this.speed == 2) {
+                game.insertAction(new PlaySound("ledge2", null));
+            }
+            else {
+                game.insertAction(new PlaySound("ledge1", null));
+            }
+        }
+
+        @Override
+        public void step(Game game) {
+            if (this.timer1 < 32/this.speed) {
+                if (this.dirFacing.equals("up")) {
+                    Pokemon.this.position.y +=1;
+                }
+                else if (this.dirFacing.equals("down")) {
+                    Pokemon.this.position.y -=1;
+                }
+                else if (this.dirFacing.equals("left")) {
+                    Pokemon.this.position.x -=1;
+                }
+                else if (this.dirFacing.equals("right")) {
+                    Pokemon.this.position.x +=1;
+                }
+                if (this.timer1 % 2 == 1) {
+                    Pokemon.this.position.y += this.yMovesList.remove(0);
+                    // Use next sprite in list
+                    Pokemon.this.currOwSprite = this.spriteAnim.remove(0).get(this.dirFacing);
+                    for (int i=0; i < this.speed-1; i++) {
+                        this.yMovesList.remove(0);
+                        this.spriteAnim.remove(0);
+                    }
+                }
+
+            }
+            else {
+                Pokemon.this.currOwSprite = Pokemon.this.standingSprites.get(this.dirFacing);
+            }
+            // Draw shadow
+            game.mapBatch.draw(this.shadow, Pokemon.this.position.x, Pokemon.this.position.y-6);
+            if (this.timer1 >= 38/this.speed) {
+                Pokemon.this.position.set(this.targetPos);
+                game.actionStack.remove(this);
+                game.insertAction(this.nextAction);
+                Pokemon.this.standingAction = this.nextAction;
+                Pokemon.this.checkHabitat(game);
+//                if (this.isFollowing) {
+                    this.nextAction.step(game);  // gets rid of 'jitter'
+//                }
+            }
+
+            this.timer1++;
         }
     }
 

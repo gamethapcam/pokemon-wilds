@@ -7,7 +7,7 @@
  - Windows - Download /builds/latest/pokemon-wilds.exe and run.
    - *Alternatively, download and run /builds/latest/pokemon-wilds.jar if the exe doesn't work.*
  - Mac - Download /builds/latest/pokemon-wilds.jar and run.
-   - I do not own a mac and I haven't been able to test the game on one. If you try running on mac and hit issues, please open an issue here, that would help me out a ton.
+   - I do not own a mac and I haven't been able to test the game on one. If you try running on mac and hit issues, please open an issue here.
  - **NOTE:** If you are running pokemon-wilds.jar and you want to generate large maps (anything larger than size M), you will need to run 'java -jar -Xmx1024M pokemon-wilds.jar' in a command window to launch the game. In order to support large maps the java heap space needs to be increased, which is what the -Xmx1024M argument does. I know this is annoying but unfortunately there isn't a way around this step, the game will crash without it if you try to generate any map above size M.
  - Java is required in order to run (it's required by libGDX, the engine this is built on). If you don't have java installed, a popup may appear pointing you to java installation instructions.
  - Controls: Arrow keys to move, keyboard Z = A button, keyboard X = B button, keyboard Enter = Start button. Hold keyboard X to run.
@@ -30,6 +30,7 @@ In the future I hope that the game can also support graphics from other generati
 
 # v0.4 (Latest)
  - **NOTE:** Previously I had advertised multiplayer support - however, this has proven to be too costly to maintain during development and I don't want to maintain it if nobody is using it yet. I am currently focusing on single player, with multiplayer planned for down the road. The option for multiplayer still exists, but many things are not working in it currently (flying, battle mechanics, pokemon item harvesting, and others).
+ - New FLY HM allows you to ride on the back of certain Pokemon and fly around the map.
 
 # v0.3
  - Pokemon mansion dungeon now will spawn in a random location in the overworld!

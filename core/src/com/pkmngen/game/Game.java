@@ -193,6 +193,9 @@ public class Game extends ApplicationAdapter {
                 System.out.println("curr pokemon:" + player.currPokemon.name);
                 for (Pokemon pokemon : player.pokemon) {
                     System.out.println(pokemon.name + " hp: " + pokemon.currentStats.get("hp"));
+                    for (String type : pokemon.types) {
+                        System.out.println(type);
+                    }
                 }
             }
 //            System.out.println("oppPokemon attacks:");
@@ -628,7 +631,7 @@ public class Game extends ApplicationAdapter {
 //            this.player.pokemon.get(0).currentStats.put("hp", 1);
 //            this.player.pokemon.get(0).attacks[2] = "recover";
 //            this.player.pokemon.get(0).attacks[3] = "slash";
-            this.player.pokemon.add(new Pokemon("tauros", 60, Pokemon.Generation.CRYSTAL));
+            this.player.pokemon.add(new Pokemon("donphan", 60, Pokemon.Generation.CRYSTAL));
 //            this.player.pokemon.get(1).attacks[0] = "disable";
 //            this.player.pokemon.get(1).attacks[1] = "confuse ray";
 //            this.player.pokemon.get(1).attacks[2] = "toxic";
