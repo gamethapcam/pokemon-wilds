@@ -275,6 +275,7 @@ public class Pokemon {
                 name.equals("nidoking") ||
                 name.equals("granbull") ||
                 name.equals("jynx") ||
+                name.equals("snorlax") ||
                 name.equals("ursaring")) {
                 this.hms.add("HEADBUTT");
             }
@@ -976,6 +977,7 @@ public class Pokemon {
             name.equals("nidoking") ||
             name.equals("granbull") ||
             name.equals("jynx") ||
+            name.equals("snorlax") ||
             name.equals("ursaring")) {
             this.hms.add("HEADBUTT");
         }
@@ -1486,7 +1488,7 @@ public class Pokemon {
 
                 for (int i=0; i < lines.size(); i++) {
                     line = lines.get(i);
-                    if (line.toLowerCase().contains(newName)) {
+                    if (line.toLowerCase().equals(newName+"evosattacks:")) {
                         inSection = true;
                         continue;
                     }
@@ -1528,7 +1530,6 @@ public class Pokemon {
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
             } catch (IOException e) {
-                // TODO Auto-generated catch block
                 e.printStackTrace();
             }
         }

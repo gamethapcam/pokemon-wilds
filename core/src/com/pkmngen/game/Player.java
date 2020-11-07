@@ -168,7 +168,7 @@ class CycleDayNight extends Action {
     public static int dayTimer;
     public int layer = 114;
 
-    int[] currFrames; 
+    int[] currFrames;
 
     boolean fadeToDay;
 
@@ -236,11 +236,11 @@ class CycleDayNight extends Action {
         CycleDayNight.dayTimer--;
 
         if (CycleDayNight.dayTimer <= 0) {
-            if (game.map.timeOfDay.equals("Day")) {
+            if (game.map.timeOfDay.equals("day")) {
                 this.fadeToNight = true;
                 CycleDayNight.dayTimer = 5000; // debug  // was 10000
             }
-            else if (game.map.timeOfDay.equals("Night")) {
+            else if (game.map.timeOfDay.equals("night")) {
                 this.fadeToDay = true;
                 CycleDayNight.dayTimer = 18000; // 10000 // 1000 - debug
             }
@@ -257,7 +257,7 @@ class CycleDayNight extends Action {
 
             if (this.fadeToDayAnim.index >= this.fadeToDayAnim.animateThese.size()) {
                 fadeToDay = false;
-                game.map.timeOfDay = "Day";
+                game.map.timeOfDay = "day";
                 this.fadeToDayAnim.index = 0;
 
 //                // TODO - fade day music
@@ -270,31 +270,39 @@ class CycleDayNight extends Action {
 //                game.map.currRoute.music = music; // TODO - how to switch to normal after defeating
 //                game.currMusic.play();
 
-                if (game.type != Game.Type.SERVER) {
-                    if (game.battle.oppPokemon == null || !SpecialMewtwo1.class.isInstance(game.battle.oppPokemon)) {
-                        String nextMusicName = game.map.currRoute.getNextMusic(true);
-                        BattleFadeOutMusic.playerFainted = true;  // TODO: this is just a hack around issues with FadeMusic
-                        Action nextMusic = new BattleFadeOutMusic(game,
-                                           new WaitFrames(game, 360,
-                                           new FadeMusic(nextMusicName, "in", "", 0.2f, true, 1f, game.musicCompletionListener,
-                                           null)));
-                        game.fadeMusicAction = nextMusic;
-                        game.insertAction(nextMusic);
-                    }
-                    // set brightness according to player location (ie, if in pokemon mansion, set to dim light.)
-                    // TODO: enable once player position doesn't vary like this.
-//                    Route currRoute = game.map.tiles.get(game.player.position).routeBelongsTo;
-//                    if (currRoute != null) {
-//                        if (currRoute.name.contains("pkmnmansion")) {
-//                            game.mapBatch.setColor(new Color(0.8f, 0.8f, 0.8f, 1f));
-//                        }
+//                if (game.type != Game.Type.SERVER) {
+//                    if (game.battle.oppPokemon == null || !SpecialMewtwo1.class.isInstance(game.battle.oppPokemon)) {
+//                        String nextMusicName = game.map.currRoute.getNextMusic(true);
+//                        BattleFadeOutMusic.playerFainted = true;  // TODO: this is just a hack around issues with FadeMusic
+//                        Action nextMusic = new BattleFadeOutMusic(game,
+//                                           new WaitFrames(game, 360,
+//                                           new FadeMusic(nextMusicName, "in", "", 0.2f, true, 1f, game.musicCompletionListener,
+//                                           null)));
+//                        game.fadeMusicAction = nextMusic;
+//                        game.insertAction(nextMusic);
 //                    }
-                }
+//                    // set brightness according to player location (ie, if in pokemon mansion, set to dim light.)
+//                    // TODO: enable once player position doesn't vary like this.
+////                    Route currRoute = game.map.tiles.get(game.player.position).routeBelongsTo;
+////                    if (currRoute != null) {
+////                        if (currRoute.name.contains("pkmnmansion")) {
+////                            game.mapBatch.setColor(new Color(0.8f, 0.8f, 0.8f, 1f));
+////                        }
+////                    }
+//                }
+                game.musicController.startTimeOfDay = "day";
 
-                // state which day it is
                 day++;
                 signCounter = 300;
                 this.bgSprite.setPosition(0, 24);
+
+                // Set batch shading if in pokemon mansion
+                if (game.map.currRoute.name.contains("pkmnmansion")) {
+                    game.mapBatch.setColor(new Color(0.8f, 0.8f, 0.8f, 1f));
+                }
+                else {
+                    game.mapBatch.setColor(new Color(1f, 1f, 1f, 1f));
+                }
 
                 if (game.type != Game.Type.CLIENT) {
                     // All planted trees become full size trees
@@ -349,26 +357,27 @@ class CycleDayNight extends Action {
 
             if (this.animContainer.index >= this.animContainer.animateThese.size()) {
                 fadeToNight = false;
-                game.map.timeOfDay = "Night";
+                game.map.timeOfDay = "night";
                 this.countDownToGhost = 150; // this.rand.nextInt(5000) + 150;  // debug: 150;
                 this.animContainer.index = 0;
 
                 // TODO test
 //                game.currMusic.pause();
-                if (game.type != Game.Type.SERVER && (game.battle.oppPokemon == null || !SpecialMewtwo1.class.isInstance(game.battle.oppPokemon))) {
-                    game.currMusic.stop();
-                    game.actionStack.remove(game.fadeMusicAction);
-                    // start night music
-                    if (!game.loadedMusic.containsKey("night1")) {
-                        game.loadedMusic.put("night1", Gdx.audio.newMusic(Gdx.files.internal("night1.ogg")));
-                    }
-                    Music music = game.loadedMusic.get("night1");
-                    music.setLooping(true);
-                    music.setVolume(.7f);
-                    game.currMusic = music;
-                    game.map.currRoute.music = music;
-                    game.currMusic.play();
-                }
+//                if (game.type != Game.Type.SERVER && (game.battle.oppPokemon == null || !SpecialMewtwo1.class.isInstance(game.battle.oppPokemon))) {
+//                    game.currMusic.stop();
+//                    game.actionStack.remove(game.fadeMusicAction);
+//                    // start night music
+//                    if (!game.loadedMusic.containsKey("night1")) {
+//                        game.loadedMusic.put("night1", Gdx.audio.newMusic(Gdx.files.internal("night1.ogg")));
+//                    }
+//                    Music music = game.loadedMusic.get("night1");
+//                    music.setLooping(true);
+//                    music.setVolume(.7f);
+//                    game.currMusic = music;
+//                    game.map.currRoute.music = music;
+//                    game.currMusic.play();
+//                }
+                game.musicController.startTimeOfDay = "night";
                 // state which night it is
                 night++;
                 signCounter = 150;
@@ -378,7 +387,7 @@ class CycleDayNight extends Action {
 
         // Check player can move so don't spawn in middle of battle or when looking at ghost
         // If player is near a campfire, don't deduct from ghost spawn timer
-        if (game.map.timeOfDay.equals("Night") && game.playerCanMove == true && !game.player.isNearCampfire && game.map.currBiome.equals("deep_forest")) {
+        if (game.map.timeOfDay.equals("night") && game.playerCanMove == true && !game.player.isNearCampfire && game.map.currBiome.equals("deep_forest")) {
             countDownToGhost--;
             // TODO: not working?
             System.out.println(this.countDownToGhost);
@@ -572,6 +581,95 @@ class DrawBuildRequirements extends Action {
                 letterSprite.setPosition(this.topLeft.x +8 +8*j, this.topLeft.y -16*(this.words.size()-2+i));
                 letterSprite.setColor(this.wordColors.get(i));
                 letterSprite.draw(game.uiBatch);
+            }
+        }
+    }
+}
+
+
+/**
+ * Draws the requirements for building an object if game.player.isBuilding.
+ */
+class DrawItemPickup extends Action {
+    Sprite textBoxTop;
+    Sprite textBoxMiddle;
+    Sprite textBoxBottom;
+    ArrayList<String> words = new ArrayList<String>(); // menu items
+    ArrayList<Color> wordColors = new ArrayList<Color>(); // menu items
+    Vector2 topLeft = new Vector2(89, 144);
+    int timer = 0;
+    HashMap<String, Integer> items;
+
+    public DrawItemPickup(HashMap<String, Integer> items, Action nextAction) {
+        this.items = items;
+        this.nextAction = nextAction;
+        // Text box background
+        Texture texture = new Texture(Gdx.files.internal("pokemon_menu/selected_menu_top.png"));
+        this.textBoxTop = new Sprite(texture, 0,0, 71, 19);
+        texture = new Texture(Gdx.files.internal("pokemon_menu/selected_menu_middle.png"));
+        this.textBoxMiddle = new Sprite(texture, 0,0, 71, 16);
+        texture = new Texture(Gdx.files.internal("pokemon_menu/selected_menu_bottom.png"));
+        this.textBoxBottom = new Sprite(texture, 0,0, 71, 19);
+
+        this.words.clear();
+        this.wordColors.clear();
+        this.words.add("GOT");
+        this.wordColors.add(new Color(1,1,1,1));
+        for (String item : this.items.keySet()) {
+            String text = item.toUpperCase();
+            if (text.contains("APRICORN")) {
+                text = "APRCN";
+            }
+            int numGot = this.items.get(item);
+            for (int i=0; i < 5-item.length(); i++) {
+                text += " ";
+            }
+            text += "x";
+            text += String.valueOf(numGot);
+            this.wordColors.add(new Color(1,1,1,1));
+            this.words.add(text);
+        }
+    }
+
+    public String getCamera() {return "gui";}
+
+    @Override
+    public void firstStep(Game game) {}
+
+    @Override
+    public void step(Game game) {
+        if (this.timer > 90) {
+            game.actionStack.remove(this);
+            game.insertAction(this.nextAction);
+        }
+        this.timer++;
+
+        // Draw requirements of current item being built
+        Sprite letterSprite;
+        int height = this.words.size();
+        if (height < 2) {
+            height = 2;
+        }
+        for (int i=0; i < height; i++) {
+            // Draw appropriate part of textBox
+            if (i == 0) {
+                game.uiBatch.draw(this.textBoxTop, this.topLeft.x, this.topLeft.y-19);
+            }
+            else if (i == height-1) {
+                game.uiBatch.draw(this.textBoxBottom, this.topLeft.x, this.topLeft.y-19 -16*(i));
+            }
+            else {
+                game.uiBatch.draw(this.textBoxMiddle, this.topLeft.x, this.topLeft.y-19 -16*(i));
+            }
+            if (i < this.words.size()) {
+                String word = this.words.get(i);
+                for (int j=0; j < word.length(); j++) {
+                    char letter = word.charAt(j);
+                    letterSprite = new Sprite(game.textDict.get(letter));
+                    letterSprite.setPosition(this.topLeft.x +8 +8*j, this.topLeft.y -14 -16*(i));
+                    letterSprite.setColor(this.wordColors.get(i));
+                    letterSprite.draw(game.uiBatch);
+                }
             }
         }
     }
@@ -1243,7 +1341,7 @@ class DrawGhost extends Action {
     @Override
     public void step(Game game) {
         // check if it's day or not. if not Night, despawn the ghost
-        if (game.map.timeOfDay != "Night") {
+        if (!game.map.timeOfDay.equals("night")) {
             this.currSprite.draw(game.mapBatch);
             game.actionStack.remove(this);
             game.insertAction(new DespawnGhost(this.basePos.cpy()));
@@ -1273,10 +1371,11 @@ class DrawGhost extends Action {
                 game.insertAction(new DespawnGhost(this.basePos.cpy()));
                 // TODO: test
 //                game.currMusic.pause();
-                game.currMusic.stop();
-                game.currMusic.dispose();
-                game.currMusic = game.map.currRoute.music;
-                game.currMusic.play();
+//                game.currMusic.stop();
+//                game.currMusic.dispose();
+//                game.currMusic = game.loadedMusic.get(game.musicController.currOverworldMusic);
+//                game.currMusic.play();
+                game.musicController.resumeOverworldMusic = true;
                 return;
             }
         }
@@ -1307,7 +1406,7 @@ class DrawGhost extends Action {
 //                game.currMusic.pause();
                 game.currMusic.stop();
                 game.currMusic.dispose();
-                game.currMusic = game.map.currRoute.music;
+                game.currMusic = game.loadedMusic.get(game.musicController.currOverworldMusic);//game.map.currRoute.music;
                 game.currMusic.play();
             }
             return;
@@ -1335,7 +1434,7 @@ class DrawGhost extends Action {
         }
 
         // Pause if player can't move
-        if (game.playerCanMove == false) {
+        if (!game.playerCanMove) {
             this.currSprite.draw(game.mapBatch);
             return;
         }
@@ -1425,6 +1524,7 @@ class DrawGhost extends Action {
         if (rect.overlaps(game.player.currSprite.getBoundingRectangle())) {
             game.battle.oppPokemon = this.pokemon;
             game.playerCanMove = false;
+            game.musicController.inBattle = true;
             game.insertAction(Battle.getIntroAction(game));
             if (game.type == Game.Type.CLIENT) {
                 game.client.sendTCP(new Network.BattleData(this.pokemon, game.player.network.id));
@@ -1533,11 +1633,10 @@ class DrawPlayerUpper extends Action {
                     break;
                 }
             }
-            // TODO: not doing
-//            if (nextTile != null && game.player.currBuildTile.name.contains("house")) {
-//                Tile upTile = game.map.tiles.get(nextTile.position.cpy().add(0, 16));
-//                requirementsMet = requirementsMet && (upTile.nameUpper.contains("house") || !upTile.attrs.get("solid"));
-//            }
+            if (nextTile != null && game.player.currBuildTile.name.contains("house")) {
+                Tile upTile = game.map.interiorTiles.get(game.map.interiorTilesIndex).get(nextTile.position.cpy().add(0, 16));
+                requirementsMet = requirementsMet && (upTile == null || upTile.name.contains("house"));
+            }
             if (!requirementsMet) {
                 sprite.setColor(1f, .7f, .7f, .8f);
             }
@@ -1548,7 +1647,7 @@ class DrawPlayerUpper extends Action {
                 sprite = new Sprite(game.player.currBuildTile.overSprite);
                 sprite.setAlpha(.8f);
                 sprite.setPosition(pos.x, pos.y);
-                if (nextTile != null && nextTile.attrs.get("solid")) {
+                if (nextTile != null && (nextTile.attrs.get("solid") || nextTile.nameUpper.contains("door"))) {
                     sprite.setColor(1f, .7f, .7f, .8f);
                 }
                 sprite.draw(game.mapBatch);
@@ -1578,7 +1677,8 @@ class DrawPlayerUpper extends Action {
             }
             if (game.player.dirFacing.equals("down")) {
                 offsetY += 3;
-                if (game.player.hmPokemon.name.equals("ponyta")) {
+                if (game.player.hmPokemon.name.equals("ponyta") ||
+                    game.player.hmPokemon.name.equals("rapidash")) {
                     offsetY -= 1;
                 }
                 if (game.player.hmPokemon.name.equals("mamoswine")) {
@@ -1637,7 +1737,7 @@ class DrawPlayerUpper extends Action {
             }
         }
 
-        // this needs to be set to detect collision
+        // This needs to be set to detect collision
         game.player.currSprite.setPosition(game.player.position.x, game.player.position.y);
     }
 }
@@ -1941,6 +2041,7 @@ public class Player {
     int zsTimer = 0;
     public int repelCounter = 0;  // counts down, item sets at 100/200.
     Vector2 spawnLoc = new Vector2(0, 0);
+    int spawnIndex = -1;  // -1 == overworld, anything else is the interiorTilesIndex
     PlayerStanding standingAction;
     public boolean displayedMaxPartyText = false;
 
@@ -2195,6 +2296,7 @@ public class Player {
     public Player(com.pkmngen.game.Network.PlayerData playerData) {
         this();
         this.spawnLoc = playerData.spawnLoc;
+        this.spawnIndex = playerData.spawnIndex;
         this.dirFacing = playerData.dirFacing;
         this.position = playerData.position;
         this.name = playerData.name;
@@ -4254,27 +4356,30 @@ class PlayerStanding extends Action {
                 boolean repelling = game.player.repelCounter > 0 && game.battle.oppPokemon.level < game.player.currPokemon.level;
                 if (!repelling) {
                     game.playerCanMove = false;
-                    if (game.map.unownSpawn == null) {
-                        // if night, no music transition
-                        if (!game.map.timeOfDay.equals("Night")) {
-                            game.currMusic.pause();
-                            game.currMusic = game.battle.music; 
-//                            game.battle.music2.stop();
-//                            game.battle.music2.setVolume(0.3f);
-                            game.battle.music.stop();
-                            game.battle.music.setVolume(0.3f);
-//                            game.battle.music.setVolume(0.3f);
-                            BattleFadeOutMusic.stop = true;
-                            FadeMusic.pause = true;
-                            // TODO: debug, remove
-//                            game.currMusic.play();
+                    
+                    game.musicController.startBattle = "wild";
+                    // TODO: remove
+//                    if (game.map.unownSpawn == null) {
+//                        // if night, no music transition
+//                        if (!game.map.timeOfDay.equals("night")) {
 //                            game.currMusic.pause();
-//                            game.currMusic.setPosition(11f);  
-                            game.currMusic.play();
-//                            game.insertAction(new FadeMusic("currMusic", "in", "", 1f, false, game.battle.music.getVolume(), null));
-                        }
-                    }
-                    else {
+//                            game.currMusic = game.battle.music; 
+////                            game.battle.music2.stop();
+////                            game.battle.music2.setVolume(0.3f);
+//                            game.battle.music.stop();
+//                            game.battle.music.setVolume(0.3f);
+////                            game.battle.music.setVolume(0.3f);
+//                            BattleFadeOutMusic.stop = true;
+//                            FadeMusic.pause = true;
+//                            // TODO: debug, remove
+////                            game.currMusic.play();
+////                            game.currMusic.pause();
+////                            game.currMusic.setPosition(11f);  
+//                            game.currMusic.play();
+////                            game.insertAction(new FadeMusic("currMusic", "in", "", 1f, false, game.battle.music.getVolume(), null));
+//                        }
+//                    }
+                    if (game.musicController.unownMusic) {
                         String unownLetter = game.map.unownUsed.get(game.map.rand.nextInt(game.map.unownUsed.size()));
 //                        game.map.unownUsed.remove(unownLetter);
                         game.battle.oppPokemon = new Pokemon("unown_"+unownLetter, 13, Pokemon.Generation.CRYSTAL);
@@ -4312,16 +4417,17 @@ class PlayerStanding extends Action {
                                                  pokemonData.level,
                                                  pokemonData.generation);
             game.battle.oppPokemon.currentStats.put("hp", pokemonData.hp);
+            game.musicController.startBattle = "wild";
             game.insertAction(Battle.getIntroAction(game));
-            if (!game.map.timeOfDay.equals("Night")) {
-                game.currMusic.pause();
-                game.currMusic = game.battle.music;
-                game.battle.music.stop();
-                game.battle.music.setVolume(0.3f);
-                game.currMusic.play();
-                BattleFadeOutMusic.stop = true;
-                FadeMusic.pause = true;
-            }
+//            if (!game.map.timeOfDay.equals("night")) {
+//                game.currMusic.pause();
+//                game.currMusic = game.battle.music;
+//                game.battle.music.stop();
+//                game.battle.music.setVolume(0.3f);
+//                game.currMusic.play();
+//                BattleFadeOutMusic.stop = true;
+////                FadeMusic.pause = true;  // TODO: remove
+//            }
             this.checkWildEncounter = false;
             this.player.network.doEncounter = null;
             return;
@@ -4609,12 +4715,13 @@ class PlayerStanding extends Action {
                         break;
                     }
                 }
-                // TODO: not doing
-//                if (game.player.currBuildTile.name.contains("house")) {
-//                    Tile upTile = game.map.tiles.get(currTile.position.cpy().add(0, 16));
-//                    requirementsMet = requirementsMet && (upTile.nameUpper.contains("house") || !upTile.attrs.get("solid"));
-//                }
-                if (!currTile.attrs.get("solid") && requirementsMet) {
+                // Prevent player from cheesing into the pokemon mansion,
+                // make sure the interior tile above is also either nothing or a house.
+                if (game.player.currBuildTile.name.contains("house")) {
+                    Tile upTile = game.map.interiorTiles.get(game.map.interiorTilesIndex).get(currTile.position.cpy().add(0, 16));
+                    requirementsMet = requirementsMet && (upTile == null || upTile.name.contains("house"));
+                }
+                if (!currTile.attrs.get("solid") && !currTile.nameUpper.contains("door") && requirementsMet) {
                     // TODO: remove commented lines
 //                    currTile.overSprite = new Sprite(game.player.currBuildTile.sprite);
 //                    currTile.name = game.player.currBuildTile.name;
@@ -4675,7 +4782,10 @@ class PlayerStanding extends Action {
                         game.battle.oppPokemon = currTile.routeBelongsTo.pokemon.get(0);
 //                        game.insertAction(Battle_Actions.get(game));
                         // new DisplayText(game, "A wild pokémon attacked!", null, null,
-                        nextAction = new WaitFrames(game, 16, new BattleIntroMusic(Battle.getIntroAction(game)));
+//                        game.musicController.startBattle = "wild";  // TODO: remove
+                        nextAction = new WaitFrames(game, 16,
+                                     new SetField(game.musicController, "startBattle", "wild",
+                                     Battle.getIntroAction(game)));
                         this.checkWildEncounter = false;
                         shouldMove = false;  // for safety
                     }
@@ -4695,15 +4805,20 @@ class PlayerStanding extends Action {
                     game.playerCanMove = false;
                     // Get items from tile
                     if (!currTile.items.isEmpty()) {
+
+                        action.append(new SplitAction(new DrawItemPickup(currTile.items, null),
+                                      null));
+
+                        // TODO: this was a text box popup for each item recieved
                         for (String item : currTile.items.keySet()) {
-//                            System.out.println(item);
-//                            game.insertAction(new ItemPickupNotify(game, item, currTile.items.get(item)));
-                            String plural = "";
-                            if (currTile.items.get(item) > 1) {
-                                plural = "s";
-                            }
-                            action.append(new DisplayText(game, "Picked up "+currTile.items.get(item)+" "+item.toUpperCase()+plural+".", null, null,
-                                          null));
+////                            System.out.println(item);
+////                            game.insertAction(new ItemPickupNotify(game, item, currTile.items.get(item)));
+//                            String plural = "";
+//                            if (currTile.items.get(item) > 1) {
+//                                plural = "s";
+//                            }
+//                            action.append(new DisplayText(game, "Picked up "+currTile.items.get(item)+" "+item.toUpperCase()+plural+".", null, null,
+//                                          null));
                             if (game.player.itemsDict.containsKey(item)) {
                                 int currQuantity = game.player.itemsDict.get(item);
                                 game.player.itemsDict.put(item, currQuantity+currTile.items.get(item));
@@ -4738,7 +4853,8 @@ class PlayerStanding extends Action {
                         game.battle.oppPokemon = currTile.routeBelongsTo.pokemon.get(game.map.rand.nextInt(currTile.routeBelongsTo.pokemon.size()));
 //                        game.insertAction(Battle_Actions.get(game));
                         // new DisplayText(game, "A wild pokémon attacked!", null, null,
-                        action.append(new WaitFrames(game, 16, new BattleIntroMusic(Battle.getIntroAction(game))));
+                        game.musicController.startBattle = "wild";
+                        action.append(new WaitFrames(game, 16, Battle.getIntroAction(game)));
                         this.checkWildEncounter = false;
                         shouldMove = false;  // for safety
                     }
@@ -5494,6 +5610,7 @@ class SpawnGhost extends Action {
         music.setLooping(true);
         music.setVolume(.7f);
         game.currMusic = music;
+//        game.musicController.currOverworldMusic = "night1_chase1";
 //        game.map.currRoute.music = music; // TODO - how to switch to normal after defeating
         game.currMusic.play();
 

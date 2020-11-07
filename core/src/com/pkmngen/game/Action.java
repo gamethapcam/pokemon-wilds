@@ -173,9 +173,9 @@ class DisplayText extends Action {
         String lines = "";
         String[] words = textString.split(" ");
         for (String word : words) {
-            if (line.length() + word.length() < 18) {
+            if (line.length() + word.length() < 19) {
                 line += word;
-                if (line.length() != 17) { // possible bug // don't add space to end of max length line
+                if (line.length() != 18) { // possible bug // don't add space to end of max length line
                     line += " ";
                 }
             }
@@ -236,7 +236,7 @@ class DisplayText extends Action {
             spritesNotDrawn.add(currSprite);
             // Go down a line if needed
             // TODO - do this for words, not chars. split on space, array
-            if (i >= 17) {
+            if (i >= 17) {  // TODO: test
                 i = 0; j++;
             }
             else {
@@ -357,7 +357,7 @@ class DisplayText extends Action {
         //
 
         // if no sprites left in spritesNotDrawn, wait for player to hit A
-        if (spritesBeingDrawn.size() >= 36 || spritesNotDrawn.isEmpty()) { // 18 characters per line allowed
+        if (spritesBeingDrawn.size() >= 37 || spritesNotDrawn.isEmpty()) { // 18 characters per line allowed
 
             // if at the end of text and need to play sound, do that
             if (this.playSound == true && spritesNotDrawn.isEmpty()) {
@@ -1060,13 +1060,18 @@ class DrawControls extends Action {
     String currTrainerTip = "";
     int prevIndex = -1;
     ArrayList<String> messages;
+    int randomIndex = 0;
     
     public DrawControls() {
         this.messages = new ArrayList<String>(TrainerTipsTile.messages);
+        this.randomIndex = Game.rand.nextInt(this.messages.size());
     }
 
     public String getCamera() {return "gui";}
 
+    @Override 
+    public void firstStep(Game game) {}
+    
     @Override
     public void step(Game game) {
         if (this.remove) {
@@ -1089,16 +1094,23 @@ class DrawControls extends Action {
             this.timer = 0;
             this.displayControls = false;
             this.timerPadding = 1*60;
-            int randomIndex = Game.rand.nextInt(this.messages.size());
-            this.currTrainerTip = "   TRAINER TIPS!  "+this.messages.get(randomIndex);
+//            this.randomIndex = Game.rand.nextInt(this.messages.size());
+            this.randomIndex++;
+            if (randomIndex >= this.messages.size()) {
+                this.randomIndex = 0;
+            }
+            this.currTrainerTip = "   TRAINER TIPS!  "+this.messages.get(this.randomIndex);
             // Don't pick a tip that is too long or is same as previous tip.
             int tries = 0;
-            while (tries < 4 && randomIndex == this.prevIndex || this.currTrainerTip.length() > 105) {
-                randomIndex = Game.rand.nextInt(this.messages.size());
-                this.currTrainerTip = "   TRAINER TIPS!  "+this.messages.get(randomIndex);
+            while (tries < 4 && (this.randomIndex == this.prevIndex || this.currTrainerTip.length() > 105)) {
+                this.randomIndex++; // = Game.rand.nextInt(this.messages.size());
+                if (randomIndex >= this.messages.size()) {
+                    this.randomIndex = 0;
+                }
+                this.currTrainerTip = "   TRAINER TIPS!  "+this.messages.get(this.randomIndex);
                 tries++;
             }
-            this.prevIndex = randomIndex;
+            this.prevIndex = this.randomIndex;
         }
 
         if (!this.displayControls) {
@@ -1625,8 +1637,15 @@ class DrawSetupMenu extends Action {
 //                        game.currMusic.dispose();
 //                        game.playerCanMove = true;  // TODO: ideally not here, but required to make this
                         // fademusic work.
-                        Action fadeMusic = new FadeMusic("currMusic", "out", "stop", .0125f, null);
-                        fadeMusic.step(game);
+//                        Action fadeMusic = new FadeMusic("currMusic", "out", "stop", .0125f, null);
+                        Action fadeMusic = new FadeMusic(game.currMusic, -0.0125f,
+                                           new CallMethod(game.currMusic, "stop", new Object[]{},
+                                           new CallMethod(game.currMusic, "dispose", new Object[]{},
+                                           null)));
+                        // TODO: remove, idk what these were for.
+//                        fadeMusic.firstStep(game);
+//                        fadeMusic.firstStep = false;
+//                        fadeMusic.step(game);
                         game.insertAction(fadeMusic);
                         if (this.localHostJoinIndex != 2) {
                             String mapName = "";
@@ -1867,181 +1886,222 @@ class DrawSetupMenu extends Action {
 }
 
 /**
- * Fade the currently playing music in or out.
+ * Fade the music in or out.
  */
 class FadeMusic extends Action {
-    String musicName;
     Music music;
-    String direction;
-    String shouldPause;
-    float amt =  -0.05f;
+    float rate =  -0.05f;
     float maxVol = 1f;
-    boolean firstStep = true;
-    boolean switchCurrMusic = false;
-    Music.OnCompletionListener onCompleteListener;
+//    float maxVol = 1f;
     public static Action currFadeMusic;
-    public static boolean pause = false;
 
-    public FadeMusic(String musicName, String direction, String shouldPause, float rate, Action nextAction) {
-        this.musicName = musicName;
-        this.shouldPause = shouldPause;
+//    public FadeMusic(Game game, String musicName, float rate, Action nextAction) {
+//        if (!game.loadedMusic.containsKey(musicName)) {
+//            game.loadedMusic.put(musicName, new LinkedMusic("music/"+musicName, ""));
+//        }
+//        this(game.loadedMusic.get(musicName), rate, nextAction);
+//    }
 
-        this.direction = direction;
-        if (direction.equals("out")) {
-            this.amt = -rate;
-        }
-        else {
-            this.amt = rate;
-        }
-
-        this.nextAction = nextAction;
-    }
-
-    public FadeMusic(String musicName, String direction, String shouldPause, float rate, boolean switchCurrMusic, Action nextAction) {
-        this.musicName = musicName;
-
-        this.shouldPause = shouldPause;
-
-        this.switchCurrMusic = switchCurrMusic;
-
-        this.direction = direction;
-        if (direction.equals("out")) {
-            this.amt = -rate;
-        }
-        else {
-            this.amt = rate;
-        }
-        this.nextAction = nextAction;
-    }
-
-    public FadeMusic(String musicName, String direction, String shouldPause, float rate, boolean switchCurrMusic, float maxVol, Action nextAction) {
+    public FadeMusic(Music music, float rate, float maxVol, Action nextAction) {
+        this.music = music;
+        this.rate = rate;
         this.maxVol = maxVol;
-        this.musicName = musicName;
-        this.shouldPause = shouldPause;
-        this.switchCurrMusic = switchCurrMusic;
-        this.direction = direction;
-        if (direction.equals("out")) {
-            this.amt = -rate;
-        }
-        else {
-            this.amt = rate;
-        }
         this.nextAction = nextAction;
     }
-
-    public FadeMusic(String musicName, String direction, String shouldPause, float rate, boolean switchCurrMusic, float maxVol, Music.OnCompletionListener onCompleteListener, Action nextAction) {
-        this(musicName, direction, shouldPause, rate, switchCurrMusic, maxVol, nextAction);
-        this.onCompleteListener = onCompleteListener;
+    
+    public FadeMusic(Music music, float rate, Action nextAction) {
+        this(music, rate, 1f, nextAction);
     }
 
+//    public FadeMusic(String musicName, String direction, String shouldPause, float rate, Action nextAction) {
+//        this.musicName = musicName;
+//        this.shouldPause = shouldPause;
+//
+//        this.direction = direction;
+//        if (direction.equals("out")) {
+//            this.amt = -rate;
+//        }
+//        else {
+//            this.amt = rate;
+//        }
+//
+//        this.nextAction = nextAction;
+//    }
+//
+//    public FadeMusic(String musicName, String direction, String shouldPause, float rate, boolean switchCurrMusic, Action nextAction) {
+//        this.musicName = musicName;
+//
+//        this.shouldPause = shouldPause;
+//
+//        this.switchCurrMusic = switchCurrMusic;
+//
+//        this.direction = direction;
+//        if (direction.equals("out")) {
+//            this.amt = -rate;
+//        }
+//        else {
+//            this.amt = rate;
+//        }
+//        this.nextAction = nextAction;
+//    }
+//
+//    public FadeMusic(String musicName, String direction, String shouldPause, float rate, boolean switchCurrMusic, float maxVol, Action nextAction) {
+//        this.maxVol = maxVol;
+//        this.musicName = musicName;
+//        this.shouldPause = shouldPause;
+//        this.switchCurrMusic = switchCurrMusic;
+//        this.direction = direction;
+//        if (direction.equals("out")) {
+//            this.amt = -rate;
+//        }
+//        else {
+//            this.amt = rate;
+//        }
+//        this.nextAction = nextAction;
+//    }
+//
+//    public FadeMusic(String musicName, String direction, String shouldPause, float rate, boolean switchCurrMusic, float maxVol, Music.OnCompletionListener onCompleteListener, Action nextAction) {
+//        this(musicName, direction, shouldPause, rate, switchCurrMusic, maxVol, nextAction);
+//        this.onCompleteListener = onCompleteListener;
+//    }
+
+    @Override
+    public void firstStep(Game game) {
+        FadeMusic.currFadeMusic = this;
+    }
+    
+    @Override
     public void step(Game game) {
-//        if (!game.playerCanMove) {
+        if (FadeMusic.currFadeMusic == this) {
+            // Only allow one FadeMusic to be happening at a time.
+            this.music.setVolume(this.music.getVolume()+this.rate);
+//            System.out.println(this.music.getVolume());
+        }
+        // Bug - for some reason this can't be .0f - no idea why. 'failed to allocate' issue if play() (on any Music) ever called in future
+        if (FadeMusic.currFadeMusic != this || this.music.getVolume() <= 0.1f || this.music.getVolume() >= this.maxVol) {
+//            System.out.println(FadeMusic.currFadeMusic == this);
+//            System.out.println(this.music.getVolume());
+            if (this.music.getVolume() < this.maxVol) {
+                this.music.pause();
+            }
+            this.music.setVolume(this.maxVol);
+            game.actionStack.remove(this);
+            if (FadeMusic.currFadeMusic == this) {
+                game.insertAction(this.nextAction);
+            }
+        }
+    }
+
+//    public void oldStep(Game game) {
+////        if (!game.playerCanMove) {
+////            return;
+////        }
+//        // If player enters battle, pause any music that's currently fading.
+//        if (FadeMusic.pause) {
 //            return;
 //        }
-        // If player enters battle, pause any music that's currently fading.
-        if (FadeMusic.pause) {
-            return;
-        }
-
-        if (this.firstStep == true) {
-            FadeMusic.currFadeMusic = this;
-            if (this.direction.equals("in")) {
-                if (this.musicName.equals("currMusic")) {
-                    game.currMusic.play();
-                }
-                else {
-                    // Load music if it isn't loaded already
-                    if (!game.loadedMusic.containsKey(this.musicName)) {
-//                        String extension = ".ogg";
-//                        Music temp = Gdx.audio.newMusic(Gdx.files.internal("music/"+this.musicName+extension));
-                        Music temp = new LinkedMusic("music/"+this.musicName, "");
-                        temp.setVolume(0.1f); // will always fade in (for now, have option to fade in fast) //.1f because of 'failed to allocate' bug
-                        if (this.onCompleteListener != null) {
-                            temp.setOnCompletionListener(this.onCompleteListener);
-                        }
-                        game.loadedMusic.put(this.musicName, temp);
-                    }
-                    game.loadedMusic.get(this.musicName).play();
-                }
-            }
-            if (this.switchCurrMusic) {
-                // if currmusic still playing, fade it out
-                if (game.currMusic != null) {
-                    if (game.currMusic.isPlaying()) {
-//                      game.insertAction(new FadeMusic("currMusic", "out", "pause", .05f, null));
-                        game.currMusic.pause();
-                    }
-                }
-                game.currMusic = game.loadedMusic.get(this.musicName);
-                game.map.currRoute.music = game.currMusic; // TODO: shouldn't be doing this probably
-            }
-
-            // set this.music for reference
-            if (this.musicName.equals("currMusic")) {
-                // TODO: issue here if game.currMusic changes after this point, won't fade anymore.
-                this.music = game.currMusic;
-            }
-            else {
-                this.music = game.loadedMusic.get(this.musicName);
-            }
-
-            // Shouldn't ever be the case, occasionally is in testing tho.
-            if (this.music == null) {
-                game.actionStack.remove(this);
-                game.insertAction(this.nextAction);
-                return;
-            }
-
-            this.firstStep = false;
-        }
-
-        // The reason that this is here is to prevent a fadeout->fadein chain from overwriting battle music
-        // ie, music starts transitioning in overworld, player enters battle (changes game.currMusic), then fademusic(in)
-        // overwrites the battle music.
-        // This should be handled better somehow, not sure how though.
-        //  - still want the fademusic to continue after the battle (which this accomplishes).
-        // TODO: test
-        // if another FadeMusic got inserted, then stop doing stuff.
-        if (FadeMusic.currFadeMusic != this) {
-            if (this.direction.equals("in")) {
-                this.music.setVolume(this.maxVol);
-            }
-            else if (this.direction.equals("out")) {
-                this.music.setVolume(0f);
-            }
-//            game.actionStack.remove(this);
-//            return;
-        }
-        else {
-            this.music.setVolume(this.music.getVolume()+this.amt);
-        }
-
-        if (this.direction.equals("out")) {
-            if (music.getVolume() <= 0.1f) { // bug - for some reason this can't be .0f - no idea why. 'failed to allocate' issue if play() (on any Music) ever called in future
-                if (this.shouldPause.equals("pause")) {
-                    this.music.setVolume(0.1f);
-                    this.music.pause();
-                }
-                else if (this.shouldPause.equals("stop")) {
-                    // dispose and remove from loadedMusic
-                    this.music.setVolume(0.1f);
-                    this.music.stop();
-                    this.music.dispose();
-                    game.loadedMusic.remove(this.musicName);
-
-                }
-                game.actionStack.remove(this);
-                game.insertAction(this.nextAction);
-            }
-        }
-        else {
-            if (music.getVolume() >= this.maxVol) {
-                this.music.setVolume(this.maxVol);
-                game.actionStack.remove(this);
-                game.insertAction(this.nextAction);
-            }
-        }
-    }
+//
+//        if (this.firstStep) {
+//            FadeMusic.currFadeMusic = this;
+//            if (this.direction.equals("in")) {
+//                if (this.musicName.equals("currMusic")) {
+//                    game.currMusic.play();
+//                }
+//                else {
+//                    // Load music if it isn't loaded already
+//                    if (!game.loadedMusic.containsKey(this.musicName)) {
+////                        String extension = ".ogg";
+////                        Music temp = Gdx.audio.newMusic(Gdx.files.internal("music/"+this.musicName+extension));
+//                        Music temp = new LinkedMusic("music/"+this.musicName, "");
+//                        temp.setVolume(0.1f); // will always fade in (for now, have option to fade in fast) //.1f because of 'failed to allocate' bug
+//                        if (this.onCompleteListener != null) {
+//                            temp.setOnCompletionListener(this.onCompleteListener);
+//                        }
+//                        game.loadedMusic.put(this.musicName, temp);
+//                    }
+//                    game.loadedMusic.get(this.musicName).play();
+//                }
+//            }
+//            if (this.switchCurrMusic) {
+//                // if currmusic still playing, fade it out
+//                if (game.currMusic != null) {
+//                    if (game.currMusic.isPlaying()) {
+////                      game.insertAction(new FadeMusic("currMusic", "out", "pause", .05f, null));
+//                        game.currMusic.pause();
+//                    }
+//                }
+//                game.currMusic = game.loadedMusic.get(this.musicName);
+//                game.map.currRoute.music = game.currMusic; // TODO: shouldn't be doing this probably
+//            }
+//
+//            // set this.music for reference
+//            if (this.musicName.equals("currMusic")) {
+//                // TODO: issue here if game.currMusic changes after this point, won't fade anymore.
+//                this.music = game.currMusic;
+//            }
+//            else {
+//                this.music = game.loadedMusic.get(this.musicName);
+//            }
+//
+//            // Shouldn't ever be the case, occasionally is in testing tho.
+//            if (this.music == null) {
+//                game.actionStack.remove(this);
+//                game.insertAction(this.nextAction);
+//                return;
+//            }
+//
+//            this.firstStep = false;
+//        }
+//
+//        // The reason that this is here is to prevent a fadeout->fadein chain from overwriting battle music
+//        // ie, music starts transitioning in overworld, player enters battle (changes game.currMusic), then fademusic(in)
+//        // overwrites the battle music.
+//        // This should be handled better somehow, not sure how though.
+//        //  - still want the fademusic to continue after the battle (which this accomplishes).
+//        // TODO: test
+//        // if another FadeMusic got inserted, then stop doing stuff.
+//        if (FadeMusic.currFadeMusic != this) {
+//            if (this.direction.equals("in")) {
+//                this.music.setVolume(this.maxVol);
+//            }
+//            else if (this.direction.equals("out")) {
+//                this.music.setVolume(0f);
+//            }
+////            game.actionStack.remove(this);
+////            return;
+//        }
+//        else {
+//            this.music.setVolume(this.music.getVolume()+this.amt);
+////            System.out.println(this.music.getVolume());
+////            System.out.println(this.amt);
+//        }
+//
+//        if (this.direction.equals("out")) {
+//            if (music.getVolume() <= 0.1f) {  // bug - for some reason this can't be .0f - no idea why. 'failed to allocate' issue if play() (on any Music) ever called in future
+//                if (this.shouldPause.equals("pause")) {
+//                    this.music.setVolume(0.1f);
+//                    this.music.pause();
+//                }
+//                else if (this.shouldPause.equals("stop")) {
+//                    // dispose and remove from loadedMusic
+//                    this.music.setVolume(0.1f);
+//                    this.music.stop();
+//                    this.music.dispose();
+//                    game.loadedMusic.remove(this.musicName);
+//
+//                }
+//                game.actionStack.remove(this);
+//                game.insertAction(this.nextAction);
+//            }
+//        }
+//        else {
+//            if (music.getVolume() >= this.maxVol) {
+//                this.music.setVolume(this.maxVol);
+//                game.actionStack.remove(this);
+//                game.insertAction(this.nextAction);
+//            }
+//        }
+//    }
 }
 
 /**
@@ -2192,6 +2252,214 @@ class MenuAction extends Action {
 
     MenuAction prevMenu;
     int currIndex;
+}
+
+
+
+/**
+ * Handles music and transitions between tracks.
+ */
+class MusicController extends Action {
+    boolean firstStep = true;
+    public String startBattle = null;  // Triggered when entering battle
+    public boolean battleVictoryFanfare = false;  // Trigger victory fanfare music
+    public boolean inBattle = false;
+    public boolean battleFadeOut = false;
+    public boolean playerFainted = false;
+
+    public String startTimeOfDay = null;  // Triggered when time of day transitions
+    public boolean unownMusic = false;
+    
+    public String currOverworldMusic = null;
+    public String startOverworldMusic = null;  // next overworld music queued to be played
+    public boolean fadeToDungeon = false;
+    public boolean resumeOverworldMusic = false;
+    
+    String currDayTime = null;
+    
+    Music.OnCompletionListener musicCompletionListener;
+
+    public MusicController(Game game) {
+        game.musicController = this;
+    }
+
+    @Override
+    public void firstStep(Game game) {
+        this.startTimeOfDay = game.map.timeOfDay;
+    }
+
+    @Override
+    public void step(Game game) {
+        // Code will attempt to set fields on game.musicController, so this needs
+        // to exist even in the case of a Server.
+        if (game.type == Game.Type.SERVER) {
+            return;
+        }
+
+        if (this.startBattle != null && !this.inBattle) {
+            System.out.println("startBattle");
+            if (!this.currDayTime.equals("night") && !this.unownMusic) {
+                game.currMusic.pause();
+                game.currMusic = game.battle.music;
+                game.currMusic.stop();
+                game.currMusic.setVolume(0.3f);
+//                BattleFadeOutMusic.stop = true;  // TODO: remove
+//                FadeMusic.pause = true;  // TODO: remove
+                game.currMusic.play();
+            }
+            this.inBattle = true;
+            this.startBattle = null;
+        }
+        if (this.battleVictoryFanfare && this.inBattle) {
+            if (!SpecialMewtwo1.class.isInstance(game.battle.oppPokemon) && !this.unownMusic) {
+                game.currMusic.pause();
+                game.currMusic = game.battle.victoryFanfare;
+                game.currMusic.stop();
+                game.currMusic.play();
+            }
+            this.battleVictoryFanfare = false;
+        }
+        if (this.battleFadeOut && this.inBattle) {
+            System.out.println("battleFadeOut");
+            if (!this.currDayTime.equals("night") || game.map.timeOfDay.equals("day") || this.playerFainted || this.unownMusic) {
+//                game.currMusic.setVolume(0.3f);  // Emulates previous behavior
+                float currVol = game.currMusic.getVolume();
+                currVol = 0.004f*(currVol/0.3f);  // Sounds slightly better for fanfare fade out.
+                System.out.println(currVol);
+                game.insertAction(new FadeMusic(game.currMusic, -currVol, null));
+//                                  new SetField(this, "inBattle", false, null)));  // BattleFadeMusic does this for now.
+            }
+            this.unownMusic = false;
+            this.battleFadeOut = false;
+        }
+        if (this.resumeOverworldMusic && !this.inBattle) {
+            System.out.println("resume overworld music");
+            System.out.println(game.map.timeOfDay.equals("night"));
+            System.out.println(this.inBattle);
+            if (this.startTimeOfDay == null) {  //!this.currDayTime.equals("night") && 
+                System.out.println(this.currOverworldMusic);
+                System.out.println(game.currMusic.getVolume());
+                game.currMusic = game.loadedMusic.get(this.currOverworldMusic);
+                if (!game.currMusic.isPlaying()) {
+                    game.currMusic.play();
+                }
+            }
+            this.resumeOverworldMusic = false;
+            this.playerFainted = false;
+        }
+        if (this.fadeToDungeon) {
+            System.out.println("fadeToDungeon");
+            if (!this.currDayTime.equals("night")) {
+                String nextMusicName = this.currOverworldMusic;
+                // If previous overworld music was night, and it's not currently night, need to refresh.
+                if (game.map.currRoute.name.contains("pkmnmansion") || nextMusicName.contains("night")) {
+                    nextMusicName = game.map.currRoute.getNextMusic(true);  // was false
+                }
+                Action action = new FadeMusic(game.currMusic, -0.025f,
+                                new WaitFrames(game, 10,
+                                null));
+                action.append(new SetField(this, "startOverworldMusic", nextMusicName, null));
+                game.insertAction(action);
+            }
+            this.fadeToDungeon = false;
+        }
+        if (this.startOverworldMusic != null && !this.inBattle) {
+            System.out.println("startOverworldMusic");
+            // Was a fade in, just starting music now.
+            if (!this.currDayTime.equals("night")) {
+                if (!game.loadedMusic.containsKey(this.startOverworldMusic)) {
+                    game.loadedMusic.put(this.startOverworldMusic, Gdx.audio.newMusic(Gdx.files.internal("music/"+this.startOverworldMusic+".ogg")));
+                }
+                game.currMusic = game.loadedMusic.get(this.startOverworldMusic);
+                if (!this.startOverworldMusic.contains("pkmnmansion")) {
+                    game.currMusic.setOnCompletionListener(this.musicCompletionListener);
+                    this.currOverworldMusic = this.startOverworldMusic;
+                }
+                else {
+                    game.currMusic.setLooping(true);
+                }
+                game.currMusic.play();
+            }
+            this.startOverworldMusic = null;
+        }
+        if (this.startTimeOfDay != null && !this.inBattle && !this.playerFainted && !this.unownMusic) {
+            this.currDayTime = this.startTimeOfDay;
+            if (game.battle.oppPokemon == null || !SpecialMewtwo1.class.isInstance(game.battle.oppPokemon)) {
+                if (this.startTimeOfDay.equals("day")) {
+                    this.musicCompletionListener = new Music.OnCompletionListener() {
+                        @Override
+                        public void onCompletion(Music aMusic) {
+                            String nextMusicName = Game.staticGame.map.currRoute.getNextMusic(true);
+//                            System.out.println(nextMusicName);  // debug
+//                            String nextMusicName = Game.staticGame.musicController.currOverworldMusic;  // debug
+                            
+//                            Action nextMusic = new FadeMusic("currMusic", "out", "", 0.025f,
+//                                               new WaitFrames(Game.staticGame, 360,
+//                                               new FadeMusic(nextMusicName, "in", "", 0.2f, true, 1f, this,
+//                                               null)));
+                            Action nextMusic = new FadeMusic(Game.staticGame.currMusic, -0.0125f,  // used for fading night music out
+                                               new WaitFrames(Game.staticGame, 360,
+                                               new SetField(Game.staticGame.musicController,
+                                                            "startOverworldMusic", nextMusicName,
+                                               null)));
+                            Game.staticGame.insertAction(nextMusic);
+//                            nextMusic.step(Game.staticGame);  // messes up firstStep if done
+//                            Game.staticGame.fadeMusicAction = nextMusic;  // TODO: remove
+//                            MusicController.currOverworldMusic = nextMusicName;  // TODO remove
+                        }
+                    };
+                    if (!this.firstStep) {
+                        String nextMusicName = game.map.currRoute.getNextMusic(true);
+//                        BattleFadeOutMusic.playerFainted = true;  // TODO: this is just a hack around issues with FadeMusic
+//                        Action nextMusic = new BattleFadeOutMusic(game,
+//                                           new WaitFrames(game, 360,
+//                                           new FadeMusic(nextMusicName, "in", "", 0.2f, true, 1f, musicCompletionListener,
+//                                           null)));
+                        Action nextMusic = new FadeMusic(game.currMusic, -0.025f,  // used for fading night music out
+                                           new WaitFrames(game, 360,
+                                           new SetField(game.musicController, "startOverworldMusic", nextMusicName,
+                                           null)));
+//                        game.fadeMusicAction = nextMusic; // TODO: is this being used?
+//                        MusicController.currOverworldMusic = nextMusicName;
+                        game.insertAction(nextMusic);
+                    }
+                    else {
+                        game.currMusic = Gdx.audio.newMusic(Gdx.files.internal("music/nature1_render.ogg"));
+                        if (!game.loadedMusic.containsKey("nature1_render")) {
+                            game.loadedMusic.put("nature1_render", game.currMusic);
+                        }
+                        game.currMusic.setLooping(false);
+                        game.currMusic.setVolume(1f);
+                        game.currMusic.play();
+                        game.currMusic.pause();
+                        game.currMusic.setPosition(130f);  
+                        game.currMusic.play();
+                        game.currMusic.setOnCompletionListener(this.musicCompletionListener);
+                        this.currOverworldMusic = "nature1_render";
+                    }
+                }
+                else {
+                    System.out.println("start night music");
+                    game.currMusic.stop();
+//                    game.actionStack.remove(game.fadeMusicAction);
+                    if (!game.loadedMusic.containsKey("night1")) {
+                        game.loadedMusic.put("night1", Gdx.audio.newMusic(Gdx.files.internal("night1.ogg")));
+                    }
+                    Music music = game.loadedMusic.get("night1");
+                    music.setLooping(true);
+                    music.setVolume(.4f);  // TODO: adjust
+                    game.currMusic = music;
+//                    game.map.currRoute.music = music;  // TODO: remove
+                    this.currOverworldMusic = "night1";
+                    game.currMusic.play();
+                }
+            }
+            this.startTimeOfDay = null;
+//            this.resumeOverworldMusic = false;
+        }
+
+        this.firstStep = false;
+    }
 }
 
 /**
@@ -2558,16 +2826,18 @@ class SetField extends Action {
 
     @Override
     public void step(Game game) {
-        try {
-            this.object.getClass().getField(this.field).set(this.object, this.setTo);
-        } catch (IllegalArgumentException e) {
-            e.printStackTrace();
-        } catch (IllegalAccessException e) {
-            e.printStackTrace();
-        } catch (NoSuchFieldException e) {
-            e.printStackTrace();
-        } catch (SecurityException e) {
-            e.printStackTrace();
+        if (this.object != null) {
+            try {
+                this.object.getClass().getField(this.field).set(this.object, this.setTo);
+            } catch (IllegalArgumentException e) {
+                e.printStackTrace();
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
+            } catch (NoSuchFieldException e) {
+                e.printStackTrace();
+            } catch (SecurityException e) {
+                e.printStackTrace();
+            }
         }
         game.actionStack.remove(this);
         game.insertAction(this.nextAction);

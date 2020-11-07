@@ -57,7 +57,8 @@ public class Game extends ApplicationAdapter {
     // Try this for overworld music, etc
     // May have to replace this with a string
     public Music currMusic;
-    Music.OnCompletionListener musicCompletionListener;
+//    Music.OnCompletionListener musicCompletionListener;  // TODO: remove
+    MusicController musicController = null;
     // When want to play a music file, put in here. Call dispose and remove elements when done.
     HashMap<String, Music> loadedMusic =  new HashMap<String, Music>();
     // Char-to-Sprite text dictionary
@@ -67,7 +68,7 @@ public class Game extends ApplicationAdapter {
     HashMap<String, Player> players = new HashMap<String, Player>();
     // Server determines outcome of all actions done in battle
     HashMap<String, Battle> battles = new HashMap<String, Battle>();
-    Action fadeMusicAction = null;
+//    Action fadeMusicAction = null;
     // Network
     public Client client;
     public Server server;
@@ -581,40 +582,41 @@ public class Game extends ApplicationAdapter {
             this.insertAction(new DrawPlayerUpper(this));
             this.insertAction(new DrawBuildRequirements());
         }
+        this.insertAction(new MusicController(this));
         this.insertAction(new DrawMapTrees(this));  // Draw tops of trees over player
         this.insertAction(new MoveWater(this));  // Move water tiles around
 
-        if (this.type != Game.Type.SERVER) {
-            // This will 'radio' through a selection of musics for the map (based on current route)
-            this.currMusic = Gdx.audio.newMusic(Gdx.files.internal("music/nature1_render.ogg"));
-//            this.currMusic = Gdx.audio.newMusic(Gdx.files.internal("music/overw3.ogg"));
-            this.map.currRoute.music = this.currMusic;
-            this.currMusic.setLooping(false);
-            this.currMusic.setVolume(1f);
-            // TODO: not sure if deleting or not
-            this.currMusic.play();
-            this.currMusic.pause();
-            this.currMusic.setPosition(130f);  
-            this.currMusic.play();
-            this.musicCompletionListener = new Music.OnCompletionListener() {
-                @Override
-                public void onCompletion(Music aMusic) {
-                    String nextMusicName = Game.staticGame.map.currRoute.getNextMusic(true);
-                    // TODO: would it be good to also accept music instance here?
-                    // TODO: These fade-ins don't even work. Will need for route musics
-                    // TODO: there's def a bug here if you run into a wild
-                    // pokemon while waiting frames, the next music will start anyway
-                    Action nextMusic = new FadeMusic("currMusic", "out", "", 0.025f,
-                                       new WaitFrames(Game.staticGame, 360,
-                                       new FadeMusic(nextMusicName, "in", "", 0.2f, true, 1f, this,
-                                       null)));
-                    Game.staticGame.insertAction(nextMusic);
-                    nextMusic.step(Game.staticGame);
-                    Game.staticGame.fadeMusicAction = nextMusic;
-                }
-            };
-            this.currMusic.setOnCompletionListener(this.musicCompletionListener);
-        }
+//        if (this.type != Game.Type.SERVER) {
+//            // This will 'radio' through a selection of musics for the map (based on current route)
+//            this.currMusic = Gdx.audio.newMusic(Gdx.files.internal("music/nature1_render.ogg"));
+////            this.currMusic = Gdx.audio.newMusic(Gdx.files.internal("music/overw3.ogg"));
+//            this.map.currRoute.music = this.currMusic;
+//            this.currMusic.setLooping(false);
+//            this.currMusic.setVolume(1f);
+//            // TODO: not sure if deleting or not
+//            this.currMusic.play();
+//            this.currMusic.pause();
+//            this.currMusic.setPosition(130f);  
+//            this.currMusic.play();
+//            this.musicCompletionListener = new Music.OnCompletionListener() {
+//                @Override
+//                public void onCompletion(Music aMusic) {
+//                    String nextMusicName = Game.staticGame.map.currRoute.getNextMusic(true);
+//                    // TODO: would it be good to also accept music instance here?
+//                    // TODO: These fade-ins don't even work. Will need for route musics
+//                    // TODO: there's def a bug here if you run into a wild
+//                    // pokemon while waiting frames, the next music will start anyway
+//                    Action nextMusic = new FadeMusic("currMusic", "out", "", 0.025f,
+//                                       new WaitFrames(Game.staticGame, 360,
+//                                       new FadeMusic(nextMusicName, "in", "", 0.2f, true, 1f, this,
+//                                       null)));
+//                    Game.staticGame.insertAction(nextMusic);
+//                    nextMusic.step(Game.staticGame);
+//                    Game.staticGame.fadeMusicAction = nextMusic;
+//                }
+//            };
+//            this.currMusic.setOnCompletionListener(this.musicCompletionListener);
+//        }
         this.playerCanMove = true;
 
         // This is the special mewtwo battle debug map
@@ -631,14 +633,14 @@ public class Game extends ApplicationAdapter {
 //            this.player.pokemon.get(0).currentStats.put("hp", 1);
 //            this.player.pokemon.get(0).attacks[2] = "recover";
 //            this.player.pokemon.get(0).attacks[3] = "slash";
-            this.player.pokemon.add(new Pokemon("donphan", 60, Pokemon.Generation.CRYSTAL));
+            this.player.pokemon.add(new Pokemon("rapidash", 60, Pokemon.Generation.CRYSTAL));
 //            this.player.pokemon.get(1).attacks[0] = "disable";
 //            this.player.pokemon.get(1).attacks[1] = "confuse ray";
 //            this.player.pokemon.get(1).attacks[2] = "toxic";
 //            this.player.pokemon.get(1).attacks[3] = "sweet scent";
             this.player.pokemon.add(new Pokemon("pidgeot", 60, Pokemon.Generation.CRYSTAL));
             this.player.pokemon.add(new Pokemon("meganium", 60, Pokemon.Generation.CRYSTAL));
-            this.player.pokemon.add(new Pokemon("lapras", 60, Pokemon.Generation.CRYSTAL));
+            this.player.pokemon.add(new Pokemon("ursaring", 60, Pokemon.Generation.CRYSTAL));
             this.player.pokemon.add(new Pokemon("golem", 60, Pokemon.Generation.CRYSTAL));
             Log.set(Log.LEVEL_DEBUG);
         }

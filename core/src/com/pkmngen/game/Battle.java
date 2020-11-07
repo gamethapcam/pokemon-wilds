@@ -62,7 +62,13 @@ class AfterFriendlyFaint extends Action {
             pokemon.currentStats.put("hp", pokemon.maxStats.get("hp")/2);
         }
         BattleFadeOut.whiteScreen = true;
-        BattleFadeOutMusic.playerFainted = true;
+        game.musicController.playerFainted = true;
+        int interiorTilesIndex = 100;
+        Map<Vector2, Tile> tiles = game.map.overworldTiles;
+        if (game.player.spawnIndex != -1) {
+            tiles = game.map.interiorTiles.get(game.player.spawnIndex);
+            interiorTilesIndex = game.player.spawnIndex;
+        }
         game.insertAction(new DisplayText.Clear(game,
                           new WaitFrames(game, 3,new DisplayText(game, ""+game.player.name.toUpperCase()+" is out of useable POKÈMON!", null, null,
                           new DisplayText(game, ""+game.player.name.toUpperCase()+" whited out!", null, null,
@@ -74,8 +80,8 @@ class AfterFriendlyFaint extends Action {
                           // will eventually want to be able to respawn indoors
                           // probably something like game.player.spawnLocTiles
                           new SetField(game.player, "position", game.player.spawnLoc.cpy(),
-                          new SetField(game.map, "tiles", game.map.overworldTiles,
-                          new SetField(game.map, "interiorTilesIndex", 100,
+                          new SetField(game.map, "tiles", tiles,
+                          new SetField(game.map, "interiorTilesIndex", interiorTilesIndex,
                           new SetField(game.player, "dirFacing", "down",
                           new SetField(game.player, "currSprite", game.player.standingSprites.get("down"),
                           new Game.SetCamPos(game.player.spawnLoc.cpy().add(16, 0),
@@ -83,9 +89,14 @@ class AfterFriendlyFaint extends Action {
                           new BattleFadeOutMusic(game,
                           new DisplayText(game, "Weary from battle, you flee to the last known safe place...", null, null,
                           new BattleFadeOut.WhiteScreen(false,
-                          new SplitAction(new SetField(game, "currMusic", game.map.currRoute.music,
-                                          new FadeMusic("currMusic", "in", "", 0.2f, false, 1f,
-                                          null)),
+                          new SplitAction(//new SetField(game, "currMusic", game.map.currRoute.music,
+//                                          new WaitFrames(game, 100,
+                                          // TODO: test
+                                          new CallMethod(game.loadedMusic.get(game.musicController.currOverworldMusic), "setVolume", new Object[]{0.1f},
+                                          new SetField(game.musicController, "resumeOverworldMusic", true,
+//                                          new FadeMusic("currMusic", "in", "", 0.2f, false, 1f,
+                                          new FadeMusic(game.loadedMusic.get(game.musicController.currOverworldMusic), 0.2f,  // this won't work?
+                                          null))),
 //                          new SplitAction(new FadeIn(),
                           null))))))))))))))));
     }
@@ -3648,7 +3659,8 @@ public class Battle {
                                       new SplitAction(new BattleFadeOut(game,
                                                       null),
                                       new BattleFadeOutMusic(game,
-                                      null)))));
+                                      new SetField(game.musicController, "resumeOverworldMusic", true,
+                                      null))))));
                     game.insertAction(new PlaySound("run1", null));
                     game.battle.network.turnData = null;
                     return;
@@ -4236,7 +4248,8 @@ class BattleFadeOut extends Action {
 //            game.player.currPokemon = game.player.pokemon.get(0);
             
             DisplayText.unownText = false;
-            game.map.unownSpawn = null;
+            game.musicController.unownMusic = false;
+//            game.map.unownSpawn = null;
             // Traps go away from player's current Pokemon
             game.player.currPokemon.trappedBy = null;
             game.player.currPokemon.trapCounter = 0;
@@ -4284,7 +4297,7 @@ class BattleFadeOutMusic extends Action {
     Float frame;
     float originalVolume;
     Music music;
-    boolean firstStep = true;
+    String timeOfDay;
     // flag this true if player fainted, required when player faints at night
     // and normally the fade out would be skipped.
     public static boolean playerFainted = false;
@@ -4323,14 +4336,37 @@ class BattleFadeOutMusic extends Action {
     public int getLayer(){return this.layer;}
 
     @Override
+    public void firstStep(Game game) {
+        this.music = game.currMusic;
+        this.timeOfDay = game.map.timeOfDay;
+        game.musicController.battleFadeOut = true;
+    }
+
+    @Override
     public void step(Game game) {
-        if (game.map.timeOfDay.equals("Night") && !BattleFadeOutMusic.playerFainted) {
+        if (frames.isEmpty()) {
+//            this.music.stop();  // TODO: remove
+            game.musicController.inBattle = false;
+            game.actionStack.remove(this);
+            game.insertAction(this.nextAction);
+            return;
+        }
+        // Get next frame
+        this.frame = frames.get(0);
+//        this.music.setVolume(frame);  // TODO: remove
+        frames.remove(0);
+    }
+
+    // TODO: remove, unused now.
+    public void oldStep(Game game) {
+        // TODO: this interferes with fading out properly.
+        if (game.map.timeOfDay.equals("night") && !BattleFadeOutMusic.playerFainted) {
             game.actionStack.remove(this);
             game.insertAction(this.nextAction);
             return;
         }
 
-        if (this.firstStep == true) {
+        if (this.firstStep) {
 //            FadeMusic.currFadeMusic = this;  // prevents 2 fade musics from happening at same time
             this.originalVolume = game.currMusic.getVolume();
             this.music = game.currMusic;
@@ -4354,7 +4390,7 @@ class BattleFadeOutMusic extends Action {
             }
             BattleFadeOutMusic.playerFainted = false;
             BattleFadeOutMusic.stop = false;
-            FadeMusic.pause = false;
+//            FadeMusic.pause = false;
             return;
         }
         // get next frame
@@ -5242,7 +5278,8 @@ class CatchPokemonWobblesThenCatch extends Action {
             Action newAction = new PokemonCaughtEvents(game,
                                 new SplitAction(new BattleFadeOut(game, null),
                                 new BattleFadeOutMusic(game,
-                                null)));
+                                new SetField(game.musicController, "resumeOverworldMusic", true,
+                                null))));
             if (game.player.pokemon.size() < 6) {
                 game.player.pokemon.add(game.battle.oppPokemon);
                 game.battle.oppPokemon.previousOwner = game.player;
@@ -5250,7 +5287,10 @@ class CatchPokemonWobblesThenCatch extends Action {
             else {
                 // If player inventory is full, then send the pokemon to player's spawn location
                 game.battle.oppPokemon.position = game.player.spawnLoc.cpy();
-                game.battle.oppPokemon.mapTiles = game.map.overworldTiles;  // TODO: might be interior, update when fixed.
+                game.battle.oppPokemon.mapTiles = game.map.overworldTiles;
+                if (game.player.spawnIndex != -1) {
+                    game.battle.oppPokemon.mapTiles = game.map.interiorTiles.get(game.player.spawnIndex);
+                }
                 newAction.append(new SetField(game, "playerCanMove", false,
                                  new DisplayText(game, "Your party is full! "+game.battle.oppPokemon.name.toUpperCase()+" was sent to the last known safe place.", null, null,
                                  new SetField(game, "playerCanMove", true,
@@ -5495,7 +5535,8 @@ class DepleteEnemyHealth extends Action {
                 nextAction.append(new SplitAction(new BattleFadeOut(game,
                                                   null),
                                   new BattleFadeOutMusic(game,
-                                  null)));
+                                  new SetField(game.musicController, "resumeOverworldMusic", true,
+                                  null))));
                 // If player made mewtwo faint, display message that it may return
                 // Also don't draw upper sprite, make unsolid.
                 if (SpecialMewtwo1.class.isInstance(game.battle.oppPokemon)) {
@@ -5935,7 +5976,7 @@ class DrawBattle extends Action {
     @Override
     public void step(Game game) {
         if (!this.doneNightOverlay) {
-            if (game.map.timeOfDay.equals("Night") && (game.battle.oppPokemon == null || !SpecialMewtwo1.class.isInstance(game.battle.oppPokemon))) {
+            if (game.map.timeOfDay.equals("night") && (game.battle.oppPokemon == null || !SpecialMewtwo1.class.isInstance(game.battle.oppPokemon))) {
                 game.insertAction(this.new DrawNightOverlay());
                 this.doneNightOverlay = true;
             }
@@ -5973,7 +6014,7 @@ class DrawBattle extends Action {
 
         @Override
         public void step(Game game) {
-            if (!game.actionStack.contains(DrawBattle.this) || game.map.timeOfDay.equals("Day")) {
+            if (!game.actionStack.contains(DrawBattle.this) || game.map.timeOfDay.equals("day")) {
                 game.actionStack.remove(this);
                 return;
             }
@@ -6848,10 +6889,23 @@ class DrawItemMenu extends MenuAction {
     public void firstStep(Game game) {
         this.itemsList = new ArrayList<String>(game.player.itemsDict.keySet());
         this.itemsList.add("Cancel");
+        if (this.currIndex + this.cursorPos > itemsList.size()) {
+            if (this.currIndex > 0) {
+                this.currIndex--;
+            }
+            else if (this.cursorPos > 0) {
+                this.cursorPos--;
+            }
+        }
         this.spritesToDraw.clear();
         // Convert player item list to sprites
         for (String entry : this.itemsList) {
-            char[] textArray = entry.toUpperCase().toCharArray(); // iterate elements
+            // Shorten apricorn to aprcrn
+            String text = entry;
+            if (text.toLowerCase().contains("apricorn")) {
+                text = text.toLowerCase().replace("apricorn", "aprcn");
+            }
+            char[] textArray = text.toUpperCase().toCharArray(); // iterate elements
             Sprite currSprite;
             int i = 0;
             ArrayList<Sprite> word = new ArrayList<Sprite>();
@@ -6889,8 +6943,6 @@ class DrawItemMenu extends MenuAction {
             this.prevMenu.step(game);
         }
 
-        // System.out.println("curr: " + curr);
-
         // draw text box
         this.textBox.draw(game.uiBatch);
 
@@ -6900,7 +6952,7 @@ class DrawItemMenu extends MenuAction {
         // draw the menu items
         int j = 0;
         for (int i = 0; i < this.spritesToDraw.size(); i++) {
-            if (i >= currIndex && i < currIndex +4) { // only draw range of 4 starting at currIndex
+            if (i >= this.currIndex && i < this.currIndex +4) { // only draw range of 4 starting at currIndex
                 ArrayList<Sprite> word = this.spritesToDraw.get(i);
                 for (Sprite sprite : word) {
                     // draw this string as text on the screen
@@ -6929,18 +6981,18 @@ class DrawItemMenu extends MenuAction {
                 cursorPos -= 1;
                 newPos = arrowCoords.get(cursorPos);
             }
-            else if (currIndex > 0) {
-                currIndex -= 1;
+            else if (this.currIndex > 0) {
+                this.currIndex -= 1;
             }
 
         }
         else if (InputProcessor.downJustPressed) {
-            if (cursorPos < 2 && cursorPos+1 < this.itemsList.size()) {
-                cursorPos += 1;
-                newPos = arrowCoords.get(cursorPos);
+            if (this.cursorPos < 2 && this.currIndex+this.cursorPos+1 < this.itemsList.size()) {
+                this.cursorPos += 1;
+                newPos = arrowCoords.get(this.cursorPos);
             }
-            else if (currIndex < this.itemsList.size() - 3) {
-                currIndex += 1;
+            else if (this.currIndex < this.itemsList.size() - 3) {
+                this.currIndex += 1;
             }
         }
 
@@ -6954,7 +7006,7 @@ class DrawItemMenu extends MenuAction {
         }
 
         // Draw downarrow if applicable
-        if ( (this.itemsList.size() - this.currIndex) > 4 ) {
+        if ((this.itemsList.size() - this.currIndex) > 4 ) {
             if (this.downArrowTimer < 22) {
                 this.downArrow.draw(game.uiBatch);
             }
@@ -7947,8 +7999,9 @@ class DrawPokemonMenu extends MenuAction {
                 game.player.isSmashing = false;
                 game.player.isJumping = false;
                 return new SelectedMenu.ExitAfterActions(this.prevMenu,
+                       new PlaySound(pokemon,
                        new DisplayText(game, pokemon.name.toUpperCase()+" is using HEADBUTT!", null, null,
-                       null));
+                       null)));
             }
             else if (word.equals("RIDE")) {
                 if (game.type == Game.Type.CLIENT) {
@@ -8547,8 +8600,8 @@ class DrawUseTossMenu extends MenuAction {
                 return;
             }
             if (itemName.equals("sleeping bag")) {
-                // TODO: 'cant use this' text while in battle.
-                if (game.map.tiles.get(game.player.position.cpy().add(16,0)).attrs.get("solid") ||
+                if (game.map.tiles.get(game.player.position.cpy().add(16,0)) == null ||
+                    game.map.tiles.get(game.player.position.cpy().add(16,0)).attrs.get("solid") ||
                     game.map.tiles.get(game.player.position.cpy().add(16,0)).attrs.get("ledge")) {
                     this.disabled = true;
                     game.actionStack.remove(this);
@@ -8581,6 +8634,10 @@ class DrawUseTossMenu extends MenuAction {
                 // Save this spot as next place to go to if player blacks out
                 // TODO: should require a house for this (probably)
                 game.player.spawnLoc.set(game.player.position);
+                game.player.spawnIndex = -1;
+                if (game.map.tiles != game.map.overworldTiles) {
+                    game.player.spawnIndex = game.map.interiorTilesIndex;
+                }
                 game.playerCanMove = true;
                 game.player.acceptInput = false;
                 game.player.dirFacing = "right";
@@ -9090,7 +9147,7 @@ class EnemyFaint extends Action {
 //        repeats.add(2);
 
         this.playSound = new ArrayList<Boolean>();
-        if (!game.map.timeOfDay.equals("Night")) {
+        if (!game.map.timeOfDay.equals("night")) {
             this.playSound.add(true);
         }
         else {
@@ -9176,13 +9233,14 @@ class EnemyFaint extends Action {
                 this.breathingSprite.setRegionHeight(this.breathingSprite.getRegionHeight() + (int)positions.get(0).y);
                 this.breathingSprite.setSize(this.breathingSprite.getWidth(), this.breathingSprite.getHeight() + (int)positions.get(0).y);
             }
-
-            if (this.playSound.get(0) == true && !SpecialMewtwo1.class.isInstance(game.battle.oppPokemon)) {
-                // play victory fanfare
-                game.currMusic.pause();
-                game.currMusic = game.battle.victoryFanfare;
-                game.currMusic.stop();
-                game.currMusic.play();
+            // TODO: remove comments if unused.
+            if (this.playSound.get(0) == true) {  // && !SpecialMewtwo1.class.isInstance(game.battle.oppPokemon)
+                game.musicController.battleVictoryFanfare = true;
+//                // play victory fanfare
+//                game.currMusic.pause();
+//                game.currMusic = game.battle.victoryFanfare;
+//                game.currMusic.stop();
+//                game.currMusic.play();
             }
 
             positions.remove(0);
@@ -9479,7 +9537,7 @@ class FriendlyFaint extends Action {
 
         this.playSound = new ArrayList<Boolean>();
         // TODO: why was this here?
-//        if (!game.map.timeOfDay.equals("Night")) {
+//        if (!game.map.timeOfDay.equals("night")) {
             this.playSound.add(true);
 //        }
 //        else {

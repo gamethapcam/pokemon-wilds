@@ -75,7 +75,7 @@ class DrawMap extends Action {
         // TODO: this screws up when screen resizes
         // trying to draw tl to br of screen, so that sprites layer on top of each other
         worldCoordsTL = game.cam.unproject(new Vector3(-256, 0, 0f));
-        worldCoordsBR = game.cam.unproject(new Vector3(game.currScreen.x, game.currScreen.y+128, 0f));
+        worldCoordsBR = game.cam.unproject(new Vector3(game.currScreen.x, game.currScreen.y+128+64, 0f));
         worldCoordsTL.x = (int)worldCoordsTL.x - (int)worldCoordsTL.x % 16;
         worldCoordsTL.y = (int)worldCoordsTL.y - (int)worldCoordsTL.y % 16;
         worldCoordsBR.x = (int)worldCoordsBR.x - (int)worldCoordsBR.x % 16;
@@ -107,10 +107,10 @@ class DrawMap extends Action {
 //          for (Tile tile : game.map.tiles.values()) {
 //            // Don't draw sprites if not in camera view
 //            // note - when zoomed out, game will lag
-            if (!game.cam.frustum.pointInFrustum(tile.position.x, tile.position.y, game.cam.position.z) &&
-                    !game.cam.frustum.pointInFrustum(tile.position.x+tile.sprite.getWidth(), tile.position.y+tile.sprite.getHeight()+16, game.cam.position.z) &&
-                    !game.cam.frustum.pointInFrustum(tile.position.x+tile.sprite.getWidth(), tile.position.y, game.cam.position.z) &&
-                    !game.cam.frustum.pointInFrustum(tile.position.x, tile.position.y+tile.sprite.getHeight()+16, game.cam.position.z)) {
+            if (!game.cam.frustum.pointInFrustum(tile.position.x, tile.position.y-32, game.cam.position.z) &&
+                    !game.cam.frustum.pointInFrustum(tile.position.x+tile.sprite.getWidth(), tile.position.y+tile.sprite.getHeight()+64, game.cam.position.z) &&
+                    !game.cam.frustum.pointInFrustum(tile.position.x+tile.sprite.getWidth(), tile.position.y-32, game.cam.position.z) &&
+                    !game.cam.frustum.pointInFrustum(tile.position.x, tile.position.y+tile.sprite.getHeight()+64, game.cam.position.z)) {
                continue;
             }
 
@@ -145,7 +145,7 @@ class DrawMap extends Action {
 
             game.mapBatch.draw(tile.sprite, tile.sprite.getX(), tile.sprite.getY());
             // TODO: might cause performance issue
-            if (tile.nameUpper.contains("stairs")) {
+            if (tile.nameUpper.contains("stairs") || tile.nameUpper.contains("door")) {
                 game.mapBatch.draw(tile.overSprite, tile.overSprite.getX(), tile.overSprite.getY());
             }
             // tile.sprite.draw(game.batch);
@@ -345,7 +345,7 @@ class DrawMapGrass extends Action {
                 tile.overSprite.draw(game.mapBatch);
             }
 
-            if (tile.overSprite != null && !tile.nameUpper.contains("stairs")) {
+            if (tile.overSprite != null && !tile.nameUpper.contains("stairs") && !tile.nameUpper.contains("door")) {
                 game.mapBatch.draw(tile.overSprite, tile.overSprite.getX(), tile.overSprite.getY());
             }
         }
@@ -548,41 +548,61 @@ class EnterBuilding extends Action {
                 else if (this.action.equals("exit")){
                     game.map.tiles = game.map.overworldTiles;
                 }
-                if (this.action.equals("enter")) {
-                    Gdx.gl.glClearColor(0, 0, 0, 1);
+                if (this.action.equals("exit")) {
+                    Gdx.gl.glClearColor(1, 1, 1, 1);
                 }
                 else {
-                    Gdx.gl.glClearColor(1, 1, 1, 1);
+                    Gdx.gl.glClearColor(0, 0, 0, 1);
                 }
 
                 // Fade music if required
                 Route newRoute = game.map.tiles.get(game.player.position).routeBelongsTo;
                 if (newRoute != null && !newRoute.name.equals(game.map.currRoute.name) && (newRoute.transitionMusic != game.map.currRoute.transitionMusic)) {
-                    String nextMusicName = newRoute.getNextMusic(false);
-                    Action nextMusic = new FadeMusic("currMusic", "out", "", .025f,
-                                       new WaitFrames(game, 10,
-                                       null));
-                    if (newRoute.name.contains("pkmnmansion")) {
+                    
+                    // set flag in controller
+                    // if going back to overworld, then what?
+                    // handle batch shading separately
+                    game.musicController.fadeToDungeon = true;
+                    
+                    // TODO: fix
+                    //  - need to resume overworld music.
+//                    String nextMusicName = newRoute.getNextMusic(false);
+//                    Action nextMusic = new FadeMusic("currMusic", "out", "", .025f,
+//                                       new WaitFrames(game, 10,
+//                                       null));
+//                    if (newRoute.name.contains("pkmnmansion")) {
+//                        game.mapBatch.setColor(new Color(0.8f, 0.8f, 0.8f, 1f));
+//                        if (!game.loadedMusic.containsKey(nextMusicName)) {
+//                            Music temp = new LinkedMusic("music/"+nextMusicName, "");
+//                            temp.setVolume(0.1f);
+//                            game.loadedMusic.put(nextMusicName, temp);
+//                        }
+//                        game.loadedMusic.get(nextMusicName).stop();
+//                        nextMusic.append(// TODO: this didn't really work, still doesn't loop
+//                                         new FadeMusic(nextMusicName, "in", "", .2f, true, 1f, null,
+//                                         new CallMethod(game.loadedMusic.get(nextMusicName), "setLooping", new Object[]{true},
+//                                         null)));
+//                    }
+//                    else {
+//                        game.mapBatch.setColor(new Color(1f, 1f, 1f, 1f));
+//                        nextMusic.append(new FadeMusic(nextMusicName, "in", "", .2f, true, 1f, null, null));///game.musicCompletionListener, null));
+//                    }
+//                    game.insertAction(nextMusic);
+//                    nextMusic.step(game);
+//                    game.fadeMusicAction = nextMusic;
+                    game.map.currRoute = newRoute;
+                }
+                if (!game.map.timeOfDay.equals("night")) {
+                    if (newRoute != null && newRoute.name.contains("pkmnmansion")) {
                         game.mapBatch.setColor(new Color(0.8f, 0.8f, 0.8f, 1f));
-                        if (!game.loadedMusic.containsKey(nextMusicName)) {
-                            Music temp = new LinkedMusic("music/"+nextMusicName, "");
-                            temp.setVolume(0.1f);
-                            game.loadedMusic.put(nextMusicName, temp);
-                        }
-                        game.loadedMusic.get(nextMusicName).stop();
-                        nextMusic.append(// TODO: this didn't really work, still doesn't loop
-                                         new FadeMusic(nextMusicName, "in", "", .2f, true, 1f, null,
-                                         new CallMethod(game.loadedMusic.get(nextMusicName), "setLooping", new Object[]{true},
-                                         null)));
                     }
                     else {
                         game.mapBatch.setColor(new Color(1f, 1f, 1f, 1f));
-                        nextMusic.append(new FadeMusic(nextMusicName, "in", "", .2f, true, 1f, game.musicCompletionListener, null));
                     }
-                    game.insertAction(nextMusic);
-                    nextMusic.step(game);
-                    game.fadeMusicAction = nextMusic;
-                    game.map.currRoute = newRoute;
+                }
+                else {
+                    // Is night, so set to night color
+                    game.mapBatch.setColor(new Color(0.08f, 0.08f, 0.3f, 1.0f));
                 }
             }
             this.sprite.draw(game.uiBatch, 1f);
@@ -832,9 +852,9 @@ public class PkmnMap {
     String currBiome = "";
     // needed for wild encounters etc
     Random rand;
-    String timeOfDay = "Day";  // used by cycleDayNight
+    String timeOfDay = "day";  // used by cycleDayNight
     String id;  // needed for saving to file
-    TrainerTipsTile unownSpawn;
+//    TrainerTipsTile unownSpawn;
     ArrayList<String> unownUsed = new ArrayList<String>();
     {
         char[] textArray = "abcdefghijklmnopqrstuvwxyz".toCharArray();
@@ -1476,6 +1496,7 @@ class Route {
 //            this.allowedPokemon.add("solrock");  // TODO: permissions
             // lunatone, zubat?
             this.allowedPokemon.add("cubone");
+            this.allowedPokemon.add("phanpy");
             this.allowedPokemon.add("skarmory");  // <- fly animation doesn't look great for now.
             // TODO: remove
 //            this.music = Gdx.audio.newMusic(Gdx.files.internal("route1_1.ogg"));
@@ -1489,7 +1510,7 @@ class Route {
           this.allowedPokemon.add("zubat");
           this.allowedPokemon.add("golbat");
           this.allowedPokemon.add("houndour");
-          this.allowedPokemon.add("stantler");
+//          this.allowedPokemon.add("stantler");  // TODO: enable when decent overworld sprite
           this.allowedPokemon.add("murkrow");
           this.allowedPokemon.add("nidorina");
           this.allowedPokemon.add("nidorino");
@@ -1519,7 +1540,7 @@ class Route {
             this.allowedPokemon.add("ledyba");
             this.allowedPokemon.add("hoothoot");
             this.allowedPokemon.add("mankey");
-            this.allowedPokemon.add("girafarig");
+//            this.allowedPokemon.add("girafarig");  // TODO: enable when decent overworld sprite
             for (int i = 0; i < 2; i++) {
                 this.allowedPokemon.add("bulbasaur");
                 this.allowedPokemon.add("charmander");
@@ -1531,7 +1552,8 @@ class Route {
 //            this.music.setVolume(.3f);
         }
         else if (name.equals("savanna1")) {
-            this.allowedPokemon.add("tauros");
+//            this.allowedPokemon.add("tauros");  // TODO: enable when decent overworld sprite
+            this.allowedPokemon.add("ponyta"); 
             this.allowedPokemon.add("miltank");
             for (int i = 0; i < 2; i++) {
                 this.allowedPokemon.add("drowzee");
@@ -1666,15 +1688,15 @@ class Route {
 
         // TODO: debug, delete
 //        this.pokemon.clear();
-//        Pokemon debug = new Pokemon("machamp", 22, Pokemon.Generation.CRYSTAL);  // 22
-//        Pokemon debug = new Pokemon("garchompbeta", 70, Pokemon.Generation.CRYSTAL);  // 22
+////        Pokemon debug = new Pokemon("machamp", 22, Pokemon.Generation.CRYSTAL);  // 22
+////        Pokemon debug = new Pokemon("garchompbeta", 70, Pokemon.Generation.CRYSTAL);  // 22
 //        Pokemon debug = new Pokemon("honchkrow", 44, Pokemon.Generation.CRYSTAL);
-//        Pokemon debug = new Pokemon("ghost", 44, Pokemon.Generation.CRYSTAL);
-//        debug.currentStats.put("hp", 20);
-//        debug.attacks[0] = "slash";
-//        debug.attacks[1] = "slash";
-//        debug.attacks[2] = "slash";
-//        debug.attacks[3] = "slash";
+////        Pokemon debug = new Pokemon("ghost", 44, Pokemon.Generation.CRYSTAL);
+////        debug.currentStats.put("hp", 20);
+//        debug.attacks[0] = "feint attack";
+//        debug.attacks[1] = "feint attack";
+//        debug.attacks[2] = "feint attack";
+//        debug.attacks[3] = "feint attack";
 //        this.pokemon.add(debug);
 
         /*
@@ -1767,6 +1789,8 @@ class Route {
             if (evolveTo != null) {
                 tempPokemon.level += 10*timesEvolved;
                 tempPokemon.exp = tempPokemon.gen2CalcExpForLevel(tempPokemon.level);
+                tempPokemon.calcMaxStats();
+                tempPokemon.currentStats.put("hp", tempPokemon.maxStats.get("hp"));
             }
             usedPokemon.add(pokemonName);
             this.pokemon.add(tempPokemon);
@@ -2863,8 +2887,10 @@ class Tile {
                     break;
                 }
             }
-            Action fadeMusic = new FadeMusic("currMusic", "out", "pause", 0.025f, 
-                               new CallMethod(game.currMusic, "setVolume", new Object[]{1f}, null));
+            game.musicController.inBattle = true;  // Enables battle fadeout, etc
+//            Action fadeMusic = new FadeMusic("currMusic", "out", "pause", 0.025f, 
+//                               new CallMethod(game.currMusic, "setVolume", new Object[]{1f}, null));
+            Action fadeMusic = new FadeMusic(game.currMusic, -0.025f, null);
             game.insertAction(new SplitAction(fadeMusic,
                               new WaitFrames(game, 20,
                               new DisplayText(game, "...", null, false, true,
@@ -2872,7 +2898,7 @@ class Tile {
                               new SpecialBattleMewtwo(game, mewtwo))))));
 //            game.fadeMusicAction = fadeMusic;
         }
-        else if (this.nameUpper.contains("bush") || this.name.contains("grass")) {  // && !this.name.contains("large")
+        else if (this.nameUpper.contains("bush") || (this.name.contains("grass") && !this.name.contains("ledge"))) {  // && !this.name.contains("large")
             game.playerCanMove = false;
             game.insertAction(new DisplayText(game, "A Grass-type POKéMON can CUT this.", null, null,
                               new WaitFrames(game, 3, 
@@ -2928,8 +2954,7 @@ class Tile {
         this.sprite.setPosition(this.position.x, this.position.y);
     }
 
-    public void onWalkOver() {
-    }
+    public void onWalkOver() {}
 }
 
 /**
@@ -2967,9 +2992,9 @@ class TrainerTipsTile extends Tile {
         }
     }
 
-
     public static void initMessages() {
         TrainerTipsTile.messages.clear();
+        TrainerTipsTile.messages.add("Stand still while holding X to stop using an HM.");
         TrainerTipsTile.messages.add("You can craft POKéBALLS out of Apricorns at a campfire.");
         TrainerTipsTile.messages.add("If you white out during battle, you will return to the last place you used a sleeping bag.");
         TrainerTipsTile.messages.add("Using a sleeping bag will slowly restore your party' hp.");
@@ -2977,26 +3002,31 @@ class TrainerTipsTile extends Tile {
         TrainerTipsTile.messages.add("Ghosts may appear in the woods at night. A campfire will ward them off.");
         TrainerTipsTile.messages.add("Use CUT on trees and tall grass to get building materials.");
 //        TrainerTipsTile.messages.add("Build fences to prevent your pokemon from running away when you let them out of their POKéBALL.");
-        TrainerTipsTile.messages.add("Build fences to prevent your pokemon from wandering off when you let them out of their POKéBALL.");
+        TrainerTipsTile.messages.add("Build fences to prevent your POKéMON from wandering off when you let them out of their POKéBALL.");
         TrainerTipsTile.messages.add("You can build a door between two roof tiles to build a back door to your house.");
         TrainerTipsTile.messages.add("Sleeping indoors will restore hp twice as fast as sleeping outdoors.");
         TrainerTipsTile.messages.add("Use CUT on buildings to remove them.");
-        TrainerTipsTile.messages.add("Your Pokémon will be happier if fenced in and located near a shelter.");
+        TrainerTipsTile.messages.add("Your POKéMON will be happier if fenced in and located near a shelter.");
         TrainerTipsTile.messages.add("Pokémon are happier when located in their natural habitat. If they are happy enough, they may give you items!");
-        TrainerTipsTile.messages.add("Sleeping in a bed will eventually cure your Pokémon' status ailments.");
+        TrainerTipsTile.messages.add("Sleeping in a bed will over time cure your POKéMON' status ailments.");
     }
 
     @Override
     public void onPressA(Game game) {
         game.playerCanMove = false;
         if (this.isUnown) {
+            game.musicController.unownMusic = true;
             DisplayText.unownText = true;  // makes text look glitchy
-            game.map.unownSpawn = this;  // TODO: probably don't need this anymore.
+//            game.map.unownSpawn = this;  // TODO: probably don't need this anymore.
             game.currMusic.pause();
-            Music music = Gdx.audio.newMusic(Gdx.files.internal("music/unown1.ogg"));
-            music.setLooping(true);
-            music.setVolume(1f);
-            game.currMusic = music;
+            if (!game.loadedMusic.containsKey("unown1")) {
+                game.loadedMusic.put("unown1", Gdx.audio.newMusic(Gdx.files.internal("music/unown1.ogg")));
+            }
+//            Music music = Gdx.audio.newMusic(Gdx.files.internal("music/unown1.ogg"));  // TODO: remove
+            game.currMusic = game.loadedMusic.get("unown1");
+            game.currMusic.stop();
+            game.currMusic.setLooping(true);
+            game.currMusic.setVolume(1f);
             game.currMusic.play();
             this.isUnown = false;
         }

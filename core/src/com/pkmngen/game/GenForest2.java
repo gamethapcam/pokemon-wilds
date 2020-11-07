@@ -1477,6 +1477,17 @@ class GenIsland1 extends Action {
             Vector2 up;
             Vector2 down;
             for (Tile tile : new ArrayList<Tile>(tilesToAdd.values())) {
+                // Helped but introduced some issues
+//                if (tile.name.equals("tree_large1")) {
+////                    tl = tile.position.cpy().add(-16*1,16*1);
+//                    br = tile.position.cpy().add(-16*0+16,16*0-16);
+////                    boolean foundTl = this.tilesToAdd.containsKey(tl) && this.tilesToAdd.get(tl).name.equals("tree_large1");
+//                    boolean foundBr = this.tilesToAdd.containsKey(br) && this.tilesToAdd.get(br).name.equals("tree_large1");
+//                    if (foundBr) {
+//                        this.tilesToAdd.put(tile.position, new Tile("bush1", tile.position.cpy(), true, tile.routeBelongsTo));
+//                    }
+//                }
+//                else
                 if (tile.name.contains("tree_large1")) {
                     boolean found = false;
                     for (int j=0; j < 2; j++) {

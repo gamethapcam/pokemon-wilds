@@ -724,6 +724,7 @@ public class Network {
         Color color;
         String dirFacing;
         public Vector2 spawnLoc;
+        public int spawnIndex = -1;
         boolean isInterior;
         boolean displayedMaxPartyText;
         
@@ -750,6 +751,7 @@ public class Network {
             this.color = player.color;
             this.dirFacing = player.dirFacing;
             this.spawnLoc = player.spawnLoc;
+            this.spawnIndex = player.spawnIndex;
             this.displayedMaxPartyText = player.displayedMaxPartyText;
             this.isFlying = player.isFlying;
             if (player.flyingAction != null) {
