@@ -80,8 +80,10 @@ In the future I hope that the game can also support graphics from other generati
 # Contributing
 
 This project is still in the early stages. If you are interested in joining the project, please create an issue here saying that you're interested and we can work out the details of what currently needs done. Loosely, here is the current list:
- - Rips of Gen 2 attack animations
+ - Rips of Gen 2 attack animations 
+   - This process basically involves recording an uncompressed video of an attack using an emulator, and running a python script to rip the animation frames. I will provide more detail if an issue is created. This is definitely the highest-priority task.
  - Battle system mechanics and animations (trainer battles, status effects, temporary stat changes, etc)
+ - Finding and fixing bugs (admittedly not super fun but much needed)
  - Network code for anything added
 
 # Credits
