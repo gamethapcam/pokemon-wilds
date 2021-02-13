@@ -30,7 +30,7 @@ In the future I hope that the game can also support graphics from other generati
 
 # v0.4 (Latest)
  - **NOTE:** Previously I had advertised multiplayer support - however, this has proven to be too costly to maintain during development and I don't want to maintain it if nobody is using it yet. I am currently focusing on single player, with multiplayer planned for down the road. The option for multiplayer still exists, but many things are not working in it currently (flying, battle mechanics, pokemon item harvesting, and others).
- - New FLY HM allows you to ride on the back of certain Pokemon and fly around the map.
+ - New FLY HM allows you to ride on the back of certain Pokemon and fly around the map (pidgeot, aerodactyl, charizard, dragonite, salamence, ho-oh, lugia, skarmory, articuno, zapdos, moltres, crobat, noctowl, xatu, flygon, togekiss, swellow, altaria, rayquaza, farfetch'd, drifblim, honchkrow, and fearow atm. Not all of these pokemon are currently obtainable.)
 
 # v0.3
  - Pokemon mansion dungeon now will spawn in a random location in the overworld!
@@ -80,8 +80,10 @@ In the future I hope that the game can also support graphics from other generati
 # Contributing
 
 This project is still in the early stages. If you are interested in joining the project, please create an issue here saying that you're interested and we can work out the details of what currently needs done. Loosely, here is the current list:
- - Rips of Gen 2 attack animations
+ - Rips of Gen 2 attack animations 
+   - This process basically involves recording an uncompressed video of an attack using an emulator, and running a python script to rip the animation frames. I will provide more detail if an issue is created. This is definitely the highest-priority task.
  - Battle system mechanics and animations (trainer battles, status effects, temporary stat changes, etc)
+ - Finding and fixing bugs (admittedly not super fun but much needed)
  - Network code for anything added
 
 # Credits
