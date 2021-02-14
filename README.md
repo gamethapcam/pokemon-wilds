@@ -87,6 +87,7 @@ This project is still in the early stages. If you are interested in joining the 
  - Network code for anything added
 
 # Credits
+ - @nuukiie on Twitter for the Pokemon devamp sprites and animations (aron, lotad, makuhita, ralts, taillow, whismur, poochyena, wingull, shroomish, surskit, and sableye lines).
  - Megaman-Omega on Deviantart for the overworld pokemon sprites.
  - Manik-Needlemouse on Deviantart for the ghost overworld sprite.
  - GlitchxCity on Youtube for the Pokemon Mansion Remix music.
