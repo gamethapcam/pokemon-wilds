@@ -378,8 +378,8 @@ public class Network {
         kryo.register(TileData.class);
         kryo.register(Login.class);
         kryo.register(Logout.class);
-        kryo.register(PlayerData.class);
-        kryo.register(PokemonData.class);
+        kryo.register(PlayerDataBase.class);
+        kryo.register(PokemonDataBase.class);
         kryo.register(MovePlayer.class);
         kryo.register(Pokemon.Generation.class);
         kryo.register(ServerPlayerData.class);
@@ -402,6 +402,11 @@ public class Network {
         kryo.register(LearnMove.class);
         kryo.register(MovePokemon.class);
         kryo.register(OverworldPokemonData.class);
+        
+        // Any new 'versioned' classes need to be added at bottom (I think)
+        kryo.register(PlayerData.class);  // rename to PlayerDataV05 when moving to v0.6
+        kryo.register(PokemonDataV04.class);
+        kryo.register(PokemonData.class);  // rename to PokemonDataV05 when moving to v0.6
     }
 
     static public class ActionData {
@@ -708,37 +713,48 @@ public class Network {
         }
     }
 
-    /**
-     * Data associated with the Player to be sent over the network.
-     *
-     * Used to initialize a Player instance.
-     */
-    static public class PlayerData {
+    static public class PlayerDataBase {
         public Vector2 position;
         public String name;
-        ArrayList<PokemonData> pokemon;
-        PokemonData currPokemon;
+        ArrayList<PokemonDataBase> pokemon;
+        PokemonDataBase currPokemon;
         Map<String, Integer> itemsDict;
         String id;
         String number;
         Color color;
         String dirFacing;
         public Vector2 spawnLoc;
-        public int spawnIndex = -1;
         boolean isInterior;
         boolean displayedMaxPartyText;
         
         boolean isFlying;
         int flyingIndex = 0;
 
-        public PlayerData(){}
+        public PlayerDataBase(){}
 
-        public PlayerData(Player player) {
+        public PlayerDataBase(PlayerDataBase base) {
+            this.position = base.position;
+            this.name = base.name;
+            this.pokemon = base.pokemon;
+            this.currPokemon = base.currPokemon;
+            this.itemsDict = base.itemsDict;
+            this.id = base.id;
+            this.number = base.number;
+            this.color = base.color;
+            this.dirFacing = base.dirFacing;
+            this.spawnLoc = base.spawnLoc;
+            this.isInterior = base.isInterior;
+            this.displayedMaxPartyText = base.displayedMaxPartyText;
+            this.isFlying = base.isFlying;
+            this.flyingIndex = base.flyingIndex;
+        }
+
+        public PlayerDataBase(Player player) {
             this.position = player.position.cpy();
             this.position.x = this.position.x - (this.position.x % 16);
             this.position.y = this.position.y - (this.position.y % 16);
             this.name = player.name;
-            this.pokemon = new ArrayList<PokemonData>();
+            this.pokemon = new ArrayList<PokemonDataBase>();
             for (Pokemon pokemon : player.pokemon) {
                 this.pokemon.add(new PokemonData(pokemon));
             }
@@ -751,7 +767,6 @@ public class Network {
             this.color = player.color;
             this.dirFacing = player.dirFacing;
             this.spawnLoc = player.spawnLoc;
-            this.spawnIndex = player.spawnIndex;
             this.displayedMaxPartyText = player.displayedMaxPartyText;
             this.isFlying = player.isFlying;
             if (player.flyingAction != null) {
@@ -760,7 +775,42 @@ public class Network {
         }
     }
 
-    static public class PokemonData {
+    /**
+     * Data associated with the Player to be sent over the network.
+     *
+     * Used to initialize a Player instance.
+     */
+    static public class PlayerData extends PlayerDataBase {
+        public int spawnIndex = -1;
+
+        public static PlayerData get(PlayerDataBase base) {
+            if (PlayerData.class.isInstance(base)) {
+                return (PlayerData)base;
+            }
+            // else, assume it's PlayerDataBase (?)
+            return new PlayerData(base);
+        }
+
+        public PlayerData(PlayerDataBase base) {
+            super(base);
+        }
+
+        public PlayerData() {
+            // Note - kyro deserilization uses the no arg constructor,
+            // so if you need to init anything can put it here?
+            super();
+        }
+
+        public PlayerData(Player player) {
+            super(player);
+            this.spawnIndex = player.spawnIndex;
+        }
+    }
+
+    /**
+     * These fields are from pokemon wilds version 0.4.
+     */
+    static public class PokemonDataBase {
         String name;
         int level;
         Pokemon.Generation generation;
@@ -776,9 +826,9 @@ public class Network {
         boolean isInterior = false;
         int harvestTimer = 0;
 
-        public PokemonData() {}
+        public PokemonDataBase() {}
 
-        public PokemonData(Pokemon pokemon) {
+        public PokemonDataBase(Pokemon pokemon) {
             this.name = pokemon.name;
             this.level = pokemon.level;
             this.generation = pokemon.generation;
@@ -801,9 +851,58 @@ public class Network {
             }
         }
 
-        public PokemonData(Pokemon pokemon, int index) {
+        public PokemonDataBase(Pokemon pokemon, int index) {
             this(pokemon);
             this.index = index;
+        }
+    }
+
+    /**
+     * This is just for testing, no fields were added here.
+     */
+    static public class PokemonDataV04 extends PokemonDataBase {
+        public boolean test = false;
+        
+        public PokemonDataV04() {
+            super();
+        }
+
+        public PokemonDataV04(Pokemon pokemon) {
+            super(pokemon);
+        }
+
+        public PokemonDataV04(Pokemon pokemon, int index) {
+            super(pokemon, index);
+        }
+    }
+    
+    /**
+     * Fields added in v0.5
+     */
+    static public class PokemonData extends PokemonDataV04 {
+        public String gender = null;
+        public String eggHatchInto = null;
+        public int friendliness = 0;  // mistakenly didn't include this in v0.4
+        public boolean aggroPlayer = false;
+
+        public PokemonData() {
+            super();
+        }
+
+        public PokemonData(Pokemon pokemon) {
+            super(pokemon);
+            this.gender = pokemon.gender;
+            this.eggHatchInto = pokemon.eggHatchInto;
+            this.friendliness = pokemon.happiness;
+            this.aggroPlayer = pokemon.aggroPlayer;
+        }
+
+        public PokemonData(Pokemon pokemon, int index) {
+            super(pokemon, index);
+            this.gender = pokemon.gender;
+            this.eggHatchInto = pokemon.eggHatchInto;
+            this.friendliness = pokemon.happiness;
+            this.aggroPlayer = pokemon.aggroPlayer;
         }
     }
 
@@ -824,7 +923,7 @@ public class Network {
         String classId;
         String name;
         int level;
-        ArrayList<PokemonData> pokemon = new ArrayList<PokemonData>();
+        ArrayList<PokemonDataBase> pokemon = new ArrayList<PokemonDataBase>();
         ArrayList<String> allowedPokemon;
         ArrayList<String> musics;
         int musicsIndex = 0;
@@ -850,9 +949,9 @@ public class Network {
     static public class SaveData {
         // TODO
         MapTiles mapTiles = new Network.MapTiles();
-        ArrayList<Network.PlayerData> players = new ArrayList<Network.PlayerData>();
-        Network.PlayerData playerData;
-        HashMap<Vector2, PokemonData> overworldPokemon = new HashMap<Vector2, PokemonData>();
+        ArrayList<Network.PlayerDataBase> players = new ArrayList<Network.PlayerDataBase>();
+        Network.PlayerDataBase playerData;
+        HashMap<Vector2, PokemonDataBase> overworldPokemon = new HashMap<Vector2, PokemonDataBase>();
 
         public SaveData() {}
 
@@ -897,8 +996,18 @@ public class Network {
                 this.overworldPokemon.put(pos, new PokemonData(currPokemon));
             }
         }
-        
     }
+
+
+//    static public class SaveDataV04 extends SaveData {
+//
+//        Network.PlayerDataV04 playerData;
+//        
+//        
+//        public SaveDataV04(Game game) {
+//            super(game);
+//        }
+//    }
 
     static public class ServerPlayerData {
         public Vector2 position;

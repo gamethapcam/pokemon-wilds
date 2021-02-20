@@ -3,8 +3,12 @@ package com.pkmngen.game;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -19,6 +23,7 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.TextureData;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
@@ -48,6 +53,9 @@ class DrawMap extends Action {
     Sprite spritePart;
     Sprite zSprite;
     int zsTimer = 0;
+    float done1 = 0f;
+    float done2 = 0f;
+    float done3 = 0f;
 
     public DrawMap(Game game) {
         this.pixels = new Pixmap(Gdx.files.internal("tiles/blank2.png"));
@@ -62,6 +70,9 @@ class DrawMap extends Action {
 
     @Override
     public void step(Game game) {
+        
+        // TODO: if player is in battle, don't do any of this
+        
         // TODO: debug, remove
 //        if (Gdx.input.isKeyPressed(Input.Keys.P)) {
 //            System.out.println("Camera unproject");
@@ -91,6 +102,10 @@ class DrawMap extends Action {
 //            System.out.println("Start draw tiles");
 //            System.out.println(java.time.LocalTime.now());
 //        }
+        // Used for triggering egg sound effects
+        this.done1 = 0f;
+        this.done2 = 0f;
+        this.done3 = 0f;
 
         for (Vector2 currPos = new Vector2(startPos.x, startPos.y); currPos.y > endPos.y;) {
             tile = game.map.tiles.get(currPos);
@@ -112,6 +127,12 @@ class DrawMap extends Action {
                     !game.cam.frustum.pointInFrustum(tile.position.x+tile.sprite.getWidth(), tile.position.y-32, game.cam.position.z) &&
                     !game.cam.frustum.pointInFrustum(tile.position.x, tile.position.y+tile.sprite.getHeight()+64, game.cam.position.z)) {
                continue;
+            }
+
+            // Attempt to cull pokemon draw actions
+            // TODO: just have a Map.DrawLower() that will draw all lowers of game.pokemon, player etc
+            if (game.map.pokemon.containsKey(tile.position)) {
+                game.map.pokemon.get(tile.position).drawThisFrame = true;
             }
 
             // TODO: this attempted to create one bg sprite out of map tiles, couldn't get pixmap resizing to work (ie it just
@@ -147,6 +168,32 @@ class DrawMap extends Action {
             // TODO: might cause performance issue
             if (tile.nameUpper.contains("stairs") || tile.nameUpper.contains("door")) {
                 game.mapBatch.draw(tile.overSprite, tile.overSprite.getX(), tile.overSprite.getY());
+            }
+            // Play the closest/loudest egg hop sound effects
+            if (game.playerCanMove &&
+                game.map.pokemon.containsKey(currPos) &&
+                game.map.pokemon.get(currPos).name.equals("egg")) {
+                Pokemon pokemon = game.map.pokemon.get(currPos);
+                // TODO: doing in drawmap
+                // Play sounds for nearby pokemon eggs
+                if (pokemon.standingAction != null &&
+                    Pokemon.Standing.class.isInstance(pokemon.standingAction)) {
+                    Pokemon.Standing standingAction = ((Pokemon.Standing)pokemon.standingAction);
+                    // As egg gets farther away, decrease the volume of the sound effect.
+                    float volume = 1f - (currPos.dst2(game.player.position.x, game.player.position.y)/52480f);
+                    if (standingAction.danceCounter == 0 && volume > this.done1) {
+//                        game.insertAction(new PlaySound("ledge2", 1f - (dist/52480f), null));
+                        done1 = volume;
+                    }
+                    else if (standingAction.danceCounter == 16 && volume > this.done2) {
+//                        game.insertAction(new PlaySound("ledge2", 1f - (dist/52480f), null));
+                        done2 = volume;
+                    }
+                    else if (standingAction.danceCounter == 70 +20 && volume > this.done3) {
+//                        game.insertAction(new PlaySound("headbutt1", 1f - (dist/52480f), null));
+                        done3 = volume;
+                    }
+                }
             }
             // tile.sprite.draw(game.batch);
 
@@ -253,6 +300,16 @@ class DrawMap extends Action {
 //                }
 //            }
         }
+        // Egg hop sound effects
+        if (this.done1 > 0f) {
+            game.insertAction(new PlaySound("ledge2", this.done1, null));
+        }
+        if (this.done2 > 0f) {
+            game.insertAction(new PlaySound("ledge2", this.done2, null));
+        }
+        if (this.done3 > 0f) {
+            game.insertAction(new PlaySound("headbutt1", this.done3, null));
+        }
         // Draw other players
         for (Player player : game.players.values()) {
             if (player.network.tiles != game.map.tiles) {
@@ -346,7 +403,15 @@ class DrawMapGrass extends Action {
             }
 
             if (tile.overSprite != null && !tile.nameUpper.contains("stairs") && !tile.nameUpper.contains("door")) {
-                game.mapBatch.draw(tile.overSprite, tile.overSprite.getX(), tile.overSprite.getY());
+                if (tile.nameUpper.equals("campfire1") && game.mapBatch.getColor().r < 0.2f) {
+                    Color tempColor = game.mapBatch.getColor();
+                    game.mapBatch.setColor(new Color(0.2f, 0.2f, 0.2f, 1f));
+                    game.mapBatch.draw(tile.overSprite, tile.overSprite.getX(), tile.overSprite.getY());
+                    game.mapBatch.setColor(tempColor);
+                }
+                else {
+                    game.mapBatch.draw(tile.overSprite, tile.overSprite.getX(), tile.overSprite.getY());
+                }
             }
         }
 
@@ -354,10 +419,8 @@ class DrawMapGrass extends Action {
 
 }
 
-/*
+/**
  * Draw tops of some trees over the player.
- *
- * TODO: this isn't working for some reason.
  */
 class DrawMapTrees extends Action {
     public int layer = 110;
@@ -407,9 +470,11 @@ class DrawMapTrees extends Action {
             if (tile.position.y > game.player.position.y) {
                 continue;
             }
-            // TODO: only do for subset of trees?
-            if ((tile.name.contains("tree") || tile.nameUpper.contains("tree")) && tile.overSprite != null) {
-                game.mapBatch.draw(tile.overSprite, tile.sprite.getX(), tile.sprite.getY());
+            if (tile.overSprite != null && (tile.name.contains("tree") || tile.nameUpper.contains("tree"))) {
+                // TODO: test if that works for drawing the top part
+                game.mapBatch.draw(tile.overSprite.getTexture(),
+                                   tile.overSprite.getX(), tile.overSprite.getY()+16,
+                                   0, 0, 16, 16);
             }
         }
     }
@@ -501,6 +566,12 @@ class EnterBuilding extends Action {
     public EnterBuilding(Game game, String action, Action nextAction) {
         this(game, action, null, nextAction);
     }
+
+    public EnterBuilding(Game game, String action, int slow, Action nextAction) {
+        this(game, action, null, nextAction);
+        this.slow = slow;
+    }
+    
     public EnterBuilding(Game game, String action, Map<Vector2, Tile> whichTiles, Action nextAction) {
         this.whichTiles = whichTiles;
         this.nextAction = nextAction;
@@ -556,53 +627,56 @@ class EnterBuilding extends Action {
                 }
 
                 // Fade music if required
-                Route newRoute = game.map.tiles.get(game.player.position).routeBelongsTo;
-                if (newRoute != null && !newRoute.name.equals(game.map.currRoute.name) && (newRoute.transitionMusic != game.map.currRoute.transitionMusic)) {
-                    
-                    // set flag in controller
-                    // if going back to overworld, then what?
-                    // handle batch shading separately
-                    game.musicController.fadeToDungeon = true;
-                    
-                    // TODO: fix
-                    //  - need to resume overworld music.
-//                    String nextMusicName = newRoute.getNextMusic(false);
-//                    Action nextMusic = new FadeMusic("currMusic", "out", "", .025f,
-//                                       new WaitFrames(game, 10,
-//                                       null));
-//                    if (newRoute.name.contains("pkmnmansion")) {
-//                        game.mapBatch.setColor(new Color(0.8f, 0.8f, 0.8f, 1f));
-//                        if (!game.loadedMusic.containsKey(nextMusicName)) {
-//                            Music temp = new LinkedMusic("music/"+nextMusicName, "");
-//                            temp.setVolume(0.1f);
-//                            game.loadedMusic.put(nextMusicName, temp);
+                Tile tile = game.map.tiles.get(game.player.position);
+                if (tile != null) {
+                    Route newRoute = tile.routeBelongsTo;
+                    if (newRoute != null && !newRoute.name.equals(game.map.currRoute.name) && (newRoute.transitionMusic != game.map.currRoute.transitionMusic)) {
+                        
+                        // set flag in controller
+                        // if going back to overworld, then what?
+                        // handle batch shading separately
+                        game.musicController.fadeToDungeon = true;
+                        
+                        // TODO: fix
+                        //  - need to resume overworld music.
+//                        String nextMusicName = newRoute.getNextMusic(false);
+//                        Action nextMusic = new FadeMusic("currMusic", "out", "", .025f,
+//                                           new WaitFrames(game, 10,
+//                                           null));
+//                        if (newRoute.name.contains("pkmnmansion")) {
+//                            game.mapBatch.setColor(new Color(0.8f, 0.8f, 0.8f, 1f));
+//                            if (!game.loadedMusic.containsKey(nextMusicName)) {
+//                                Music temp = new LinkedMusic("music/"+nextMusicName, "");
+//                                temp.setVolume(0.1f);
+//                                game.loadedMusic.put(nextMusicName, temp);
+//                            }
+//                            game.loadedMusic.get(nextMusicName).stop();
+//                            nextMusic.append(// TODO: this didn't really work, still doesn't loop
+//                                             new FadeMusic(nextMusicName, "in", "", .2f, true, 1f, null,
+//                                             new CallMethod(game.loadedMusic.get(nextMusicName), "setLooping", new Object[]{true},
+//                                             null)));
 //                        }
-//                        game.loadedMusic.get(nextMusicName).stop();
-//                        nextMusic.append(// TODO: this didn't really work, still doesn't loop
-//                                         new FadeMusic(nextMusicName, "in", "", .2f, true, 1f, null,
-//                                         new CallMethod(game.loadedMusic.get(nextMusicName), "setLooping", new Object[]{true},
-//                                         null)));
-//                    }
-//                    else {
-//                        game.mapBatch.setColor(new Color(1f, 1f, 1f, 1f));
-//                        nextMusic.append(new FadeMusic(nextMusicName, "in", "", .2f, true, 1f, null, null));///game.musicCompletionListener, null));
-//                    }
-//                    game.insertAction(nextMusic);
-//                    nextMusic.step(game);
-//                    game.fadeMusicAction = nextMusic;
-                    game.map.currRoute = newRoute;
-                }
-                if (!game.map.timeOfDay.equals("night")) {
-                    if (newRoute != null && newRoute.name.contains("pkmnmansion")) {
-                        game.mapBatch.setColor(new Color(0.8f, 0.8f, 0.8f, 1f));
+//                        else {
+//                            game.mapBatch.setColor(new Color(1f, 1f, 1f, 1f));
+//                            nextMusic.append(new FadeMusic(nextMusicName, "in", "", .2f, true, 1f, null, null));///game.musicCompletionListener, null));
+//                        }
+//                        game.insertAction(nextMusic);
+//                        nextMusic.step(game);
+//                        game.fadeMusicAction = nextMusic;
+                        game.map.currRoute = newRoute;
+                    }
+                    if (!game.map.timeOfDay.equals("night")) {
+                        if (newRoute != null && newRoute.name.contains("pkmnmansion")) {
+                            game.mapBatch.setColor(new Color(0.8f, 0.8f, 0.8f, 1f));
+                        }
+                        else {
+                            game.mapBatch.setColor(new Color(1f, 1f, 1f, 1f));
+                        }
                     }
                     else {
-                        game.mapBatch.setColor(new Color(1f, 1f, 1f, 1f));
+                        // Is night, so set to night color
+                        game.mapBatch.setColor(new Color(0.08f, 0.08f, 0.3f, 1.0f));
                     }
-                }
-                else {
-                    // Is night, so set to night color
-                    game.mapBatch.setColor(new Color(0.08f, 0.08f, 0.3f, 1.0f));
                 }
             }
             this.sprite.draw(game.uiBatch, 1f);
@@ -638,23 +712,90 @@ class MegaGengarTile extends Tile {
     }
 }
 
-// TODO - bug where grass tiles move out of sync with normal
-// probably because drawmap is before a camera update, drawGrass is after
+/**
+ * TODO: Trying this out.
+ */
+class DrawCampfireAuras extends Action {
+    public int layer = 110;
+    Vector3 startPos;
+    Vector3 endPos;
+    Vector3 worldCoordsTL;
+    Vector3 worldCoordsBR;
+    Tile tile;
+    Sprite[] campfireSprites = new Sprite[2];
+    int campfireTimer = 0;
 
-// TODO: this is doubling as animating campfire
-// moves water back and forth
-// also - I am going to add a sprite below each grass here
-// needed for sprite coloring
+    public DrawCampfireAuras(Game game) {
+        Texture text = TextureCache.get(Gdx.files.internal("fire_mask1.png"));
+        this.campfireSprites[0] = new Sprite(text, 0,  0, 160, 144);
+        text = TextureCache.get(Gdx.files.internal("fire_mask2.png"));
+        this.campfireSprites[1] = new Sprite(text, 0, 0, 160, 144);
+    }
+
+    public int getLayer() {
+        return this.layer;
+    }
+
+    @Override
+    public void step(Game game) {
+        if (game.map == null || game.map.tiles == null) {
+            return;
+        }
+        worldCoordsTL = game.cam.unproject(new Vector3(-256, -256, 0f));
+        worldCoordsBR = game.cam.unproject(new Vector3(game.currScreen.x+256, game.currScreen.y+256, 0f));
+        worldCoordsTL.x = (int)worldCoordsTL.x - (int)worldCoordsTL.x % 16;
+        worldCoordsTL.y = (int)worldCoordsTL.y - (int)worldCoordsTL.y % 16;
+        worldCoordsBR.x = (int)worldCoordsBR.x - (int)worldCoordsBR.x % 16;
+        worldCoordsBR.y = (int)worldCoordsBR.y - (int)worldCoordsBR.y % 16;
+        this.startPos = worldCoordsTL;
+        this.endPos = worldCoordsBR;
+        for (Vector2 currPos = new Vector2(startPos.x, startPos.y); currPos.y > endPos.y;) {
+            tile = game.map.tiles.get(currPos);
+            currPos.x += 16;
+            if (currPos.x > endPos.x) {
+                currPos.x = startPos.x;
+                currPos.y -= 16;
+            }
+            if (tile == null) {
+                continue;
+            }
+            // Draw campfire sprites to batch.
+            if (tile.nameUpper.equals("campfire1")) {
+                Sprite currSprite = this.campfireSprites[1];
+                if (this.campfireTimer % 20 < 10) {
+                    currSprite = this.campfireSprites[0];
+                }
+                for (int i=0; i < 1; i++) {
+                    game.lightingBatch.draw(currSprite,
+                                            tile.position.x +8 -(currSprite.getWidth()/2f),
+                                            tile.position.y +8 -(currSprite.getHeight()/2f));
+                }
+            }
+        }
+        if (this.campfireTimer < 79) {
+            this.campfireTimer++;
+        }
+        else {
+            this.campfireTimer = 0;
+        }
+    }
+}
+
+/**
+ * Moves water back and forth.
+ * 
+ * TODO: bug where grass tiles move out of sync with normal,
+ *       probably because drawmap is before a camera update, drawGrass is after
+ * TODO: this is doubling as animating campfire.
+ * TODO: probably rename to 'AnimateMap' or something, b/c I 
+ *       also want it to move flowers.
+ */
 class MoveWater extends Action {
     public int layer = 110;
 
     ArrayList<Vector2> positions;
-
     Vector2 position;
     ArrayList<Integer> repeats;
-    Sprite blankSprite;
-
-    Pixmap pixels;
     Texture texture;
     Vector3 startPos;
     Vector3 endPos;
@@ -663,24 +804,44 @@ class MoveWater extends Action {
     Tile tile;
     Sprite[] campfireSprites;
     int campfireTimer = 0;
-    PointLight pointLight;
+//    PointLight pointLight;  // TODO: remove
+    Pixmap pixmap;
+    Pixmap firePixmap1;
+    Pixmap firePixmap2;
 
     public MoveWater(Game game) {
         this.positions = new ArrayList<Vector2>();
-        resetVars();
+        this.resetVars();
         Texture text = TextureCache.get(Gdx.files.internal("tiles/campfire1.png"));
         this.campfireSprites = new Sprite[4];
         this.campfireSprites[0] = new Sprite(text, 0,  0, 16, 20);
         this.campfireSprites[1] = new Sprite(text, 16, 0, 16, 20);
-        text = TextureCache.get(Gdx.files.internal("fire_mask1.png"));
+//        text = TextureCache.get(Gdx.files.internal("fire_mask1.png"));
+//        this.campfireSprites[2] = new Sprite(text, 0,  0, 160, 144);
+//        text = TextureCache.get(Gdx.files.internal("fire_mask2.png"));
+//        this.campfireSprites[3] = new Sprite(text, 0, 0, 160, 144);
+        text = TextureCache.get(Gdx.files.internal("fire_mask3.png"));
         this.campfireSprites[2] = new Sprite(text, 0,  0, 160, 144);
-        text = TextureCache.get(Gdx.files.internal("fire_mask2.png"));
+        TextureData temp = text.getTextureData();
+        if (!temp.isPrepared()) {
+            temp.prepare();
+        }
+        this.firePixmap1 = temp.consumePixmap();
+        text = TextureCache.get(Gdx.files.internal("fire_mask4.png"));
         this.campfireSprites[3] = new Sprite(text, 0, 0, 160, 144);
+        temp = text.getTextureData();
+        if (!temp.isPrepared()) {
+            temp.prepare();
+        }
+        this.firePixmap2 = temp.consumePixmap();
 
 //        this.pointLight = new PointLight(game.rayHandler, 20, new Color(.3f,.2f,.1f,1), 2, -0, 0);
 //        this.pointLight = new PointLight(game.rayHandler, 8, new Color(1f, .9f, .7f, 1), 5f, -0, 0);
 //        this.pointLight = new PointLight(game.rayHandler, 16, new Color(.8f, .7f, .6f, 1), 5f, -0, 0);
 //        this.pointLight.setPosition(0f, 0f);
+
+        this.pixmap = new Pixmap(160*3, 144*3, Pixmap.Format.RGBA8888);
+        this.pixmap.setColor(new Color(0f, 0f, 0f, 1f));
     }
 
     public int getLayer() {
@@ -707,6 +868,21 @@ class MoveWater extends Action {
 
     @Override
     public void step(Game game) {
+        this.pixmap.fill();
+        // TODO: remove
+//        Sprite currMask = this.campfireSprites[3];
+//        if (this.campfireTimer % 20 < 10) {
+//          currMask = this.campfireSprites[2];
+//        }
+//        TextureData temp = currMask.getTexture().getTextureData();
+//        if (!temp.isPrepared()) {
+//            temp.prepare();
+//        }
+//        Pixmap currPixmap = temp.consumePixmap();
+        Pixmap currPixmap = this.firePixmap2;
+        if (this.campfireTimer % 20 < 10) {
+            currPixmap = this.firePixmap1;
+        }
         worldCoordsTL = game.cam.unproject(new Vector3(-256, -256, 0f));
         worldCoordsBR = game.cam.unproject(new Vector3(game.currScreen.x+256, game.currScreen.y+256, 0f));
         worldCoordsTL.x = (int)worldCoordsTL.x - (int)worldCoordsTL.x % 16;
@@ -716,19 +892,10 @@ class MoveWater extends Action {
         this.startPos = worldCoordsTL; // new Vector3(worldCoordsTL.x, worldCoordsTL.y, 0f);
         this.endPos = worldCoordsBR; // new Vector3(worldCoordsBR.x, worldCoordsBR.y, 0f);
 
-        // set sprite position
-        // if done with anim, do nextAction
         if (positions.isEmpty()) {
-            resetVars();
-            // game.actionStack.remove(this);
-            // return;
+            this.resetVars();
         }
-
         this.position = positions.get(0);
-        // positions.set(0,new Vector2(0,0));
-
-        // draw every sprite in the map
-//        for (Tile tile : game.map.tiles.values()) {
         for (Vector2 currPos = new Vector2(startPos.x, startPos.y); currPos.y > endPos.y;) {
             tile = game.map.tiles.get(currPos);
             currPos.x += 16;
@@ -747,15 +914,16 @@ class MoveWater extends Action {
 //            }
             // Texture text = new
             // Texture(Gdx.files.internal("tiles/water1_2.png"));
-            if (tile.attrs.get("water") == true) {
+            if (tile.attrs.get("water")) {
                 // tile.sprite.setPosition(tile.sprite.getX()+position.x,
                 // tile.sprite.getY()+position.y);
                 // tile.overSprite.draw(game.batch);
-                tile.sprite.setRegionX((int) this.position.x);
-                tile.sprite.setRegionWidth((int) tile.sprite.getWidth());
+                tile.sprite.setRegionX((int)this.position.x);
+                tile.sprite.setRegionWidth((int)tile.sprite.getWidth());
             }
-
-            // animate campfires
+            // Animate campfires
+            // Also animate campfire aura around fire type pokemon walking around.
+            Pokemon pokemon = game.map.pokemon.get(currPos);
             if (tile.nameUpper.equals("campfire1")) {
                 if (this.campfireTimer == 0) {
                     Sprite newSprite = new Sprite(this.campfireSprites[0]);
@@ -767,41 +935,56 @@ class MoveWater extends Action {
                     newSprite.setPosition(tile.overSprite.getX(), tile.overSprite.getY());
                     tile.overSprite = newSprite;
                 }
-
-                if (this.campfireTimer % 20 < 10 && game.mapBatch.getColor().r < .5f) {
-                    Color tempColor = game.mapBatch.getColor();
-                    game.mapBatch.setColor(new Color(1f, 1f, 1f, 1f));
-                    // no idea how/why this works
-                    int temp1 = game.mapBatch.getBlendSrcFunc();
-                    int temp2 = game.mapBatch.getBlendDstFunc();
-                    game.mapBatch.setBlendFunction(GL20.GL_DST_COLOR, GL20.GL_SRC_ALPHA);
-                    this.campfireSprites[2].setPosition(tile.overSprite.getX()+(tile.overSprite.getWidth()/2f)-(this.campfireSprites[2].getWidth()/2f), tile.overSprite.getY()+(tile.overSprite.getHeight()/2f)-(this.campfireSprites[2].getHeight()/2f));
-                    // looked better with 'double-exposure'
-                    game.mapBatch.draw(this.campfireSprites[2], this.campfireSprites[2].getX(), this.campfireSprites[2].getY());
-                    game.mapBatch.draw(this.campfireSprites[2], this.campfireSprites[2].getX(), this.campfireSprites[2].getY());
-                    game.mapBatch.draw(this.campfireSprites[2], this.campfireSprites[2].getX(), this.campfireSprites[2].getY());
-                    game.mapBatch.setBlendFunction(temp1, temp2);
-                    tile.overSprite.draw(game.mapBatch);
-                    game.mapBatch.setColor(tempColor);
+                // Attempt at fixing campfire aura issue using a pixmap
+                // Issue was that pixel 'lightness' would keep increasing until
+                // everything was white and hard to see.
+                if (game.mapBatch.getColor().r < .5f) {
+                    int xPos = (int)(tile.position.x -80 -(game.player.position.x -240));
+                    int yPos = (int)(296 -(tile.position.y +8 -72 -(game.player.position.y -216)));
+                    this.pixmap.drawPixmap(currPixmap, xPos, yPos);
                 }
-                else if (this.campfireTimer % 20 < 20 && game.mapBatch.getColor().r < .5f) {
-                    Color tempColor = game.mapBatch.getColor();
-                    game.mapBatch.setColor(new Color(1f, 1f, 1f, 1f));
-                    // no idea how/why this works
-                    int temp1 = game.mapBatch.getBlendSrcFunc();
-                    int temp2 = game.mapBatch.getBlendDstFunc();
-                    game.mapBatch.setBlendFunction(GL20.GL_DST_COLOR, GL20.GL_SRC_ALPHA);
-                    this.campfireSprites[3].setPosition(tile.overSprite.getX()+(tile.overSprite.getWidth()/2f)-(this.campfireSprites[3].getWidth()/2f), tile.overSprite.getY()+(tile.overSprite.getHeight()/2f)-(this.campfireSprites[3].getHeight()/2f));
-                    // looked better with 'double-exposure'
-                    game.mapBatch.draw(this.campfireSprites[3], this.campfireSprites[3].getX(), this.campfireSprites[3].getY());
-                    game.mapBatch.draw(this.campfireSprites[3], this.campfireSprites[3].getX(), this.campfireSprites[3].getY());
-                    game.mapBatch.draw(this.campfireSprites[3], this.campfireSprites[3].getX(), this.campfireSprites[3].getY());
-                    game.mapBatch.setBlendFunction(temp1, temp2);
-                    tile.overSprite.draw(game.mapBatch);
-                    game.mapBatch.setColor(tempColor);
-                }
-
             }
+            if (pokemon != null && pokemon.hms.contains("FLASH") && game.mapBatch.getColor().r < .5f) {
+                int xPos = (int)(pokemon.position.x -80 -(game.player.position.x -240));
+                int yPos = (int)(296 -(pokemon.position.y +8 -72 -(game.player.position.y -216)));
+                this.pixmap.drawPixmap(currPixmap, xPos, yPos);
+            }
+        }
+        if (game.mapBatch.getColor().r < .5f && game.player.hmPokemon != null && game.player.hmPokemon.currOwSprite != null && game.player.hmPokemon.hms.contains("FLASH")) {
+//            Pokemon pokemon = game.player.hmPokemon;  // TODO: remove
+            Vector2 position = game.player.hmPokemon.position;
+            // TODO: use game.player.currFieldMove instead
+            // If pokemon is the one doing the field move,
+            // then draw the fire aura at the player's position.
+            if (game.player.isBuilding || 
+                game.player.isCutting ||
+                game.player.isHeadbutting ||
+                game.player.isSmashing ||
+                game.player.isJumping) {
+                position = game.player.position;
+            }
+            int xPos = (int)(position.x -80 -(game.player.position.x -240));
+            int yPos = (int)(296 -(position.y +8 -72 -(game.player.position.y -216)));
+            this.pixmap.drawPixmap(currPixmap, xPos, yPos);
+        }
+        if (game.mapBatch.getColor().r < 1f) {
+            Color tempColor = game.mapBatch.getColor();
+            game.mapBatch.setColor(new Color(1f, 1f, 1f, 1f));
+            int temp1 = game.mapBatch.getBlendSrcFunc();
+            int temp2 = game.mapBatch.getBlendDstFunc();
+            game.mapBatch.setBlendFunction(GL20.GL_DST_COLOR, GL20.GL_SRC_ALPHA);
+            Texture texture = new Texture(this.pixmap);
+            // TODO: diff levels of exposure depending on batch color
+            game.mapBatch.draw(texture, game.player.position.x +8 -240, game.player.position.y +8 -216);
+            if (tempColor.r < 0.8f) {
+                game.mapBatch.draw(texture, game.player.position.x +8 -240, game.player.position.y +8 -216);
+            }
+            if (tempColor.r < 0.5f) {
+                game.mapBatch.draw(texture, game.player.position.x +8 -240, game.player.position.y +8 -216);
+            }
+            game.mapBatch.setBlendFunction(temp1, temp2);
+            game.mapBatch.setColor(tempColor);
+            texture.dispose();
         }
         if (this.campfireTimer < 79) {
             this.campfireTimer++;
@@ -813,7 +996,8 @@ class MoveWater extends Action {
         // frames.
         if (this.repeats.get(0) > 0) {
             this.repeats.set(0, this.repeats.get(0) - 1);
-        } else {
+        }
+        else {
             // since position is relative, only update once each time period
             // this.position = this.position.add(positions.get(0));
             positions.remove(0);
@@ -1060,6 +1244,7 @@ public class PkmnMap {
 //            com.esotericsoftware.kryo.io.Input input = new com.esotericsoftware.kryo.io.Input(new FileInputStream(this.id + ".sav"));  // uncompressed
             
             Network.SaveData saveData = game.server.getKryo().readObject(input, Network.SaveData.class);
+//            Network.SaveData saveData = Network.SaveData.get(game, input);
             input.close();
             this.tiles.clear();
             this.bottomLeft = new Vector2();
@@ -1123,13 +1308,18 @@ public class PkmnMap {
             CycleDayNight.dayTimer = saveData.mapTiles.dayTimer;
             this.edges = saveData.mapTiles.edges;
             // Load players
-            for (Network.PlayerData playerData : saveData.players) {
-                Player player = new Player(playerData);
+            for (Network.PlayerDataBase playerData : saveData.players) {
+                Player player = new Player(Network.PlayerData.get(playerData));  //(Network.PlayerData)
                 player.type = Player.Type.REMOTE;  // TODO: store in playerData?
                 game.players.put(playerData.id, player);
             }
             // Load game.player
-            game.player = new Player(saveData.playerData);
+            game.player = new Player(Network.PlayerData.get(saveData.playerData));
+            for (Pokemon pokemon : game.player.pokemon) {
+                // not sure what to do; game.player doesn't exist before
+                // the line above
+                pokemon.previousOwner = game.player;
+            }
             game.cam.position.set(game.player.position.x+16, game.player.position.y, 0);
             game.player.type = Player.Type.LOCAL;
             if (saveData.playerData.isInterior) {
@@ -1151,7 +1341,7 @@ public class PkmnMap {
             // Load overworld pokemon
             game.map.pokemon.clear();
             for (Vector2 pos : saveData.overworldPokemon.keySet()) {
-                Network.PokemonData pokemonData = saveData.overworldPokemon.get(pos);
+                Network.PokemonDataBase pokemonData = saveData.overworldPokemon.get(pos);
                 Pokemon pokemon = new Pokemon(pokemonData);
 //                System.out.println(pokemon.mapTiles == game.map.overworldTiles);
                 pokemon.position = pos.cpy();
@@ -1256,6 +1446,15 @@ public class PkmnMap {
             this.timeDelta += Gdx.graphics.getDeltaTime();
             if (this.timeDelta >= this.saveInterval) {
                 this.timeDelta = 0f;
+                System.out.println("Backing up previous save file...");
+                try {
+                    // First time game is saved, this path won't exist
+                    Files.copy(Paths.get(game.map.id + ".sav"),
+                               Paths.get(game.map.id + ".sav.backup"),
+                               StandardCopyOption.REPLACE_EXISTING);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
                 System.out.println("Saving game to file...");
                 try {
                     this.outputStream = new DeflaterOutputStream(new FileOutputStream(game.map.id + ".sav"));
@@ -1391,7 +1590,7 @@ class Route {
         this.allowedPokemon = new ArrayList<String>(routeData.allowedPokemon);
         this.musics = new ArrayList<String>(routeData.musics);
         this.musicsIndex = routeData.musicsIndex;
-        for (Network.PokemonData pokemonData : routeData.pokemon) {
+        for (Network.PokemonDataBase pokemonData : routeData.pokemon) {
             this.pokemon.add(new Pokemon(pokemonData));
         }
         if (name.equals("pkmnmansion1")) {
@@ -1415,7 +1614,7 @@ class Route {
         this.musics.add("route_3_gs");
         this.musics.add("route_1");
         this.musics.add("route_idk1");
-        this.musics.add("littleroot_town");
+//        this.musics.add("littleroot_town");  // TODO: doesnt really fit
 
 //        this.rand = new Random();
 
@@ -1518,6 +1717,8 @@ class Route {
           this.allowedPokemon.add("pinsir");
           this.allowedPokemon.add("growlithe");
           this.allowedPokemon.add("vulpix");
+          this.allowedPokemon.add("breloom");  // nuuk
+          this.allowedPokemon.add("sableye");  // nuuk
         }
         else if (name.equals("forest1")) {
             this.allowedPokemon.add("oddish");
@@ -1526,7 +1727,7 @@ class Route {
             this.allowedPokemon.add("pidgeotto");
             this.allowedPokemon.add("spearow");
 //            this.allowedPokemon.add("swablu");  // TODO: permissions
-//            this.allowedPokemon.add("taillow");
+            this.allowedPokemon.add("taillow");  // prism and nuuk
             this.allowedPokemon.add("hoppip");
 //            this.allowedPokemon.add("machop");
             this.allowedPokemon.add("bulbasaur");
@@ -1540,6 +1741,7 @@ class Route {
             this.allowedPokemon.add("ledyba");
             this.allowedPokemon.add("hoothoot");
             this.allowedPokemon.add("mankey");
+            this.allowedPokemon.add("shroomish");  // nuuk  
 //            this.allowedPokemon.add("girafarig");  // TODO: enable when decent overworld sprite
             for (int i = 0; i < 2; i++) {
                 this.allowedPokemon.add("bulbasaur");
@@ -1563,7 +1765,7 @@ class Route {
                 this.allowedPokemon.add("bulbasaur");
                 this.allowedPokemon.add("hoppip");
                 this.allowedPokemon.add("pidgey");
-//                this.allowedPokemon.add("taillow");  // permissions
+                this.allowedPokemon.add("taillow");  // nuuk and prism
                 this.allowedPokemon.add("charmander");
                 this.allowedPokemon.add("cyndaquil");
                 this.allowedPokemon.add("mareep");
@@ -1572,6 +1774,7 @@ class Route {
                 this.allowedPokemon.add("sentret");
                 this.allowedPokemon.add("rattata");
                 this.allowedPokemon.add("yanma");
+                this.allowedPokemon.add("poochyena");  // nuuk
             }
             // feels like it's getting too diluted
 //            this.allowedPokemon.add("snubbul");
@@ -1597,6 +1800,9 @@ class Route {
             this.allowedPokemon.add("marill");
             this.allowedPokemon.add("slowpoke");
             this.allowedPokemon.add("poliwag");
+            //
+            this.allowedPokemon.add("wingull");  // nuuk
+            this.allowedPokemon.add("surskit");  // nuuk
         }
         else if (name.equals("desert1")) {
             // TODO: these are just some ideas
@@ -1690,13 +1896,19 @@ class Route {
 //        this.pokemon.clear();
 ////        Pokemon debug = new Pokemon("machamp", 22, Pokemon.Generation.CRYSTAL);  // 22
 ////        Pokemon debug = new Pokemon("garchompbeta", 70, Pokemon.Generation.CRYSTAL);  // 22
-//        Pokemon debug = new Pokemon("honchkrow", 44, Pokemon.Generation.CRYSTAL);
+//        Pokemon debug = new Pokemon("murkrow", 44, Pokemon.Generation.CRYSTAL);
 ////        Pokemon debug = new Pokemon("ghost", 44, Pokemon.Generation.CRYSTAL);
 ////        debug.currentStats.put("hp", 20);
-//        debug.attacks[0] = "feint attack";
-//        debug.attacks[1] = "feint attack";
-//        debug.attacks[2] = "feint attack";
-//        debug.attacks[3] = "feint attack";
+//        debug.attacks[0] = "thunder wave";
+//        debug.attacks[1] = "thunder wave";
+//        debug.attacks[2] = "thunder wave";
+//        debug.attacks[3] = "thunder wave";
+//        Pokemon debug = new Pokemon(Pokemon.nuukPokemon.get(Game.rand.nextInt(Pokemon.nuukPokemon.size())), 44, Pokemon.Generation.CRYSTAL);
+//        Pokemon debug = new Pokemon("surskit", 44, Pokemon.Generation.CRYSTAL);
+//        this.pokemon.add(debug);
+//        debug = new Pokemon("masquerain", 44, Pokemon.Generation.CRYSTAL);
+//        this.pokemon.add(debug);
+//        debug = new Pokemon("sableye", 44, Pokemon.Generation.CRYSTAL);
 //        this.pokemon.add(debug);
 
         /*
@@ -2441,6 +2653,12 @@ class Tile {
         } else if (tileName.equals("sand1")) {
             Texture playerText = TextureCache.get(Gdx.files.internal("tiles/sand1.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
+        } else if (tileName.equals("sand2")) {
+            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/sand2.png"));
+            this.sprite = new Sprite(playerText, 0, 0, 16, 16);
+        } else if (tileName.equals("sand3")) {
+            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/sand3.png"));
+            this.sprite = new Sprite(playerText, 0, 0, 16, 16);
         } else if (tileName.equals("path1")) {
             Texture playerText = TextureCache.get(Gdx.files.internal("tiles/path1.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
@@ -2462,50 +2680,60 @@ class Tile {
             this.attrs.put("solid", true);
         // tall tree - one sprite over, one under
         } else if (tileName.equals("tree2")) {
-//            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/tree2_under.png"));
-//            this.sprite = new Sprite(playerText, 0, 0, 16, 32);
-            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/tree3_under.png"));
+//            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/tree3_under.png"));
+//            this.sprite = new Sprite(playerText, 0, 0, 16, 16);
+//            playerText = TextureCache.get(Gdx.files.internal("tiles/tree3_over.png"));
+//            this.overSprite = new Sprite(playerText, 0, 0, 16, 32);
+            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/green1.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
-            playerText = TextureCache.get(Gdx.files.internal("tiles/tree3_over.png"));
+            playerText = TextureCache.get(Gdx.files.internal("tiles/tree2.png"));
             this.overSprite = new Sprite(playerText, 0, 0, 16, 32);
             this.attrs.put("solid", true);
             this.attrs.put("tree", true);
+            this.attrs.put("cuttable", true);
+            this.attrs.put("headbuttable", true);
         } else if (tileName.equals("tree4")) {
-          Texture playerText = TextureCache.get(Gdx.files.internal("tiles/tree4_under.png"));
-          this.sprite = new Sprite(playerText, 0, 0, 16, 16);
-          playerText = TextureCache.get(Gdx.files.internal("tiles/tree4_over.png"));
-          this.overSprite = new Sprite(playerText, 0, 0, 16, 32);
-          this.attrs.put("solid", true);
-          this.attrs.put("tree", true);
+            // TODO: remove
+//            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/tree4_under.png"));
+//            this.sprite = new Sprite(playerText, 0, 0, 16, 16);
+//            playerText = TextureCache.get(Gdx.files.internal("tiles/tree4_over.png"));
+//            this.overSprite = new Sprite(playerText, 0, 0, 16, 32);
+            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/snow1.png"));
+            this.sprite = new Sprite(playerText, 0, 0, 16, 16);
+            playerText = TextureCache.get(Gdx.files.internal("tiles/tree4.png"));
+            this.overSprite = new Sprite(playerText, 0, 0, 16, 32);
+            this.attrs.put("solid", true);
+            this.attrs.put("tree", true);
+            this.attrs.put("headbuttable", true);
         } else if (tileName.equals("tree5")) {
-//          Texture playerText = TextureCache.get(Gdx.files.internal("tiles/tree5_under.png"));
-          Texture playerText = TextureCache.get(Gdx.files.internal("tiles/green1.png"));
-          this.sprite = new Sprite(playerText, 0, 0, 16, 16);
-//          playerText = TextureCache.get(Gdx.files.internal("tiles/tree5_over.png"));
-          playerText = TextureCache.get(Gdx.files.internal("tiles/tree6.png"));
-          this.overSprite = new Sprite(playerText, 0, 0, 16, 32);
-          this.attrs.put("solid", true);
-          this.attrs.put("tree", true);
-          this.attrs.put("headbuttable", true);
+            //          Texture playerText = TextureCache.get(Gdx.files.internal("tiles/tree5_under.png"));
+            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/green1.png"));
+            this.sprite = new Sprite(playerText, 0, 0, 16, 16);
+            //          playerText = TextureCache.get(Gdx.files.internal("tiles/tree5_over.png"));
+            playerText = TextureCache.get(Gdx.files.internal("tiles/tree6.png"));
+            this.overSprite = new Sprite(playerText, 0, 0, 16, 32);
+            this.attrs.put("solid", true);
+            this.attrs.put("tree", true);
+            this.attrs.put("headbuttable", true);
         } else if (tileName.equals("tree_plant1")) {
-          Texture playerText = TextureCache.get(Gdx.files.internal("tiles/green1.png"));
-          this.sprite = new Sprite(playerText, 0, 0, 16, 16);
-          playerText = TextureCache.get(Gdx.files.internal("tiles/buildings/plant1.png"));
-          this.overSprite = new Sprite(playerText, 0, 0, 16, 32);
-          this.attrs.put("solid", true);
-          this.attrs.put("tree", true);
+            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/green1.png"));
+            this.sprite = new Sprite(playerText, 0, 0, 16, 16);
+            playerText = TextureCache.get(Gdx.files.internal("tiles/buildings/plant1.png"));
+            this.overSprite = new Sprite(playerText, 0, 0, 16, 32);
+            this.attrs.put("solid", true);
+            this.attrs.put("tree", true);
         } else if (tileName.equals("pkmnmansion_statue1")) {
-          Texture playerText = TextureCache.get(Gdx.files.internal("tiles/buildings/pkmnmansion_floor1.png"));
-          this.sprite = new Sprite(playerText, 0, 0, 16, 16);
-          playerText = TextureCache.get(Gdx.files.internal("tiles/buildings/pkmnmansion_statue1.png"));
-          this.overSprite = new Sprite(playerText, 0, 0, 16, 32);
-          this.attrs.put("solid", true);
+            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/buildings/pkmnmansion_floor1.png"));
+            this.sprite = new Sprite(playerText, 0, 0, 16, 16);
+            playerText = TextureCache.get(Gdx.files.internal("tiles/buildings/pkmnmansion_statue1.png"));
+            this.overSprite = new Sprite(playerText, 0, 0, 16, 32);
+            this.attrs.put("solid", true);
         } else if (tileName.equals("pkmnmansion_shelf1")) {
-          Texture playerText = TextureCache.get(Gdx.files.internal("tiles/buildings/pkmnmansion_floor1.png"));
-          this.sprite = new Sprite(playerText, 0, 0, 16, 16);
-          playerText = TextureCache.get(Gdx.files.internal("tiles/buildings/pkmnmansion_shelf1.png"));
-          this.overSprite = new Sprite(playerText, 0, 0, 16, 32);
-          this.attrs.put("solid", true);
+            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/buildings/pkmnmansion_floor1.png"));
+            this.sprite = new Sprite(playerText, 0, 0, 16, 16);
+            playerText = TextureCache.get(Gdx.files.internal("tiles/buildings/pkmnmansion_shelf1.png"));
+            this.overSprite = new Sprite(playerText, 0, 0, 16, 32);
+            this.attrs.put("solid", true);
         } else if (tileName.equals("pkmnmansion_shelf1_NS")) {
             Texture playerText = TextureCache.get(Gdx.files.internal("tiles/buildings/pkmnmansion_floor1.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
@@ -2743,7 +2971,7 @@ class Tile {
                 nextAction.append(new DisplayText(game, pokemon.name.toUpperCase()+" looks like it' holding something...", null, false, true,
                                   new DisplayText(game, pokemon.name.toUpperCase()+" gave you "+pokemon.hasItem.toUpperCase()+"!", "fanfare1.ogg", false, true,
                                   null)));
-                // TODO: load serialized from file?
+
                 if (!game.player.alreadyDoneHarvestables.contains(pokemon.hasItem)) {
                     if (pokemon.hasItem.contains("manure")) {
                         nextAction.append(new DisplayText(game, "It smells pretty bad... surely it will come in handy!", null, false, true, null));
@@ -2756,7 +2984,7 @@ class Tile {
                     }
                     game.player.alreadyDoneHarvestables.add(pokemon.hasItem);
                 }
-                nextAction.append(new SetField(pokemon, "harvestTimer", 0,  // order matters
+                nextAction.append(new SetField(pokemon, "harvestTimer", 0,  // Order matters
                                   new SetField(pokemon, "hasItem", null,
                                   new WaitFrames(game, 10,
                                   new SetField(game, "playerCanMove", true, 
@@ -2770,13 +2998,58 @@ class Tile {
                 game.insertAction(nextAction);
                 return;
             }
+            // If this is a wild evolved form, then it will aggro player if
+            // interacted with twice in a row.
+            boolean isBaseSpecies = true;
+            if (Pokemon.baseSpecies.get(pokemon.name) != null) {
+                isBaseSpecies = Pokemon.baseSpecies.get(pokemon.name).equals(pokemon.name);
+            }
+            if (pokemon.previousOwner != game.player && !isBaseSpecies) {
+                if (!pokemon.interactedWith) {
+                    nextAction = new SetField(pokemon, "dirFacing", oppDir,
+                                 new WaitFrames(game, 20,
+                                 new SplitAction(pokemon.new Emote("skull", null),
+                                 new WaitFrames(game, 20,
+                                 new PlaySound(pokemon,
+                                 null)))));
+                    nextAction.append(new DisplayText(game, pokemon.name.toUpperCase()+" seems aggressive... it may attack if provoked!", null, false, true, null));
+                    pokemon.interactedWith = true;
+                    nextAction.append(new WaitFrames(game, 10,
+                                      new SetField(game, "playerCanMove", true,
+                                      new SetField(pokemon, "canMove", true, null))));
+                }
+                else {
+                    nextAction = new SetField(pokemon, "dirFacing", oppDir,
+                                 new WaitFrames(game, 20,
+                                 new SplitAction(pokemon.new Emote("!", null),
+                                 new WaitFrames(game, 20,
+                                 new PlaySound(pokemon,
+                                 new WaitFrames(game, 10,
+                                 new SetField(game, "playerCanMove", true,
+                                 new SetField(pokemon, "canMove", true,
+                                 new SetField(pokemon, "aggroPlayer", true,
+                                 null)))))))));
+                }
+                game.insertAction(nextAction);
+                return;
+            }
+
             Action emote;
-//            Action text;
-            if (pokemon.inHabitat || pokemon.previousOwner != game.player) {
+            // If it's an egg, display the '...' emote
+            if (pokemon.name.equals("egg")) {
+                emote = pokemon.new Emote("...", null);
+            }
+            else if (pokemon.previousOwner != game.player) {
                 emote = pokemon.new Emote("happy", null);
             }
-            else {
+            else if (!pokemon.inHabitat) {
                 emote = pokemon.new Emote("uncomfortable", null);
+            }
+            else if (pokemon.loveInterest != null) {
+                emote = pokemon.new Emote("heart", null);
+            }
+            else {
+                emote = pokemon.new Emote("happy", null);
             }
             nextAction = new SetField(pokemon, "dirFacing", oppDir,
                          new WaitFrames(game, 20,
@@ -2784,18 +3057,29 @@ class Tile {
                          new WaitFrames(game, 20,
                          new PlaySound(pokemon,
                          null)))));
-            
-            if (pokemon.previousOwner != game.player) {
+
+            if (pokemon.name.equals("egg")) {
+                String[] huhs = new String[]{"Neat!", "Hey!", "Look!", "Wow!", "Huh?", "Hmm..."};
+                nextAction.append(//new WaitFrames(game, 60,  // use if no cry for egg
+                                  new DisplayText(game, huhs[Game.rand.nextInt(huhs.length)]+" A POKéMON egg!", null, false, true,
+                                  null));
+            }
+            else if (pokemon.previousOwner != game.player) {
                 nextAction.append(new DisplayText(game, pokemon.name.toUpperCase()+" seems friendly. ", null, false, true, null));
             }
             else if (!pokemon.inHabitat) {
                 nextAction.append(new DisplayText(game, pokemon.name.toUpperCase()+" seems uncomfortable in this environment. ", null, false, true, null));
             }
+            else if (pokemon.loveInterest != null) {
+                nextAction.append(new DisplayText(game, pokemon.name.toUpperCase()+" seems interested in "+pokemon.loveInterest.name.toUpperCase()+".", null, false, true, null));
+            }
             else {
                 nextAction.append(new DisplayText(game, pokemon.name.toUpperCase()+" seems happy. ", null, false, true, null));
             }
 //                              new DisplayText(game, "Put "+pokemon.name.toUpperCase()+" in it' POKéBALL?", null, true, false,
-            nextAction.append(new DisplayText(game, "Add "+pokemon.name.toUpperCase()+" to your party?", null, true, false,
+            String text = pokemon.name.equals("egg") ? "Pick it up?" : "Add "+pokemon.name.toUpperCase()+" to your party?";
+            game.player.displayedMaxPartyText = false; // tODO: debug, remove
+            nextAction.append(new DisplayText(game, text, null, true, false,
                               new DrawYesNoMenu(null,
                                   new DisplayText.Clear(game,
                                   new WaitFrames(game, 3,
@@ -2805,6 +3089,7 @@ class Tile {
                                   null))))),
                               new DisplayText.Clear(game,
                               new WaitFrames(game, 3,
+//                              new WaitFrames(game, 10,  // TODO: test to avoid textbox mayhem
                               new SetField(game, "playerCanMove", true, 
                               new SetField(pokemon, "canMove", true,
                               null)))))));
@@ -2997,18 +3282,20 @@ class TrainerTipsTile extends Tile {
         TrainerTipsTile.messages.add("Stand still while holding X to stop using an HM.");
         TrainerTipsTile.messages.add("You can craft POKéBALLS out of Apricorns at a campfire.");
         TrainerTipsTile.messages.add("If you white out during battle, you will return to the last place you used a sleeping bag.");
-        TrainerTipsTile.messages.add("Using a sleeping bag will slowly restore your party' hp.");
+        TrainerTipsTile.messages.add("Using your sleeping bag will slowly restore your party' hp.");
 //        TrainerTipsTile.messages.add("Ghosts will chase you at night, but remember! A campfire will deter them.");
         TrainerTipsTile.messages.add("Ghosts may appear in the woods at night. A campfire will ward them off.");
         TrainerTipsTile.messages.add("Use CUT on trees and tall grass to get building materials.");
+        TrainerTipsTile.messages.add("POKéMON will lay EGGS when located near a compatible mate.");
 //        TrainerTipsTile.messages.add("Build fences to prevent your pokemon from running away when you let them out of their POKéBALL.");
         TrainerTipsTile.messages.add("Build fences to prevent your POKéMON from wandering off when you let them out of their POKéBALL.");
         TrainerTipsTile.messages.add("You can build a door between two roof tiles to build a back door to your house.");
         TrainerTipsTile.messages.add("Sleeping indoors will restore hp twice as fast as sleeping outdoors.");
         TrainerTipsTile.messages.add("Use CUT on buildings to remove them.");
         TrainerTipsTile.messages.add("Your POKéMON will be happier if fenced in and located near a shelter.");
-        TrainerTipsTile.messages.add("Pokémon are happier when located in their natural habitat. If they are happy enough, they may give you items!");
-        TrainerTipsTile.messages.add("Sleeping in a bed will over time cure your POKéMON' status ailments.");
+        TrainerTipsTile.messages.add("POKéMON are happier when located in their natural habitat. If they are happy enough, they may give you items!");
+        TrainerTipsTile.messages.add("Sleeping in a bed will over time cure your POKéMON' status conditions.");
+        TrainerTipsTile.messages.add("Be wary of taking EGGS near wild POKéMON. Angry parents may attack!");
     }
 
     @Override

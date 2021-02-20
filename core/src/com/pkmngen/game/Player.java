@@ -21,6 +21,7 @@ import com.pkmngen.game.DrawPokemonMenu.SelectedMenu.Switch;
 import com.pkmngen.game.Pokemon.LedgeJump;
 import com.pkmngen.game.Pokemon.Moving;
 import com.pkmngen.game.util.LoadingZone;
+import com.pkmngen.game.util.SpriteProxy;
 import com.pkmngen.game.util.TextureCache;
 
 /*
@@ -214,8 +215,8 @@ class CycleDayNight extends Action {
         this.fadeToNight = false;
         this.animIndex = 0;
 
-        this.rand = new Random();
-        CycleDayNight.dayTimer = 18000; // 100; //- debug // 10000;
+        this.rand = new Random();  // TODO: use Game.rand instead
+        CycleDayNight.dayTimer = 18000;
 
         Texture text = new Texture(Gdx.files.internal("text2.png"));
         this.bgSprite = new Sprite(text, 0, 0, 160, 144);
@@ -238,7 +239,7 @@ class CycleDayNight extends Action {
         if (CycleDayNight.dayTimer <= 0) {
             if (game.map.timeOfDay.equals("day")) {
                 this.fadeToNight = true;
-                CycleDayNight.dayTimer = 5000; // debug  // was 10000
+                CycleDayNight.dayTimer = 5000;
             }
             else if (game.map.timeOfDay.equals("night")) {
                 this.fadeToDay = true;
@@ -310,21 +311,24 @@ class CycleDayNight extends Action {
                         if (tile.nameUpper.contains("tree_planted")) {
                             Tile tree = new Tile("bush1", "", tile.position.cpy(), true, tile.routeBelongsTo);
                             game.map.overworldTiles.put(tile.position, tree);
+                            // Just making planted trees yield 2 apricorns by default. 3 if fertilized.
                             // If fertilized, double existing apricorns. If no apricorns, place 1.
+                            int amt = 1;
                             if (tile.nameUpper.contains("fertilized")) {
-                                String[] items = {"black apricorn", "blue apricorn", "green apricorn", "pink apricorn",
-                                                  "red apricorn", "white apricorn", "yellow apricorn"};
-                                boolean found = false;
-                                for (String item : items) {
-                                    if (tree.items.containsKey(item)) {
-                                        tree.items.put(item, tree.items.get(item)+1);
-                                        found = true;
-                                        break;
-                                    }
+                                amt = 2;
+                            }
+                            String[] items = {"black apricorn", "blue apricorn", "green apricorn", "pink apricorn",
+                                              "red apricorn", "white apricorn", "yellow apricorn"};
+                            boolean found = false;
+                            for (String item : items) {
+                                if (tree.items.containsKey(item)) {
+                                    tree.items.put(item, tree.items.get(item)+amt);
+                                    found = true;
+                                    break;
                                 }
-                                if (!found) {
-                                    tree.items.put(items[game.map.rand.nextInt(items.length)], 1);
-                                }
+                            }
+                            if (!found) {
+                                tree.items.put(items[game.map.rand.nextInt(items.length)], 2);
                             }
                         }
                     }
@@ -400,8 +404,7 @@ class CycleDayNight extends Action {
                 game.insertAction(new SpawnGhost(game, new Vector2(randPos)) );
                 // TODO: mess with this.
 //                this.countDownToGhost = this.rand.nextInt(4000) + 1000; // debug: 1000;
-                this.countDownToGhost = this.rand.nextInt(2000) + 1000; // debug: 1000;
-                
+                this.countDownToGhost = this.rand.nextInt(2000) + 1000;
             }
         }
 
@@ -1347,8 +1350,69 @@ class DrawGhost extends Action {
             game.insertAction(new DespawnGhost(this.basePos.cpy()));
             return;
         }
+        // Check if player's party has fainted. if yes, remove this from AS
+        boolean hasAlivePokemon = false;
+        for (Pokemon pokemon : game.player.pokemon) {
+            if (pokemon.currentStats.get("hp") > 0 && !pokemon.name.equals("egg")) {
+                hasAlivePokemon = true;
+                break;
+            }
+        }
 
-        // if too near to a fire, despawn
+        // Check if ghost pokemon is dead. if yes, remove this from AS
+        if (!hasAlivePokemon || (this.pokemon.currentStats.get("hp") <= 0 && !this.inBattle)) {
+            this.currSprite.draw(game.mapBatch);
+            game.actionStack.remove(this);
+            game.insertAction(new DespawnGhost(this.basePos.cpy()));
+            boolean foundGhost = false;
+            for (Action action : game.actionStack) {
+                if (DrawGhost.class.isInstance(action)) {
+                    foundGhost = true;
+                    break;
+                }
+            }
+            if (!foundGhost && hasAlivePokemon) {
+                // TODO: remove
+//                game.currMusic.stop();
+//                game.currMusic.dispose();
+//                game.currMusic = game.loadedMusic.get(game.musicController.currOverworldMusic);//game.map.currRoute.music;
+//                game.currMusic.play();
+
+                game.musicController.nightAlert = false;
+                game.musicController.resumeOverworldMusic = true;
+            }
+            return;
+        }
+
+        // check whether player is in battle or not
+        // if not, don't move the ghost at all (subject to change)
+        if (game.battle.drawAction != null) {
+            this.currSprite.draw(game.mapBatch);
+            this.inBattle = true;
+            this.noEncounterTimer = 0;
+            return;
+        }
+
+        // Wait for a while if you just exited battle
+        if (this.inBattle) {
+            if (this.noEncounterTimer % 4 >= 2) {
+                this.currSprite.draw(game.mapBatch);
+            }
+            if (this.noEncounterTimer < 128) {
+                this.noEncounterTimer++;
+            }
+            this.inBattle = false;
+            return;
+        }
+
+        // Pause if player can't move
+        if (!game.playerCanMove) {
+            this.currSprite.draw(game.mapBatch);
+            return;
+        }
+
+        // If too near to a fire, despawn
+        boolean foundCampfire = false;
         this.startPos = this.basePos.cpy().add(-64, -64);
         this.startPos.x = (int)this.startPos.x - (int)this.startPos.x % 16;
         this.startPos.y = (int)this.startPos.y - (int)this.startPos.y % 16;
@@ -1366,76 +1430,33 @@ class DrawGhost extends Action {
                 continue;
             }
             if (tile.nameUpper.contains("campfire")) {
-                this.currSprite.draw(game.mapBatch);
-                game.actionStack.remove(this);
-                game.insertAction(new DespawnGhost(this.basePos.cpy()));
-                // TODO: test
-//                game.currMusic.pause();
-//                game.currMusic.stop();
-//                game.currMusic.dispose();
-//                game.currMusic = game.loadedMusic.get(game.musicController.currOverworldMusic);
-//                game.currMusic.play();
-                game.musicController.resumeOverworldMusic = true;
-                return;
+                foundCampfire = true;
+                break;
             }
-        }
-
-        // Check if player's party has fainted. if yes, remove this from AS
-        boolean hasAlivePokemon = false;
-        for (Pokemon pokemon : game.player.pokemon) {
-            if (pokemon.currentStats.get("hp") > 0) {
-                hasAlivePokemon = true;
+            Pokemon pokemon = game.map.pokemon.get(currPos);
+            if (pokemon != null && pokemon.hms.contains("FLASH")) {
+                foundCampfire = true;
                 break;
             }
         }
-
-        // Check if ghost pokemon is dead. if yes, remove this from AS
-        if (!hasAlivePokemon || (this.pokemon.currentStats.get("hp") <= 0 && !this.inBattle)) {
+        // Check if player is using an hm pokemon with flash
+        if (game.player.hmPokemon != null && 
+            this.basePos.dst2(game.player.position) < 4096 &&
+            game.player.hmPokemon.hms.contains("FLASH")) {
+            foundCampfire = true;
+        }
+        if (foundCampfire) {
             this.currSprite.draw(game.mapBatch);
             game.actionStack.remove(this);
             game.insertAction(new DespawnGhost(this.basePos.cpy()));
-            // TODO: check if this works.
-            boolean foundGhost = false;
-            for (Action action : game.actionStack) {
-                if (DrawGhost.class.isInstance(action)) {
-                    foundGhost = true;
-                    break;
-                }
-            }
-            if (!foundGhost && hasAlivePokemon) {
-//                game.currMusic.pause();
-                game.currMusic.stop();
-                game.currMusic.dispose();
-                game.currMusic = game.loadedMusic.get(game.musicController.currOverworldMusic);//game.map.currRoute.music;
-                game.currMusic.play();
-            }
-            return;
-        }
-
-        // check whether player is in battle or not
-        // if not, don't move the ghost at all (subject to change)
-        if (game.battle.drawAction != null) {
-            this.currSprite.draw(game.mapBatch);
-            this.inBattle = true;
-            this.noEncounterTimer = 0;
-            return;
-        }
-
-        // Wait for a while if you just exited battle
-        if (inBattle == true) {
-            if (this.noEncounterTimer % 4 >= 2) {
-                this.currSprite.draw(game.mapBatch);
-            }
-            this.noEncounterTimer++;
-            if (this.noEncounterTimer < 128) {
-                return;
-            }
-            this.inBattle = false;
-        }
-
-        // Pause if player can't move
-        if (!game.playerCanMove) {
-            this.currSprite.draw(game.mapBatch);
+            // TODO: test
+//            game.currMusic.pause();
+//            game.currMusic.stop();
+//            game.currMusic.dispose();
+//            game.currMusic = game.loadedMusic.get(game.musicController.currOverworldMusic);
+//            game.currMusic.play();
+            game.musicController.nightAlert = false;
+            game.musicController.resumeOverworldMusic = true;
             return;
         }
 
@@ -1613,7 +1634,7 @@ class DrawPlayerUpper extends Action {
             else if (game.player.dirFacing.equals("down")) {
                 pos = new Vector2(game.player.position.cpy().add(0,-16));
             }
-            // get game.player.currBuildTile and draw it at position
+            // Get game.player.currBuildTile and draw it in front of player
             Sprite sprite = new Sprite(game.player.currBuildTile.sprite);
             sprite.setAlpha(.8f);
             sprite.setPosition(pos.x, pos.y);
@@ -1974,6 +1995,9 @@ class PlantTree extends Action {
 
 /**
  * Self-explanatory Player class.
+ * 
+ * TODO: need some class OverworldThing that player and pokemon extend from
+ *  - facingPos(), pokemon.prevOwner is type OverworldThing so parents can own egg (eh?)
  */
 public class Player {
     // current player direction
@@ -1984,13 +2008,13 @@ public class Player {
     Map<String, Sprite> movingSprites = new HashMap<String, Sprite>();
     Map<String, Sprite> altMovingSprites = new HashMap<String, Sprite>();
     
-    Pokemon hmPokemon = null;  // Pokemon currently using HM
+    public Pokemon hmPokemon = null;  // Pokemon currently using a Field Move
     public int spriteOffsetY = 0;
 
     public Vector2 position;
     public Sprite currSprite = new Sprite();
 
-    Sprite battleSprite;
+    SpriteProxy battleSprite;
     Sprite sleepingSprite;
     Sprite sleepingBagSprite;
 
@@ -2044,6 +2068,9 @@ public class Player {
     int spawnIndex = -1;  // -1 == overworld, anything else is the interiorTilesIndex
     PlayerStanding standingAction;
     public boolean displayedMaxPartyText = false;
+    
+    public int eggStepTimer = 0;
+    public boolean nearAggroPokemon = false;
 
     ArrayList<String> alreadyDoneHarvestables = new ArrayList<String>();
     // up=down, left=right etc.
@@ -2169,17 +2196,17 @@ public class Player {
         this.altMovingSprites.put("left_running", new Sprite(playerText, 96, 0, 16, 16));
         this.altMovingSprites.put("right_running", new Sprite(playerText, 112, 0, 16, 16));
 
-        // battle portrait sprite
+        // Battle portrait sprite
 //        Texture text = new Texture(Gdx.files.internal("battle/player_back1.png"));
 //        this.battleSprite = new Sprite(text, 0, 0, 28, 28);
         text = new Texture(Gdx.files.internal("battle/player_back_color1.png"));
-        this.battleSprite = new Sprite(text, 0, 0, 45, 46);
+        this.battleSprite = new SpriteProxy(text, 0, 0, 45, 46);
         text = new Texture(Gdx.files.internal("tiles/sleeping_bag1_using.png"));
         this.sleepingSprite = new Sprite(text, 0, 0, 24, 16);
         text = new Texture(Gdx.files.internal("tiles/sleeping_bag1.png"));
         this.sleepingBagSprite = new Sprite(text, 0, 0, 24, 16);
 
-        // set initial position
+        // Set initial position
         this.position = new Vector2(0,0);
         this.currSprite = new Sprite(this.standingSprites.get(this.dirFacing));
 
@@ -2283,6 +2310,7 @@ public class Player {
             this.itemsDict.put("log", 99);
             this.itemsDict.put("black apricorn", 99);
             this.itemsDict.put("berry juice", 99);
+            this.itemsDict.put("moomoo milk", 99);
             this.itemsDict.put("ancientpowder", 99);
         }
 
@@ -2301,7 +2329,7 @@ public class Player {
         this.position = playerData.position;
         this.name = playerData.name;
         this.pokemon = new ArrayList<Pokemon>();
-        for (com.pkmngen.game.Network.PokemonData pokemonData : playerData.pokemon) {
+        for (com.pkmngen.game.Network.PokemonDataBase pokemonData : playerData.pokemon) {
             this.pokemon.add(new Pokemon(pokemonData));
         }
         // TODO: remove
@@ -2345,9 +2373,17 @@ public class Player {
     }
 
     /**
+     * TODO: this is going to become a generic check called after each time
+     * the player moves to fill in various values.
+     * 
      * Check if player is near campfire (needed to know if ghost can spawn or not).
      */
     public boolean checkNearCampfire() {
+        // true if player is near an aggro-d Pokemon
+        // player can't use campfire in this case.
+        this.nearAggroPokemon = false;  
+        // Automatically near a campfire if the pokemon following the player knows flash
+        boolean foundCampfire = this.hmPokemon != null && this.hmPokemon.hms.contains("FLASH");
         Vector2 startPos = this.position.cpy().add(-64, -64);
         startPos.x = (int)startPos.x - (int)startPos.x % 16;
         startPos.y = (int)startPos.y - (int)startPos.y % 16;
@@ -2365,10 +2401,25 @@ public class Player {
                 continue;
             }
             if (tile.nameUpper.contains("campfire")) {
-                return true;
+                foundCampfire = true;
             }
+            else if (Game.staticGame.map.pokemon.containsKey(currPos)) {
+                Pokemon pokemon = Game.staticGame.map.pokemon.get(currPos);
+                if (pokemon.aggroPlayer) {
+                    this.nearAggroPokemon = true;
+                }
+                if (pokemon.hms.contains("FLASH")) {
+                    foundCampfire = true;
+                }
+            }
+                    
+            // TODO: remove
+//            else if (Game.staticGame.map.pokemon.containsKey(currPos) &&
+//                     Game.staticGame.map.pokemon.get(currPos).name.equals("egg")) {
+//                this.nearbyEggs.put(Game.staticGame.map.pokemon.get(currPos), Math.abs(i) + Math.abs(j));
+//            }
         }
-        return false;
+        return foundCampfire;
     }
 
     /**
@@ -2442,7 +2493,7 @@ public class Player {
         int temp = this.spriteOffsetY;
         this.spriteOffsetY = pokemon.spriteOffsetY;
         pokemon.spriteOffsetY = temp;
-        this.hmPokemon = pokemon;
+        this.hmPokemon = pokemon;  // TODO: probably shouldn't be in here
     }
 
     public class Flying extends Action {
@@ -2835,7 +2886,7 @@ public class Player {
             }
         }
         playerText = new Texture(coloredPixmap);
-        this.battleSprite = new Sprite(playerText, 0, 0, 45, 46);
+        this.battleSprite = new SpriteProxy(playerText, 0, 0, 45, 46);
 
         // recolor sleeping bag sprite
         playerText = new Texture(Gdx.files.internal("tiles/sleeping_bag1_using.png"));
@@ -3164,12 +3215,12 @@ class PlayerLedgeJump extends Action {
             game.insertAction(playerStanding);
             // playerStanding.step(game); // step to detect movement right away
             game.actionStack.remove(this);
-
+            // If player is following a pokemon using an hm, then
+            // the player needs to do a ledge jump after the pokemon
             if (this.player.hmPokemon != null) {
                 this.player.hmPokemon.ledgeJumps.add(1);
             }
         }
-
         this.timer1++;
     }
 
@@ -4340,6 +4391,86 @@ class PlayerStanding extends Action {
 //                }
                 game.insertAction(action);
             }
+            // Check if any eggs hatch this step
+            game.player.eggStepTimer++;
+            // NOTE: vgc makes this check every 256 steps but that is way too high
+            if (game.player.eggStepTimer >= 16) {  //either 16 or 32, not sure which  //16) {  // 256
+                for (Pokemon pokemon : game.player.pokemon) {
+                    if (pokemon.name.equals("egg")) {
+                        pokemon.happiness -= 1;
+                        System.out.println(pokemon.eggHatchInto);
+                        System.out.println(pokemon.happiness);
+                        if (pokemon.happiness <= 0) {
+                            game.playerCanMove = false;
+                            // This plays the hatch animation
+                            String[] huhs = new String[]{"Huh?", "Oh?"};
+                            Action hatchAnimation = new WaitFrames(game, 61,
+                                                    new WaitFrames(game, 3,
+                                                    new DisplayText(game, huhs[Game.rand.nextInt(huhs.length)], null, true, false,
+                                                    new WaitFrames(game, 51,
+                                                    new DisplayText.Clear(game,
+                                                    new EggHatchAnim(pokemon,
+                                                    new SplitAction(
+                                                        new SetField(game.musicController, "startEvolveMusic", true, null),
+                                                    new Battle.LoadAndPlayAnimation(game, "egg_hatch", null,
+                                                    new SplitAction(new WaitFrames(game, 4,
+                                                                    new PlaySound(new Pokemon(pokemon.eggHatchInto, 10, Pokemon.Generation.CRYSTAL),
+                                                                    null)),
+                                                    new PokemonIntroAnim(
+                                                    new WaitFrames(game, 4,
+                                                    new DisplayText(game, pokemon.eggHatchInto.toUpperCase()+" came out of its EGG!",
+                                                                    "fanfare2.ogg", false, true,
+                                                    // Commented block is more accurate to the game, but feels weird
+                                                    // b/c fadeout is so quick
+                                                    // uses music fadeout speed -0.05
+//                                                    new SplitAction(
+//                                                        new EggHatchAnim.Done(13, null),
+//                                                    new EnterBuilding(game, "",
+//                                                    new SetField(game.musicController, "evolveMusicFadeout", true,
+//                                                    new SetField(game, "playerCanMove", true,
+                                                    new SplitAction(
+                                                        new EggHatchAnim.Done(13,
+                                                        new SetField(game.musicController, "evolveMusicFadeout", true,
+                                                        null)),
+                                                    new WaitFrames(game, 13,
+                                                    new EnterBuilding(game, "", 8,
+                                                    new SetField(game, "playerCanMove", true,
+                                                    null))))))))))))))));
+//                            // TODO: remove
+//                            Action hatchAnimation = new WaitFrames(game, 61,
+//                                                   new WaitFrames(game, 3,
+//                                                   new DisplayText(game, "Oh?", null, true, false,
+//                                                   new WaitFrames(game, 51,
+//                                                   new EvolutionAnim(pokemon, pokemon.eggHatchInto,
+//                                                   new PlaySound(pokemon,
+//                                                   new SplitAction(
+//                                                       new SetField(game.musicController, "startEvolveMusic", true, null),
+////                                                       new EvolutionAnim.StartMusic(),  // TODO: remove
+//                                                   new Battle.LoadAndPlayAnimation(game, "evolve", null,
+//                                                   new WaitFrames(game, 30,  // about 30 frames after bubble anim until pokemon cry is heard
+//                                                   new PlaySound(new Pokemon(pokemon.eggHatchInto, 10, Pokemon.Generation.CRYSTAL),
+//                                                   new DisplayText.Clear(game,
+//                                                   new WaitFrames(game, 3,
+//                                                   new DisplayText(game, "Congratulations! Your "+pokemon.name.toUpperCase(),
+//                                                                   null, true, true,
+//                                                   new DisplayText.Clear(game,
+//                                                   new WaitFrames(game, 3,
+//                                                   new DisplayText(game, "hatched into "+pokemon.eggHatchInto.toUpperCase()+"!",
+//                                                                   "fanfare2.ogg", true, false,
+//                                                   new DisplayText.Clear(game,
+//                                                   new WaitFrames(game, 2,
+//                                                   new EvolutionAnim.Done(
+//                                                   new SetField(game.musicController, "evolveMusicFadeout", true,
+//                                                   new SetField(game, "playerCanMove", true,
+//                                                   null)))))))))))))))))))));
+                            game.insertAction(hatchAnimation);
+                            this.checkWildEncounter = false;
+                            return;
+                        }
+                    }
+                }
+                game.player.eggStepTimer = 0;
+            }
         }
         // Check wild encounter
         if (this.checkWildEncounter && game.type != Game.Type.CLIENT) {
@@ -4347,7 +4478,7 @@ class PlayerStanding extends Action {
                 // The first Pokemon the player sends out in battle should
                 // have > 0 hp.
                 for (Pokemon currPokemon : this.player.pokemon) {
-                    if (currPokemon.currentStats.get("hp") > 0) {
+                    if (currPokemon.currentStats.get("hp") > 0 && !currPokemon.name.equals("egg")) {
                         this.player.currPokemon = currPokemon;
                         break;
                     }
@@ -4406,7 +4537,7 @@ class PlayerStanding extends Action {
             // The first Pokemon the player sends out in battle should
             // have >0 hp.
             for (Pokemon currPokemon : this.player.pokemon) {
-                if (currPokemon.currentStats.get("hp") > 0) {
+                if (currPokemon.currentStats.get("hp") > 0 && !currPokemon.name.equals("egg")) {
                     this.player.currPokemon = currPokemon;
                     break;
                 }
@@ -4579,90 +4710,128 @@ class PlayerStanding extends Action {
                                                                            DrawPokemonMenu.currIndex,
                                                                            "STOP"));
                 }
-                if (game.player.isBuilding) {
-                    // player wants to stop building
-                    game.player.isBuilding = false;
+                // Player wants to stop using field move
+                if (game.player.hmPokemon != null) {
+                    if (game.player.isJumping) {
+                        game.player.isJumping = false;
+                        game.player.swapSprites(game.player.hmPokemon);
+                        game.player.hmPokemon = null;
+                    }
+                    else {
+                        game.playerCanMove = false;
+                        game.actionStack.remove(game.player.hmPokemon.standingAction);
+                        if (game.player.hmPokemon.ledgeJumps.size() > 0) {
+                            game.player.hmPokemon.standingAction = game.player.hmPokemon.new LedgeJump(game.player.hmPokemon.dirFacing, game.player.hmPokemon.ledgeJumps.remove(0),
+                                                                   null);
+                        }
+                        else {
+                            game.player.hmPokemon.standingAction = game.player.hmPokemon.new Moving(game.player.hmPokemon.dirFacing, 1, 1f, true, true,
+                                                                   null);
+                        }
+                        // If not doing any of these, assume Pokemon is using FOLLOW
+                        // in which case you shouldn't swap sprites
+                        if (game.player.isBuilding || 
+                            game.player.isCutting ||
+                            game.player.isHeadbutting ||
+                            game.player.isSmashing) {
+                            game.player.hmPokemon.standingAction.append(new CallMethod(game.player, "swapSprites", new Object[]{game.player.hmPokemon}, null));
+                        }
+                        game.player.hmPokemon.standingAction.append(new SetField(game.player, "hmPokemon", null,
+                                                                    new SetField(game, "playerCanMove", true,
+                                                                    null)));
+                        game.player.isBuilding = false;
+                        game.player.isCutting = false;
+                        game.player.isHeadbutting = false;
+                        game.player.isSmashing = false;
+                        game.insertAction(game.player.hmPokemon.standingAction);
+                        return;
+                    }
+                }
+                // TODO: remove
+                // TODO: test
+//                if (game.player.isBuilding) {
+//                    // Player wants to stop building
+//                    game.player.isBuilding = false;
+//                    game.actionStack.remove(game.player.hmPokemon.standingAction);
+//                    if (game.player.hmPokemon.ledgeJumps.size() > 0) {
+//                        game.player.hmPokemon.standingAction = game.player.hmPokemon.new LedgeJump(game.player.hmPokemon.dirFacing, game.player.hmPokemon.ledgeJumps.remove(0),
+//                                                               new CallMethod(game.player, "swapSprites", new Object[]{game.player.hmPokemon}, 
+//                                                               new SetField(game, "playerCanMove", true,
+//                                                               null)));
+//                    }
+//                    else {
+//                        game.player.hmPokemon.standingAction = game.player.hmPokemon.new Moving(game.player.hmPokemon.dirFacing, 1, 1f, true, true,
+//                                                                new CallMethod(game.player, "swapSprites", new Object[]{game.player.hmPokemon}, 
+//                                                                new SetField(game, "playerCanMove", true,
+//                                                                null)));
+//                    }
+//                    game.insertAction(game.player.hmPokemon.standingAction);
+//                    
+//                }
+//                if (game.player.isCutting) {
+//                    // player wants to stop building
+//                    game.player.isCutting = false;
+//                    game.playerCanMove = false;
+//                    game.actionStack.remove(game.player.hmPokemon.standingAction);
+////                    game.player.hmPokemon.moveDir = game.player.dirFacing;  // move again in this direction
+////                  game.player.swapSprites(game.player.hmPokemon);
+//                    if (game.player.hmPokemon.ledgeJumps.size() > 0) {
+//                        game.player.hmPokemon.standingAction = game.player.hmPokemon.new LedgeJump(game.player.hmPokemon.dirFacing, game.player.hmPokemon.ledgeJumps.remove(0),
+//                                                               new CallMethod(game.player, "swapSprites", new Object[]{game.player.hmPokemon}, 
+//                                                               new SetField(game, "playerCanMove", true,
+//                                                               null)));
+//                    }
+//                    else {
+//                        game.player.hmPokemon.standingAction = game.player.hmPokemon.new Moving(game.player.hmPokemon.dirFacing, 1, 1f, true, true,
+//                                                                new CallMethod(game.player, "swapSprites", new Object[]{game.player.hmPokemon}, 
+//                                                                new SetField(game, "playerCanMove", true,
+//                                                                null)));
+//                    }
+//                    game.insertAction(game.player.hmPokemon.standingAction);
+//                    return;  // why return here?
+//                }
+//                if (game.player.isHeadbutting) {
+//                    // player wants to stop building
+//                    game.player.isHeadbutting = false;
+////                    game.player.swapSprites(game.player.hmPokemon);
+//                    game.actionStack.remove(game.player.hmPokemon.standingAction);
+//                    if (game.player.hmPokemon.ledgeJumps.size() > 0) {
+//                        game.player.hmPokemon.standingAction = game.player.hmPokemon.new LedgeJump(game.player.hmPokemon.dirFacing, game.player.hmPokemon.ledgeJumps.remove(0),
+//                                                               new CallMethod(game.player, "swapSprites", new Object[]{game.player.hmPokemon}, 
+//                                                               new SetField(game, "playerCanMove", true,
+//                                                               null)));
+//                    }
+//                    else {
+//                        game.player.hmPokemon.standingAction = game.player.hmPokemon.new Moving(game.player.hmPokemon.dirFacing, 1, 1f, true, true,
+//                                                                new CallMethod(game.player, "swapSprites", new Object[]{game.player.hmPokemon}, 
+//                                                                new SetField(game, "playerCanMove", true,
+//                                                                null)));
+//                    }
+//                    game.insertAction(game.player.hmPokemon.standingAction);
+//                }
+//                if (game.player.isJumping) {
+//                    // player wants to stop jumping
+//                    game.player.isJumping = false;
 //                    game.player.swapSprites(game.player.hmPokemon);
-                    game.actionStack.remove(game.player.hmPokemon.standingAction);
-                    if (game.player.hmPokemon.ledgeJumps.size() > 0) {
-                        game.player.hmPokemon.standingAction = game.player.hmPokemon.new LedgeJump(game.player.hmPokemon.dirFacing, game.player.hmPokemon.ledgeJumps.remove(0),
-                                                               new CallMethod(game.player, "swapSprites", new Object[]{game.player.hmPokemon}, 
-                                                               new SetField(game, "playerCanMove", true,
-                                                               null)));
-                    }
-                    else {
-                        game.player.hmPokemon.standingAction = game.player.hmPokemon.new Moving(game.player.hmPokemon.dirFacing, 1, 1f, true, true,
-                                                                new CallMethod(game.player, "swapSprites", new Object[]{game.player.hmPokemon}, 
-                                                                new SetField(game, "playerCanMove", true,
-                                                                null)));
-                    }
-                    game.insertAction(game.player.hmPokemon.standingAction);
-                    
-                }
-                if (game.player.isCutting) {
-                    // player wants to stop building
-                    game.player.isCutting = false;
-                    game.playerCanMove = false;
-                    game.actionStack.remove(game.player.hmPokemon.standingAction);
-//                    game.player.hmPokemon.moveDir = game.player.dirFacing;  // move again in this direction
-//                  game.player.swapSprites(game.player.hmPokemon);
-                    if (game.player.hmPokemon.ledgeJumps.size() > 0) {
-                        game.player.hmPokemon.standingAction = game.player.hmPokemon.new LedgeJump(game.player.hmPokemon.dirFacing, game.player.hmPokemon.ledgeJumps.remove(0),
-                                                               new CallMethod(game.player, "swapSprites", new Object[]{game.player.hmPokemon}, 
-                                                               new SetField(game, "playerCanMove", true,
-                                                               null)));
-                    }
-                    else {
-                        game.player.hmPokemon.standingAction = game.player.hmPokemon.new Moving(game.player.hmPokemon.dirFacing, 1, 1f, true, true,
-                                                                new CallMethod(game.player, "swapSprites", new Object[]{game.player.hmPokemon}, 
-                                                                new SetField(game, "playerCanMove", true,
-                                                                null)));
-                    }
-                    game.insertAction(game.player.hmPokemon.standingAction);
-                    return;
-                }
-                if (game.player.isHeadbutting) {
-                    // player wants to stop building
-                    game.player.isHeadbutting = false;
-//                    game.player.swapSprites(game.player.hmPokemon);
-                    game.actionStack.remove(game.player.hmPokemon.standingAction);
-                    if (game.player.hmPokemon.ledgeJumps.size() > 0) {
-                        game.player.hmPokemon.standingAction = game.player.hmPokemon.new LedgeJump(game.player.hmPokemon.dirFacing, game.player.hmPokemon.ledgeJumps.remove(0),
-                                                               new CallMethod(game.player, "swapSprites", new Object[]{game.player.hmPokemon}, 
-                                                               new SetField(game, "playerCanMove", true,
-                                                               null)));
-                    }
-                    else {
-                        game.player.hmPokemon.standingAction = game.player.hmPokemon.new Moving(game.player.hmPokemon.dirFacing, 1, 1f, true, true,
-                                                                new CallMethod(game.player, "swapSprites", new Object[]{game.player.hmPokemon}, 
-                                                                new SetField(game, "playerCanMove", true,
-                                                                null)));
-                    }
-                    game.insertAction(game.player.hmPokemon.standingAction);
-                }
-                if (game.player.isJumping) {
-                    // player wants to stop jumping
-                    game.player.isJumping = false;
-                    game.player.swapSprites(game.player.hmPokemon);
-                }
-                if (game.player.isSmashing) {
-                    game.player.isSmashing = false;
-//                    game.player.swapSprites(game.player.hmPokemon);
-                    game.actionStack.remove(game.player.hmPokemon.standingAction);
-                    if (game.player.hmPokemon.ledgeJumps.size() > 0) {
-                        game.player.hmPokemon.standingAction = game.player.hmPokemon.new LedgeJump(game.player.hmPokemon.dirFacing, game.player.hmPokemon.ledgeJumps.remove(0),
-                                                               new CallMethod(game.player, "swapSprites", new Object[]{game.player.hmPokemon}, 
-                                                               new SetField(game, "playerCanMove", true,
-                                                               null)));
-                    }
-                    else {
-                        game.player.hmPokemon.standingAction = game.player.hmPokemon.new Moving(game.player.hmPokemon.dirFacing, 1, 1f, true, true,
-                                                                new CallMethod(game.player, "swapSprites", new Object[]{game.player.hmPokemon}, 
-                                                                new SetField(game, "playerCanMove", true,
-                                                                null)));
-                    }
-                    game.insertAction(game.player.hmPokemon.standingAction);
-                }
+//                }
+//                if (game.player.isSmashing) {
+//                    game.player.isSmashing = false;
+////                    game.player.swapSprites(game.player.hmPokemon);
+//                    game.actionStack.remove(game.player.hmPokemon.standingAction);
+//                    if (game.player.hmPokemon.ledgeJumps.size() > 0) {
+//                        game.player.hmPokemon.standingAction = game.player.hmPokemon.new LedgeJump(game.player.hmPokemon.dirFacing, game.player.hmPokemon.ledgeJumps.remove(0),
+//                                                               new CallMethod(game.player, "swapSprites", new Object[]{game.player.hmPokemon}, 
+//                                                               new SetField(game, "playerCanMove", true,
+//                                                               null)));
+//                    }
+//                    else {
+//                        game.player.hmPokemon.standingAction = game.player.hmPokemon.new Moving(game.player.hmPokemon.dirFacing, 1, 1f, true, true,
+//                                                                new CallMethod(game.player, "swapSprites", new Object[]{game.player.hmPokemon}, 
+//                                                                new SetField(game, "playerCanMove", true,
+//                                                                null)));
+//                    }
+//                    game.insertAction(game.player.hmPokemon.standingAction);
+//                }
             }
             else {
                 PlayerStanding.bTimer++;
@@ -4670,7 +4839,6 @@ class PlayerStanding extends Action {
         }
 
         if (InputProcessor.aJustPressed) {
-            // place the built tile
             Vector2 pos = new Vector2(0,0);
             if (game.player.dirFacing.equals("right")) {
                 pos = new Vector2(game.player.position.cpy().add(16,0));
@@ -4774,7 +4942,7 @@ class PlayerStanding extends Action {
             else if (game.player.isHeadbutting) {
                 if (currTile.attrs.containsKey("headbuttable") && currTile.attrs.get("headbuttable")) {
                     // Choose if found anything
-                    Action nextAction = new PlayerCanMove(game, null);
+                    Action nextAction = new PlayerCanMove(game, null);  // TODO: use SetField
 //                    int randInt = game.map.rand.nextInt(4);
                     if (currTile.routeBelongsTo != null && !currTile.routeBelongsTo.pokemon.isEmpty()) {
                         // TODO: need to be static per-tree somehow.
@@ -4801,16 +4969,28 @@ class PlayerStanding extends Action {
                     // TODO: if there are ever interior objects, how do you preserve those?
 //                    Tile interiorTile = new Tile("black1", currTile.position.cpy());
 //                    game.map.interiorTiles.get(game.map.interiorTilesIndex).put(currTile.position.cpy(), interiorTile);
-                    game.map.interiorTiles.get(game.map.interiorTilesIndex).remove(currTile.position.cpy());
+                    Tile upTile = game.map.tiles.get(pos.cpy().add(0, 16));
+                    if (upTile != null && upTile.name.contains("rug") && currTile.nameUpper.contains("roof")) {
+                        game.map.tiles.put(upTile.position.cpy(), new Tile("green1", upTile.position.cpy(),
+                                                                           true, upTile.routeBelongsTo));
+                    }
+                    HashMap<Vector2, Tile> interiorTiles = game.map.interiorTiles.get(game.map.interiorTilesIndex);
+                    Tile interiorTile = interiorTiles.remove(currTile.position);
+                    if (interiorTile != null) {
+                        upTile = interiorTiles.get(interiorTile.position.cpy().add(0, 16));
+                        if (upTile != null && (upTile.name.contains("wall") || upTile.name.contains("door"))) {
+                            interiorTiles.remove(upTile.position);
+                        }
+                    }
                     game.playerCanMove = false;
                     // Get items from tile
                     if (!currTile.items.isEmpty()) {
-
-                        action.append(new SplitAction(new DrawItemPickup(currTile.items, null),
+                        action.append(new SplitAction(
+                                          new DrawItemPickup(currTile.items, null),
                                       null));
-
-                        // TODO: this was a text box popup for each item recieved
                         for (String item : currTile.items.keySet()) {
+                            // TODO: this was a text box popup for each item recieved
+                            // Still functional but deprecated for now.
 ////                            System.out.println(item);
 ////                            game.insertAction(new ItemPickupNotify(game, item, currTile.items.get(item)));
 //                            String plural = "";
@@ -4844,7 +5024,7 @@ class PlayerStanding extends Action {
                     if (currTile.routeBelongsTo != null && !currTile.routeBelongsTo.pokemon.isEmpty()
                             && game.map.rand.nextInt(2) == 0) {
                         for (Pokemon currPokemon : game.player.pokemon) {
-                            if (currPokemon.currentStats.get("hp") > 0) {
+                            if (currPokemon.currentStats.get("hp") > 0 && !currPokemon.name.equals("egg")) {
                                 game.player.currPokemon = currPokemon;
                                 break;
                             }
@@ -4896,14 +5076,12 @@ class PlayerStanding extends Action {
                                   null)))));
             }
             else {
-                // TODO: onPressA is deprecated since there are no unique Tile subclasses
-                // because it facilitates serialization. Deprecate this.
-                // calling this will trigger the tiles' onPressA function
-                 // might be sign (text), character, etc.
-                Tile temp = game.map.tiles.get(pos);
-                if (temp != null) {
-                    temp.onPressA(game);
-                }
+                // TODO: remove
+//                Tile temp = game.map.tiles.get(pos);
+//                if (temp != null) {
+//                    temp.onPressA(game);
+//                }
+                currTile.onPressA(game);
             }
         }
 
@@ -5310,7 +5488,7 @@ class PlayerStanding extends Action {
                     // have > 0 hp.
                     // TODO: this really needs to go in an action somewhere in the action chain (DrawBattle?)
                     for (Pokemon currPokemon : this.player.pokemon) {
-                        if (currPokemon.currentStats.get("hp") > 0) {
+                        if (currPokemon.currentStats.get("hp") > 0 && !currPokemon.name.equals("egg")) {
                             this.player.currPokemon = currPokemon;
                             break;
                         }
@@ -5429,6 +5607,9 @@ class PlayerStanding extends Action {
                 // TODO: restore player hp
                 // TODO: this needs to go in remoteStep or something for remote player
                 for (Pokemon pokemon : this.player.pokemon) {
+                    if (pokemon.name.equals("egg")) {
+                        continue;
+                    }
                     if (outdoors) {
                         pokemon.currentStats.put("hp", pokemon.currentStats.get("hp")+1);
                     }
@@ -5556,12 +5737,16 @@ class SpawnGhost extends Action {
             }
 
             // play alert music
-            game.currMusic.pause();
-            Music music = Gdx.audio.newMusic(Gdx.files.internal("night1_alert1.ogg"));
-            music.setLooping(true);
-            music.setVolume(.7f);
-            game.currMusic = music;
-            game.currMusic.play();
+            game.musicController.startNightAlert = "night1_alert1";
+            // TODO: remove
+//            game.currMusic.pause();
+//            Music music = Gdx.audio.newMusic(Gdx.files.internal("night1_alert1.ogg"));
+//            music.setLooping(true);
+//            music.setVolume(.7f);
+//            game.currMusic = music;
+//            game.currMusic.play();
+            
+            
 
             // TODO - insert ! mark action
         }
@@ -5604,15 +5789,16 @@ class SpawnGhost extends Action {
         // TODO: test
         // this should stop and dispose the night1_alert1 music.
         // was having issues where the game would not play sounds because too many were loaded.
-        game.currMusic.stop();  
-        game.currMusic.dispose();
-        Music music = Gdx.audio.newMusic(Gdx.files.internal("night1_chase1.ogg"));
-        music.setLooping(true);
-        music.setVolume(.7f);
-        game.currMusic = music;
-//        game.musicController.currOverworldMusic = "night1_chase1";
-//        game.map.currRoute.music = music; // TODO - how to switch to normal after defeating
-        game.currMusic.play();
+//        game.currMusic.stop();  
+//        game.currMusic.dispose();
+//        Music music = Gdx.audio.newMusic(Gdx.files.internal("night1_chase1.ogg"));
+//        music.setLooping(true);
+//        music.setVolume(.7f);
+//        game.currMusic = music;
+////        game.musicController.currOverworldMusic = "night1_chase1";
+////        game.map.currRoute.music = music; // TODO - how to switch to normal after defeating
+//        game.currMusic.play();
+        game.musicController.startNightAlert = "night1_chase1";
 
         game.playerCanMove = true;
         game.actionStack.remove(this);

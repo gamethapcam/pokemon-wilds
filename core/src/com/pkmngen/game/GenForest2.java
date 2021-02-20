@@ -1,5 +1,7 @@
 package com.pkmngen.game;
 
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -730,6 +732,26 @@ public class GenForest2 extends Action {
     Vector2 bottomRight;
 
     Random rand;
+    
+    public static HashMap<String, String> mates = new HashMap<String, String>();
+    static {
+        mates.put("nidoqueen", "nidoking");
+        mates.put("nidoking", "nidoqueen");
+        mates.put("charizard", "charizard");
+        mates.put("venusaur", "venusaur");
+//        mates.put("blastoise", "blastoise");
+        mates.put("meganium", "meganium");
+//        mates.put("typhlosion", "typhlosion");
+        mates.put("nidorina", "nidorino");
+        mates.put("nidorino", "nidorina");
+//        mates.put("tauros", "miltank");
+//        mates.put("miltank", "tauros");
+    }
+    public static HashMap<String, String> mates2 = new HashMap<String, String>();
+    static {
+        mates2.put("tauros", "miltank");
+        mates2.put("miltank", "tauros");
+    }
 
     public GenForest2(Game game, Vector2 startLoc, Vector2 endLoc) {
         // TODO -
@@ -1320,7 +1342,7 @@ public class GenForest2 extends Action {
                                 Route tempRoute = new Route("", 11);
                                 tempRoute.allowedPokemon.clear();
                                 tempRoute.pokemon.clear();
-                                String[] pokemon = new String[]{"pineco", "aipom", "kakuna", "metapod", "spinarak",
+                                String[] pokemon = new String[]{"pineco", "aipom", "kakuna", "metapod", "spinarak", "heracross",
                                                                 "ledyba", "hoothoot", "zubat", "pidgey", "spearow", "forretress"};
                                 // 1 in 3 ish bushes has a pokemon
                                 int randInt = this.rand.nextInt(3);
@@ -1426,8 +1448,15 @@ class GenIsland1 extends Action {
             ApplyBlotch(game, "island", tile, maxDist/18, this.tilesToAdd, 1, true, blotchRoute); 
         }
         this.tilesToAdd.putAll(mtnTiles);
+        
+        // remove 'stray' overworld pokemon
+        for (Vector2 pos : mtnTiles.keySet()) {
+            if (this.pokemonToAdd.containsKey(pos)) {
+                this.pokemonToAdd.remove(pos);
+            }
+        }
 
-        // find max/min x and y tiles, add padding and add water tiles
+        // Find max/min x and y tiles, add padding and add water tiles
         Vector2 maxPos = this.origin.cpy();
         Vector2 minPos = this.origin.cpy();
         for (Tile tile : new ArrayList<Tile>(this.tilesToAdd.values())) {
@@ -1542,7 +1571,8 @@ class GenIsland1 extends Action {
                 // Remove overworld pokemon that are currently inside something solid
                 //  Hard to remove them when they are being placed initially, this issue
                 //  happens when groups of tiles get merged together (I think).
-                if (this.pokemonToAdd.containsKey(tile.position) && tile.attrs.get("solid")) {
+                if (this.pokemonToAdd.containsKey(tile.position) && 
+                    (tile.attrs.get("solid") || tile.name.contains("ledge"))) {
                     Pokemon pokemon = this.pokemonToAdd.remove(tile.position);
 //                    game.actionStack.remove(pokemon.standingAction);
                 }
@@ -1632,35 +1662,72 @@ class GenIsland1 extends Action {
 //            }
 //        }
 //        System.out.println("End post-process: " + String.valueOf(System.currentTimeMillis()-startTime));
+        
+        
+        // TODO: potentially remove if other thing workig
+//        long startTime = System.currentTimeMillis();
+//        Vector2[] positions = new Vector2[]{new Vector2(-16, 0), new Vector2(16, 0),
+//                                            new Vector2(0, -16), new Vector2(0, 16)};
+//        Tile nextTile;
+//        for (Tile tile : new ArrayList<Tile>(this.tilesToAdd.values())) {
+//            for (Vector2 position : positions) {
+//                nextTile = tilesToAdd.get(tile.position.cpy().add(position));
+//                if (nextTile == null) {
+//                    continue;
+//                }
+////                if (nextTile.name.contains("water") && !tile.attrs.get("solid")) {
+////                    this.edges.add(tile);
+////                }
+//                if (nextTile.name.contains("water")) {
+//                    if (!tile.attrs.get("solid")) {
+//                        this.edges.add(tile);
+//                    }
+//                    // Issues with this. Removes pieces of pkmn mansion. also, rocks are too sparse.
+////                    else if (!tile.name.contains("water")) {
+////                        // Remove if solid and touching water. Doing this in an effort to remove blocked-in spawns.
+////                        // Have to replace with sand b/c rock1 and tree5 both don't use nameUpper
+////                        tilesToAdd.put(tile.position, new Tile("green1", tile.position, true, tile.routeBelongsTo));
+////                    }
+//                    break;
+//                }
+//            }
+//        }
+//        System.out.println("End post-process: " + String.valueOf(System.currentTimeMillis()-startTime));
+        
+        
+
         long startTime = System.currentTimeMillis();
         Vector2[] positions = new Vector2[]{new Vector2(-16, 0), new Vector2(16, 0),
+                                            new Vector2(-16, -16), new Vector2(16, 16),
+                                            new Vector2(16, -16), new Vector2(-16, 16),
                                             new Vector2(0, -16), new Vector2(0, 16)};
         Tile nextTile;
-//        for (Tile tile : this.tilesToAdd.values()) {
         for (Tile tile : new ArrayList<Tile>(this.tilesToAdd.values())) {
+//            if (tile.attrs.get("solid")) {  // 
+//            if (!tile.name.equals("sand1")) {
+//                continue;
+//            }
+            if (tile.name.equals("water2")) {
+                continue;
+            }
             for (Vector2 position : positions) {
                 nextTile = tilesToAdd.get(tile.position.cpy().add(position));
                 if (nextTile == null) {
                     continue;
                 }
-//                if (nextTile.name.contains("water") && !tile.attrs.get("solid")) {
+                if (nextTile.name.equals("water2")) {
 //                    this.edges.add(tile);
-//                }
-                if (nextTile.name.contains("water")) {
-                    if (!tile.attrs.get("solid")) {
-                        this.edges.add(tile);
-                    }
-                    // Issues with this. Removes pieces of pkmn mansion. also, rocks are too sparse.
-//                    else if (!tile.name.contains("water")) {
-//                        // Remove if solid and touching water. Doing this in an effort to remove blocked-in spawns.
-//                        // Have to replace with sand b/c rock1 and tree5 both don't use nameUpper
-//                        tilesToAdd.put(tile.position, new Tile("green1", tile.position, true, tile.routeBelongsTo));
-//                    }
-                    break;
+                    // Add a 'ring' of sand around the island
+                    // This will unfortunately delete some water tiles near middle of island
+                    Tile newTile = new Tile("sand3", nextTile.position.cpy(), true);
+                    this.tilesToAdd.put(newTile.position.cpy(), newTile);
+                    this.edges.add(newTile);
+//                    break;
                 }
             }
         }
         System.out.println("End post-process: " + String.valueOf(System.currentTimeMillis()-startTime));
+        
 
         
 //        this.edges.add(this.tilesToAdd.get(new Vector2(0,0)));
@@ -1710,6 +1777,27 @@ class GenIsland1 extends Action {
         // debug - put grass tile next to player
 //        this.tilesToAdd.put(new Vector2(16, 00), new Tile("grass1", new Vector2(16, 00)));
 //        this.tilesToAdd.put(new Vector2(16, 16), new Tile("grass1", new Vector2(16, 16)));
+        
+        ArrayList<TrainerTipsTile> signTiles = new ArrayList<TrainerTipsTile>();
+        for (Tile tile : this.tilesToAdd.values()) {
+            if (tile.nameUpper.contains("sign")) {
+                signTiles.add((TrainerTipsTile)tile);
+            }
+        }
+        if (signTiles.size() > 0) {
+            TrainerTipsTile tile = signTiles.get(game.map.rand.nextInt(signTiles.size()));
+            tile.isUnown = true;
+//            game.cam.position.set(tile.position, game.cam.position.z);
+//            System.out.println(tile.position);
+        }
+
+        try {
+            game.logFile = new FileWriter(game.map.id+".log");
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        
     }
 
     public void AddMtnLayer(HashMap<Vector2, Tile> levelTiles,
@@ -1937,7 +2025,8 @@ class GenIsland1 extends Action {
                                     pokemon.position = edge.cpy();
 //                                    pokemon.mapTiles = game.map.tiles;  // TODO: test
                                     pokemon.mapTiles = game.map.overworldTiles;
-                                    if (pokemon.name.toLowerCase().equals("tauros") || pokemon.name.toLowerCase().equals("ekans")
+                                    //pokemon.name.toLowerCase().equals("tauros") || 
+                                    if (pokemon.name.toLowerCase().equals("ekans")
                                             || pokemon.name.toLowerCase().equals("pidgey") || pokemon.name.toLowerCase().equals("spearow")
                                             || pokemon.name.toLowerCase().equals("rattata")) {
                                         pokemon.happiness = 0;
@@ -1945,6 +2034,44 @@ class GenIsland1 extends Action {
                                     pokemon.standingAction = pokemon.new Standing();
 //                                    game.insertAction(pokemon.standingAction);
                                     this.pokemonToAdd.put(pokemon.position.cpy(), pokemon);
+
+                                    // Add mates for some pokemon (at same position)
+                                    if (GenForest2.mates2.containsKey(pokemon.name)) {
+                                        String oppGender = pokemon.gender.equals("male") ? "female" : "male";
+                                        Pokemon mate = new Pokemon(GenForest2.mates2.get(pokemon.name), pokemon.level, Pokemon.Generation.CRYSTAL);
+                                        mate.gender = oppGender;
+                                        mate.position = pokemon.position.cpy().add(16, 0);
+                                        mate.mapTiles = game.map.overworldTiles;
+                                        mate.standingAction = mate.new Standing();
+                                        this.pokemonToAdd.put(mate.position.cpy(), mate);
+                                    }
+                                }
+                                // Chance to spawn poke-parents in deep forest
+                                if (distance < maxDist/4 && maxDist > 300 && this.rand.nextInt(750) == 0) {  //800
+                                    int centerLevel;
+                                    if (maxDist > 300) {
+                                        centerLevel = 50;
+                                    }
+                                    else {
+                                        centerLevel = 15;
+                                    }
+                                    int level = (int)(centerLevel*(1-(distance / (2*maxDist/5))));
+                                    if (level < 4) {
+                                        level = 4;
+                                    }
+                                    String name = new ArrayList<String>(GenForest2.mates.keySet()).get(Game.rand.nextInt(GenForest2.mates.keySet().size()));
+                                    Pokemon pokemon = new Pokemon(name, level, Pokemon.Generation.CRYSTAL);
+                                    pokemon.position = edge.cpy();
+                                    pokemon.mapTiles = game.map.overworldTiles;
+                                    pokemon.standingAction = pokemon.new Standing();
+                                    this.pokemonToAdd.put(pokemon.position.cpy(), pokemon);
+                                    String oppGender = pokemon.gender.equals("male") ? "female" : "male";
+                                    Pokemon mate = new Pokemon(GenForest2.mates.get(pokemon.name), pokemon.level, Pokemon.Generation.CRYSTAL);
+                                    mate.gender = oppGender;
+                                    mate.position = pokemon.position.cpy().add(16, 0);
+                                    mate.mapTiles = game.map.overworldTiles;
+                                    mate.standingAction = mate.new Standing();
+                                    this.pokemonToAdd.put(mate.position.cpy(), mate);
                                 }
                                 if (isMaze == 0) {
                                     int isTree = this.rand.nextInt(maxDist/4) + (int)distance;
@@ -2041,11 +2168,35 @@ class GenIsland1 extends Action {
                             else if (type.equals("mtn_green1") || type.equals("mtn_snow1")) {
                                 Tile newTile;
                                 if (this.rand.nextInt(5) == 0) {
+                                    // TODO: Trevenant and Abamosnow encounters
+                                    Route tempRoute = null;
                                     if (type.equals("mtn_snow1")) {
-                                        newTile = new Tile("tree4", edge);
+                                        // 1 in 3 ish trees has a pokemon
+                                        int randInt = this.rand.nextInt(3);
+                                        if (randInt == 2) {
+                                            tempRoute = new Route("", 22);
+                                            tempRoute.allowedPokemon.clear();
+                                            tempRoute.pokemon.clear();
+                                            String[] pokemon = new String[]{"pineco", "aipom", "kakuna", "metapod", "spinarak", "heracross",
+                                                                            "ledyba", "hoothoot", "zubat", "pidgey", "spearow", "forretress"};
+                                            randInt = this.rand.nextInt(pokemon.length);
+                                            tempRoute.pokemon.add(new Pokemon(pokemon[randInt], 20+this.rand.nextInt(4), Pokemon.Generation.CRYSTAL));
+                                        }
+                                        newTile = new Tile("tree4", edge, true, tempRoute);
                                     }
                                     else {
-                                        newTile = new Tile("tree2", edge);
+                                        // 1 in 3 ish trees has a pokemon
+                                        int randInt = this.rand.nextInt(3);
+                                        if (randInt == 2) {
+                                            tempRoute = new Route("", 22);
+                                            tempRoute.allowedPokemon.clear();
+                                            tempRoute.pokemon.clear();
+                                            String[] pokemon = new String[]{"pineco", "aipom", "kakuna", "metapod", "spinarak", "heracross",
+                                                                            "ledyba", "hoothoot", "zubat", "pidgey", "spearow", "forretress"};
+                                            randInt = this.rand.nextInt(pokemon.length);
+                                            tempRoute.pokemon.add(new Pokemon(pokemon[randInt], 20+this.rand.nextInt(4), Pokemon.Generation.CRYSTAL));
+                                        }
+                                        newTile = new Tile("tree2", edge, true, tempRoute);
                                     }
                                 }
                                 else if (this.rand.nextInt(5) == 0) {
@@ -4178,6 +4329,14 @@ class GenIsland1 extends Action {
 
         for (Pokemon pokemon : this.pokemonToAdd.values()) {
             game.insertAction(pokemon.standingAction);
+            // TODO: ideally wouldn't do this but not sure what to do
+            // Nido family requires 'ground' habitat.
+            if (pokemon.name.contains("nido") && pokemon.gender.equals("female")) {
+                game.map.tiles.put(pokemon.position.cpy(), new Tile("mountain3", pokemon.position.cpy(), true));
+            }
+            else if (pokemon.name.equals("charizard") && pokemon.gender.equals("female")) {
+                game.map.tiles.put(pokemon.position.cpy(), new Tile("green1", "campfire1", pokemon.position.cpy(), true));
+            }
         }
         this.pokemonToAdd.clear();
 

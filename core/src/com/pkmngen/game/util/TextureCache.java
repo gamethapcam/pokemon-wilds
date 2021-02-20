@@ -4,18 +4,44 @@ import java.util.HashMap;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.files.FileHandle;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.pkmngen.game.Game;
+
 
 /**
  * Cache textures based on filehandles.
+ * 
+ * Also, if a thread outside the gdx thread wants to initialize a texture,
+ * this will post the initialization (ie new Texture(...)) to the gdx
+ * thread if that thread uses TextureCache.get(<texture info>).
  */
 public class TextureCache {
-    
     public static HashMap<FileHandle, com.badlogic.gdx.graphics.Texture> textMap = new HashMap<FileHandle, com.badlogic.gdx.graphics.Texture>();
+//    // Textures with their colors inverted. Used for effects requiring inverse colors.
+    public static HashMap<Texture, com.badlogic.gdx.graphics.Texture[]> effectsTextMap = new HashMap<Texture, com.badlogic.gdx.graphics.Texture[]>();
+    public static HashMap<Texture, Color[]> colorsTextMap = new HashMap<Texture, Color[]>();
     public static Texture currTexture;
+
+    public static HashMap<String, com.badlogic.gdx.graphics.Texture> eggTextures = new HashMap<String, com.badlogic.gdx.graphics.Texture>();
+    public static SpriteProxy maleSymbol;
+    public static SpriteProxy femaleSymbol;
+    static {
+        Texture text = new Texture(Gdx.files.internal("male_symbol1.png"));
+        TextureCache.maleSymbol = new SpriteProxy(Color.WHITE, text, 0, 0, 8, 8);
+        text = new Texture(Gdx.files.internal("female_symbol1.png"));
+        TextureCache.femaleSymbol = new SpriteProxy(Color.WHITE, text, 0, 0, 8, 8);
+//        System.out.println(TextureCache.femaleSymbol.color1);
+//        System.out.println(TextureCache.femaleSymbol.color2);
+    }
+
     
+    /**
+     * If this is being called from outside the main thread, post the operation (new Texture())
+     * to the main thread and use that. Used when loading the map in a separate thread.
+     */
     public static com.badlogic.gdx.graphics.Texture get(final Pixmap pixmap) {
         if (Thread.currentThread() != Game.staticGame.gameThread) {
             Runnable runnable = new Runnable() {

@@ -26,10 +26,10 @@ Pikachu
 Raichu
 Sandshrew
 Sandslash
-Nidoran?
+Nidoran_f
 Nidorina
 Nidoqueen
-Nidoran?
+Nidoran_m
 Nidorino
 Nidoking
 Clefairy

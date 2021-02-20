@@ -1,5 +1,7 @@
 package com.pkmngen.game;
 
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -16,6 +18,7 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Pixmap;
+import com.badlogic.gdx.graphics.Pixmap.Format;
 import com.badlogic.gdx.graphics.PixmapIO;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.TextureData;
@@ -25,12 +28,17 @@ import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator.FreeTypeFontParameter;
+import com.badlogic.gdx.graphics.glutils.FrameBuffer;
+import com.badlogic.gdx.math.Matrix4;
+import com.badlogic.gdx.math.Quaternion;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.GdxRuntimeException;
 import com.esotericsoftware.kryonet.Client;
 import com.esotericsoftware.kryonet.Server;
 import com.esotericsoftware.minlog.Log;
+import com.pkmngen.game.util.ProxyBatch;
+import com.pkmngen.game.util.SpriteProxy;
 
 /**
  * Standard libGDX Game biolerplate extended for Pokemon Wilds.
@@ -42,8 +50,8 @@ import com.esotericsoftware.minlog.Log;
 public class Game extends ApplicationAdapter {
     public static Game staticGame;  // Annoying - used by music completion listener
     public ArrayList<Action> actionStack = new ArrayList<Action>();
-    public SpriteBatch mapBatch;
-    public SpriteBatch uiBatch;
+    public ProxyBatch mapBatch;
+    public ProxyBatch uiBatch;
     public BitmapFont font;
     public OrthographicCamera cam;
     Vector3 touchLoc = new Vector3();
@@ -62,12 +70,13 @@ public class Game extends ApplicationAdapter {
     // When want to play a music file, put in here. Call dispose and remove elements when done.
     HashMap<String, Music> loadedMusic =  new HashMap<String, Music>();
     // Char-to-Sprite text dictionary
-    Map<Character, Sprite> textDict;
+    Map<Character, SpriteProxy> textDict;
     // Server uses this to keep track of all players currently in the game.
     // playerId->Player
     HashMap<String, Player> players = new HashMap<String, Player>();
     // Server determines outcome of all actions done in battle
     HashMap<String, Battle> battles = new HashMap<String, Battle>();
+    FileWriter logFile;
 //    Action fadeMusicAction = null;
     // Network
     public Client client;
@@ -75,6 +84,11 @@ public class Game extends ApplicationAdapter {
     Type type;
     public static Random rand = new Random();
     public Thread gameThread;
+    //
+    DrawCampfireAuras drawCampfireAuras;
+    Texture shadow;
+    public SpriteBatch lightingBatch;
+    public FrameBuffer frameBuffer;
 
     public Game() {
         super();
@@ -95,8 +109,20 @@ public class Game extends ApplicationAdapter {
         Game.staticGame = this;
         this.gameThread = Thread.currentThread();
 
-        this.mapBatch = new SpriteBatch();
-        this.uiBatch = new SpriteBatch();
+        this.mapBatch = new ProxyBatch(); //new SpriteBatch();  <-- does this need to be a proxyBatch? not sure
+        this.uiBatch = new ProxyBatch();
+        this.frameBuffer = new FrameBuffer(Format.RGBA8888, Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), false);
+        this.lightingBatch = new SpriteBatch();
+//        this.lightingBatch.setBlendFunction(GL20.GL_DST_COLOR, GL20.GL_SRC_ALPHA);  // TODO: mess with this
+//        this.lightingBatch.setBlendFunction(GL20.GL_SRC_ALPHA, GL20.GL_BLEND_COLOR); 
+//        this.lightingBatch.setBlendFunction(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+//        this.lightingBatch.setBlendFunction(GL20.GL_ONE, GL20.GL_ONE_MINUS_SRC_ALPHA);
+//        this.lightingBatch.setBlendFunction(GL20.GL_SRC_ALPHA, GL20.GL_DST_COLOR);
+        // TODO: debug
+//        this.lightingBatch.setColor(new Color(0.08f, 0.08f, 0.3f, 1.0f));
+//        this.lightingBatch.setColor(new Color(0f, 0f, 0f, 1.0f));
+        this.drawCampfireAuras = new DrawCampfireAuras(this);
+        this.shadow = new Texture(Gdx.files.internal("shadow2.png"));
 
         // This will force window to contain gameboy-equivalent pixels
         this.cam = new OrthographicCamera(160, 144);
@@ -131,12 +157,21 @@ public class Game extends ApplicationAdapter {
 
     @Override
     public void dispose() {
+        if (this.logFile != null) {
+            // These constant try/catches are such a joy
+            try {
+                this.logFile.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
         mapBatch.dispose();
         uiBatch.dispose();
+        lightingBatch.dispose();
         for (Music music : this.loadedMusic.values()){
             music.dispose();
         }
-        // save game
+        // Save game
         if (this.map != null) {
             new PkmnMap.PeriodicSave(this).step(this);
         }
@@ -189,15 +224,18 @@ public class Game extends ApplicationAdapter {
                 System.out.println(String.valueOf(action.getLayer()) + "  " + action.getClass().getName());
             }
             System.out.println("Time of day: " + this.map.timeOfDay + " " + String.valueOf(CycleDayNight.dayTimer));
-            System.out.println("player pokemon");
-            for (Player player : this.players.values()) {
-                System.out.println("curr pokemon:" + player.currPokemon.name);
-                for (Pokemon pokemon : player.pokemon) {
-                    System.out.println(pokemon.name + " hp: " + pokemon.currentStats.get("hp"));
-                    for (String type : pokemon.types) {
-                        System.out.println(type);
-                    }
-                }
+//            System.out.println("player pokemon");
+//            for (Player player : this.players.values()) {
+//                System.out.println("curr pokemon:" + player.currPokemon.name);
+//                for (Pokemon pokemon : player.pokemon) {
+//                    System.out.println(pokemon.name + " hp: " + pokemon.currentStats.get("hp"));
+//                    for (String type : pokemon.types) {
+//                        System.out.println(type);
+//                    }
+//                }
+//            }
+            for (Pokemon pokemon : this.player.pokemon) {
+                System.out.println(pokemon.previousOwner.name);
             }
 //            System.out.println("oppPokemon attacks:");
 //            for (String attack : this.battle.oppPokemon.attacks) {
@@ -433,37 +471,37 @@ public class Game extends ApplicationAdapter {
      * @return Map<Character, Sprite>
      * @see DisplayText
      */
-    public Map<Character, Sprite> initTextDict() {
-        Map<Character, Sprite> textDict = new HashMap<Character, Sprite>();
+    public Map<Character, SpriteProxy> initTextDict() {
+        Map<Character, SpriteProxy> textDict = new HashMap<Character, SpriteProxy>();
         // This sheet starts with an offset of x=5, y=1
         Texture text = new Texture(Gdx.files.internal("text_sheet1.png"));
         char[] alphabet_upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".toCharArray();
         char[] alphabet_lower = "abcdefghijklmnopqrstuvwxyz".toCharArray();
         // Uppercase letters
         for (int i = 0; i < 26; i++) {
-            textDict.put(alphabet_upper[i], new Sprite(text, 10+16*i, 5, 8, 8));
+            textDict.put(alphabet_upper[i], new SpriteProxy(text, 10+16*i, 5, 8, 8));
         }
         // Lowercase letters
         for (int i = 0; i < 26; i++) {
-            textDict.put(alphabet_lower[i], new Sprite(text, 10+16*i, 5+12, 8, 8));
+            textDict.put(alphabet_lower[i], new SpriteProxy(text, 10+16*i, 5+12, 8, 8));
         }
         // Numbers
         for (int i = 0; i < 10; i++) {
-            textDict.put(Character.forDigit(i, 10), new Sprite(text, 10+16*i, 5+12+12, 8, 8));
+            textDict.put(Character.forDigit(i, 10), new SpriteProxy(text, 10+16*i, 5+12+12, 8, 8));
         }
         // Special chars
-        textDict.put(' ', new Sprite(text, 10+16*10, 5+12+12, 8, 8));
-        textDict.put('_', new Sprite(text, 10+16*2, 5+12+12+12, 8, 8));
-        textDict.put('?', new Sprite(text, 10+16*3, 5+12+12+12, 8, 8));
-        textDict.put('!', new Sprite(text, 10+16*4, 5+12+12+12, 8, 8));
-        textDict.put('.', new Sprite(text, 10+16*7, 5+12+12+12, 8, 8));
-        textDict.put(',', new Sprite(text, 10+16*8, 5+12+12+12, 8, 8));
-        textDict.put('é', new Sprite(text, 10+16*9, 5+12+12+12, 8, 8));
-        textDict.put('É', new Sprite(text, 10+16*9, 5+12+12+12, 8, 8));  // same as lower case é, used in menus (ie POKéBALL, etc)
-        textDict.put('-', new Sprite(text, 10+16*10, 5+12+12+12, 8, 8));
-        textDict.put('\'', new Sprite(text, 10+16*11, 5+12+12+12, 8, 8));
-        textDict.put('ì', new Sprite(text, 10+16*12, 5+12+12+12, 8, 8));
-        textDict.put(null, new Sprite(text, 10+16*0, 5+12+12+12+12, 8, 8));  // use when no char found
+        textDict.put(' ', new SpriteProxy(text, 10+16*10, 5+12+12, 8, 8));
+        textDict.put('_', new SpriteProxy(text, 10+16*2, 5+12+12+12, 8, 8));
+        textDict.put('?', new SpriteProxy(text, 10+16*3, 5+12+12+12, 8, 8));
+        textDict.put('!', new SpriteProxy(text, 10+16*4, 5+12+12+12, 8, 8));
+        textDict.put('.', new SpriteProxy(text, 10+16*7, 5+12+12+12, 8, 8));
+        textDict.put(',', new SpriteProxy(text, 10+16*8, 5+12+12+12, 8, 8));
+        textDict.put('é', new SpriteProxy(text, 10+16*9, 5+12+12+12, 8, 8));
+        textDict.put('É', new SpriteProxy(text, 10+16*9, 5+12+12+12, 8, 8));  // same as lower case é, used in menus (ie POKéBALL, etc)
+        textDict.put('-', new SpriteProxy(text, 10+16*10, 5+12+12+12, 8, 8));
+        textDict.put('\'', new SpriteProxy(text, 10+16*11, 5+12+12+12, 8, 8));
+        textDict.put('ì', new SpriteProxy(text, 10+16*12, 5+12+12+12, 8, 8));
+        textDict.put(null, new SpriteProxy(text, 10+16*0, 5+12+12+12+12, 8, 8));  // use when no char found
         return textDict;
     }
 
@@ -497,38 +535,70 @@ public class Game extends ApplicationAdapter {
         }
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
         this.cam.update();
+
+//        // Handles time of day lighting and campfire 'aura' effect
+//        // TODO: no idea if this can 'darken' everything or not. You'd think it should be
+//        //       able to.
+//        this.frameBuffer.begin();
+//        this.lightingBatch.begin();
+//        this.lightingBatch.setProjectionMatrix(new Matrix4());
+//        this.lightingBatch.setBlendFunction(GL20.GL_ONE, GL20.GL_ONE_MINUS_SRC_ALPHA);
+//        this.lightingBatch.draw(this.shadow, 0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+//        this.lightingBatch.setProjectionMatrix(cam.combined);
+//        this.lightingBatch.setBlendFunction(GL20.GL_DST_COLOR, GL20.GL_SRC_ALPHA); 
+//        this.drawCampfireAuras.step(this);
+//        this.lightingBatch.end();
+//        this.frameBuffer.end();
+        
+        
         this.mapBatch.setProjectionMatrix(cam.combined);
         // Iterate through this.actionStack twice, once for this.batch (map objects), once for this.uiBatch (ui objects)
         this.mapBatch.begin();
         // Iterate through the action stack and call the step() fn of each Action.
         for (Action action : new ArrayList<Action>(this.actionStack)) {
             if (action.getCamera().equals("map")) {
-                if (action.firstStep) {
-                    action.firstStep(this);
-                    action.firstStep = false;
-                }
                 try {
+                    if (action.firstStep) {
+                        action.firstStep(this);
+                        action.firstStep = false;
+                    }
                     action.step(this);
                 }
                 catch (Exception e) {
                     e.printStackTrace();
+                    if (this.logFile != null) {
+                        try {
+                            this.logFile.append(e.toString());
+                        } catch (IOException e1) {
+                            e1.printStackTrace();
+                        }
+                    }
                 }
             }
         }
         this.mapBatch.end();
+
         this.uiBatch.begin();
+//        this.uiBatch.draw(this.frameBuffer.getColorBufferTexture(), 0, 0);  // TODO: test
         // Iterate through the action stack and call the step() fn of each Action.
         for (Action action : new ArrayList<Action>(this.actionStack)) {
             if (action.getCamera().equals("gui")) {
-                if (action.firstStep) {
-                    action.firstStep(this);
-                    action.firstStep = false;
-                }
                 try {
+                    if (action.firstStep) {
+                        action.firstStep(this);
+                        action.firstStep = false;
+                    }
                     action.step(this);
                 }
                 catch (Exception e) {
                     e.printStackTrace();
+                    if (this.logFile != null) {
+                        try {
+                            this.logFile.append(e.toString());
+                        } catch (IOException e1) {
+                            e1.printStackTrace();
+                        }
+                    }
                 }
             }
         }
@@ -634,14 +704,37 @@ public class Game extends ApplicationAdapter {
 //            this.player.pokemon.get(0).attacks[2] = "recover";
 //            this.player.pokemon.get(0).attacks[3] = "slash";
             this.player.pokemon.add(new Pokemon("rapidash", 60, Pokemon.Generation.CRYSTAL));
-//            this.player.pokemon.get(1).attacks[0] = "disable";
+            this.player.pokemon.get(1).attacks[0] = "earthquake";
 //            this.player.pokemon.get(1).attacks[1] = "confuse ray";
 //            this.player.pokemon.get(1).attacks[2] = "toxic";
 //            this.player.pokemon.get(1).attacks[3] = "sweet scent";
             this.player.pokemon.add(new Pokemon("pidgeot", 60, Pokemon.Generation.CRYSTAL));
             this.player.pokemon.add(new Pokemon("meganium", 60, Pokemon.Generation.CRYSTAL));
             this.player.pokemon.add(new Pokemon("ursaring", 60, Pokemon.Generation.CRYSTAL));
-            this.player.pokemon.add(new Pokemon("golem", 60, Pokemon.Generation.CRYSTAL));
+//            this.player.pokemon.add(new Pokemon("golem", 60, Pokemon.Generation.CRYSTAL));
+//            this.player.pokemon.get(1).currentStats.put("hp", 0);
+//            this.player.pokemon.get(2).currentStats.put("hp", 0);
+//            this.player.pokemon.get(3).currentStats.put("hp", 0);
+
+//            this.player.pokemon.add(new Pokemon("loudred", 60, Pokemon.Generation.CRYSTAL));
+//            this.player.pokemon.add(new Pokemon("loudred", 60, Pokemon.Generation.CRYSTAL));
+//            this.player.pokemon.get(3).gender = "male";
+//            this.player.pokemon.get(4).gender = "female";
+            this.player.pokemon.add(new Pokemon("magcargo", 60, Pokemon.Generation.CRYSTAL));
+//            this.player.pokemon.add(new Pokemon("masquerain", 60, Pokemon.Generation.CRYSTAL));
+
+            // TODO: remove
+//            this.player.pokemon.add(new Pokemon("charizard", 60, Pokemon.Generation.CRYSTAL));
+//            this.player.pokemon.add(new Pokemon("charizard", 60, Pokemon.Generation.CRYSTAL));
+//            this.player.pokemon.add(new Pokemon("unown", 60, Pokemon.Generation.CRYSTAL));
+//            this.player.pokemon.get(3).gender = "male";
+//            this.player.pokemon.get(4).gender = "female";
+
+//            this.player.pokemon.add(new Pokemon("egg", 1, Pokemon.Generation.CRYSTAL, false, "skarmory"));
+//            this.player.pokemon.add(new Pokemon("egg", 1, Pokemon.Generation.CRYSTAL, true, "skarmory"));
+//            this.player.pokemon.get(4).happiness = 1;  // test egg cycle hatching works
+//            this.player.pokemon.add(new Pokemon("egg", 1, Pokemon.Generation.CRYSTAL, false, "skarmory"));
+//            this.player.pokemon.get(5).happiness = 1;  // test egg cycle hatching works
             Log.set(Log.LEVEL_DEBUG);
         }
         for (Pokemon pokemon : this.player.pokemon) {

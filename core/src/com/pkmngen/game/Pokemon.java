@@ -17,14 +17,214 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.TextureData;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.math.Vector2;
+import com.pkmngen.game.Network.PokemonData;
+import com.pkmngen.game.util.SpriteProxy;
 import com.pkmngen.game.util.TextureCache;
 
 public class Pokemon {
+
+    // TODO: eventually remove
+    public static ArrayList<String> attacksNotImplemented = new ArrayList<String>();
+    static {
+        attacksNotImplemented.add("absorb");
+        attacksNotImplemented.add("barrage");
+        attacksNotImplemented.add("baton pass");
+        attacksNotImplemented.add("beat Up");
+        attacksNotImplemented.add("belly drum");
+        attacksNotImplemented.add("bide");
+        attacksNotImplemented.add("bind");
+        attacksNotImplemented.add("bone rush");
+        attacksNotImplemented.add("bonemerang");
+        attacksNotImplemented.add("charm");
+        attacksNotImplemented.add("comet punch");
+        attacksNotImplemented.add("conversion");
+        attacksNotImplemented.add("conversion 2");
+        attacksNotImplemented.add("counter");
+        attacksNotImplemented.add("curse");
+        attacksNotImplemented.add("protect");
+        attacksNotImplemented.add("destiny bond");
+        attacksNotImplemented.add("detect");
+        attacksNotImplemented.add("dig");
+        attacksNotImplemented.add("double edge");
+        attacksNotImplemented.add("double kick");
+        attacksNotImplemented.add("double slap");
+        attacksNotImplemented.add("dragon rage");
+        attacksNotImplemented.add("dream eater");
+        attacksNotImplemented.add("encore");
+        attacksNotImplemented.add("endure");
+        attacksNotImplemented.add("explosion");
+        attacksNotImplemented.add("fissure");
+        attacksNotImplemented.add("flail");
+        attacksNotImplemented.add("flame wheel");
+        attacksNotImplemented.add("fly");
+        attacksNotImplemented.add("focus energy");
+        attacksNotImplemented.add("foresight");
+        attacksNotImplemented.add("frustration");
+        attacksNotImplemented.add("fury attack");
+        attacksNotImplemented.add("fury swipes");
+        attacksNotImplemented.add("future sight");
+        attacksNotImplemented.add("giga drain");
+        attacksNotImplemented.add("guillotine");
+        attacksNotImplemented.add("haze");
+        attacksNotImplemented.add("heal bell");
+        attacksNotImplemented.add("horn drill");
+        attacksNotImplemented.add("leech life");
+        attacksNotImplemented.add("leech seed");
+        attacksNotImplemented.add("light screen");
+        attacksNotImplemented.add("lock on");
+        attacksNotImplemented.add("magnitude");
+        attacksNotImplemented.add("mean look");
+        attacksNotImplemented.add("mega drain");
+        attacksNotImplemented.add("metronome");
+        attacksNotImplemented.add("mimic");
+        attacksNotImplemented.add("mind reader");
+        attacksNotImplemented.add("mirror coat");
+        attacksNotImplemented.add("mirror move");
+        attacksNotImplemented.add("mist");
+        attacksNotImplemented.add("nightmare");
+        attacksNotImplemented.add("pain split");
+        attacksNotImplemented.add("perish song");
+        attacksNotImplemented.add("petal dance");
+        attacksNotImplemented.add("pin missile");
+        attacksNotImplemented.add("present");
+        attacksNotImplemented.add("rage");
+        attacksNotImplemented.add("rain dance");
+        attacksNotImplemented.add("reflect");
+        attacksNotImplemented.add("rest");
+        attacksNotImplemented.add("reversal");
+        attacksNotImplemented.add("roar");
+        attacksNotImplemented.add("rollout");
+        attacksNotImplemented.add("safeguard");
+        attacksNotImplemented.add("sandstorm");
+        attacksNotImplemented.add("seismic toss");
+        attacksNotImplemented.add("selfdestruct");
+        attacksNotImplemented.add("sketch");
+        attacksNotImplemented.add("skull bash");
+        attacksNotImplemented.add("sky attack");
+        attacksNotImplemented.add("sleep talk");
+        attacksNotImplemented.add("snore");
+        attacksNotImplemented.add("solar beam");
+        attacksNotImplemented.add("spike cannon");
+        attacksNotImplemented.add("spikes");
+        attacksNotImplemented.add("spite");
+        attacksNotImplemented.add("substitute");
+        attacksNotImplemented.add("sunny day");
+        attacksNotImplemented.add("swagger");
+        attacksNotImplemented.add("teleport");
+        attacksNotImplemented.add("thrash");
+        attacksNotImplemented.add("transform");
+        attacksNotImplemented.add("triple kick");
+        attacksNotImplemented.add("twineedle");
+        attacksNotImplemented.add("whirlwind");
+    }
+
+    // TODO: don't do it this way
+    public static ArrayList<String> nuukPokemon = new ArrayList<String>();
+    static {
+        String[] temp = new String[]{"aggron", "aron", "exploud", "gardevoir", "hariyama", "kirlia",
+                                     "lairon", "lombre", "lotad", "loudred", "ludicolo", "makuhita",
+                                     "ralts", "taillow", "swellow", "whismur", "poochyena", "mightyena",
+                                     "wingull", "pelipper", "shroomish", "breloom", "surskit", "masquerain",
+                                     "sableye"};
+        for (String t : temp) {
+            nuukPokemon.add(t);
+        }
+    }
     // Contains all loaded pkmn textures, so that only one is used for each pkmn. ie don't load duplicate textures.
     public static HashMap<String, Texture> textures = new HashMap<String, Texture>();
     // Add to this when loading pokemon
     public static HashMap<String, Map<String, String>> gen2Evos = new HashMap<String, Map<String, String>>();
     public static HashMap<String, Map<Integer, String[]>> gen2Attacks = new HashMap<String, Map<Integer, String[]>>();
+    // Name->Base species name. Required by egg-laying.
+    public static HashMap<String, String> baseSpecies = new HashMap<String, String>();
+    public static HashMap<String, ArrayList<String>> eggMoves = new HashMap<String, ArrayList<String>>();
+    static {
+        try {
+            // TODO: prism
+            for (String path : new String[]{"", "nuuk/"}) {
+                FileHandle file = Gdx.files.internal("crystal_pokemon/"+path+"evos_attacks.asm");
+                Reader reader = file.reader();
+                BufferedReader br = new BufferedReader(reader);
+                String line;
+                String currMon = null;
+                while ((line = br.readLine()) != null)   {
+                    if (line.contains("EvosAttacks:")) {
+                        currMon = line.split("EvosAttacks:")[0].toLowerCase();
+                        // Fix some formatting exceptions (evos_attacks entries are camelcase,
+                        // everything else seems to use underscore formatting).
+                        if (currMon.equals("nidoranf")) {
+                            currMon = "nidoran_f";
+                        }
+                        else if (currMon.equals("nidoranm")) {
+                            currMon = "nidoran_m";
+                        }
+                        continue;
+                    }
+                    if (currMon == null) {
+                        continue;
+                    }
+                    if (line.contains(";")) {
+                        // skip commented line
+                        continue;
+                    }
+                    if (line.contains("EVOLVE")) {
+                        String vals[] = line.split(", ");
+                        String baseMon = Pokemon.baseSpecies.get(currMon);
+                        if (baseMon == null) {
+                            baseMon = currMon;
+                        }
+                        Pokemon.baseSpecies.put(vals[2].toLowerCase(), baseMon);
+                    }
+                    else if (!line.contains("\t")) {
+                        // Base forms put self
+                        String baseMon = Pokemon.baseSpecies.get(currMon);
+                        if (baseMon == null) {
+                            baseMon = Pokemon.baseSpecies.put(currMon, currMon);
+                        }
+                        currMon = null;
+                    }
+                }
+                reader.close();
+                // Load egg moves
+                file = Gdx.files.internal("crystal_pokemon/"+path+"egg_moves.asm");
+                reader = file.reader();
+                br = new BufferedReader(reader);
+                currMon = null;
+                while ((line = br.readLine()) != null)   {
+                    if (line.contains("EggMoves:")) {
+                        currMon = line.split("EggMoves:")[0].toLowerCase();
+                        // Fix some formatting exceptions (evos_attacks entries are camelcase,
+                        // everything else seems to use underscore formatting).
+                        if (currMon.equals("nidoranf")) {
+                            currMon = "nidoran_f";
+                        }
+                        else if (currMon.equals("nidoranm")) {
+                            currMon = "nidoran_m";
+                        }
+                        Pokemon.eggMoves.put(currMon, new ArrayList<String>());
+                        continue;
+                    }
+                    if (currMon == null) {
+                        continue;
+                    }
+                    if (line.contains(";")) {
+                        // skip commented line
+                        continue;
+                    }
+                    if (!line.contains("\t")) {
+                        currMon = null;
+                        continue;
+                    }
+                    Pokemon.eggMoves.get(currMon).add(line.split("db ")[1].trim().toLowerCase().replace("_", " "));
+                }
+                reader.close();
+            }
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
     public static String nameToIndex(String name) {
         name = name.toLowerCase();
@@ -33,6 +233,9 @@ public class Pokemon {
         }
         if (name.equals("ghost")) {
             return "000";
+        }
+        if (name.equals("egg")) {
+            return "999";
         }
         int lineNum = 1;
         try {
@@ -85,19 +288,18 @@ public class Pokemon {
     // note - this doesn't go in 'maxStats' map
     // int catchRate; // may put into some other map later
 
-    Map<String, Integer> maxStats = new HashMap<String, Integer>(); // needed for various calculations
+    Map<String, Integer> maxStats = new HashMap<String, Integer>();
     ArrayList<String> hms = new ArrayList<String>();
     Map<String, Integer> IVs = new HashMap<String, Integer>();
-    
-    // Store current status (sleep, poison, paralyze etc) here.
-    public String status = null;
-    public int statusCounter = 0;
-    // index of disabled attack.
-    public int disabledIndex = -1;
-    public int disabledCounter = 0;  // Number of turns left disabled.
 
-    Sprite sprite;
-    Sprite backSprite;
+    public String status = null;  // Store current status (sleep, poison, paralyze etc) here.
+    public int statusCounter = 0;  // Number of turns left with the current status condition.
+    public int disabledIndex = -1;  // Index of disabled attack.
+    public int disabledCounter = 0;  // Number of turns left disabled.
+    public boolean flinched = false;
+
+    SpriteProxy sprite;
+    SpriteProxy backSprite;
 
     // overworld movement sprites
     public Map<String, Sprite> standingSprites = new HashMap<String, Sprite>();
@@ -142,23 +344,44 @@ public class Pokemon {
     int angry, eating; // nonzero if angry or eating. safari zone mechanic
     String[] attacks;
 
+    // egg groups pokemon belongs to
+    String gender = null;  // male, female, and unknown. null means it needs to be assigned.
+    String[] eggGroups = new String[2];
+    // Egg is going to contain ivs, moves, etc of pokemon it evolves to
+    // this isn't changed anyway via evolveTo() so should be able to use
+    // that (?)
+    String eggHatchInto = null;  // Pokemon that egg hatches into. 
+    Pokemon loveInterest = null;  // Which pokemon this pokemon may breed with.
+    int layEggTimerMax = 3600*1;
+    int layEggTimer = layEggTimerMax;
+
     String trappedBy = null;  // whirlpool, wrap, bind, etc
     int trapCounter = 0;  // number turns remaining for trap
     Map<Integer, String[]> learnSet;
 
     boolean inBattle = false;
+    public boolean aggroPlayer = false;  // If true, pokemon chases the player.
+    public boolean interactedWith = false;  // used for evolved overworld pokemon to aggro player
+    public boolean drawThisFrame = false;
 
     Generation generation;
-    ArrayList<Sprite> introAnim;
+    ArrayList<SpriteProxy> introAnim;
     public ArrayList<String> moveDirs = new ArrayList<String>();
     public ArrayList<Integer> ledgeJumps = new ArrayList<Integer>();  // 1 or 2, 2 is faster.
     public ArrayList<Float> numMoves = new ArrayList<Float>();
 
     public static Random rand = new Random();
 
-    public Pokemon (Network.PokemonData pokemonData) {
-        this(pokemonData.name, pokemonData.level, pokemonData.generation);
-        this.isShiny = pokemonData.isShiny;
+    public Pokemon(Network.PokemonDataBase pokemonData) {
+        // Fields added in v0.5
+        // TODO: I guess I will have to rename this to Network.PokemonDataV05 when moving to v0.6
+        // TODO: if I don't rename this, it will introduce a bug. I can't think of a better way to do it tho.
+        if (Network.PokemonData.class.isInstance(pokemonData)) {
+            this.eggHatchInto = ((Network.PokemonData)pokemonData).eggHatchInto;
+        }
+
+        this.init(pokemonData.name, pokemonData.level, pokemonData.generation, pokemonData.isShiny, this.eggHatchInto);
+//        this.isShiny = pokemonData.isShiny;
         this.currentStats.put("hp", pokemonData.hp);
         this.attacks[0] = pokemonData.attacks[0];
         this.attacks[1] = pokemonData.attacks[1];
@@ -175,7 +398,7 @@ public class Pokemon {
         this.status = pokemonData.status;
         this.harvestTimer = pokemonData.harvestTimer;
         if (pokemonData.previousOwnerName != null) {
-            this.previousOwner = Game.staticGame.player;
+            this.previousOwner = Game.staticGame.player;  // TODO: this doesn't work b/c game.player is just a dummy player here.
             if (Game.staticGame.players.containsKey(pokemonData.previousOwnerName)) {
                 // on Server, player.name == player.network.id, so can get from game.players
                 // based on player.name.
@@ -188,23 +411,47 @@ public class Pokemon {
                 || this.name.toLowerCase().equals("rattata")) {
             this.happiness = 0;
         }
-        
+
+        // Fields added in v0.5
+        // TODO: I guess I will have to rename this to Network.PokemonDataV05 when moving to v0.6
+        // TODO: if I don't rename this, it will introduce a bug. I can't think of a better way to do it tho.
+        if (Network.PokemonData.class.isInstance(pokemonData)) {
+            this.gender = ((Network.PokemonData)pokemonData).gender;
+            this.happiness = ((Network.PokemonData)pokemonData).friendliness;
+            this.aggroPlayer = ((Network.PokemonData)pokemonData).aggroPlayer;
+        }
     }
 
     public Pokemon (String name, int level) {
         // generation defaults to RED
         this(name, level, Generation.RED);
     }
-
+    
     public Pokemon (String name, int level, Generation generation) {
-        // TODO: generate randomly.
-        this.isShiny = Pokemon.rand.nextInt(256) == 0;
+        this(name, level, generation, Pokemon.rand.nextInt(256) == 0);
+//        System.out.println("here3");
+    }
+
+    public Pokemon (String name, int level, Generation generation, boolean isShiny) {
+        this(name, level, generation, isShiny, null);
+    }
+
+    public Pokemon (String name, int level, Generation generation, boolean isShiny, String eggHatchInto) {
+        this.init(name, level, generation, isShiny, eggHatchInto);
+    }
+    
+    /**
+     * TODO: remove isShiny and eggHatchInto params, just set before calling init.
+     */
+    public void init(String name, int level, Generation generation, boolean isShiny, String eggHatchInto) {
+        this.isShiny = isShiny;  //Pokemon.rand.nextInt(256) == 0;
+        this.eggHatchInto = eggHatchInto;
 
         name = name.toLowerCase();
-        this.name = name;
-        if (name.contains("unown")) {
-            this.name = "unown";
+        if (name.equals("unown")) {  // TODO: this was to fix a bug, remove
+            name = "unown_w";
         }
+        this.name = name;
         // levels have to be >= 1
         if (level <= 0) {
             System.out.println("Bad level: " + String.valueOf(level));
@@ -233,7 +480,9 @@ public class Pokemon {
         if (generation.equals(Generation.CRYSTAL)) {
             this.dexNumber = Pokemon.nameToIndex(name);
             // if it is in original 251, load from crystal
-            if (Integer.valueOf(this.dexNumber) <= 251 && Integer.valueOf(this.dexNumber) > 0) {
+            if (this.name.equals("egg") ||
+                Pokemon.nuukPokemon.contains(this.name.toLowerCase()) ||
+                (Integer.valueOf(this.dexNumber) <= 251 && Integer.valueOf(this.dexNumber) > 0)) {
                 this.loadCrystalPokemon(name);
             // else try loading from prism
             } else {
@@ -248,82 +497,97 @@ public class Pokemon {
 //            }
 
             // Custom attributes - better way to handle this?
-            if (name.equals("sneasel") || name.equals("scyther")) {
-                this.hms.add("CUT");
-            }
+            if (!this.name.equals("egg")) {
+                if (name.equals("sneasel") || name.equals("scyther")) {
+                    this.hms.add("CUT");
+                }
+                // TODO: for now, all grass types can cut
+                if (this.types.contains("GRASS")) {
+                    this.hms.add("CUT");
+                }
+                if (this.types.contains("ROCK")) {
+                    this.hms.add("SMASH");
+                }
+                if (this.types.contains("FIGHTING")) {
+                    this.hms.add("BUILD");
+                }
+                if (this.types.contains("FIRE") ||
+                    // TODO: pokemon that can light
+                    name.equals("chinchou") ||
+                    name.equals("lanturn") ||
+                    name.equals("flaaffy") ||
+                    name.equals("ampharos")) {
+                    // Calling it FLASH for now, since that's what most people
+                    // are familiar with.
+                    this.hms.add("FLASH");  
+                }
 
-            // TODO: for now, all grass types can cut
-            if (this.types.contains("GRASS")) {
-                this.hms.add("CUT");
-            }
-            if (this.types.contains("ROCK")) {
-                this.hms.add("SMASH");
-            }
-            if (this.types.contains("FIGHTING")) {
-                this.hms.add("BUILD");
-            }
+                // TODO: different pokemon than machop
+                // Custom attributes - better way to handle this?
+//                if (name.equals("machop")) {
+//                    this.hms.add("HEADBUTT");
+//                }
+                if (name.equals("hypno") ||
+                    name.equals("nidorina") ||
+                    name.equals("nidoqueen") ||
+                    name.equals("nidorino") ||
+                    name.equals("nidoking") ||
+                    name.equals("granbull") ||
+                    name.equals("jynx") ||
+                    name.equals("snorlax") ||
+                    name.equals("ursaring")) {
+                    this.hms.add("HEADBUTT");
+                }
 
-            // TODO: different pokemon than machop
-            // Custom attributes - better way to handle this?
-//            if (name.equals("machop")) {
-//                this.hms.add("HEADBUTT");
-//            }
-            if (name.equals("hypno") ||
-                name.equals("nidorina") ||
-                name.equals("nidoqueen") ||
-                name.equals("nidorino") ||
-                name.equals("nidoking") ||
-                name.equals("granbull") ||
-                name.equals("jynx") ||
-                name.equals("snorlax") ||
-                name.equals("ursaring")) {
-                this.hms.add("HEADBUTT");
-            }
+                // Custom attributes - better way to handle this?
+                if (name.equals("stantler") ||
+                    name.equals("ponyta") ||
+                    name.equals("arcanine") ||
+                    name.equals("donphan") ||
+                    name.equals("girafarig") ||
+                    name.equals("houndoom") ||
+                    name.equals("rapidash") ||
+                    name.equals("tauros") ||
+                    name.equals("ninetales") ||
+                    name.equals("mamoswine") ||
+                    name.equals("dodrio") ||
+                    name.equals("mightyena") ||
+                    name.equals("luxray")) {
+                    // TODO: change to 'RIDE' later. Making it 'JUMP' for now so that it's not confusing.
+                    // Later, once there (hopefully) are riding sprites, this can be changed to ride.
+                    // My current idea is that RIDE increases movement speed and can perform jumps up ledges.
+                    this.hms.add("RIDE");
+                }
 
-            // Custom attributes - better way to handle this?
-            if (name.equals("stantler") ||
-                name.equals("ponyta") ||
-                name.equals("arcanine") ||
-                name.equals("donphan") ||
-                name.equals("girafarig") ||
-                name.equals("houndoom") ||
-                name.equals("rapidash") ||
-                name.equals("tauros") ||
-                name.equals("ninetales") ||
-                name.equals("mamoswine") ||
-                name.equals("luxray")) {
-                // TODO: change to 'RIDE' later. Making it 'JUMP' for now so that it's not confusing.
-                // Later, once there (hopefully) are riding sprites, this can be changed to ride.
-                // My current idea is that RIDE increases movement speed and can perform jumps up ledges.
-                this.hms.add("RIDE");
-            }
-
-            if (name.equals("pidgeot") ||
-                name.equals("aerodactyl") ||
-                name.equals("charizard") ||
-                name.equals("dragonite") ||
-                name.equals("salamence") ||
-                name.equals("ho_oh") ||
-                name.equals("lugia") ||
-                name.equals("skarmory") ||
-                name.equals("articuno") ||
-                name.equals("zapdos") ||
-                name.equals("moltres") ||
-                name.equals("crobat") ||
-                name.equals("noctowl") ||
-                name.equals("xatu") ||
-                // the animations starting here fit pretty well
-                name.equals("flygon") ||
-                name.equals("togekiss") ||
-                name.equals("swellow") ||
-                name.equals("altaria") ||
-                name.equals("rayquaza") ||
-                name.equals("farfetch_d") ||
-                name.equals("drifblim") ||
-                name.equals("honchkrow") ||
-                name.equals("fearow")) {
-                //
-                this.hms.add("FLY");
+                if (name.equals("pidgeot") ||
+                    name.equals("aerodactyl") ||
+                    name.equals("charizard") ||
+                    name.equals("dragonair") ||
+                    name.equals("dragonite") ||
+                    name.equals("salamence") ||
+                    name.equals("ho_oh") ||
+                    name.equals("lugia") ||
+                    name.equals("skarmory") ||
+                    name.equals("articuno") ||
+                    name.equals("zapdos") ||
+                    name.equals("moltres") ||
+                    name.equals("crobat") ||
+                    name.equals("noctowl") ||
+                    name.equals("xatu") ||
+                    // the animations starting here fit pretty well
+                    name.equals("flygon") ||
+                    name.equals("togekiss") ||
+                    name.equals("swellow") ||
+                    name.equals("pelipper") ||
+                    name.equals("altaria") ||
+                    name.equals("rayquaza") ||
+//                    name.equals("farfetch_d") ||  // TODO: removed
+                    name.equals("drifblim") ||
+                    name.equals("honchkrow") ||
+                    name.equals("fearow")) {
+                    //
+                    this.hms.add("FLY");
+                }
             }
         }
 
@@ -337,7 +601,7 @@ public class Pokemon {
             this.baseStats.put("catchRate", 255);
             // sprite
             Texture pokemonText = new Texture(Gdx.files.internal("pokemon/zubat.png"));
-            this.sprite = new Sprite(pokemonText, 0, 0, 56, 56);
+            this.sprite = new SpriteProxy(pokemonText, 0, 0, 56, 56);
             this.sprite.flip(true, false); // my sprites are backwards
 
             this.types.add("Poison");
@@ -353,7 +617,7 @@ public class Pokemon {
             this.baseStats.put("catchRate", 255);
             // sprite
             Texture pokemonText = new Texture(Gdx.files.internal("pokemon/rattata.png"));
-            this.sprite = new Sprite(pokemonText, 0, 0, 56, 56);
+            this.sprite = new SpriteProxy(pokemonText, 0, 0, 56, 56);
 //            this.sprite.flip(true, false); // my sprites are backwards
 
             this.types.add("Normal");
@@ -369,15 +633,15 @@ public class Pokemon {
             this.baseStats.put("catchRate", 60);
             // sprite
             Texture pokemonText = new Texture(Gdx.files.internal("pokemon/pokemon_sheet1.png"));
-            this.sprite = new Sprite(pokemonText, 56*28, 56*2, 56, 56);
+            this.sprite = new SpriteProxy(pokemonText, 56*28, 56*2, 56, 56);
             this.sprite.flip(true, false); // my sprites are backwards
 
             // back sprite
             pokemonText = new Texture(Gdx.files.internal("pokemon/back_sheet1.png"));
-            this.backSprite = new Sprite(pokemonText, 30*2+1, 29*8+1, 28, 28); // sheet is a little messed up, hard to change
+            this.backSprite = new SpriteProxy(pokemonText, 30*2+1, 29*8+1, 28, 28); // sheet is a little messed up, hard to change
             this.backSprite.setScale(2);
 //            pokemonText = new Texture(Gdx.files.internal("pokemon/back_sheet1.png")); // debug - change to charmander sprite
-//            this.backSprite = new Sprite(pokemonText, 30*3+1, 29*0+1, 28, 28); //
+//            this.backSprite = new SpriteProxy(pokemonText, 30*3+1, 29*0+1, 28, 28); //
 //            this.backSprite.setScale(2);
 
             // moves that cloyster can learn
@@ -411,7 +675,7 @@ public class Pokemon {
             this.baseStats.put("catchRate", 255);
             // sprite
             Texture pokemonText = new Texture(Gdx.files.internal("pokemon/spinarak.png"));
-            this.sprite = new Sprite(pokemonText, 0, 0, 56, 56);
+            this.sprite = new SpriteProxy(pokemonText, 0, 0, 56, 56);
             this.sprite.flip(true, false); // my sprites are backwards
 
             this.types.add("Bug");
@@ -427,7 +691,7 @@ public class Pokemon {
             this.baseStats.put("catchRate", 255);
             // sprite
             Texture pokemonText = new Texture(Gdx.files.internal("pokemon/oddish.png"));
-            this.sprite = new Sprite(pokemonText, 0, 0, 56, 56);
+            this.sprite = new SpriteProxy(pokemonText, 0, 0, 56, 56);
             this.sprite.flip(true, false); // my sprites are backwards
 
             this.types.add("Grass");
@@ -443,7 +707,7 @@ public class Pokemon {
             this.baseStats.put("catchRate", 120);
             // sprite
             Texture pokemonText = new Texture(Gdx.files.internal("pokemon/gloom.png"));
-            this.sprite = new Sprite(pokemonText, 0, 0, 56, 56);
+            this.sprite = new SpriteProxy(pokemonText, 0, 0, 56, 56);
             this.sprite.flip(true, false); // my sprites are backwards
 
             this.types.add("Grass");
@@ -459,7 +723,7 @@ public class Pokemon {
             this.baseStats.put("catchRate", 45);
             // sprite
             Texture pokemonText = new Texture(Gdx.files.internal("pokemon/electabuzz.png"));
-            this.sprite = new Sprite(pokemonText, 0, 0, 56, 56);
+            this.sprite = new SpriteProxy(pokemonText, 0, 0, 56, 56);
             this.sprite.flip(true, false); // my sprites are backwards
 
             this.types.add("Electric");
@@ -475,7 +739,7 @@ public class Pokemon {
             this.baseStats.put("catchRate", 45);
             // sprite
             Texture pokemonText = new Texture(Gdx.files.internal("pokemon/scyther.png"));
-            this.sprite = new Sprite(pokemonText, 0, 0, 56, 56);
+            this.sprite = new SpriteProxy(pokemonText, 0, 0, 56, 56);
             this.sprite.flip(true, false); // my sprites are backwards
 
             this.types.add("Bug");
@@ -491,7 +755,7 @@ public class Pokemon {
             this.baseStats.put("catchRate", 45);
             // sprite
             Texture pokemonText = new Texture(Gdx.files.internal("pokemon/tauros.png"));
-            this.sprite = new Sprite(pokemonText, 0, 0, 56, 56);
+            this.sprite = new SpriteProxy(pokemonText, 0, 0, 56, 56);
             this.sprite.flip(true, false); // my sprites are backwards
 
             this.types.add("Normal");
@@ -507,7 +771,7 @@ public class Pokemon {
             this.baseStats.put("catchRate", 235);
             // sprite
             Texture pokemonText = new Texture(Gdx.files.internal("pokemon/mareep.png"));
-            this.sprite = new Sprite(pokemonText, 0, 0, 56, 56);
+            this.sprite = new SpriteProxy(pokemonText, 0, 0, 56, 56);
             this.sprite.flip(true, false);
 
             this.types.add("Electric");
@@ -522,7 +786,7 @@ public class Pokemon {
             this.baseStats.put("catchRate", 255);
             // sprite
             Texture pokemonText = new Texture(Gdx.files.internal("pokemon/flaaffy.png"));
-            this.sprite = new Sprite(pokemonText, 0, 0, 56, 56);
+            this.sprite = new SpriteProxy(pokemonText, 0, 0, 56, 56);
             this.sprite.flip(true, false); // my sprites are backwards
 
             this.types.add("Electric");
@@ -538,7 +802,7 @@ public class Pokemon {
             this.baseStats.put("catchRate", 25);
             // sprite
             Texture pokemonText = new Texture(Gdx.files.internal("pokemon/steelix.png"));
-            this.sprite = new Sprite(pokemonText, 0, 0, 56, 56);
+            this.sprite = new SpriteProxy(pokemonText, 0, 0, 56, 56);
             this.sprite.flip(true, false); // my sprites are backwards
 
             this.types.add("Steel");
@@ -554,7 +818,7 @@ public class Pokemon {
             this.baseStats.put("catchRate", 60);
             // sprite
             Texture pokemonText = new Texture(Gdx.files.internal("pokemon/sneasel.png"));
-            this.sprite = new Sprite(pokemonText, 0, 0, 56, 56);
+            this.sprite = new SpriteProxy(pokemonText, 0, 0, 56, 56);
             this.sprite.flip(true, false);
 
             this.types.add("Dark");
@@ -571,7 +835,7 @@ public class Pokemon {
             this.baseStats.put("catchRate", 3);
             // sprite
             Texture pokemonText = new Texture(Gdx.files.internal("pokemon/suicune.png"));
-            this.sprite = new Sprite(pokemonText, 0, 0, 56, 56);
+            this.sprite = new SpriteProxy(pokemonText, 0, 0, 56, 56);
             this.sprite.flip(true, false); // my sprites are backwards
 
             this.types.add("Water");
@@ -586,7 +850,7 @@ public class Pokemon {
             this.baseStats.put("catchRate", 3);
             // sprite
             Texture pokemonText = new Texture(Gdx.files.internal("pokemon/raikou.png"));
-            this.sprite = new Sprite(pokemonText, 0, 0, 56, 56);
+            this.sprite = new SpriteProxy(pokemonText, 0, 0, 56, 56);
             this.sprite.flip(true, false); // my sprites are backwards
 
             this.types.add("Electric");
@@ -601,7 +865,7 @@ public class Pokemon {
             this.baseStats.put("catchRate", 3);
             // sprite
             Texture pokemonText = new Texture(Gdx.files.internal("pokemon/entei.png"));
-            this.sprite = new Sprite(pokemonText, 0, 0, 56, 56);
+            this.sprite = new SpriteProxy(pokemonText, 0, 0, 56, 56);
             this.sprite.flip(true, false); // my sprites are backwards
 
             this.types.add("Electric");
@@ -616,7 +880,7 @@ public class Pokemon {
             this.baseStats.put("catchRate", 255);
             // sprite
             Texture pokemonText = new Texture(Gdx.files.internal("pokemon/wurmple.png"));
-            this.sprite = new Sprite(pokemonText, 0, 0, 56, 56);
+            this.sprite = new SpriteProxy(pokemonText, 0, 0, 56, 56);
             this.sprite.flip(true, false);
 
             this.types.add("Bug");
@@ -631,7 +895,7 @@ public class Pokemon {
             this.baseStats.put("catchRate", 180);
             // sprite
             Texture pokemonText = new Texture(Gdx.files.internal("pokemon/makuhita.png"));
-            this.sprite = new Sprite(pokemonText, 0, 0, 56, 56);
+            this.sprite = new SpriteProxy(pokemonText, 0, 0, 56, 56);
             this.sprite.flip(true, false); // my sprites are backwards
 
             this.types.add("Fighting");
@@ -647,7 +911,7 @@ public class Pokemon {
             this.baseStats.put("catchRate", 200);
             // sprite
             Texture pokemonText = new Texture(Gdx.files.internal("pokemon/hariyama.png"));
-            this.sprite = new Sprite(pokemonText, 0, 0, 56, 56);
+            this.sprite = new SpriteProxy(pokemonText, 0, 0, 56, 56);
             // this.sprite.flip(true, false); // this one looks better flipped
 
             this.types.add("Fighting");
@@ -662,7 +926,7 @@ public class Pokemon {
             this.baseStats.put("catchRate", 255);
             // sprite
             Texture pokemonText = new Texture(Gdx.files.internal("pokemon/skitty.png"));
-            this.sprite = new Sprite(pokemonText, 0, 0, 56, 56);
+            this.sprite = new SpriteProxy(pokemonText, 0, 0, 56, 56);
             this.sprite.flip(true, false); // this one looks better flipped
 
             this.types.add("Normal");
@@ -677,7 +941,7 @@ public class Pokemon {
             this.baseStats.put("catchRate", 45);
             // sprite
             Texture pokemonText = new Texture(Gdx.files.internal("pokemon/sableye.png"));
-            this.sprite = new Sprite(pokemonText, 0, 0, 56, 56);
+            this.sprite = new SpriteProxy(pokemonText, 0, 0, 56, 56);
             // this.sprite.flip(true, false); // this one looks better flipped
 
             this.types.add("Dark");
@@ -693,7 +957,7 @@ public class Pokemon {
             this.baseStats.put("catchRate", 45);
             // sprite
             Texture pokemonText = new Texture(Gdx.files.internal("pokemon/gardevoir.png"));
-            this.sprite = new Sprite(pokemonText, 0, 0, 56, 56);
+            this.sprite = new SpriteProxy(pokemonText, 0, 0, 56, 56);
             this.sprite.flip(true, false); // this one looks better flipped
 
             this.types.add("Psychic");
@@ -709,7 +973,7 @@ public class Pokemon {
             this.baseStats.put("catchRate", 90);
             // sprite
             Texture pokemonText = new Texture(Gdx.files.internal("pokemon/claydol.png"));
-            this.sprite = new Sprite(pokemonText, 0, 0, 56, 56);
+            this.sprite = new SpriteProxy(pokemonText, 0, 0, 56, 56);
             this.sprite.flip(true, false); // this one looks better flipped
 
             this.types.add("Ground");
@@ -726,7 +990,7 @@ public class Pokemon {
             this.baseStats.put("catchRate", 90);
             // sprite
             Texture pokemonText = new Texture(Gdx.files.internal("pokemon/lairon.png"));
-            this.sprite = new Sprite(pokemonText, 0, 0, 56, 56);
+            this.sprite = new SpriteProxy(pokemonText, 0, 0, 56, 56);
             this.sprite.flip(true, false);
 
             this.types.add("Steel");
@@ -742,7 +1006,7 @@ public class Pokemon {
             this.baseStats.put("catchRate", 190);
             // sprite
             Texture pokemonText = new Texture(Gdx.files.internal("pokemon/cacnea.png"));
-            this.sprite = new Sprite(pokemonText, 0, 0, 56, 56);
+            this.sprite = new SpriteProxy(pokemonText, 0, 0, 56, 56);
             this.sprite.flip(true, false); // my sprites are backwards
 
             this.types.add("Grass");
@@ -757,7 +1021,7 @@ public class Pokemon {
             this.baseStats.put("catchRate", 225);
             // sprite
             Texture pokemonText = new Texture(Gdx.files.internal("pokemon/shuppet.png"));
-            this.sprite = new Sprite(pokemonText, 0, 0, 56, 56);
+            this.sprite = new SpriteProxy(pokemonText, 0, 0, 56, 56);
             this.sprite.flip(true, false); // my sprites are backwards
 
             this.types.add("Grass");
@@ -772,7 +1036,7 @@ public class Pokemon {
             this.baseStats.put("catchRate", 255);
             // sprite
             Texture pokemonText = new Texture(Gdx.files.internal("pokemon/starly.png"));
-            this.sprite = new Sprite(pokemonText, 0, 0, 56, 56);
+            this.sprite = new SpriteProxy(pokemonText, 0, 0, 56, 56);
             this.sprite.flip(true, false);
 
             this.types.add("Normal");
@@ -788,7 +1052,7 @@ public class Pokemon {
             this.baseStats.put("catchRate", 235);
             // sprite
             Texture pokemonText = new Texture(Gdx.files.internal("pokemon/shinx.png"));
-            this.sprite = new Sprite(pokemonText, 0, 0, 56, 56);
+            this.sprite = new SpriteProxy(pokemonText, 0, 0, 56, 56);
             this.sprite.flip(true, false);
 
             this.types.add("Electric");
@@ -879,6 +1143,14 @@ public class Pokemon {
 
         // catchRate for the sake of including everything
         this.maxStats.put("catchRate", this.baseStats.get("catchRate"));
+        
+        // TODO: remove
+        // egg has 0 hp, which makes you unable to use it in battle
+        // and you can't drop it unless there is another healthy
+        // pokemon in your party.
+//        if (this.name.equals("egg")) {
+//            this.maxStats.put("hp", 0);
+//        }
 
         // hp = (((IV + Base + (sqrt(EV)/8) + 50)*Level)/50 + 10
         // other stat = (((IV + Base + (sqrt(EV)/8))*Level)/50 + 5
@@ -888,6 +1160,11 @@ public class Pokemon {
      * Determine if pokemon near farm structures and habitat.
      */
     void checkHabitat(Game game) {
+        Pokemon prevLoveInterest = this.loveInterest;
+        if (this.loveInterest != null) {
+            this.loveInterest.loveInterest = null;
+        }
+        this.loveInterest = null;
         Vector2 startPos = Pokemon.this.position.cpy().add(-16*3, -16*3);
         startPos.x = (int)startPos.x - (int)startPos.x % 16;
         startPos.y = (int)startPos.y - (int)startPos.y % 16;
@@ -907,6 +1184,10 @@ public class Pokemon {
             if (tile == null) {
                 continue;
             }
+            // If found the player and aggro-ing, then set player.nearAggroPokemon = true
+            if (game.player.position.equals(currPos) && this.aggroPlayer) {
+                game.player.nearAggroPokemon = true;
+            }
             if (tile.nameUpper.contains("fence")) {
                 fenceCount++;
             }
@@ -919,9 +1200,55 @@ public class Pokemon {
                     habitatCount++;
                 }
             }
+
+            // Check for potential 'mates' (pokemon breeding mechanic)
+            if (!this.name.equals("egg") &&
+                this.loveInterest == null &&
+                game.map.pokemon.containsKey(currPos) &&
+                game.map.pokemon.get(currPos) != this) {
+                Pokemon potentialMate = game.map.pokemon.get(currPos);
+                // oppGender handles the 'no gender' case as well
+                String oppGender = this.gender.equals("male") ? "female" : "male";
+                boolean genderCompatible = potentialMate.gender.equals(oppGender);
+                // TODO: what are the rules for genderless pokemon? (gender = "", not gender = null i think)
+//                boolean compatible = !this.gender.equals("") && potentialMate.gender.equals(oppGender);
+                boolean sameEggGroup = false;
+                for (String group1 : this.eggGroups) {
+                    for (String group2 : potentialMate.eggGroups) {
+                        if (group1.equals("EGG_NONE") || group2.equals("EGG_NONE")) {
+                            sameEggGroup = false;
+                            break;
+                        }
+                        if (group1.equals("EGG_DITTO") || group2.equals("EGG_DITTO")) {
+                            genderCompatible = true;
+                            sameEggGroup = true;
+                            break;
+                        }
+                        if (group1.equals(group2)) {
+                            sameEggGroup = true;
+                            break;
+                        }
+                    }
+                }
+                if (!potentialMate.name.equals("egg") &&
+                    genderCompatible && sameEggGroup &&
+                    potentialMate.loveInterest == null) {
+                    this.loveInterest = potentialMate;
+                    potentialMate.loveInterest = this;
+                    // Heart emote to show that they love each other
+                    if (potentialMate != prevLoveInterest) {
+                        if (!potentialMate.aggroPlayer) {
+                            game.insertAction(potentialMate.new Emote("heart", null));
+                        }
+                        if (!this.aggroPlayer) {
+                            game.insertAction(this.new Emote("heart", null));
+                        }
+                    }
+                }
+            }
         }
         // Dark types are only happy at night.
-        if (Pokemon.this.types.contains("DARK") && !game.map.timeOfDay.equals("Night")) {
+        if (Pokemon.this.types.contains("DARK") && !game.map.timeOfDay.equals("night")) {
             habitatCount = 0;
         }
 //        if (satisfiedCount > ) {
@@ -962,12 +1289,18 @@ public class Pokemon {
         else {
             this.loadPrismPokemon(this.name);
         }
+        this.standingSprites.clear();
+        this.movingSprites.clear();
+        this.altMovingSprites.clear();
+        this.avatarSprites.clear();
+        this.loadOverworldSprites(this.name);
         this.calcMaxStats();
         // restore hp to full
         this.currentStats.put("hp", this.maxStats.get("hp"));
 
         // TODO: probably move this to function somewhere
-        if (name.equals("machop")) {
+        this.hms.clear();
+        if (this.types.contains("FIGHTING")) {
             this.hms.add("BUILD");
         }
         if (name.equals("hypno") ||
@@ -994,6 +1327,8 @@ public class Pokemon {
             name.equals("tauros") ||
             name.equals("ninetales") ||
             name.equals("mamoswine") ||
+            name.equals("mightyena") ||
+            name.equals("dodrio") ||
             name.equals("luxray")) {
             // TODO: change to 'RIDE' later. Making it 'JUMP' for now so that it's not confusing.
             // Later, once there (hopefully) are riding sprites, this can be changed to ride.
@@ -1003,6 +1338,7 @@ public class Pokemon {
         if (name.equals("pidgeot") ||
             name.equals("aerodactyl") ||
             name.equals("charizard") ||
+            name.equals("dragonair") ||
             name.equals("dragonite") ||
             name.equals("salamence") ||
             name.equals("ho_oh") ||
@@ -1017,9 +1353,10 @@ public class Pokemon {
             name.equals("flygon") ||
             name.equals("togekiss") ||
             name.equals("swellow") ||
+            name.equals("pelipper") ||
             name.equals("altaria") ||
             name.equals("rayquaza") ||
-            name.equals("farfetch_d") ||
+//            name.equals("farfetch_d") ||  // TODO: removed
             name.equals("drifblim") ||
             name.equals("honchkrow") ||
             name.equals("fearow")) {
@@ -1031,6 +1368,15 @@ public class Pokemon {
         }
         if (this.types.contains("ROCK")) {
             this.hms.add("SMASH");
+        }
+        if (this.types.contains("FIRE") ||
+            name.equals("chinchou") ||
+            name.equals("lanturn") ||
+            name.equals("flaaffy") ||
+            name.equals("ampharos")) {
+            // Calling it FLASH for now, since that's what most people
+            // are familiar with.
+            this.hms.add("FLASH");  
         }
         this.initHabitatValues();
     }
@@ -1097,7 +1443,7 @@ public class Pokemon {
             this.harvestables.clear();
             this.harvestables.add("moomoo milk");
         }
-        else if (name.equals("unown")) {
+        else if (name.contains("unown")) {
             this.harvestables.clear();
             this.harvestables.add("ancientpowder");
             this.harvestTimerMax = (int)(3600f*3.5f);
@@ -1124,6 +1470,33 @@ public class Pokemon {
         }
     }
 
+    /**
+     * Get position that pokemon is facing towards.
+     */
+    public Vector2 facingPos() {
+        return this.facingPos(this.dirFacing);
+    }
+
+    /**
+     * Get position that pokemon is facing towards.
+     */
+    public Vector2 facingPos(String dirFacing) {
+        Vector2 pos = null;
+        if (dirFacing.equals("right")) {
+            pos = this.position.cpy().add(16, 0);
+        }
+        else if (dirFacing.equals("left")) {
+            pos = this.position.cpy().add(-16, 0);
+        }
+        else if (dirFacing.equals("up")) {
+            pos = this.position.cpy().add(0, 16);
+        }
+        else if (dirFacing.equals("down")) {
+            pos = this.position.cpy().add(0, -16);
+        }
+        return pos;
+    }
+
     /** Attempt to apply stat change during battle.
      * Source - https://www.dragonflycave.com/mechanics/stat-stages
      * Also - https://web.archive.org/web/20140712063943/http://www.upokecenter.com/content/pokemon-gold-version-silver-version-and-crystal-version-timing-notes
@@ -1131,9 +1504,12 @@ public class Pokemon {
      * return false if stat stage is already at max or min value.
      */
     boolean gen2ApplyStatStage(String stat, int stage) {
-        // TODO: this is stubbed for now
+        return this.gen2ApplyStatStage(stat, stage, false);
+    }
+
+    boolean gen2ApplyStatStage(String stat, int stage, boolean override) {
         int newStage = this.statStages.get(stat)+stage;
-        if (newStage < -6 || newStage > 6) {
+        if (!override && (newStage < -6 || newStage > 6)) {
             // Would result in a stat stage that is too high/low, so fail.
             return false;
         }
@@ -1185,8 +1561,8 @@ public class Pokemon {
         else if (this.growthRateGroup.contains("SLOW")) {
             return (5*(level*level*level))/4;
         }
-        System.out.println("Error: invalid growth group for " + this.name + ", group: "+String.valueOf(this.growthRateGroup));
-        return 0;
+//        System.out.println("Error: invalid growth group for " + this.name + ", group: "+String.valueOf(this.growthRateGroup));
+        return level*level*level;  // just default to medium fast
     }
 
     /**
@@ -1197,9 +1573,9 @@ public class Pokemon {
         for (Integer level : this.learnSet.keySet()) {
             for (String attack : this.learnSet.get(level)) {
                 // TODO: debug, remove
-                if (attack.contains("whirlwind") && this.name.contains("pidgeot")) {
-                    System.out.println(this.learnSet.get(level));
-                }
+//                if (attack.contains("whirlwind") && this.name.contains("pidgeot")) {
+//                    System.out.println(this.learnSet.get(level));
+//                }
                 if (level <= this.level) {
                     this.attacks[i] = attack;
                     i += 1;
@@ -1221,9 +1597,17 @@ public class Pokemon {
         if (name.contains("unown")) {
             newName = "unown";
         }
-        // load base stats
+        if (name.equals("egg")) {
+            newName = this.eggHatchInto;
+        }
+        String path = "";
+        if (Pokemon.nuukPokemon.contains(newName)) {
+            path = "nuuk/";
+        }
+
+        // Load base stats
         try {
-            FileHandle file = Gdx.files.internal("crystal_pokemon/base_stats/" + newName + ".asm");
+            FileHandle file = Gdx.files.internal("crystal_pokemon/"+path+"base_stats/" + newName + ".asm");
             Reader reader = file.reader();
             BufferedReader br = new BufferedReader(reader);
             String line;
@@ -1251,8 +1635,54 @@ public class Pokemon {
                 } else if (lineNum == 7) {
                     String baseExp = line.split("db ")[1].split(" ;")[0];
                     this.baseStats.put("baseExp", Integer.valueOf(baseExp));
+                // If gender not assigned yet, assign it here based on gender ratio
+                } else if (lineNum == 9) {
+                    // source: https://github.com/pret/pokecrystal/wiki/Add-a-new-Pok%C3%A9mon
+                    // GENDER_F0: 100% male
+                    // GENDER_F12_5: 7/8 male, 1/8 female
+                    // GENDER_F25: 3/4 male, 1/4 female
+                    // GENDER_F50: 1/2 male, 1/2 female
+                    // GENDER_F75: 1/4 male, 3/4 female
+                    // GENDER_F100: 100% female
+                    // GENDER_UNKNOWN: genderless
+                    String genderRatio = line.split("db ")[1].split(" ;")[0];
+                    if (genderRatio.equals("GENDER_UNKNOWN")) {
+                        this.gender = "unknown";
+                    }
+                    else {
+                        int percentFemale = 0;
+                        if (genderRatio.equals("GENDER_F12_5")) {
+                            percentFemale = 125;
+                        }
+                        else if (genderRatio.equals("GENDER_F25")) {
+                            percentFemale = 250;
+                        }
+                        else if (genderRatio.equals("GENDER_F50")) {
+                            percentFemale = 500;
+                        }
+                        else if (genderRatio.equals("GENDER_F75")) {
+                            percentFemale = 750;
+                        }
+                        else if (genderRatio.equals("GENDER_F100")) {
+                            percentFemale = 1000;
+                        }
+                        if (Pokemon.rand.nextInt(1000) < percentFemale) {
+                            this.gender = "female";
+                        }
+                        else {
+                            this.gender = "male";
+                        }
+                    }
+                // Egg cycles to hatch
+                } else if (lineNum == 11 && this.name.equals("egg")) {
+                    String eggCycles = line.split("db ")[1].split(" ;")[0];
+                    this.happiness = Integer.valueOf(eggCycles);
                 } else if (lineNum == 15) {
                     this.growthRateGroup = line.split("db ")[1].split(" ;")[0];
+                // Egg groups this pokemon belongs to
+                } else if (lineNum == 16) {
+                    String groups = line.split("dn ")[1].split(" ;")[0];
+                    this.eggGroups = groups.split(", ");
                 }
                 // TODO: other stats
                 lineNum++;
@@ -1265,10 +1695,14 @@ public class Pokemon {
             e.printStackTrace();
         }
 
-        // load sprite and animation data
-        // load front sprite
+        if (name.equals("egg")) {
+            path = "";  // all egg sprites loaded from crystal
+        }
+
+        // Load sprite and animation data (cached)
         if (!Pokemon.textures.containsKey(name+"_front")) {
-            Texture text = TextureCache.get(Gdx.files.internal("crystal_pokemon/pokemon/" + name + "/front.png"));
+            // Load front sprite
+            Texture text = TextureCache.get(Gdx.files.internal("crystal_pokemon/"+path+"pokemon/" + name + "/front.png"));
             // unown sprites have color data only stored in one channel (alpha)
             // convert this to regular texture
             if (name.contains("unown")) {
@@ -1292,15 +1726,19 @@ public class Pokemon {
                 text = new Texture(newPixmap);
             }
             Pokemon.textures.put(name+"_front", text);
-            
+
             // Swap palette for shiny texture (load by appending '_shiny' to the texture name)
             // Load shiny palette from file
             Color normalColor1 = null;
             Color normalColor2 = new Color();
             Color shinyColor1 = null;
             Color shinyColor2 = new Color();
+            // TODO: this is just a hack workaround
+            if (Pokemon.nuukPokemon.contains(newName)) {
+                path = "nuuk/";
+            }
             try {
-                FileHandle file = Gdx.files.internal("crystal_pokemon/pokemon/" + newName + "/shiny.pal");
+                FileHandle file = Gdx.files.internal("crystal_pokemon/"+path+"pokemon/" + newName + "/shiny.pal");
                 Reader reader = file.reader();
                 BufferedReader br = new BufferedReader(reader);
                 String line;
@@ -1322,31 +1760,45 @@ public class Pokemon {
                 }
                 reader.close();
 
+                // TODO: hack workaround
+                if (name.equals("egg")) {
+                    path = "";  // all egg sprites loaded from crystal
+                }
+
                 if (name.contains("unown")) {
-                    file = Gdx.files.internal("crystal_pokemon/pokemon/" + newName + "/normal.pal");
+                    file = Gdx.files.internal("crystal_pokemon/"+path+"pokemon/" + newName + "/normal.pal");
                 }
                 else {
-                    file = Gdx.files.internal("crystal_pokemon/pokemon/" + name + "/front.pal");
+                    file = Gdx.files.internal("crystal_pokemon/"+path+"pokemon/" + name + "/front.pal");
                 }
-                reader = file.reader();
-                br = new BufferedReader(reader);
-                while ((line = br.readLine()) != null)   {
-                    if (line.contains("RGB")) {
-                        String[] vals = line.split("\tRGB ")[1].split(", ");
-                        if (normalColor1 == null) {
-                            normalColor1 = new Color();
-                            normalColor1.r = Integer.valueOf(vals[0]);
-                            normalColor1.g = Integer.valueOf(vals[1]);
-                            normalColor1.b = Integer.valueOf(vals[2]);
-                        }
-                        else {
-                            normalColor2.r = Integer.valueOf(vals[0]);
-                            normalColor2.g = Integer.valueOf(vals[1]);
-                            normalColor2.b = Integer.valueOf(vals[2]);
+                // TODO: don't really need anymore b/c SpriteProxy knows color1/color2
+                if (file.exists()) {
+                    reader = file.reader();
+                    br = new BufferedReader(reader);
+                    while ((line = br.readLine()) != null)   {
+                        if (line.contains("RGB")) {
+                            String[] vals = line.split("\tRGB ")[1].split(", ");
+                            if (normalColor1 == null) {
+                                normalColor1 = new Color();
+                                normalColor1.r = Integer.valueOf(vals[0]);
+                                normalColor1.g = Integer.valueOf(vals[1]);
+                                normalColor1.b = Integer.valueOf(vals[2]);
+                            }
+                            else {
+                                normalColor2.r = Integer.valueOf(vals[0]);
+                                normalColor2.g = Integer.valueOf(vals[1]);
+                                normalColor2.b = Integer.valueOf(vals[2]);
+                            }
                         }
                     }
+                    reader.close();
                 }
-                reader.close();
+                else {
+                    SpriteProxy tempSprite = new SpriteProxy(Pokemon.textures.get(name+"_front"),
+                                                             0, 0, text.getWidth(), text.getWidth());
+                    normalColor1 = tempSprite.color1;
+                    normalColor2 = tempSprite.color2;
+                }
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
             } catch (IOException e) {
@@ -1380,7 +1832,7 @@ public class Pokemon {
             Pokemon.textures.put(name+"_front_shiny", text);
 
             // back sprites
-            text = TextureCache.get(Gdx.files.internal("crystal_pokemon/pokemon/" + name + "/back.png"));
+            text = TextureCache.get(Gdx.files.internal("crystal_pokemon/"+path+"pokemon/" + name + "/back.png"));
             Pokemon.textures.put(name+"_back", text);
             temp = text.getTextureData();
             if (!temp.isPrepared()) {
@@ -1415,7 +1867,9 @@ public class Pokemon {
         Texture pokemonText = Pokemon.textures.get(name+"_front"+isShiny);
         // height and width are the same for these sprites
         int height = pokemonText.getWidth();
-        this.sprite = new Sprite(pokemonText, 0, 0, height, height);
+//        this.sprite = new Sprite(pokemonText, 0, 0, height, height);  // TODO: test
+        this.sprite = new SpriteProxy(pokemonText, 0, 0, height, height);
+
         // TODO: remove
 //        if (!Pokemon.textures.containsKey(name+"_back")) {
 //            Texture text = new Texture(Gdx.files.internal("crystal_pokemon/pokemon/" + name + "/back.png"));
@@ -1424,12 +1878,14 @@ public class Pokemon {
 //      pokemonText = new Texture(Gdx.files.internal("crystal_pokemon/pokemon/" + name + "/back.png"));
         pokemonText = Pokemon.textures.get(name+"_back"+isShiny);
 //        height = pokemonText.getWidth();
-        this.backSprite = new Sprite(pokemonText, 0, 0, 48, 48);
 
-        // load animation from file
-        this.introAnim = new ArrayList<Sprite>();
+//        this.backSprite = new Sprite(pokemonText, 0, 0, 48, 48); // TODO: test
+        this.backSprite = new SpriteProxy(pokemonText, 0, 0, 48, 48);
+
+        // Load animation from file
+        this.introAnim = new ArrayList<SpriteProxy>();
         try {
-            FileHandle file = Gdx.files.internal("crystal_pokemon/pokemon/" + name + "/anim.asm");
+            FileHandle file = Gdx.files.internal("crystal_pokemon/"+path+"pokemon/" + name + "/anim.asm");
             Reader reader = file.reader();
             BufferedReader br = new BufferedReader(reader);
             String line;
@@ -1444,12 +1900,12 @@ public class Pokemon {
                     setrepeat = Integer.valueOf(line.split("setrepeat ")[1]);
                 } else if (line.contains("frame")) {
                     String vals[] = line.split("frame ")[1].split(", ");
-                    int numFrames = Integer.valueOf(vals[1]);
+                    int numFrames = Integer.valueOf(vals[1].trim());
                     int frame = Integer.valueOf(vals[0]);
                     for (int j=0; j < numFrames; j++) {
 //                        pokemonText = new Texture(Gdx.files.internal("crystal_pokemon/pokemon/" + name + "/front.png"));
                         pokemonText = Pokemon.textures.get(name+"_front"+isShiny);
-                        Sprite sprite = new Sprite(pokemonText, 0, height*frame, height, height);
+                        SpriteProxy sprite = new SpriteProxy(pokemonText, 0, height*frame, height, height);
                         this.introAnim.add(sprite);
                     }
                 } else if (line.contains("dorepeat")) {
@@ -1469,14 +1925,20 @@ public class Pokemon {
             e.printStackTrace();
         }
 
-        // load attacks from file
+        // TODO: this is just a hack workaround
+        if (Pokemon.nuukPokemon.contains(newName)) {
+            path = "nuuk/";
+        }
+
+        // Load attacks from file
+        // TODO: just load all of this statically in static {} block (?)
         if (!Pokemon.gen2Attacks.containsKey(newName) || !Pokemon.gen2Evos.containsKey(newName)) {
             Map<Integer, String[]> attacks = new HashMap<Integer, String[]>();
             Map<String, String> evos = new HashMap<String, String>();
             Pokemon.gen2Attacks.put(newName, attacks);
             Pokemon.gen2Evos.put(newName, evos);
             try {
-                FileHandle file = Gdx.files.internal("crystal_pokemon/evos_attacks.asm");
+                FileHandle file = Gdx.files.internal("crystal_pokemon/"+path+"evos_attacks.asm");
                 Reader reader = file.reader();
                 BufferedReader br = new BufferedReader(reader);
                 String line;
@@ -1514,16 +1976,21 @@ public class Pokemon {
                     else if (!line.contains("db 0")) {
                         String vals[] = line.split(", ");
                         String attack = vals[1].toLowerCase().replace('_', ' ');
-                        int level = Integer.valueOf(vals[0].split(" ")[1]);
-                        String[] attacksArray = new String[]{attack};
-                        if (attacks.containsKey(level)) {
-                            attacksArray = new String[attacks.get(level).length+1];
-                            for (int j=0; j<attacks.get(level).length; j++) {
-                                attacksArray[j] = attacks.get(level)[j];
+                        // TODO: eventually remove attacksNotImplemented check
+                        // Prevent loading moves like Metronome, Mimic etc that arent
+                        // implemented
+                        if (!Pokemon.attacksNotImplemented.contains(attack)) {
+                            int level = Integer.valueOf(vals[0].split(" ")[1]);
+                            String[] attacksArray = new String[]{attack};
+                            if (attacks.containsKey(level)) {
+                                attacksArray = new String[attacks.get(level).length+1];
+                                for (int j=0; j<attacks.get(level).length; j++) {
+                                    attacksArray[j] = attacks.get(level)[j];
+                                }
+                                attacksArray[attacks.get(level).length] = attack;
                             }
-                            attacksArray[attacks.get(level).length] = attack;
+                            attacks.put(level, attacksArray);
                         }
-                        attacks.put(level, attacksArray);
                     }
                 }
                 reader.close();
@@ -1538,7 +2005,8 @@ public class Pokemon {
 
     void loadOverworldSprites(String name) {
         name = name.toLowerCase();
-        // load overworld sprites from file
+
+        // Load overworld sprites from file
         try {
             FileHandle file = Gdx.files.internal("crystal_pokemon/prism/pokemon_names.asm");
             Reader reader = file.reader();
@@ -1549,10 +2017,33 @@ public class Pokemon {
                 lines.add(line);
             }
             boolean found = false;
+            
             for (int i=0; i < lines.size(); ) {
+                if (name.equals("egg")) {
+                    break;
+                }
                 line = lines.get(i);
-                String currName = line.split("db \"")[1].split("\"")[0].toLowerCase();
-                if (currName.contains(name)) {
+
+                // TODO: no overworld sprites for some pokemon
+                if (name.equals("poochyena")) {
+                    i = 312; //name = "houndour";
+                    found = true;
+                }
+                else if (name.equals("mightyena")) {
+                    i = 313;  //name = "houndoom";
+                    found = true;
+                }
+                else if (name.equals("wingull")) {
+                    i = 314;  //name = "swablu";
+                    found = true;
+                }
+                else if (name.equals("pelipper")) {
+                    i = 315;  //name = "altaria";
+                    found = true;
+                }
+
+                String currName = line.split("db \"")[1].split("\"")[0].toLowerCase().replace("@", "");
+                if (currName.equals(name) || found) {
                     found = true;
                     // TODO: Credits to Megaman-Omega on Deviantart for prism overworld sprites
                     Texture text = TextureCache.get(Gdx.files.internal("crystal_pokemon/prism-overworld-sprites2.png"));
@@ -1604,29 +2095,99 @@ public class Pokemon {
             if (found) {
                 return;
             }
-            // If failed to load from prism animations, load from crystal
-            Texture text = TextureCache.get(Gdx.files.internal("crystal_pokemon/crystal-overworld-sprites1.png"));
-            int dexNumber = Integer.valueOf(this.dexNumber)-1;
-            // TODO: no honchkrow o/w sprite that I know of, just make it equal to murkrow's for now
-            // fun fact - polishedcrystal honchkrow uses identical pallete to houndoom.
-            if (name.equals("honchkrow")) {
-                dexNumber = 197;
+
+            // If this is an egg, load special texture for the overworld sprite
+            if (this.name.equals("egg")) {
+//                Texture text = TextureCache.get(Gdx.files.internal("crystal_pokemon/egg1.png"));
+                // If cached egg texture doesn't exist in TextureCache.eggTextures, make
+                // a new pixmap with colors replaced.
+                String path = "";
+                if (Pokemon.nuukPokemon.contains(this.eggHatchInto)) {
+                    path = "nuuk/";
+                }
+                
+                Texture text;
+                if (!TextureCache.eggTextures.containsKey(this.eggHatchInto)) {
+                    // TODO: won't work for prism pokemon
+                    text = TextureCache.get(Gdx.files.internal("crystal_pokemon/"+path+"pokemon/" + this.eggHatchInto + "/back.png"));
+                    int height = text.getWidth();
+                    SpriteProxy tempSprite = new SpriteProxy(text, 0, 0, height, height);
+//                    System.out.println(tempSprite.color1);
+//                    System.out.println(tempSprite.color2);
+                    // Replace colors in egg icon
+                    text = TextureCache.get(Gdx.files.internal("crystal_pokemon/egg1.png"));
+                    SpriteProxy tempEggSprite = new SpriteProxy(text, 0, 0, text.getWidth(), text.getHeight());
+                    //
+                    TextureData temp = text.getTextureData();
+                    if (!temp.isPrepared()) {
+                        temp.prepare();
+                    }
+                    Pixmap currPixmap = temp.consumePixmap();
+                    Pixmap newPixmap = new Pixmap(text.getWidth(), text.getHeight(), Pixmap.Format.RGBA8888);
+                    newPixmap.setColor(new Color(0, 0, 0, 0));
+                    newPixmap.fill();
+                    for (int i=0, j=0; j < text.getHeight(); i++) {
+                        if (i > text.getWidth()) {
+                            i=-1;
+                            j++;
+                            continue;
+                        }
+                        Color color = new Color(currPixmap.getPixel(i, j));
+                        // color 1
+                        if (color.r == tempEggSprite.color1.r && color.g == tempEggSprite.color1.g && color.b == tempEggSprite.color1.b) {
+                            color.r = tempSprite.color1.r;
+                            color.g = tempSprite.color1.g;
+                            color.b = tempSprite.color1.b;
+                        }
+                        // color 2
+                        else if (color.r == tempEggSprite.color2.r && color.g == tempEggSprite.color2.g && color.b == tempEggSprite.color2.b) {
+                            color.r = tempSprite.color2.r;
+                            color.g = tempSprite.color2.g;
+                            color.b = tempSprite.color2.b;
+                        }
+                        newPixmap.drawPixel(i, j, Color.rgba8888(color.r, color.g, color.b, color.a));
+                    }
+                    TextureCache.eggTextures.put(this.eggHatchInto, TextureCache.get(newPixmap));
+                }
+                text = TextureCache.eggTextures.get(this.eggHatchInto);
+                for (String dir : new String[]{"up", "down", "left", "right"}) {
+                    this.standingSprites.put(dir, new Sprite(text, 0, 0, 16, 16));
+                    this.movingSprites.put(dir, new Sprite(text, 0, 32, 16, 16));
+                    this.altMovingSprites.put(dir, new Sprite(text, 0, 48, 16, 16));
+                }
+                Sprite hopSprite = new Sprite(text, 0, 16, 16, 16);
+                this.avatarSprites.add(this.standingSprites.get("down"));
+                this.avatarSprites.add(hopSprite);
+                this.avatarSprites.add(this.standingSprites.get("down"));
+                this.avatarSprites.add(hopSprite);
             }
-//            if (dexNumber > 123) {
-//                dexNumber += 3;
-//            }
-            int col = (dexNumber % 15) * 2;
-            int row = (int)((dexNumber) / 15);
-            this.spriteOffsetY = 31 +row*25;
-            for (String dir : new String[]{"up", "down", "left", "right"}) {
-                this.standingSprites.put(dir, new Sprite(text, 1 +col*17, 31 +row*25, 16, 16));
-                this.movingSprites.put(dir, new Sprite(text, 1 +col*17 +17, 31 +row*25, 16, 16));
-                this.altMovingSprites.put(dir, new Sprite(text, 1 +col*17 +17, 31 +row*25, 16, 16));
+            // else, load from crystal overworld sprite sheet
+            else {
+                // If failed to load from prism animations, load from crystal
+                Texture text = TextureCache.get(Gdx.files.internal("crystal_pokemon/crystal-overworld-sprites1.png"));
+                int dexNumber = Integer.valueOf(this.dexNumber)-1;
+                // TODO: no honchkrow o/w sprite that I know of, just make it equal to murkrow's for now
+                // TODO: could check  C:\cygwin64\home\Evan\polishedcrystal\gfx\icon if that exists
+                // fun fact - polishedcrystal honchkrow uses identical pallete to houndoom.
+                if (name.equals("honchkrow")) {
+                    dexNumber = 197;
+                }
+//                if (dexNumber > 123) {
+//                    dexNumber += 3;
+//                }
+                int col = (dexNumber % 15) * 2;
+                int row = (int)((dexNumber) / 15);
+                this.spriteOffsetY = 31 +row*25;
+                for (String dir : new String[]{"up", "down", "left", "right"}) {
+                    this.standingSprites.put(dir, new Sprite(text, 1 +col*17, 31 +row*25, 16, 16));
+                    this.movingSprites.put(dir, new Sprite(text, 1 +col*17 +17, 31 +row*25, 16, 16));
+                    this.altMovingSprites.put(dir, new Sprite(text, 1 +col*17 +17, 31 +row*25, 16, 16));
+                }
+                this.avatarSprites.add(this.standingSprites.get("down"));
+                this.avatarSprites.add(this.movingSprites.get("down"));
+                this.avatarSprites.add(this.standingSprites.get("down"));
+                this.avatarSprites.add(this.movingSprites.get("down"));
             }
-            this.avatarSprites.add(this.standingSprites.get("down"));
-            this.avatarSprites.add(this.movingSprites.get("down"));
-            this.avatarSprites.add(this.standingSprites.get("down"));
-            this.avatarSprites.add(this.movingSprites.get("down"));
 
             for (String key : new ArrayList<String>(this.standingSprites.keySet())) {
                 this.standingSprites.put(key+"_running", this.standingSprites.get(key));
@@ -1653,6 +2214,17 @@ public class Pokemon {
      */
     void loadPrismPokemon(String name) {
         name = name.toLowerCase();
+        
+        if (this.name.equals("egg")) {
+            name = this.eggHatchInto;
+        }
+
+        // TODO: if can't find prism path, check other paths
+//        String path = "crystal_pokemon/prism/";
+//        FileHandle file = Gdx.files.internal(path+"base_stats/" + name + ".asm");
+//        if (!file.exists()) {
+//            path = "crystal_pokemon/nuuk/";
+//        }
 
         // load base stats
         try {
@@ -1680,8 +2252,26 @@ public class Pokemon {
                 } else if (lineNum == 4) {
                     String baseExp = line.split("db ")[1].split(" ;")[0];
                     this.baseStats.put("baseExp", Integer.valueOf(baseExp));
+                } else if (lineNum == 7) {
+                    // prism seems to just use (number+1)/256 for percent female
+                    String genderRatio = line.split("db ")[1].split(" ;")[0];
+                    int percentFemale = Integer.valueOf(genderRatio);
+                    if (Pokemon.rand.nextInt(256) < percentFemale) {
+                        this.gender = "female";
+                    }
+                    else {
+                        this.gender = "male";
+                    }
+                // Egg cycles to hatch
+                } else if (lineNum == 9 && this.name.equals("egg")) {
+                    String eggCycles = line.split("db ")[1].split(" ;")[0];
+                    this.happiness = Integer.valueOf(eggCycles);
                 } else if (lineNum == 14) {
                     this.growthRateGroup = line.split("db ")[1].split(" ;")[0];
+                // Egg groups this pokemon belongs to
+                } else if (lineNum == 15) {
+                    String groups = line.split("dn ")[1].split(" ;")[0];
+                    this.eggGroups = groups.split(", ");
                 }
                 // TODO: other stats
                 lineNum++;
@@ -1693,8 +2283,8 @@ public class Pokemon {
             e.printStackTrace();
         }
 
-        // load sprite and animation data
-        // load front sprite
+        // Load sprite and animation data
+        // Load front sprite
         if (!Pokemon.textures.containsKey(name+"_front")) {
             Texture text = TextureCache.get(Gdx.files.internal("crystal_pokemon/prism/pics/" + name + "/front.png"));
             Pokemon.textures.put(name+"_front", text);
@@ -1727,7 +2317,7 @@ public class Pokemon {
                     }
                 }
                 reader.close();
-                
+
                 file = Gdx.files.internal("crystal_pokemon/prism/pics/" + name + "/normal.pal");
                 reader = file.reader();
                 br = new BufferedReader(reader);
@@ -1826,17 +2416,17 @@ public class Pokemon {
         Texture pokemonText = Pokemon.textures.get(name+"_front"+isShiny);
         // height and width are the same for these sprites
         int height = pokemonText.getWidth();
-        this.sprite = new Sprite(pokemonText, 0, 0, height, height);
+        this.sprite = new SpriteProxy(pokemonText, 0, 0, height, height);
 //        if (!Pokemon.textures.containsKey(name+"_back")) {
 //            Pokemon.textures.put(name+"_back", new Texture(Gdx.files.internal("crystal_pokemon/prism/pics/" + name + "/back.png")));
 //        }
 //        pokemonText = new Texture(Gdx.files.internal("crystal_pokemon/prism/pics/" + name + "/back.png"));  // TODO: remove
         pokemonText = Pokemon.textures.get(name+"_back"+isShiny);
 //        height = pokemonText.getWidth();
-        this.backSprite = new Sprite(pokemonText, 0, 0, 48, 48);
+        this.backSprite = new SpriteProxy(pokemonText, 0, 0, 48, 48);
 
-        // load animation from file
-        this.introAnim = new ArrayList<Sprite>();
+        // Load animation from file
+        this.introAnim = new ArrayList<SpriteProxy>();
         try {
             FileHandle file = Gdx.files.internal("crystal_pokemon/prism/pics/" + name + "/anim0.asm");
             Reader reader = file.reader();
@@ -1858,7 +2448,7 @@ public class Pokemon {
                     for (int j=0; j < numFrames; j++) {
 //                        pokemonText = new Texture(Gdx.files.internal("crystal_pokemon/prism/pics/" + name + "/front.png")
                         pokemonText = Pokemon.textures.get(name+"_front"+isShiny);
-                        Sprite sprite = new Sprite(pokemonText, 0, height*frame, height, height);
+                        SpriteProxy sprite = new SpriteProxy(pokemonText, 0, height*frame, height, height);
                         this.introAnim.add(sprite);
                     }
                 } else if (line.contains("dorepeat")) {
@@ -1879,7 +2469,7 @@ public class Pokemon {
             e.printStackTrace();
         }
 
-        // load attacks from file
+        // Load attacks from file
         if (!Pokemon.gen2Attacks.containsKey(name) || !Pokemon.gen2Evos.containsKey(name)) {
             Map<Integer, String[]> attacks = new HashMap<Integer, String[]>();
             Map<String, String> evos = new HashMap<String, String>();
@@ -1981,7 +2571,6 @@ public class Pokemon {
      */
     public class AddToInventory extends Action {
         public int layer = 130;
-        int moveTimer = 0;
         
         public AddToInventory(Action nextAction) {
             this.nextAction = nextAction;
@@ -1998,7 +2587,6 @@ public class Pokemon {
                                                             Pokemon.this.position));
             }
             if (game.player.pokemon.size() < 6) {
-                Pokemon.this.previousOwner = game.player;
                 game.player.pokemon.add(Pokemon.this);
                 game.map.pokemon.remove(Pokemon.this.position);
                 game.actionStack.remove(Pokemon.this.standingAction);
@@ -2012,17 +2600,87 @@ public class Pokemon {
                                   this.nextAction)))));
                 return;
             }
-            Action newAction = new PlaySound("seed1", null);
+            Action newAction;
+            if (Pokemon.this.name.equals("egg") && Pokemon.this.previousOwner != game.player) {
+                newAction = //new SetField(game, "playerCanMove", false,
+                            new DisplayText(game, game.player.name+" received an EGG.", "Berry_Get.ogg", null,
+                            //new SetField(game, "playerCanMove", true,
+                            null);
+                // Aggro any (potential) nearby parents
+                boolean playedSound = false;  // Only play the '!' sound once
+                Vector2 startPos = Pokemon.this.position.cpy().add(-16*10, -16*10);
+                startPos.x = (int)startPos.x - (int)startPos.x % 16;
+                startPos.y = (int)startPos.y - (int)startPos.y % 16;
+                Vector2 endPos = Pokemon.this.position.cpy().add(16*10, 16*10);
+                endPos.x = (int)endPos.x - (int)endPos.x % 16;
+                endPos.y = (int)endPos.y - (int)endPos.y % 16;
+                int offSet = 0;  // Needed to prevent pokemon from moving into same tile
+                for (Vector2 currPos = new Vector2(startPos.x, startPos.y); currPos.y < endPos.y;) {
+                    Pokemon pokemon = game.map.pokemon.get(currPos);
+                    currPos.x += 16;
+                    if (currPos.x > endPos.x) {
+                        currPos.x = startPos.x;
+                        currPos.y += 16;
+                    }
+                    if (pokemon == null) {
+                        continue;
+                    }
+                    if (pokemon.name.equals("egg")) {
+                        continue;
+                    }
+                    // Pokemon that are friendly to the player don't aggro
+                    if (pokemon.previousOwner == game.player) {
+                        continue;
+                    }
+                    // For now, anything sharing an egg group with the egg
+                    // will be assumed to be a parent.
+                    for (String group1 : pokemon.eggGroups) {
+                        for (String group2 : Pokemon.this.eggGroups) {
+                            if (group1.equals(group2)) {
+                                if (!playedSound) {
+                                    game.insertAction(new PlaySound("ledge2", null));
+                                    playedSound = true;
+                                }
+                                game.insertAction(new SetField(pokemon, "canMove", false,
+                                                  pokemon.new Emote("!",
+                                                  new SetField(pokemon, "canMove", true,
+                                                  new SetField(pokemon, "aggroPlayer", true,
+                                                  null)))));
+                                if (pokemon.standingAction != null && pokemon.standingAction instanceof Pokemon.Standing) {
+                                    ((Pokemon.Standing)pokemon.standingAction).aggroTimer = -2*offSet;
+                                }
+                                offSet++;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            else {
+                newAction = new PlaySound("seed1", null);
+            }
             if (game.player.pokemon.size() >= 6 && !game.player.displayedMaxPartyText) {
                 game.player.displayedMaxPartyText = true;
-                newAction.append(new SetField(game, "playerCanMove", false,
-                                 new DisplayText(game, "Your party is full! You will need to DROP some of them in order to catch more.", null, null,
-                                 new SetField(game, "playerCanMove", true,
-                                 null))));
+                newAction.append(///new SetField(game, "playerCanMove", false,
+                                 new DisplayText(game, "Your party is full! You will need to DROP some of them in order to catch more.", null, false, true,
+                                 //new SetField(game, "playerCanMove", true,
+                                 null));
+            }
+            Pokemon.this.previousOwner = game.player;
+            // Break up relationship between this Pokemon and overworld Pokemon :'(
+            if (Pokemon.this.loveInterest != null) {
+                Pokemon.this.loveInterest.loveInterest = null;  // Farewell, my love...
+                Pokemon.this.loveInterest = null;  // Until we meet again...
             }
             newAction.append(this.nextAction);
             game.actionStack.remove(this);
             game.insertAction(newAction);
+        }
+
+        @Override
+        public void step(Game game) {
+            // so, if i don't override it will immediately insert nextAction...
+            // that's annoying and warrants Action being an interface (?)
         }
     }
 
@@ -2032,8 +2690,22 @@ public class Pokemon {
     public class DrawLower extends Action {
         public int layer = 130;
         Sprite spritePart;
+        public boolean isEgg = false;
+        
+        public boolean following = false;
 
         public int getLayer(){return this.layer;}
+        
+        public DrawLower() {}
+        
+        public DrawLower(boolean following) {
+            this.following = following;
+        }
+
+        @Override
+        public void firstStep(Game game) {
+            this.isEgg = Pokemon.this.name.equals("egg");
+        }
 
         @Override
         public void step(Game game) {
@@ -2042,7 +2714,7 @@ public class Pokemon {
                 return;
             }
             // Count up timer to when harvest-able
-            if (Pokemon.this.hasItem == null) {
+            if (Pokemon.this.hasItem == null && !this.isEgg) {
                 if (Pokemon.this.inHabitat) {
                     Pokemon.this.harvestTimer++;
                     if (Pokemon.this.inShelter) {
@@ -2055,7 +2727,19 @@ public class Pokemon {
                     Pokemon.this.hasItem = Pokemon.this.harvestables.get(game.map.rand.nextInt(Pokemon.this.harvestables.size()));
                 }
             }
-            
+            // If pokemon is female and has a love interest, count down to lay egg
+            if (Pokemon.this.loveInterest != null &&
+                Pokemon.this.inHabitat &&
+                (Pokemon.this.gender.equals("female") || 
+                (Pokemon.this.eggGroups[0].equals("EGG_DITTO") && Pokemon.this.loveInterest.gender.equals("male"))) &&
+                Pokemon.this.layEggTimer > 0) {
+                Pokemon.this.layEggTimer--;
+                // Lay eggs in standing action, not while moving
+            }
+
+            if (!Pokemon.this.drawThisFrame && !this.following) {
+                return;
+            }
             // Don't draw pokemon unless in same indoor/outdoor as player
             if (game.map.tiles != Pokemon.this.mapTiles) {
                 return;
@@ -2073,13 +2757,24 @@ public class Pokemon {
     public class DrawUpper extends Action {
         public int layer = 115;
         Sprite spritePart;
+        
+        public boolean following = false;
 
         public int getLayer(){return this.layer;}
+        
+        public DrawUpper() {}
+
+        public DrawUpper(boolean following) {
+            this.following = following;
+        }
 
         @Override
         public void step(Game game) {
             if (!game.actionStack.contains(Pokemon.this.standingAction)) {
                 game.actionStack.remove(this);
+                return;
+            }
+            if (!Pokemon.this.drawThisFrame && !this.following) {
                 return;
             }
             // Don't draw pokemon unless in same indoor/outdoor as player
@@ -2092,6 +2787,7 @@ public class Pokemon {
             game.mapBatch.draw(this.spritePart, Pokemon.this.position.x, Pokemon.this.position.y+12);
             // TODO: remove if unused
 //            Pokemon.this.currOwSprite.setPosition(Pokemon.this.position.x, Pokemon.this.position.y);
+            Pokemon.this.drawThisFrame = false;
         }
     }
 
@@ -2111,7 +2807,7 @@ public class Pokemon {
             this.type = type;
             Texture text = TextureCache.get(Gdx.files.internal("emotes.png"));
             int i = 0;
-            for (String name : new String[]{"!", "?", "happy", "skull", "heart", "bolt", "sleep", "fish", "uncomfortable"}) {
+            for (String name : new String[]{"!", "?", "happy", "skull", "heart", "bolt", "sleep", "fish", "uncomfortable", "..."}) {
                 sprites.put(name, new Sprite(text, 16*i, 0, 16, 16));
                 i++;
             }
@@ -2152,7 +2848,7 @@ public class Pokemon {
         public Moving(int delay, float numMove, boolean alternate, Action nextAction) {
             this(Pokemon.this.dirFacing, delay, numMove, alternate, false, nextAction);
         }
-        
+
         public Moving(String dirFacing, int delay, float numMove, boolean alternate, boolean isFollowing, Action nextAction) {
             this.dirFacing = dirFacing;
             this.delay = delay;
@@ -2186,10 +2882,66 @@ public class Pokemon {
                 this.targetPos = new Vector2(Pokemon.this.position.x+16, Pokemon.this.position.y);
             }
             if (!this.isFollowing) {
-                game.map.pokemon.remove(Pokemon.this.position);
+                if (game.map.pokemon.containsKey(Pokemon.this.position) && game.map.pokemon.get(Pokemon.this.position).equals(Pokemon.this)) {
+                    game.map.pokemon.remove(Pokemon.this.position);
+                }
                 game.map.pokemon.put(this.targetPos.cpy(), Pokemon.this);
+
+                // Play 'dash' sound if pokemon is moving fast
+                if (this.numMove <= 1) {
+                    // TODO: this will get played incessantly, should only play if near player
+                    // probably needs to be generalized for PlaySound()
+//                    game.insertAction(new PlaySound("dash1", 1f, null));
+                }
+                else if (this.numMove <= 1.5f) {
+                    game.insertAction(new PlaySound("ride1", 1f, null));
+                }
             }
             Pokemon.this.canMove = true;
+
+            // Lay egg if able
+            // TODO: pokemon following you may do this
+            if (Pokemon.this.layEggTimer <= 0 &&
+                Pokemon.this.loveInterest != null &&
+//                game.map.pokemon.get(Pokemon.this.position) == Pokemon.this
+                !game.map.pokemon.containsKey(this.initialPos)) {
+
+                // Create egg, place on overworld
+                Pokemon.this.layEggTimer = Pokemon.this.layEggTimerMax;  //3600*2;
+                String baseSpecies = Pokemon.baseSpecies.get(Pokemon.this.name.toLowerCase());
+                if (Pokemon.this.name.equals("ditto")) {
+                    baseSpecies = Pokemon.baseSpecies.get(Pokemon.this.loveInterest.name.toLowerCase());
+                }
+                // Nidoqueen will lay a nidoran_f egg b/c nidoran_f is it's base speicies
+                // Add a 50 percent chance for it to lay nidoran_m egg instead.
+                if (baseSpecies.equals("nidoran_f") && Game.rand.nextInt(256) < 128) {
+                    baseSpecies = "nidoran_m";
+                }
+                Pokemon pokemonEgg = new Pokemon("egg", 2, Pokemon.Generation.CRYSTAL, Game.rand.nextInt(256) == 0, baseSpecies);
+                // Find first empty attack slot in pokemon egg (first egg move is put here)
+                int currIndex = 0;
+                for (int i=0; i < pokemonEgg.attacks.length; i++) {
+                    if (pokemonEgg.attacks[i] == null) {
+                        currIndex = i;
+                        break;
+                    }
+                }
+                for (String move : Pokemon.eggMoves.get(baseSpecies)) {
+                    // Love interest *should* be male since we should only be here
+                    // if the pokemon is female
+                    for (String attack : Pokemon.this.loveInterest.attacks) {
+                        if (move.equals(attack)) {
+                            pokemonEgg.attacks[currIndex] = move;
+                            currIndex = (currIndex + 1) % 4;
+                        }
+                    }
+                }
+                // TODO: IV's (once they are implemented)
+                pokemonEgg.mapTiles = Pokemon.this.mapTiles;
+                pokemonEgg.position = this.initialPos.cpy();
+//                game.map.pokemon.put(pokemonEgg.position.cpy(), pokemonEgg);  // TODO: not sure why this isn't done by Standing()
+                game.insertAction(pokemonEgg.new Standing());
+            }
 
             // For each player in range, move this pokemon
             // If the pokemon moves out of the player's loading zone, tell that client to remove it.
@@ -2277,6 +3029,7 @@ public class Pokemon {
             }
 
             game.player.pokemon.remove(Pokemon.this);
+            // TODO: shouldn't need this. may also set to pokemon with hp == 0
             if (game.player.currPokemon == Pokemon.this) {
                 game.player.currPokemon = game.player.pokemon.get(0);
             }
@@ -2334,8 +3087,8 @@ public class Pokemon {
             Pokemon.this.moveDirs.clear();
             Pokemon.this.numMoves.clear();
             Pokemon.this.ledgeJumps.clear();
-            game.insertAction(Pokemon.this.new DrawLower());
-            game.insertAction(Pokemon.this.new DrawUpper());
+            game.insertAction(Pokemon.this.new DrawLower(true));
+            game.insertAction(Pokemon.this.new DrawUpper(true));
         }
 
         @Override
@@ -2511,8 +3264,10 @@ public class Pokemon {
         int moveTimer = 0;
         // Time until run animation starts
         int runTimer = 0;
-        int danceCounter = 0;
+        int danceCounter = 240;  // don't make this = 0, game will crash trying to play hop sound effects
         boolean alternate = true;
+        public int aggroTimer = 0;
+        public boolean isEgg = false;
         
         public Standing() {}
 
@@ -2534,11 +3289,205 @@ public class Pokemon {
             game.insertAction(Pokemon.this.new DrawUpper());
             // Determine if pokemon near farm structures / habitat.
             Pokemon.this.checkHabitat(game);
+            // TODO: this is to avoid computationally intensive check
+            // ideally pokemon names should be enums. altho 
+            // that makes it quite a bit clunkier.
+            // Right now, if pokemon hatches from egg in overworld
+            // this will remain frozen. But that's okay b/c they
+            // can't hatch in the overworld.
+            this.isEgg = Pokemon.this.name.equals("egg");
         }
-        
+
         public void localStep(Game game) {
+            // Eggs don't move
+            if (this.isEgg) {
+                // Play 'hop' animation if close to hatching
+//                if (Pokemon.this.happiness <= 1) {
+//                if (Pokemon.this.happiness <= 3) {  // TODO: not doing for now
+                if (this.danceCounter < 4) {
+                    Pokemon.this.spriteOffsetY = 16;
+                    Pokemon.this.currOwSprite = Pokemon.this.avatarSprites.get(1);
+                }
+                else if (this.danceCounter < 16) {
+                    Pokemon.this.spriteOffsetY = 0;
+                    Pokemon.this.currOwSprite = Pokemon.this.standingSprites.get("down");
+                }
+                else if (this.danceCounter < 20) {
+                    Pokemon.this.spriteOffsetY = 16;
+                    Pokemon.this.currOwSprite = Pokemon.this.avatarSprites.get(1);
+                }
+                else if (this.danceCounter < 70 +20) {
+                    Pokemon.this.spriteOffsetY = 0;
+                    Pokemon.this.currOwSprite = Pokemon.this.standingSprites.get("down");
+                }
+                else if (this.danceCounter < 74 +20) {
+                    Pokemon.this.spriteOffsetY = 32;
+                    Pokemon.this.currOwSprite = Pokemon.this.movingSprites.get("down");
+                }
+                else if (this.danceCounter < 78 +20) {
+                    Pokemon.this.spriteOffsetY = 0;
+                    Pokemon.this.currOwSprite = Pokemon.this.standingSprites.get("down");
+                }
+                else if (this.danceCounter < 82 +20) {
+                    Pokemon.this.spriteOffsetY = 48;
+                    Pokemon.this.currOwSprite = Pokemon.this.altMovingSprites.get("down");
+                }
+                else if (this.danceCounter < 86 +20) {
+                    Pokemon.this.spriteOffsetY = 0;
+                    Pokemon.this.currOwSprite = Pokemon.this.standingSprites.get("down");
+                }
+                else if (this.danceCounter < 90 +20) {
+                    Pokemon.this.spriteOffsetY = 32;
+                    Pokemon.this.currOwSprite = Pokemon.this.movingSprites.get("down");
+                }
+                else if (this.danceCounter < 94 +20) {
+                    Pokemon.this.spriteOffsetY = 0;
+                    Pokemon.this.currOwSprite = Pokemon.this.standingSprites.get("down");
+                }
+                else if (this.danceCounter < 98 +20) {
+                    Pokemon.this.spriteOffsetY = 48;
+                    Pokemon.this.currOwSprite = Pokemon.this.altMovingSprites.get("down");
+                }
+                else {
+                    Pokemon.this.spriteOffsetY = 0;
+                    Pokemon.this.currOwSprite = Pokemon.this.standingSprites.get("down");
+                }
+                this.danceCounter++;
+                // Hop more frequently the closer pokemon is to hatching
+                if (this.danceCounter >= 240 +30*(Pokemon.this.happiness-1)) {
+                    this.danceCounter = 0;
+                }
+//                }
+                return;
+            }
             Pokemon.this.currOwSprite = Pokemon.this.standingSprites.get(Pokemon.this.dirFacing);
-            
+
+            // If pokemon is aggro-ing the player, run towards the player
+            if (Pokemon.this.aggroPlayer) {
+                if (!game.playerCanMove) {
+                    return;
+                }
+                if (this.aggroTimer > 240) {
+//                    this.aggroTimer = 32;
+                    this.aggroTimer = 0;
+                }
+                this.aggroTimer++;
+
+                // Play skull emote + pokemon cry every so often
+                if (this.aggroTimer == 1) {
+                    game.insertAction(Pokemon.this.new Emote("skull", null));
+                }
+
+                float dst2 = Pokemon.this.position.dst2(game.player.position);
+                if (dst2 < 16384) {  //12544) {  //9216) {  //4096) {
+                    // Play skull emote + pokemon cry every so often
+                    if (this.aggroTimer == 1) {
+                        game.insertAction(new PlaySound(Pokemon.this, null));
+                    }
+                    // Wait before moving
+                    // Play sounds
+                    if (this.aggroTimer < 4) {
+                        if (this.aggroTimer == 0) {
+                            game.insertAction(new PlaySound("ride1", 0.5f, null));
+                        }
+                        Pokemon.this.currOwSprite = Pokemon.this.altMovingSprites.get(Pokemon.this.dirFacing);
+                        return;
+                    }
+                    else if (this.aggroTimer < 8) {
+                        Pokemon.this.currOwSprite = Pokemon.this.standingSprites.get(Pokemon.this.dirFacing);
+                        return;
+                    }
+                    else if (this.aggroTimer < 12) {
+                        if (this.aggroTimer == 8) {
+                            game.insertAction(new PlaySound("ride1", 0.5f, null));
+                        }
+                        Pokemon.this.currOwSprite = Pokemon.this.movingSprites.get(Pokemon.this.dirFacing);
+                        return;
+                    }
+                    else if (this.aggroTimer < 16) {
+                        Pokemon.this.currOwSprite = Pokemon.this.standingSprites.get(Pokemon.this.dirFacing);
+                        return;
+                    }
+                    else if (this.aggroTimer < 20) {
+                        if (this.aggroTimer == 16) {
+                            game.insertAction(new PlaySound("ride1", 0.5f, null));
+                        }
+                        Pokemon.this.currOwSprite = Pokemon.this.altMovingSprites.get(Pokemon.this.dirFacing);
+                        return;
+                    }
+                    else if (this.aggroTimer < 24) {
+                        Pokemon.this.currOwSprite = Pokemon.this.standingSprites.get(Pokemon.this.dirFacing);
+                        return;
+                    }
+                    else if (this.aggroTimer < 28) {
+                        if (this.aggroTimer == 24) {
+                            game.insertAction(new PlaySound("ride1", 0.5f, null));
+                        }
+                        Pokemon.this.currOwSprite = Pokemon.this.movingSprites.get(Pokemon.this.dirFacing);
+                        return;
+                    }
+                    else if (this.aggroTimer < 32) {
+                        Pokemon.this.currOwSprite = Pokemon.this.standingSprites.get(Pokemon.this.dirFacing);
+                        return;
+                    }
+
+                    // Get dir towards player
+                    ArrayList<String> preferredMoves = new ArrayList<String>();
+                    if (Pokemon.this.position.x < game.player.position.x) {
+                        preferredMoves.add("right");
+                    }
+                    else if (Pokemon.this.position.x > game.player.position.x){
+                        preferredMoves.add("left");
+                    }
+                    if (Pokemon.this.position.y < game.player.position.y) {
+                        preferredMoves.add("up");
+                    }
+                    else if (Pokemon.this.position.y > game.player.position.y) {
+                        preferredMoves.add("down");
+                    }
+                    // flip-flop elements randomly
+                    if (!preferredMoves.isEmpty() && Game.rand.nextInt(256) < 128) {
+                        preferredMoves.add(preferredMoves.remove(0));
+                    }
+                    // If standing on top of player, then initiate battle.
+                    if (dst2 < 64 &&
+                        this.aggroTimer > 32 &&
+                        !game.player.isFlying &&
+                        game.player.acceptInput) {
+                        game.playerCanMove = false;
+                        this.aggroTimer = 0;
+                        game.musicController.startBattle = "wild";
+                        game.battle.oppPokemon = Pokemon.this;
+                        game.insertAction(Battle.getIntroAction(game));
+                        return;
+                    }
+                    for (String move : preferredMoves) {
+                        Vector2 newPos = Pokemon.this.facingPos(move);
+                        Tile facingTile = Pokemon.this.mapTiles.get(newPos);
+                        if (!facingTile.attrs.get("solid") && 
+                            !facingTile.attrs.get("ledge") && 
+                            !facingTile.name.contains("door") && 
+                            !game.map.pokemon.containsKey(newPos)) {
+                            Pokemon.this.dirFacing = move;
+                            game.actionStack.remove(this);
+//                            Action action = Pokemon.this.new Moving(1, 2, this.alternate, this);  // pretty fast
+                            Action action = Pokemon.this.new Moving(1, 1.5f, this.alternate, this);
+                            this.alternate = !this.alternate;
+                            game.insertAction(action);
+                            Pokemon.this.standingAction = action;
+                            break;
+                        }
+                    }
+
+                    // TODO: if haven't moved in a while, choose a different dir
+                    // other than moveDir
+                    
+                    // TODO: give up if enough time passed or haven't moved in a while.
+
+                    return;
+                }
+            }
+
             if (this.runTimer <= 0 && !Pokemon.this.isRunning) {
                 // If player is running nearby and pokemon happiness is low, have it run away.
                 boolean nearPlayer = false;
@@ -2742,28 +3691,33 @@ public class Pokemon {
             if (!Pokemon.this.canMove) {
                 return;
             }
+            // TODO: remove
 //            game.mapBatch.draw(Pokemon.this.standingSprites.get(Pokemon.this.dirFacing),
 //                               Pokemon.this.position.x, Pokemon.this.position.y+4);
             if (this.moveTimer <= 0) {
                 this.moveTimer = game.map.rand.nextInt(180) + 60;
-                int randDir = game.map.rand.nextInt(4);
-                Vector2 newPos;
-                if (randDir == 0) {
-                    Pokemon.this.dirFacing = "up";
-                    newPos = new Vector2(Pokemon.this.position.x, Pokemon.this.position.y+16);
-                }
-                else if (randDir == 1) {
-                    Pokemon.this.dirFacing = "down";
-                    newPos = new Vector2(Pokemon.this.position.x, Pokemon.this.position.y-16);
-                }
-                else if (randDir == 2) {
-                    Pokemon.this.dirFacing = "right";
-                    newPos = new Vector2(Pokemon.this.position.x+16, Pokemon.this.position.y);
-                }
-                else {
-                    Pokemon.this.dirFacing = "left";
-                    newPos = new Vector2(Pokemon.this.position.x-16, Pokemon.this.position.y);
-                }
+                String[] dirs = new String[]{"up", "down", "left", "right"};
+                Pokemon.this.dirFacing = dirs[game.map.rand.nextInt(dirs.length)];
+                // TODO: remove this after testing facingPos code
+//                int randDir = game.map.rand.nextInt(4);
+//                Vector2 newPos;
+//                if (randDir == 0) {
+//                    Pokemon.this.dirFacing = "up";
+//                    newPos = new Vector2(Pokemon.this.position.x, Pokemon.this.position.y+16);
+//                }
+//                else if (randDir == 1) {
+//                    Pokemon.this.dirFacing = "down";
+//                    newPos = new Vector2(Pokemon.this.position.x, Pokemon.this.position.y-16);
+//                }
+//                else if (randDir == 2) {
+//                    Pokemon.this.dirFacing = "right";
+//                    newPos = new Vector2(Pokemon.this.position.x+16, Pokemon.this.position.y);
+//                }
+//                else {
+//                    Pokemon.this.dirFacing = "left";
+//                    newPos = new Vector2(Pokemon.this.position.x-16, Pokemon.this.position.y);
+//                }
+                Vector2 newPos = Pokemon.this.facingPos();
                 // Just checking overworldTiles for now, that way it will still
                 // move around while player is indoors
                 Tile temp = Pokemon.this.mapTiles.get(newPos);
@@ -2777,7 +3731,7 @@ public class Pokemon {
                 if (temp == null ||
                     temp.attrs.get("solid") || 
                     temp.attrs.get("ledge") || 
-                    temp.name.contains("door") || 
+                    temp.nameUpper.contains("door") || 
                     game.map.pokemon.containsKey(newPos) ||
                     // TODO: an indoor player will mess with an outdoor pokemon here
                     // technically doesn't matter for now b/c indoor tiles won't
@@ -2856,7 +3810,7 @@ class SpecialMegaGengar1 extends Pokemon {
         this.breathingSprite = new Sprite(pokemonText, 0, 0, 56, 56);
 
         pokemonText = TextureCache.get(Gdx.files.internal("pokemon/mgengar_over1.png"));
-        this.sprite = new Sprite(pokemonText, 0, 0, 56, 56);
+        this.sprite = new SpriteProxy(pokemonText, 0, 0, 56, 56);
 
 //        this.learnSet.put(1, new String[]{"Confusion", "Disable", "Psychic", "Swift"});
 //        this.learnSet.put(1, new String[]{"Psychic", "Psychic", "Psychic", "Psychic"});
@@ -2895,7 +3849,7 @@ class SpecialMewtwo1 extends Pokemon {
 
         // sprite
         Texture pokemonText = TextureCache.get(Gdx.files.internal("pokemon/mewtwo_special1.png"));
-        this.sprite = new Sprite(pokemonText, 0, 0, 56, 56);
+        this.sprite = new SpriteProxy(pokemonText, 0, 0, 56, 56);
 
         pokemonText = TextureCache.get(Gdx.files.internal("pokemon/mewtwo_special2.png"));
         this.breathingSprite = new Sprite(pokemonText, 0, 0, 56, 56);

@@ -1,6 +1,7 @@
 package com.pkmngen.game;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -9,6 +10,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+
+import javax.swing.JFrame;
+import javax.swing.JOptionPane;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
@@ -60,7 +64,7 @@ public class Action {
     Action nextAction = null;
     boolean firstStep = true;
     
-    Object[] params;
+    Object[] params;  // unused for now
 
     public Action(Object... parameters) {
 //        for (Object param : parameters) {
@@ -109,6 +113,8 @@ public class Action {
             this.nextAction.step(game);
         }
     }
+    
+    // Idea: print self name if debug enabled when firststep called.
 }
 
 /**
@@ -1337,7 +1343,8 @@ class DrawSetupMenu extends Action {
 
         for (int j=0; j < 8; j++) {
             if (j == 0) {
-                char[] textArray = "LOCAL  HOST   JOIN".toCharArray();
+//                char[] textArray = "LOCAL  HOST   JOIN".toCharArray();  // TODO: re-enable once working
+                char[] textArray = "LOCAL  ".toCharArray();
                 Sprite letterSprite;
                 for (int i=0; i < textArray.length; i++) {
                     letterSprite = game.textDict.get(textArray[i]);
@@ -1363,12 +1370,13 @@ class DrawSetupMenu extends Action {
                 }
 
                 if (j == DrawSetupMenu.currIndex) {
-                    if (InputProcessor.leftJustPressed && this.localHostJoinIndex > 0) {
-                        this.localHostJoinIndex--;
-                    }
-                    if (InputProcessor.rightJustPressed && this.localHostJoinIndex < 2) {
-                        this.localHostJoinIndex++;
-                    }
+                      // TODO: re-enable once working
+//                    if (InputProcessor.leftJustPressed && this.localHostJoinIndex > 0) {
+//                        this.localHostJoinIndex--;
+//                    }
+//                    if (InputProcessor.rightJustPressed && this.localHostJoinIndex < 2) {
+//                        this.localHostJoinIndex++;
+//                    }
                     newPos = newPos.cpy().add(offsetX, 0);
                 }
                 game.uiBatch.draw(this.arrowWhite, this.arrowCoords.get(j).x+offsetX, this.arrowCoords.get(j).y);
@@ -1788,7 +1796,23 @@ class DrawSetupMenu extends Action {
                             else {
                                 game.actionStack.remove(this);
                                 game.start();
-                                game.map.loadFromFile(game);
+                                try {
+                                    game.map.loadFromFile(game);
+                                    InputProcessor.aJustPressed = false;  // Hack to prevent interaction after loading
+//                                    throw new Exception();
+                                }
+                                catch (Exception e) {
+                                    e.printStackTrace();
+                                    JFrame frame = new JFrame("Error");
+                                    JOptionPane.showMessageDialog(frame, "There was an error loading this file - it may be too old for this build.\nPlease create a bug at github.com/SheerSt/pokemon-wilds.");
+                                    System.exit(0);
+                                }
+                                // Reload game logfile
+                                try {
+                                    game.logFile = new FileWriter(game.map.id+".log");
+                                } catch (IOException e) {
+                                    e.printStackTrace();
+                                }
                                 EnterBuilding enterBuilding = new EnterBuilding(game, "", null);
                                 enterBuilding.slow = 8;
                                 game.insertAction(enterBuilding);
@@ -2269,14 +2293,22 @@ class MusicController extends Action {
 
     public String startTimeOfDay = null;  // Triggered when time of day transitions
     public boolean unownMusic = false;
-    
+
     public String currOverworldMusic = null;
     public String startOverworldMusic = null;  // next overworld music queued to be played
     public boolean fadeToDungeon = false;
     public boolean resumeOverworldMusic = false;
-    
+    public boolean inTransition = false;
+
+    public boolean startEvolveMusic = false;
+    public boolean evolving = false;
+    public boolean evolveMusicFadeout = false;
+
+    public String startNightAlert = null;
+    public boolean nightAlert = false;
+
     String currDayTime = null;
-    
+
     Music.OnCompletionListener musicCompletionListener;
 
     public MusicController(Game game) {
@@ -2290,7 +2322,7 @@ class MusicController extends Action {
 
     @Override
     public void step(Game game) {
-        // Code will attempt to set fields on game.musicController, so this needs
+        // Code will attempt to set fields on game.musicController, so this object needs
         // to exist even in the case of a Server.
         if (game.type == Game.Type.SERVER) {
             return;
@@ -2303,6 +2335,7 @@ class MusicController extends Action {
                 game.currMusic = game.battle.music;
                 game.currMusic.stop();
                 game.currMusic.setVolume(0.3f);
+//                game.currMusic.setVolume(0f); // TODO: debug, remove
 //                BattleFadeOutMusic.stop = true;  // TODO: remove
 //                FadeMusic.pause = true;  // TODO: remove
                 game.currMusic.play();
@@ -2332,14 +2365,37 @@ class MusicController extends Action {
             this.unownMusic = false;
             this.battleFadeOut = false;
         }
-        if (this.resumeOverworldMusic && !this.inBattle) {
+        if (this.startEvolveMusic) {
+            game.currMusic.pause();
+            game.currMusic = Gdx.audio.newMusic(Gdx.files.internal("evolution1.ogg"));
+            game.currMusic.play();
+            this.evolving = true;
+            this.startEvolveMusic = false;
+        }
+        if (this.evolveMusicFadeout && this.evolving) {
+            game.insertAction(new FadeMusic(game.currMusic, -0.02f,
+                              new CallMethod(game.currMusic, "stop", new Object[]{},
+                              new CallMethod(game.currMusic, "dispose", new Object[]{},
+                              new SetField(this, "evolving", false,
+                              new SetField(this, "resumeOverworldMusic", true,
+                              null))))));
+            this.evolveMusicFadeout = false;
+        }
+        if (this.resumeOverworldMusic && !this.inBattle && !this.nightAlert) {
             System.out.println("resume overworld music");
             System.out.println(game.map.timeOfDay.equals("night"));
             System.out.println(this.inBattle);
-            if (this.startTimeOfDay == null) {  //!this.currDayTime.equals("night") && 
+            if (this.startTimeOfDay == null && !this.inTransition) {
                 System.out.println(this.currOverworldMusic);
                 System.out.println(game.currMusic.getVolume());
-                game.currMusic = game.loadedMusic.get(this.currOverworldMusic);
+                if (!game.map.currRoute.name.contains("pkmnmansion")) {
+                    game.currMusic.pause();
+                    game.currMusic = game.loadedMusic.get(this.currOverworldMusic);
+                }
+                else {
+                    // TODO: not ideal
+                    game.currMusic = game.loadedMusic.get("pkmnmansion");
+                }
                 if (!game.currMusic.isPlaying()) {
                     game.currMusic.play();
                 }
@@ -2363,10 +2419,26 @@ class MusicController extends Action {
             }
             this.fadeToDungeon = false;
         }
-        if (this.startOverworldMusic != null && !this.inBattle) {
+        if (this.startNightAlert != null) {
+            game.currMusic.pause();
+            if (!game.loadedMusic.containsKey(this.startNightAlert)) {
+                game.loadedMusic.put(this.startNightAlert, Gdx.audio.newMusic(Gdx.files.internal(this.startNightAlert+".ogg")));
+            }
+            Music music = game.loadedMusic.get(this.startNightAlert);
+            music.stop();
+//            music.setVolume(.7f);  // was
+            music.setVolume(0.5f);
+            music.setLooping(true);
+            game.currMusic = music;
+            game.currMusic.play();
+            this.nightAlert = true;
+            this.startNightAlert = null;
+        }
+        if (this.startOverworldMusic != null && !this.inBattle && !this.evolving) {
             System.out.println("startOverworldMusic");
             // Was a fade in, just starting music now.
-            if (!this.currDayTime.equals("night")) {
+            if (!this.currDayTime.equals("night") && !this.unownMusic) {
+                game.currMusic.pause();
                 if (!game.loadedMusic.containsKey(this.startOverworldMusic)) {
                     game.loadedMusic.put(this.startOverworldMusic, Gdx.audio.newMusic(Gdx.files.internal("music/"+this.startOverworldMusic+".ogg")));
                 }
@@ -2382,7 +2454,7 @@ class MusicController extends Action {
             }
             this.startOverworldMusic = null;
         }
-        if (this.startTimeOfDay != null && !this.inBattle && !this.playerFainted && !this.unownMusic) {
+        if (this.startTimeOfDay != null && !this.inBattle && !this.playerFainted && !this.unownMusic && !this.evolving) {
             this.currDayTime = this.startTimeOfDay;
             if (game.battle.oppPokemon == null || !SpecialMewtwo1.class.isInstance(game.battle.oppPokemon)) {
                 if (this.startTimeOfDay.equals("day")) {
@@ -2415,10 +2487,12 @@ class MusicController extends Action {
 //                                           new WaitFrames(game, 360,
 //                                           new FadeMusic(nextMusicName, "in", "", 0.2f, true, 1f, musicCompletionListener,
 //                                           null)));
+                        this.inTransition = true;
                         Action nextMusic = new FadeMusic(game.currMusic, -0.025f,  // used for fading night music out
                                            new WaitFrames(game, 360,
                                            new SetField(game.musicController, "startOverworldMusic", nextMusicName,
-                                           null)));
+                                           new SetField(game.musicController, "inTransition", false,
+                                           null))));
 //                        game.fadeMusicAction = nextMusic; // TODO: is this being used?
 //                        MusicController.currOverworldMusic = nextMusicName;
                         game.insertAction(nextMusic);
@@ -2477,9 +2551,13 @@ class PlaySound extends Action {
         this.playedYet = false;
         this.sound = pokemon.name;
         this.music = null;
-
+        // Don't play cry if this is an egg
+        if (pokemon.name.equals("egg")) {
+            this.music = Gdx.audio.newMusic(Gdx.files.internal("egg_noise1.ogg"));
+            this.music.setLooping(false);
+        }
         // if it's crystal pokemon, load from crystal dir
-        if (pokemon.generation == Pokemon.Generation.CRYSTAL) {
+        else if (pokemon.generation == Pokemon.Generation.CRYSTAL) {
             this.music = Gdx.audio.newMusic(Gdx.files.internal("crystal_pokemon/cries/" + pokemon.dexNumber + ".ogg"));
             if (pokemon.dexNumber.equals("000")) {
                 this.music.setVolume(0.9f);
@@ -2492,10 +2570,13 @@ class PlaySound extends Action {
     }
 
     public PlaySound(String sound, Action nextAction) {
+        this(sound, 1f, nextAction);
+    }
+
+    public PlaySound(String sound, float volume, Action nextAction) {
         this.nextAction = nextAction;
         this.playedYet = false;
         this.sound = sound;
-
         this.music = null;
 
         if (sound == "laser1") {
@@ -2754,6 +2835,7 @@ class PlaySound extends Action {
             this.music = Gdx.audio.newMusic(Gdx.files.internal(sound+".ogg"));
             this.music.setLooping(false);
         }
+        this.music.setVolume(volume);
     }
 
     @Override
