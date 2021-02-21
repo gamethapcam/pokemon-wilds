@@ -344,6 +344,16 @@ ArbokEvosAttacks:
 	db 51, HAZE
 	db 0 ; no more level-up moves
 
+PichuEvosAttacks:
+	db EVOLVE_HAPPINESS, TR_ANYTIME, PIKACHU
+	db 0 ; no more evolutions
+	db 1, THUNDERSHOCK
+	db 1, CHARM
+	db 6, TAIL_WHIP
+	db 8, THUNDER_WAVE
+	db 11, SWEET_KISS
+	db 0 ; no more level-up moves
+
 PikachuEvosAttacks:
 	db EVOLVE_ITEM, THUNDERSTONE, RAICHU
 	db 0 ; no more evolutions
@@ -465,6 +475,16 @@ NidokingEvosAttacks:
 	db 23, THRASH
 	db 0 ; no more level-up moves
 
+CleffaEvosAttacks:
+	db EVOLVE_HAPPINESS, TR_ANYTIME, CLEFAIRY
+	db 0 ; no more evolutions
+	db 1, POUND
+	db 1, CHARM
+	db 4, ENCORE
+	db 8, SING
+	db 13, SWEET_KISS
+	db 0 ; no more level-up moves
+
 ClefairyEvosAttacks:
 	db EVOLVE_ITEM, MOON_STONE, CLEFABLE
 	db 0 ; no more evolutions
@@ -508,6 +528,16 @@ NinetalesEvosAttacks:
 	db 1, CONFUSE_RAY
 	db 1, SAFEGUARD
 	db 43, FIRE_SPIN
+	db 0 ; no more level-up moves
+
+IgglybuffEvosAttacks:
+	db EVOLVE_HAPPINESS, TR_ANYTIME, JIGGLYPUFF
+	db 0 ; no more evolutions
+	db 1, SING
+	db 1, CHARM
+	db 4, DEFENSE_CURL
+	db 9, POUND
+	db 14, SWEET_KISS
 	db 0 ; no more level-up moves
 
 JigglypuffEvosAttacks:
@@ -1684,6 +1714,21 @@ ScytherEvosAttacks:
 	db 48, DOUBLE_TEAM
 	db 0 ; no more level-up moves
 
+SmoochumEvosAttacks:
+	db EVOLVE_LEVEL, 30, JYNX
+	db 0 ; no more evolutions
+	db 1, POUND
+	db 1, LICK
+	db 9, SWEET_KISS
+	db 13, POWDER_SNOW
+	db 21, CONFUSION
+	db 25, SING
+	db 33, MEAN_LOOK
+	db 37, PSYCHIC_M
+	db 45, PERISH_SONG
+	db 49, BLIZZARD
+	db 0 ; no more level-up moves
+
 JynxEvosAttacks:
 	db 0 ; no more evolutions
 	db 1, POUND
@@ -1700,6 +1745,19 @@ JynxEvosAttacks:
 	db 57, BLIZZARD
 	db 0 ; no more level-up moves
 
+ElekidEvosAttacks:
+	db EVOLVE_LEVEL, 30, ELECTABUZZ
+	db 0 ; no more evolutions
+	db 1, QUICK_ATTACK
+	db 1, LEER
+	db 9, THUNDERPUNCH
+	db 17, LIGHT_SCREEN
+	db 25, SWIFT
+	db 33, SCREECH
+	db 41, THUNDERBOLT
+	db 49, THUNDER
+	db 0 ; no more level-up moves
+
 ElectabuzzEvosAttacks:
 	db 0 ; no more evolutions
 	db 1, QUICK_ATTACK
@@ -1711,6 +1769,20 @@ ElectabuzzEvosAttacks:
 	db 36, SCREECH
 	db 47, THUNDERBOLT
 	db 58, THUNDER
+	db 0 ; no more level-up moves
+
+MagbyEvosAttacks:
+	db EVOLVE_LEVEL, 30, MAGMAR
+	db 0 ; no more evolutions
+	db 1, EMBER
+	db 7, LEER
+	db 13, SMOG
+	db 19, FIRE_PUNCH
+	db 25, SMOKESCREEN
+	db 31, SUNNY_DAY
+	db 37, FLAMETHROWER
+	db 43, CONFUSE_RAY
+	db 49, FIRE_BLAST
 	db 0 ; no more level-up moves
 
 MagmarEvosAttacks:
@@ -2346,36 +2418,6 @@ LanturnEvosAttacks:
 	db 33, CONFUSE_RAY
 	db 45, TAKE_DOWN
 	db 53, HYDRO_PUMP
-	db 0 ; no more level-up moves
-
-PichuEvosAttacks:
-	db EVOLVE_HAPPINESS, TR_ANYTIME, PIKACHU
-	db 0 ; no more evolutions
-	db 1, THUNDERSHOCK
-	db 1, CHARM
-	db 6, TAIL_WHIP
-	db 8, THUNDER_WAVE
-	db 11, SWEET_KISS
-	db 0 ; no more level-up moves
-
-CleffaEvosAttacks:
-	db EVOLVE_HAPPINESS, TR_ANYTIME, CLEFAIRY
-	db 0 ; no more evolutions
-	db 1, POUND
-	db 1, CHARM
-	db 4, ENCORE
-	db 8, SING
-	db 13, SWEET_KISS
-	db 0 ; no more level-up moves
-
-IgglybuffEvosAttacks:
-	db EVOLVE_HAPPINESS, TR_ANYTIME, JIGGLYPUFF
-	db 0 ; no more evolutions
-	db 1, SING
-	db 1, CHARM
-	db 4, DEFENSE_CURL
-	db 9, POUND
-	db 14, SWEET_KISS
 	db 0 ; no more level-up moves
 
 TogepiEvosAttacks:
@@ -3163,48 +3205,6 @@ HitmontopEvosAttacks:
 	db 37, AGILITY
 	db 43, DETECT
 	db 49, TRIPLE_KICK
-	db 0 ; no more level-up moves
-
-SmoochumEvosAttacks:
-	db EVOLVE_LEVEL, 30, JYNX
-	db 0 ; no more evolutions
-	db 1, POUND
-	db 1, LICK
-	db 9, SWEET_KISS
-	db 13, POWDER_SNOW
-	db 21, CONFUSION
-	db 25, SING
-	db 33, MEAN_LOOK
-	db 37, PSYCHIC_M
-	db 45, PERISH_SONG
-	db 49, BLIZZARD
-	db 0 ; no more level-up moves
-
-ElekidEvosAttacks:
-	db EVOLVE_LEVEL, 30, ELECTABUZZ
-	db 0 ; no more evolutions
-	db 1, QUICK_ATTACK
-	db 1, LEER
-	db 9, THUNDERPUNCH
-	db 17, LIGHT_SCREEN
-	db 25, SWIFT
-	db 33, SCREECH
-	db 41, THUNDERBOLT
-	db 49, THUNDER
-	db 0 ; no more level-up moves
-
-MagbyEvosAttacks:
-	db EVOLVE_LEVEL, 30, MAGMAR
-	db 0 ; no more evolutions
-	db 1, EMBER
-	db 7, LEER
-	db 13, SMOG
-	db 19, FIRE_PUNCH
-	db 25, SMOKESCREEN
-	db 31, SUNNY_DAY
-	db 37, FLAMETHROWER
-	db 43, CONFUSE_RAY
-	db 49, FIRE_BLAST
 	db 0 ; no more level-up moves
 
 MiltankEvosAttacks:

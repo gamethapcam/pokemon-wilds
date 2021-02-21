@@ -1987,14 +1987,16 @@ class ServerBroadcast extends Action {
                                 Player player = game.players.get(battleData.playerId);
 //                                System.out.println(battleData.pokemonData.name);
 //                                System.out.println(battleData.playerId);
+                                // TODO: remove
                                 // The first Pokemon the player sends out in battle should
                                 // have >0 hp.
-                                for (Pokemon currPokemon : player.pokemon) {
-                                    if (currPokemon.currentStats.get("hp") > 0) {
-                                        player.currPokemon = currPokemon;
-                                        break;
-                                    }
-                                }
+//                                for (Pokemon currPokemon : player.pokemon) {
+//                                    if (currPokemon.currentStats.get("hp") > 0) {
+//                                        player.currPokemon = currPokemon;
+//                                        break;
+//                                    }
+//                                }
+                                player.setCurrPokemon();
                                 player.canMove = false;
                                 game.battles.put(player.network.id, new Battle());
                                 game.battles.get(player.network.id).oppPokemon = new Pokemon(battleData.pokemonData);

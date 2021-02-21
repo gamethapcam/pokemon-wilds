@@ -1448,12 +1448,44 @@ class GenIsland1 extends Action {
             ApplyBlotch(game, "island", tile, maxDist/18, this.tilesToAdd, 1, true, blotchRoute); 
         }
         this.tilesToAdd.putAll(mtnTiles);
-        
-        // remove 'stray' overworld pokemon
+
+        // Remove 'stray' overworld pokemon
         for (Vector2 pos : mtnTiles.keySet()) {
             if (this.pokemonToAdd.containsKey(pos)) {
                 this.pokemonToAdd.remove(pos);
             }
+        }
+
+        // TODO: test
+        // Make all fully-evolved Pokemon overworld pokemon
+        for (Tile tile : this.tilesToAdd.values()) {
+            if (tile.routeBelongsTo == null) {
+                continue;
+            }
+            for (Pokemon pokemon : new ArrayList<Pokemon>(tile.routeBelongsTo.pokemon)) {
+                boolean isBaseSpecies = Pokemon.baseSpecies.get(pokemon.name).equals(pokemon.name);
+                boolean hasEvo = !Pokemon.gen2Evos.get(pokemon.name).isEmpty();
+                if (tile.routeBelongsTo.name.contains("beach")) {
+                    hasEvo = !hasEvo;  // want wartortle, croconaw, etc to walk around
+                }
+                if (!isBaseSpecies && !hasEvo) {
+                    tile.routeBelongsTo.pokemon.remove(pokemon);
+                    int baseChance = 192;
+                    if (tile.routeBelongsTo.name.contains("forest")) {
+                        baseChance = 224;  // 1/8 chance if it's forest biome
+                    }
+                    // 25% chance to yeet it out to the overworld
+                    // TODO: Jynx and Piloswine are very prolific.. maybe have to
+                    // introduce special rule
+                    if (this.rand.nextInt(256) >= baseChance) {
+                        pokemon.position = tile.position.cpy();
+                        pokemon.mapTiles = game.map.overworldTiles;
+                        pokemon.standingAction = pokemon.new Standing();
+                        this.pokemonToAdd.put(tile.position.cpy(), pokemon);
+                    }
+                }
+            }
+            tile.routeBelongsTo.genPokemon(256, false);
         }
 
         // Find max/min x and y tiles, add padding and add water tiles
@@ -1603,6 +1635,8 @@ class GenIsland1 extends Action {
                         } catch (Exception e) {
                             System.out.println("Failed to generate mansion: " + e.getMessage());
                             System.out.println("Retrying...");
+                            mansionExteriorTiles.clear();
+                            mansionInteriorTiles.clear();
                             tries++;
                             e.printStackTrace();
                         }
@@ -2663,70 +2697,60 @@ class GenIsland1 extends Action {
                         tileLevels.containsKey(tl) && tileLevels.get(tl) == tileLevels.get(tile)-1) {
                    tileLevels.put(tile, tileLevels.get(tile)-1);
                    done = false;
-//                   break;
                 }
                 if (tileLevels.containsKey(bot) && tileLevels.get(bot) == tileLevels.get(tile)-1 &&
                         tileLevels.containsKey(left) && tileLevels.get(left) == tileLevels.get(tile)-1 &&
                         tileLevels.containsKey(tr) && tileLevels.get(tr) == tileLevels.get(tile)-1) {
                    tileLevels.put(tile, tileLevels.get(tile)-1);
                    done = false;
-//                   break;
                 }
                 if (tileLevels.containsKey(bot) && tileLevels.get(bot) == tileLevels.get(tile) &&
                         tileLevels.containsKey(left) && tileLevels.get(left) == tileLevels.get(tile)-1 &&
                         tileLevels.containsKey(br) && tileLevels.get(br) == tileLevels.get(tile)-1) {
                    tileLevels.put(tile, tileLevels.get(tile)-1);
                    done = false;
-//                   break;
                 }
                 if (tileLevels.containsKey(bot) && tileLevels.get(bot) == tileLevels.get(tile) &&
                         tileLevels.containsKey(right) && tileLevels.get(right) == tileLevels.get(tile)-1 &&
                         tileLevels.containsKey(bl) && tileLevels.get(bl) == tileLevels.get(tile)-1) {
                    tileLevels.put(tile, tileLevels.get(tile)-1);
                    done = false;
-//                   break;
                 }
                 if (tileLevels.containsKey(top) && tileLevels.get(top) == tileLevels.get(tile) &&
                         tileLevels.containsKey(left) && tileLevels.get(left) == tileLevels.get(tile)-1 &&
                         tileLevels.containsKey(tr) && tileLevels.get(tr) == tileLevels.get(tile)-1) {
                    tileLevels.put(tile, tileLevels.get(tile)-1);
                    done = false;
-//                   break;
                 }
                 if (tileLevels.containsKey(top) && tileLevels.get(top) == tileLevels.get(tile) &&
                         tileLevels.containsKey(right) && tileLevels.get(right) == tileLevels.get(tile)-1 &&
                         tileLevels.containsKey(tl) && tileLevels.get(tl) == tileLevels.get(tile)-1) {
                    tileLevels.put(tile, tileLevels.get(tile)-1);
                    done = false;
-//                   break;
                 }
                 if (tileLevels.containsKey(right) && tileLevels.get(right) == tileLevels.get(tile) &&
                         tileLevels.containsKey(top) && tileLevels.get(top) == tileLevels.get(tile)-1 &&
                         tileLevels.containsKey(br) && tileLevels.get(br) == tileLevels.get(tile)-1) {
                    tileLevels.put(tile, tileLevels.get(tile)-1);
                    done = false;
-//                   break;
                 }
                 if (tileLevels.containsKey(right) && tileLevels.get(right) == tileLevels.get(tile) &&
                         tileLevels.containsKey(bot) && tileLevels.get(bot) == tileLevels.get(tile)-1 &&
                         tileLevels.containsKey(tr) && tileLevels.get(tr) == tileLevels.get(tile)-1) {
                    tileLevels.put(tile, tileLevels.get(tile)-1);
                    done = false;
-//                   break;
                 }
                 if (tileLevels.containsKey(left) && tileLevels.get(left) == tileLevels.get(tile) &&
                         tileLevels.containsKey(bot) && tileLevels.get(bot) == tileLevels.get(tile)-1 &&
                         tileLevels.containsKey(tl) && tileLevels.get(tl) == tileLevels.get(tile)-1) {
                    tileLevels.put(tile, tileLevels.get(tile)-1);
                    done = false;
-//                   break;
                 }
                 if (tileLevels.containsKey(left) && tileLevels.get(left) == tileLevels.get(tile) &&
                         tileLevels.containsKey(top) && tileLevels.get(top) == tileLevels.get(tile)-1 &&
                         tileLevels.containsKey(bl) && tileLevels.get(bl) == tileLevels.get(tile)-1) {
                    tileLevels.put(tile, tileLevels.get(tile)-1);
                    done = false;
-//                   break;
                 }
             }
         }
@@ -2736,9 +2760,9 @@ class GenIsland1 extends Action {
             Tile bot = mtnTiles.get(tile.position.cpy().add(0, -16));
             Tile br = mtnTiles.get(tile.position.cpy().add(16, -16));
             Tile left = mtnTiles.get(tile.position.cpy().add(-16, 0));
-//            Tile tl = mtnTiles.get(tile.position.cpy().add(-16, 16));
+            Tile tl = mtnTiles.get(tile.position.cpy().add(-16, 16));
             Tile top = mtnTiles.get(tile.position.cpy().add(0, 16));
-//            Tile tr = mtnTiles.get(tile.position.cpy().add(16, 16));
+            Tile tr = mtnTiles.get(tile.position.cpy().add(16, 16));
             Tile right = mtnTiles.get(tile.position.cpy().add(16, 0));
             if (tileLevels.containsKey(left) && tileLevels.get(left) == tileLevels.get(tile) &&
                 tileLevels.containsKey(bot) && tileLevels.get(bot) == tileLevels.get(tile)-1 &&
@@ -2794,6 +2818,16 @@ class GenIsland1 extends Action {
                      tileLevels.containsKey(left) && tileLevels.get(left) == tileLevels.get(tile)) {
                 mtnTiles2.put(tile.position.cpy(), new Tile("mountain1_bl_inner1", tile.position.cpy()));
             }
+            else if (tileLevels.containsKey(tr) && tileLevels.get(tr) == tileLevels.get(tile)-1 &&
+                    tileLevels.containsKey(top) && tileLevels.get(top) == tileLevels.get(tile) &&
+                    tileLevels.containsKey(right) && tileLevels.get(right) == tileLevels.get(tile)) {
+                mtnTiles2.put(tile.position.cpy(), new Tile("mountain3", tile.position.cpy()));
+            }
+            else if (tileLevels.containsKey(tl) && tileLevels.get(tl) == tileLevels.get(tile)-1 &&
+                    tileLevels.containsKey(top) && tileLevels.get(top) == tileLevels.get(tile) &&
+                    tileLevels.containsKey(left) && tileLevels.get(left) == tileLevels.get(tile)) {
+                mtnTiles2.put(tile.position.cpy(), new Tile("mountain3", tile.position.cpy()));
+            }
 //            else {
 //                mtnTiles2.put(tile.position.cpy(), new Tile("mountain3", tile.position.cpy()));
 //            }
@@ -2802,9 +2836,19 @@ class GenIsland1 extends Action {
             // randomly place grass blotches
             if (this.rand.nextInt((int)Math.ceil(1f/(1f/((maxDist)/500f)))) == 1) {
                 float distance = tile.position.dst(originTile.position);
-                int level = (int)(60*(1-(tile.position.dst(this.origin) / (this.radius/12))));
+//                int level = (int)(60*(1-(tile.position.dst(this.origin) / (this.radius/12))));
+                int level = (int)(30*(1-(tile.position.dst(this.origin) / (this.radius/12))));
                 if (level < 4) {
                     level = 4;
+                }
+                // If this is at base of the mountain,
+                // then set level = 10 so player doesn't get
+                // super high level encounters
+                if (tileLevels.get(tile) <= currLevel) {
+                    level = 10;
+                }
+                else if (level > 30) {
+                    level = 30;
                 }
                 if (distance < 1*maxDist/40) {
                     Route blotchRoute = new Route("snow1", level);

@@ -791,7 +791,7 @@ class DrawCampfireAuras extends Action {
  *       also want it to move flowers.
  */
 class MoveWater extends Action {
-    public int layer = 110;
+    public int layer = 109;  // 110 TODO: test
 
     ArrayList<Vector2> positions;
     Vector2 position;
@@ -808,6 +808,7 @@ class MoveWater extends Action {
     Pixmap pixmap;
     Pixmap firePixmap1;
     Pixmap firePixmap2;
+    int timer = 0;
 
     public MoveWater(Game game) {
         this.positions = new ArrayList<Vector2>();
@@ -921,6 +922,14 @@ class MoveWater extends Action {
                 tile.sprite.setRegionX((int)this.position.x);
                 tile.sprite.setRegionWidth((int)tile.sprite.getWidth());
             }
+            if (tile.name.contains("flower")) {
+                if (this.timer == 0) {
+                    tile.sprite.setRegionX(0);
+                }
+                else if (this.timer == 26) {
+                    tile.sprite.setRegionX(16);
+                }
+            }
             // Animate campfires
             // Also animate campfire aura around fire type pokemon walking around.
             Pokemon pokemon = game.map.pokemon.get(currPos);
@@ -1002,6 +1011,10 @@ class MoveWater extends Action {
             // this.position = this.position.add(positions.get(0));
             positions.remove(0);
             repeats.remove(0);
+        }
+        this.timer++;
+        if (this.timer >= 52) {
+            this.timer = 0;
         }
     }
 
@@ -1708,7 +1721,7 @@ class Route {
             // absol, growlithe, vulpix,
           this.allowedPokemon.add("zubat");
           this.allowedPokemon.add("golbat");
-          this.allowedPokemon.add("houndour");
+          this.allowedPokemon.add("houndour");  // houndoom never spawns (probably level related)
 //          this.allowedPokemon.add("stantler");  // TODO: enable when decent overworld sprite
           this.allowedPokemon.add("murkrow");
           this.allowedPokemon.add("nidorina");
@@ -1792,12 +1805,12 @@ class Route {
         else if (name.equals("beach1")) {
             this.allowedPokemon.add("squirtle");
             this.allowedPokemon.add("krabby");
-            this.allowedPokemon.add("totodile");
+            this.allowedPokemon.add("totodile");  // this guy never spawns, no idea why
             this.allowedPokemon.add("shellder");
-            this.allowedPokemon.add("wooper");
+            this.allowedPokemon.add("wooper");  // this guy never spawns no idea why
 //            this.allowedPokemon.add("shuckle");  // found under rocks now - remove(?)
             this.allowedPokemon.add("staryu");
-            this.allowedPokemon.add("marill");
+            this.allowedPokemon.add("marill");  // this guy never spawns as Azumarill
             this.allowedPokemon.add("slowpoke");
             this.allowedPokemon.add("poliwag");
             //
@@ -1885,7 +1898,7 @@ class Route {
 //            this.music.setLooping(true);
 //            this.music.setVolume(.3f);
         }
-        genPokemon(256);
+        this.genPokemon(256);
 
         // TODO: victory road theme thing
 
@@ -1924,6 +1937,10 @@ class Route {
      * TODO: probably should have more than 4 pokemon.
      */
     public void genPokemon(int maxCatchRate) {
+        this.genPokemon(maxCatchRate, true);
+    }
+
+    public void genPokemon(int maxCatchRate, boolean shouldEvo) {
         // TODO - bug if maxed out on catch rates, and need to repeat a pkmn
 
         // if less than needed pokemon for randomization, just use them all.
@@ -1963,13 +1980,16 @@ class Route {
             int timesEvolved = 0;
             Map<String, String> evos; // = Pokemon.gen2Evos.get(tempPokemon.name.toLowerCase());
             boolean failed = false;
-            while (!failed) {
+            while (!failed && shouldEvo) {
                 failed = true;
                 evos = Pokemon.gen2Evos.get(tempPokemon.name.toLowerCase());
                 for (String evo : evos.keySet()) {
                     try {
                         int evoLevel = Integer.valueOf(evo);
-                        if (evoLevel <= tempPokemon.level && Game.rand.nextInt(2) == 0) {
+                        // TODO: was Game.rand.nextInt(2) == 0 check
+                        // Game.rand.nextInt(256) >= 128
+                        // TODO: evoLevel <= tempPokemon.level && 
+                        if (evoLevel <= tempPokemon.level +(10*(timesEvolved+1)) && Game.rand.nextInt(256) >= 128) {
                             evolveTo = evos.get(evo);
                             tempPokemon.evolveTo(evolveTo);
                             timesEvolved++;
@@ -1979,8 +1999,10 @@ class Route {
                     }
                     catch (NumberFormatException e) {
 //                        System.out.println(tempPokemon.name);
+//                        e.printStackTrace();
                         // item-based or other type of evo, so just do it regardless of requirement
-                        if (Game.rand.nextInt(2) == 0) {
+//                        if (Game.rand.nextInt(2) == 0) {  // TODO: remove
+                        if (Game.rand.nextInt(256) >= 192) {
                             evolveTo = evos.get(evo);
                             tempPokemon.evolveTo(evolveTo);
                             timesEvolved++;
@@ -2639,9 +2661,15 @@ class Tile {
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
             this.attrs.put("solid", true);
         } else if (tileName.equals("rock1")) {
-            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/rock1.png"));
-            this.sprite = new Sprite(playerText, 0, 0, 16, 16);
+            // TODO: remove
+//            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/rock1.png"));
+//            this.sprite = new Sprite(playerText, 0, 0, 16, 16);
             this.attrs.put("solid", true);
+            // TODO: test
+            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/sand1.png"));
+            this.sprite = new Sprite(playerText, 0, 0, 16, 16);
+            this.name = "sand1";
+            this.nameUpper = "rock1";
         } else if (tileName.equals("rock2")) {
             Texture playerText = TextureCache.get(Gdx.files.internal("tiles/rock2.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
@@ -2668,7 +2696,7 @@ class Tile {
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
         } else if (tileName.contains("flower")) {
             Texture playerText = TextureCache.get(Gdx.files.internal("tiles/"+tileName+".png"));
-            this.sprite = new Sprite(playerText, 0, 0, 16, 16);
+            this.sprite = new Sprite(playerText, 0, 0, 32, 16);
         } else if (tileName.contains("snow")) {
             Texture playerText = TextureCache.get(Gdx.files.internal("tiles/"+tileName+".png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
@@ -2688,8 +2716,16 @@ class Tile {
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
             playerText = TextureCache.get(Gdx.files.internal("tiles/tree2.png"));
             this.overSprite = new Sprite(playerText, 0, 0, 16, 32);
+            this.name = "green1";
+            this.nameUpper = "tree2";
+            this.items.put("log", 2);
+            String[] items = {"black apricorn", "blue apricorn", "green apricorn", "pink apricorn",
+                              "red apricorn", "white apricorn", "yellow apricorn"};
+            if (Game.staticGame.map.rand.nextInt(2) == 0) {
+                this.items.put(items[Game.staticGame.map.rand.nextInt(items.length)], 2);
+            }
             this.attrs.put("solid", true);
-            this.attrs.put("tree", true);
+//            this.attrs.put("tree", true);  // TODO: remove
             this.attrs.put("cuttable", true);
             this.attrs.put("headbuttable", true);
         } else if (tileName.equals("tree4")) {
@@ -2702,8 +2738,16 @@ class Tile {
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
             playerText = TextureCache.get(Gdx.files.internal("tiles/tree4.png"));
             this.overSprite = new Sprite(playerText, 0, 0, 16, 32);
+            this.name = "snow1";
+            this.nameUpper = "tree4";
+            this.items.put("log", 2);
+            String[] items = {"black apricorn", "blue apricorn", "green apricorn", "pink apricorn",
+                              "red apricorn", "white apricorn", "yellow apricorn"};
+            if (Game.staticGame.map.rand.nextInt(2) == 0) {
+                this.items.put(items[Game.staticGame.map.rand.nextInt(items.length)], 2);
+            }
             this.attrs.put("solid", true);
-            this.attrs.put("tree", true);
+//            this.attrs.put("tree", true);  // TODO: remove
             this.attrs.put("headbuttable", true);
         } else if (tileName.equals("tree5")) {
             //          Texture playerText = TextureCache.get(Gdx.files.internal("tiles/tree5_under.png"));
@@ -2808,7 +2852,9 @@ class Tile {
                 text = TextureCache.get(Gdx.files.internal("tiles/"+this.nameUpper+".png"));
             }
             this.overSprite = new Sprite(text, 0, 0, 16, 16);
-            if (this.nameUpper.equals("house_bed1")) {
+            if (this.nameUpper.equals("house_bed1") ||
+                this.nameUpper.contains("tree2") ||
+                this.nameUpper.contains("tree4")) {
                 this.overSprite = new Sprite(text, 0, 0, 16, 32);
             }
             if (!this.nameUpper.contains("door") &&
@@ -2816,15 +2862,20 @@ class Tile {
                 !this.nameUpper.contains("tree_planted")) {
                 this.attrs.put("solid", true);
             }
-            if (!this.nameUpper.contains("floor") && !this.nameUpper.contains("pokeball") && !this.nameUpper.contains("bush")) {
+            if (!this.nameUpper.contains("floor") &&
+                !this.nameUpper.contains("pokeball") &&
+                !this.nameUpper.contains("bush") &&
+                !this.nameUpper.contains("tree")) {
                 this.attrs.put("cuttable", true);
                 this.items.put("grass", 1);
                 this.items.put("log", 1);
             }
-            if (this.nameUpper.contains("bush2_color")) {
+            if (this.nameUpper.contains("bush2_color") ||  // TODO: equals, not contains
+                this.nameUpper.equals("tree2") ||
+                this.nameUpper.equals("tree4")) {
                 this.attrs.put("headbuttable", true);
                 this.attrs.put("cuttable", true);
-                this.items.put("log", 1);
+//                this.items.put("log", 1);  // TODO: remove
             }
             if (this.nameUpper.equals("pokeball1")) {
                 this.attrs.put("solid", true);
@@ -2848,7 +2899,8 @@ class Tile {
             if (this.nameUpper.equals("mewtwo_overworld_hidden")) {
                 this.attrs.put("solid", false);
             }
-            if (this.nameUpper.equals("rock1_color")) {
+            if (this.nameUpper.equals("rock1") ||
+                this.nameUpper.equals("rock1_color")) {
                 this.attrs.put("smashable", true);
                 this.attrs.put("cuttable", false);  // not sure why but cuttable can be true here.
                 this.items.clear();
@@ -3165,13 +3217,15 @@ class Tile {
             game.playerCanMove = false;
             SpecialMewtwo1 mewtwo = new SpecialMewtwo1(50, this);
             game.battle.oppPokemon = mewtwo;
+            // TODO: remove
+//            for (Pokemon currPokemon : game.player.pokemon) {
+//                if (currPokemon.currentStats.get("hp") > 0) {
+//                    game.player.currPokemon = currPokemon;
+//                    break;
+//                }
+//            }
             // The first Pokemon the player sends out in battle should have > 0 hp.
-            for (Pokemon currPokemon : game.player.pokemon) {
-                if (currPokemon.currentStats.get("hp") > 0) {
-                    game.player.currPokemon = currPokemon;
-                    break;
-                }
-            }
+            game.player.setCurrPokemon();
             game.musicController.inBattle = true;  // Enables battle fadeout, etc
 //            Action fadeMusic = new FadeMusic("currMusic", "out", "pause", 0.025f, 
 //                               new CallMethod(game.currMusic, "setVolume", new Object[]{1f}, null));
