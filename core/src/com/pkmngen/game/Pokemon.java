@@ -18,6 +18,7 @@ import com.badlogic.gdx.graphics.TextureData;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.math.Vector2;
 import com.pkmngen.game.Network.PokemonData;
+import com.pkmngen.game.util.Direction;
 import com.pkmngen.game.util.SpriteProxy;
 import com.pkmngen.game.util.TextureCache;
 
@@ -26,7 +27,7 @@ public class Pokemon {
     // TODO: eventually remove
     public static ArrayList<String> attacksNotImplemented = new ArrayList<String>();
     static {
-        attacksNotImplemented.add("absorb");
+//        attacksNotImplemented.add("absorb");  // TODO: remove
         attacksNotImplemented.add("barrage");
         attacksNotImplemented.add("baton pass");
         attacksNotImplemented.add("beat Up");
@@ -52,7 +53,7 @@ public class Pokemon {
         attacksNotImplemented.add("dream eater");
         attacksNotImplemented.add("encore");
         attacksNotImplemented.add("endure");
-        attacksNotImplemented.add("explosion");
+//        attacksNotImplemented.add("explosion");  // TODO: remove
         attacksNotImplemented.add("fissure");
         attacksNotImplemented.add("flail");
         attacksNotImplemented.add("flame wheel");
@@ -63,18 +64,18 @@ public class Pokemon {
         attacksNotImplemented.add("fury attack");
         attacksNotImplemented.add("fury swipes");
         attacksNotImplemented.add("future sight");
-        attacksNotImplemented.add("giga drain");
+//        attacksNotImplemented.add("giga drain");  // TODO: remove
         attacksNotImplemented.add("guillotine");
         attacksNotImplemented.add("haze");
         attacksNotImplemented.add("heal bell");
         attacksNotImplemented.add("horn drill");
-        attacksNotImplemented.add("leech life");
+//        attacksNotImplemented.add("leech life");  // TODO: remove
         attacksNotImplemented.add("leech seed");
         attacksNotImplemented.add("light screen");
         attacksNotImplemented.add("lock on");
         attacksNotImplemented.add("magnitude");
         attacksNotImplemented.add("mean look");
-        attacksNotImplemented.add("mega drain");
+//        attacksNotImplemented.add("mega drain");  // TODO: remove
         attacksNotImplemented.add("metronome");
         attacksNotImplemented.add("mimic");
         attacksNotImplemented.add("mind reader");
@@ -97,13 +98,14 @@ public class Pokemon {
         attacksNotImplemented.add("safeguard");
         attacksNotImplemented.add("sandstorm");
         attacksNotImplemented.add("seismic toss");
-        attacksNotImplemented.add("selfdestruct");
+//        attacksNotImplemented.add("selfdestruct");  // TODO: remove
         attacksNotImplemented.add("sketch");
         attacksNotImplemented.add("skull bash");
         attacksNotImplemented.add("sky attack");
         attacksNotImplemented.add("sleep talk");
         attacksNotImplemented.add("snore");
         attacksNotImplemented.add("solar beam");
+        attacksNotImplemented.add("spider web");
         attacksNotImplemented.add("spike cannon");
         attacksNotImplemented.add("spikes");
         attacksNotImplemented.add("spite");
@@ -125,7 +127,17 @@ public class Pokemon {
                                      "lairon", "lombre", "lotad", "loudred", "ludicolo", "makuhita",
                                      "ralts", "taillow", "swellow", "whismur", "poochyena", "mightyena",
                                      "wingull", "pelipper", "shroomish", "breloom", "surskit", "masquerain",
-                                     "sableye"};
+                                     "sableye",
+                                     "dwebble",  // overworld 
+                                     "crustle",  // overworld 
+                                     "litwick", "lampent", "chandelure",  // overworld Goose (discord)
+                                     "corphish",  // sir-feralipogchamp (discord)
+                                     "crawdaunt",  // sir-feralipogchamp, Mr Dustman, Goose (discord)
+                                     "mimikyu",  // boomtox-the-boombox (discord)
+                                     "scorbunny",  // Internet_Goblin on discord
+                                     "raboot",  // Internet_Goblin on discord
+                                     "regieleki", "regidrago", "registeel", "regirock", "regice", "regigigas", // Mr Dustman and Sadfish on discord
+                                     "snover"};  // TODO: sep loading method
         for (String t : temp) {
             nuukPokemon.add(t);
         }
@@ -352,8 +364,9 @@ public class Pokemon {
     // that (?)
     String eggHatchInto = null;  // Pokemon that egg hatches into. 
     Pokemon loveInterest = null;  // Which pokemon this pokemon may breed with.
-    int layEggTimerMax = 3600*1;
+    int layEggTimerMax = 3600*2;  // 3600*1
     int layEggTimer = layEggTimerMax;
+    int nearbyEggs = 0;  // used to prevent pokemon from laying too many eggs
 
     String trappedBy = null;  // whirlpool, wrap, bind, etc
     int trapCounter = 0;  // number turns remaining for trap
@@ -363,6 +376,12 @@ public class Pokemon {
     public boolean aggroPlayer = false;  // If true, pokemon chases the player.
     public boolean interactedWith = false;  // used for evolved overworld pokemon to aggro player
     public boolean drawThisFrame = false;
+    
+    // TODO: if a pokemon is switched out in a trainer battle, does the game
+    //       remember which Pokemon were used against the switched out pokemon?
+    //       Doesn't matter atm but may matter down the road.
+    public boolean participatedInBattle = false;  // whether or not the Pokemon participated in this battle.
+    public boolean gainedLevel = false;  // whether or not the Pokemon gained a level this battle.
 
     Generation generation;
     ArrayList<SpriteProxy> introAnim;
@@ -371,6 +390,15 @@ public class Pokemon {
     public ArrayList<Float> numMoves = new ArrayList<Float>();
 
     public static Random rand = new Random();
+
+    // TODO: put these in OverworldThing
+    // TODO: this is just for testing. Trying to make API
+    //       cleaner and not use Direction.* everywhere.
+    // TODO: enable and migrate to start using this. 
+//    public Direction UP = Direction.UP;
+//    public Direction DOWN = Direction.DOWN;
+//    public Direction LEFT = Direction.LEFT;
+//    public Direction RIGHT = Direction.RIGHT;
 
     public Pokemon(Network.PokemonDataBase pokemonData) {
         // Fields added in v0.5
@@ -498,7 +526,9 @@ public class Pokemon {
 
             // Custom attributes - better way to handle this?
             if (!this.name.equals("egg")) {
-                if (name.equals("sneasel") || name.equals("scyther")) {
+                if (name.equals("sneasel") || 
+                    name.equals("scyther") ||
+                    name.equals("pinsir")) {
                     this.hms.add("CUT");
                 }
                 // TODO: for now, all grass types can cut
@@ -552,6 +582,14 @@ public class Pokemon {
                     name.equals("mamoswine") ||
                     name.equals("dodrio") ||
                     name.equals("mightyena") ||
+                    //
+                    name.equals("persian") ||
+                    name.equals("onix") ||
+                    name.equals("steelix") ||
+                    name.equals("haunter") ||
+                    name.equals("rhyhorn") ||
+                    name.equals("rhydon") ||
+                    //
                     name.equals("luxray")) {
                     // TODO: change to 'RIDE' later. Making it 'JUMP' for now so that it's not confusing.
                     // Later, once there (hopefully) are riding sprites, this can be changed to ride.
@@ -584,9 +622,14 @@ public class Pokemon {
 //                    name.equals("farfetch_d") ||  // TODO: removed
                     name.equals("drifblim") ||
                     name.equals("honchkrow") ||
+                    name.equals("yanmega") ||
                     name.equals("fearow")) {
                     //
                     this.hms.add("FLY");
+                }
+                // Ability to aggro any mon
+                if (this.types.contains("DARK") && !this.hms.contains("RIDE")) {
+                    this.hms.add("ATTACK");
                 }
             }
         }
@@ -1173,7 +1216,9 @@ public class Pokemon {
         endPos.y = (int)endPos.y - (int)endPos.y % 16;
         int fenceCount = 0;
         int roofCount = 0;
-        int habitatCount = 0;
+        this.nearbyEggs = 0;
+//        int habitatCount = 0;
+        ArrayList<String> notFoundHabitats = new ArrayList<String>(Pokemon.this.habitats);
         for (Vector2 currPos = new Vector2(startPos.x, startPos.y); currPos.y < endPos.y;) {
             Tile tile = game.map.tiles.get(currPos);
             currPos.x += 16;
@@ -1189,15 +1234,27 @@ public class Pokemon {
                 game.player.nearAggroPokemon = true;
             }
             if (tile.nameUpper.contains("fence")) {
-                fenceCount++;
+                fenceCount++; 
             }
             else if (tile.nameUpper.contains("roof")) {
                 roofCount++;
             }
             // Dual-types require multiple habitats.
             for (String habitat : Pokemon.this.habitats) {
-                if (tile.name.contains(habitat) || tile.nameUpper.contains(habitat)) {
-                    habitatCount++;
+                // | is used to basically say either-or
+                for (String name : habitat.split("|")) {
+                    if (tile.name.contains(name) || tile.nameUpper.contains(name)) {
+                        notFoundHabitats.remove(habitat);
+                        break;
+                    }
+                }
+            }
+            if (game.map.pokemon.containsKey(currPos)) {
+                Pokemon pokemon = game.map.pokemon.get(currPos);
+                if (pokemon != this &&
+                    pokemon.mapTiles == this.mapTiles &&
+                    pokemon.name.equals("egg")) {
+                    this.nearbyEggs++;
                 }
             }
 
@@ -1205,7 +1262,8 @@ public class Pokemon {
             if (!this.name.equals("egg") &&
                 this.loveInterest == null &&
                 game.map.pokemon.containsKey(currPos) &&
-                game.map.pokemon.get(currPos) != this) {
+                game.map.pokemon.get(currPos) != this &&
+                game.map.pokemon.get(currPos).mapTiles == this.mapTiles) {
                 Pokemon potentialMate = game.map.pokemon.get(currPos);
                 // oppGender handles the 'no gender' case as well
                 String oppGender = this.gender.equals("male") ? "female" : "male";
@@ -1249,12 +1307,14 @@ public class Pokemon {
         }
         // Dark types are only happy at night.
         if (Pokemon.this.types.contains("DARK") && !game.map.timeOfDay.equals("night")) {
-            habitatCount = 0;
+//            habitatCount = 0;  // TODO: remove
+            notFoundHabitats.add("night");
         }
 //        if (satisfiedCount > ) {
 //            habitatCount++;
 //        }
-        Pokemon.this.inHabitat = habitatCount >= Pokemon.this.habitats.size();
+//        Pokemon.this.inHabitat = habitatCount >= Pokemon.this.habitats.size();  // TODO: remove
+        Pokemon.this.inHabitat = notFoundHabitats.size() <= 0;
         Pokemon.this.inShelter = roofCount >= 3 && fenceCount >= 2;
     }
     
@@ -1283,7 +1343,8 @@ public class Pokemon {
         // Update base stats and various values.
         // Don't modify attacks, current hp, etc.
         // TODO: current hp is probably compensated in the real game
-        if (Integer.valueOf(this.dexNumber) <= 251 && Integer.valueOf(this.dexNumber) > 0) {
+        if (Pokemon.nuukPokemon.contains(this.name.toLowerCase()) ||
+            (Integer.valueOf(this.dexNumber) <= 251 && Integer.valueOf(this.dexNumber) > 0)) {
             this.loadCrystalPokemon(this.name);
         }
         else {
@@ -1314,7 +1375,9 @@ public class Pokemon {
             name.equals("ursaring")) {
             this.hms.add("HEADBUTT");
         }
-        if (name.equals("sneasel")) {
+        if (name.equals("sneasel") || 
+            name.equals("scyther") ||
+            name.equals("pinsir")) {
             this.hms.add("CUT");
         }
         if (name.equals("stantler") ||
@@ -1328,6 +1391,14 @@ public class Pokemon {
             name.equals("ninetales") ||
             name.equals("mamoswine") ||
             name.equals("mightyena") ||
+            //
+            name.equals("persian") ||
+            name.equals("onix") ||
+            name.equals("steelix") ||
+            name.equals("haunter") ||
+            name.equals("rhyhorn") ||
+            name.equals("rhydon") ||
+            //
             name.equals("dodrio") ||
             name.equals("luxray")) {
             // TODO: change to 'RIDE' later. Making it 'JUMP' for now so that it's not confusing.
@@ -1359,6 +1430,7 @@ public class Pokemon {
 //            name.equals("farfetch_d") ||  // TODO: removed
             name.equals("drifblim") ||
             name.equals("honchkrow") ||
+            name.equals("yanmega") ||
             name.equals("fearow")) {
             this.hms.add("FLY");
         }
@@ -1377,6 +1449,9 @@ public class Pokemon {
             // Calling it FLASH for now, since that's what most people
             // are familiar with.
             this.hms.add("FLASH");  
+        }
+        if (this.types.contains("DARK") && !this.hms.contains("RIDE")) {
+            this.hms.add("ATTACK");
         }
         this.initHabitatValues();
     }
@@ -1403,7 +1478,7 @@ public class Pokemon {
         }
         if (this.types.contains("ROCK")) {
             this.habitats.add("rock");
-            this.harvestables.add("stone");
+            this.harvestables.add("hard stone");
         }
         if (this.types.contains("FIRE")) {
             this.habitats.add("campfire");
@@ -1412,11 +1487,18 @@ public class Pokemon {
         // GRASS, grass, grass
         if (this.types.contains("GRASS")) {
             this.habitats.add("grass");
-            this.harvestables.add("grass");
+            // TODO: test changes
+//            this.harvestables.add("grass");
+//            this.harvestables.add("grass");
+            this.harvestables.add("miracle seed");
         }
         if (this.types.contains("GROUND")) {
-            this.habitats.add("mountain");
+            this.habitats.add("mountain|sand");
+//            this.habitats.add("sand");  // not sure. probably needs to be either-or.
 //            this.harvestables.add("soft clay");
+            // used to make 'glass', required for silph scope
+            // for now.
+            this.harvestables.add("soft sand");
         }
         if (this.types.contains("STEEL")) {
             this.habitats.add("mountain");
@@ -1427,6 +1509,26 @@ public class Pokemon {
         }
         if (this.types.contains("DARK")) {
             this.harvestables.add("dark energy");
+        }
+        if (this.types.contains("GHOST")) {
+            this.harvestables.add("spell tag");
+        }
+        if (this.types.contains("DRAGON")) {
+            this.habitats.clear();  
+            this.habitats.add("water");  // TODO: potentially change for other dragon types
+            this.harvestables.clear();  // TODO: disable this line once it's easier to get dragon types.
+            this.harvestables.add("dragon fang");
+            this.harvestables.add("dragon scale");
+            this.harvestables.add("dragon scale");
+            this.harvestables.add("dragon scale");
+            this.harvestables.add("dragon scale");
+        }
+        if (this.types.contains("ICE")) {
+            this.habitats.add("snow");  // TODO: this originally wasn't here, why?
+            this.harvestables.add("nevermeltice");
+        }
+        if (this.types.contains("ELECTRIC")) {
+            this.harvestables.add("magnet");
         }
         if (name.equals("mareep") || name.equals("flaaffy") || name.equals("ampharos")) {
             this.habitats.clear();
@@ -1443,10 +1545,41 @@ public class Pokemon {
             this.harvestables.clear();
             this.harvestables.add("moomoo milk");
         }
+        // Current idea is this can drop any item
+        else if (name.equals("delibird")) {
+            this.harvestables.clear();
+            this.harvestables.add("ancientpowder");
+            this.harvestables.add("nevermeltice");
+            this.harvestables.add("magnet");
+            this.harvestables.add("ancientpowder");
+            this.harvestables.add("soft wool");
+            this.harvestables.add("moomoo milk");
+            this.harvestables.add("hard stone");
+            this.harvestables.add("manure");
+            this.harvestables.add("berry juice");
+            this.harvestables.add("soft sand");
+            this.harvestables.add("nevermeltice");
+            this.harvestables.add("spell tag");
+            this.harvestables.add("dragon fang");
+            this.harvestables.add("dragon scale");
+            this.harvestables.add("spell tag");
+            this.harvestables.add("psi energy");
+            this.harvestables.add("dark energy");
+            this.harvestables.add("metal coat");
+            this.harvestables.add("silky thread");
+            this.harvestables.add("hard shell");
+            this.harvestables.add("soft feather");
+            this.harvestables.add("hard stone");
+            this.harvestables.add("charcoal");
+            this.harvestables.add("grass");
+        }
         else if (name.contains("unown")) {
             this.harvestables.clear();
             this.harvestables.add("ancientpowder");
             this.harvestTimerMax = (int)(3600f*3.5f);
+        }
+        else if (name.contains("regi")) {
+            this.harvestables.add("ancientpowder");
         }
         // just ideas
 //        else if (name.equals("slowpoke")) {
@@ -1779,6 +1912,7 @@ public class Pokemon {
                         if (line.contains("RGB")) {
                             String[] vals = line.split("\tRGB ")[1].split(", ");
                             if (normalColor1 == null) {
+                                // TODO: this is wrong, these values range from 0-32 but .r .g .b should be floats.
                                 normalColor1 = new Color();
                                 normalColor1.r = Integer.valueOf(vals[0]);
                                 normalColor1.g = Integer.valueOf(vals[1]);
@@ -1796,8 +1930,17 @@ public class Pokemon {
                 else {
                     SpriteProxy tempSprite = new SpriteProxy(Pokemon.textures.get(name+"_front"),
                                                              0, 0, text.getWidth(), text.getWidth());
-                    normalColor1 = tempSprite.color1;
-                    normalColor2 = tempSprite.color2;
+//                    normalColor1 = tempSprite.color1;
+//                    normalColor2 = tempSprite.color2;
+                    // TODO: these should be floats from 0-1, not from 0-32
+                    normalColor1 = new Color();
+                    normalColor1.r = tempSprite.color1.r*32f;
+                    normalColor1.g = tempSprite.color1.g*32f;
+                    normalColor1.b = tempSprite.color1.b*32f;
+                    normalColor2 = new Color();
+                    normalColor2.r = tempSprite.color2.r*32f;
+                    normalColor2.g = tempSprite.color2.g*32f;
+                    normalColor2.b = tempSprite.color2.b*32f;
                 }
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
@@ -2017,6 +2160,7 @@ public class Pokemon {
                 lines.add(line);
             }
             boolean found = false;
+            boolean flip = true;  // some up/down animations are 2 frame
             
             for (int i=0; i < lines.size(); ) {
                 if (name.equals("egg")) {
@@ -2026,22 +2170,99 @@ public class Pokemon {
 
                 // TODO: no overworld sprites for some pokemon
                 if (name.equals("poochyena")) {
-                    i = 312; //name = "houndour";
+                    i = 312;
                     found = true;
                 }
                 else if (name.equals("mightyena")) {
-                    i = 313;  //name = "houndoom";
+                    i = 313;
                     found = true;
                 }
                 else if (name.equals("wingull")) {
-                    i = 314;  //name = "swablu";
+                    i = 314;
                     found = true;
                 }
                 else if (name.equals("pelipper")) {
-                    i = 315;  //name = "altaria";
+                    i = 315;
                     found = true;
                 }
-
+                else if (name.equals("snover")) {
+                    i = 316;
+                    found = true;
+                }
+                else if (name.equals("mimikyu")) {
+                    i = 317;
+                    found = true;
+                }
+                else if (name.equals("corphish")) {
+                    i = 318;
+                    found = true;
+                }
+                else if (name.equals("crawdaunt")) {
+                    i = 319;
+                    found = true;
+                }
+                else if (name.equals("litwick")) {
+                    i = 320;
+                    found = true;
+                    flip = false;
+                }
+                else if (name.equals("lampent")) {
+                    i = 321;
+                    found = true;
+                    flip = false;
+                }
+                else if (name.equals("chandelure")) {
+                    i = 322;
+                    found = true;
+                    flip = false;
+                }
+                else if (name.equals("dwebble")) {
+                    i = 323;
+                    found = true;
+                    flip = false;
+                }
+                else if (name.equals("crustle")) {
+                    i = 324;
+                    found = true;
+                    flip = false;
+                }
+                else if (name.equals("scorbunny")) {
+                    i = 325;
+                    found = true;
+                }
+                else if (name.equals("raboot")) {
+                    i = 326;
+                    found = true;
+                }
+                else if (name.equals("cinderace")) {
+                    i = 327;
+                    found = true;
+                }
+                else if (name.equals("regidrago")) {
+                    i = 328;
+                    found = true;
+                }
+                else if (name.equals("regieleki")) {
+                    i = 329;
+                    found = true;
+                }
+                else if (name.equals("regice")) {
+                    i = 330;
+                    found = true;
+                }
+                else if (name.equals("regirock")) {
+                    i = 331;
+                    found = true;
+                    flip = false;
+                }
+                else if (name.equals("registeel")) {
+                    i = 332;
+                    found = true;
+                }
+                else if (name.equals("regigigas")) {
+                    i = 333;
+                    found = true;
+                }
                 String currName = line.split("db \"")[1].split("\"")[0].toLowerCase().replace("@", "");
                 if (currName.equals(name) || found) {
                     found = true;
@@ -2061,17 +2282,21 @@ public class Pokemon {
                     this.altMovingSprites.get("right").flip(true, false);
                     this.standingSprites.put("right", new Sprite(text, col*16 +16, row*16, 16, 16));
                     this.standingSprites.get("right").flip(true, false);
-                    
+
                     // TODO: some of these probably need to be flipped in the sprite sheet
                     this.movingSprites.put("up", new Sprite(text, col*16 +32, row*16, 16, 16));
                     this.altMovingSprites.put("up", new Sprite(text, col*16 +32, row*16, 16, 16));
-                    this.altMovingSprites.get("up").flip(true, false);
+                    if (flip) {
+                        this.altMovingSprites.get("up").flip(true, false);
+                    }
                     this.standingSprites.put("up", new Sprite(text, col*16 +48, row*16, 16, 16));
 
                     this.standingSprites.put("down", new Sprite(text, col*16 +64, row*16, 16, 16));
                     this.movingSprites.put("down", new Sprite(text, col*16 +80, row*16, 16, 16));
                     this.altMovingSprites.put("down", new Sprite(text, col*16 +80, row*16, 16, 16));
-                    this.altMovingSprites.get("down").flip(true, false);
+                    if (flip) {
+                        this.altMovingSprites.get("down").flip(true, false);
+                    }
                     
                     this.avatarSprites.add(this.standingSprites.get("down"));
                     this.avatarSprites.add(this.movingSprites.get("down"));
@@ -2720,7 +2945,7 @@ public class Pokemon {
                     if (Pokemon.this.inShelter) {
                         Pokemon.this.harvestTimer++;
                     }
-                } 
+                }
                 // TODO: time required to harvest may vary per Pokemon
 //                if (Pokemon.this.harvestTimer >= 3600*2) {  // 2 irl minutes, 1 if near shelter
                 if (Pokemon.this.harvestTimer >= Pokemon.this.harvestTimerMax) {
@@ -2730,6 +2955,7 @@ public class Pokemon {
             // If pokemon is female and has a love interest, count down to lay egg
             if (Pokemon.this.loveInterest != null &&
                 Pokemon.this.inHabitat &&
+                Pokemon.this.nearbyEggs < 5 &&  // Don't lay eggs if too many are nearby
                 (Pokemon.this.gender.equals("female") || 
                 (Pokemon.this.eggGroups[0].equals("EGG_DITTO") && Pokemon.this.loveInterest.gender.equals("male"))) &&
                 Pokemon.this.layEggTimer > 0) {
@@ -2795,7 +3021,7 @@ public class Pokemon {
      * Draw emote animation above pokemon.
      */
     public class Emote extends Action {
-        public int layer = 114;
+        public int layer = 109;  // 114
         String type;
         Sprite sprite;
         HashMap<String, Sprite> sprites = new HashMap<String, Sprite>();
@@ -2821,7 +3047,9 @@ public class Pokemon {
 
         @Override
         public void step(Game game) {
-            game.mapBatch.draw(this.sprite, Pokemon.this.position.x, Pokemon.this.position.y +4 +16);
+            if (game.map.tiles == Pokemon.this.mapTiles) {
+                game.mapBatch.draw(this.sprite, Pokemon.this.position.x, Pokemon.this.position.y +4 +16);
+            }
             if (this.timer >= 60) {
                 game.actionStack.remove(this);
                 game.insertAction(this.nextAction);
@@ -2894,7 +3122,7 @@ public class Pokemon {
 //                    game.insertAction(new PlaySound("dash1", 1f, null));
                 }
                 else if (this.numMove <= 1.5f) {
-                    game.insertAction(new PlaySound("ride1", 1f, null));
+                    game.insertAction(new PlaySound("ride1", 1f, true, null));
                 }
             }
             Pokemon.this.canMove = true;
@@ -2925,6 +3153,11 @@ public class Pokemon {
                         currIndex = i;
                         break;
                     }
+                }
+                // TODO: debug, remove
+                if (Pokemon.eggMoves.get(baseSpecies) == null) {
+                    System.out.println(Pokemon.this.name);
+                    System.out.println(baseSpecies);
                 }
                 for (String move : Pokemon.eggMoves.get(baseSpecies)) {
                     // Love interest *should* be male since we should only be here
@@ -3268,6 +3501,11 @@ public class Pokemon {
         boolean alternate = true;
         public int aggroTimer = 0;
         public boolean isEgg = false;
+
+        // TODO: migrate to start using this. 
+        // Ideally in 'class OverworldThing' but sep for
+        // Pokemon / Player shouldn't be too big of a deal.
+//        public Direction test = UP;  
         
         public Standing() {}
 
@@ -3388,7 +3626,7 @@ public class Pokemon {
                     // Play sounds
                     if (this.aggroTimer < 4) {
                         if (this.aggroTimer == 0) {
-                            game.insertAction(new PlaySound("ride1", 0.5f, null));
+                            game.insertAction(new PlaySound("ride1", 0.5f, true, null));
                         }
                         Pokemon.this.currOwSprite = Pokemon.this.altMovingSprites.get(Pokemon.this.dirFacing);
                         return;
@@ -3399,7 +3637,7 @@ public class Pokemon {
                     }
                     else if (this.aggroTimer < 12) {
                         if (this.aggroTimer == 8) {
-                            game.insertAction(new PlaySound("ride1", 0.5f, null));
+                            game.insertAction(new PlaySound("ride1", 0.5f, true, null));
                         }
                         Pokemon.this.currOwSprite = Pokemon.this.movingSprites.get(Pokemon.this.dirFacing);
                         return;
@@ -3410,7 +3648,7 @@ public class Pokemon {
                     }
                     else if (this.aggroTimer < 20) {
                         if (this.aggroTimer == 16) {
-                            game.insertAction(new PlaySound("ride1", 0.5f, null));
+                            game.insertAction(new PlaySound("ride1", 0.5f, true, null));
                         }
                         Pokemon.this.currOwSprite = Pokemon.this.altMovingSprites.get(Pokemon.this.dirFacing);
                         return;
@@ -3421,7 +3659,7 @@ public class Pokemon {
                     }
                     else if (this.aggroTimer < 28) {
                         if (this.aggroTimer == 24) {
-                            game.insertAction(new PlaySound("ride1", 0.5f, null));
+                            game.insertAction(new PlaySound("ride1", 0.5f, true, null));
                         }
                         Pokemon.this.currOwSprite = Pokemon.this.movingSprites.get(Pokemon.this.dirFacing);
                         return;
@@ -3458,15 +3696,20 @@ public class Pokemon {
                         this.aggroTimer = 0;
                         game.musicController.startBattle = "wild";
                         game.battle.oppPokemon = Pokemon.this;
+                        game.player.setCurrPokemon();
                         game.insertAction(Battle.getIntroAction(game));
                         return;
                     }
                     for (String move : preferredMoves) {
                         Vector2 newPos = Pokemon.this.facingPos(move);
                         Tile facingTile = Pokemon.this.mapTiles.get(newPos);
-                        if (!facingTile.attrs.get("solid") && 
-                            !facingTile.attrs.get("ledge") && 
-                            !facingTile.name.contains("door") && 
+                        Tile currTile = Pokemon.this.mapTiles.get(Pokemon.this.position);
+                        boolean isLedge = (facingTile != null && facingTile.attrs.get("ledge")) ||
+                                          (currTile != null && currTile.attrs.get("ledge") && currTile.ledgeDir.equals("up") && move.equals("up"));
+                        if (!facingTile.attrs.get("solid") &&
+                            !isLedge &&
+                            !facingTile.name.contains("door") &&
+                            !facingTile.nameUpper.contains("door") &&
                             !game.map.pokemon.containsKey(newPos)) {
                             Pokemon.this.dirFacing = move;
                             game.actionStack.remove(this);
@@ -3698,25 +3941,6 @@ public class Pokemon {
                 this.moveTimer = game.map.rand.nextInt(180) + 60;
                 String[] dirs = new String[]{"up", "down", "left", "right"};
                 Pokemon.this.dirFacing = dirs[game.map.rand.nextInt(dirs.length)];
-                // TODO: remove this after testing facingPos code
-//                int randDir = game.map.rand.nextInt(4);
-//                Vector2 newPos;
-//                if (randDir == 0) {
-//                    Pokemon.this.dirFacing = "up";
-//                    newPos = new Vector2(Pokemon.this.position.x, Pokemon.this.position.y+16);
-//                }
-//                else if (randDir == 1) {
-//                    Pokemon.this.dirFacing = "down";
-//                    newPos = new Vector2(Pokemon.this.position.x, Pokemon.this.position.y-16);
-//                }
-//                else if (randDir == 2) {
-//                    Pokemon.this.dirFacing = "right";
-//                    newPos = new Vector2(Pokemon.this.position.x+16, Pokemon.this.position.y);
-//                }
-//                else {
-//                    Pokemon.this.dirFacing = "left";
-//                    newPos = new Vector2(Pokemon.this.position.x-16, Pokemon.this.position.y);
-//                }
                 Vector2 newPos = Pokemon.this.facingPos();
                 // Just checking overworldTiles for now, that way it will still
                 // move around while player is indoors
@@ -3728,9 +3952,13 @@ public class Pokemon {
                         break;
                     }
                 }
+                Tile currTile = Pokemon.this.mapTiles.get(Pokemon.this.position);
+                boolean isLedge = (temp != null && temp.attrs.get("ledge")) ||
+                                  (currTile != null && currTile.attrs.get("ledge") && currTile.ledgeDir.equals("up") && Pokemon.this.dirFacing.equals("up"));
                 if (temp == null ||
                     temp.attrs.get("solid") || 
-                    temp.attrs.get("ledge") || 
+                    isLedge ||
+                    temp.name.contains("door") || 
                     temp.nameUpper.contains("door") || 
                     game.map.pokemon.containsKey(newPos) ||
                     // TODO: an indoor player will mess with an outdoor pokemon here

@@ -74,6 +74,7 @@ class AfterFriendlyFaint extends Action {
             tiles = game.map.interiorTiles.get(game.player.spawnIndex);
             interiorTilesIndex = game.player.spawnIndex;
         }
+        Tile playerTile = tiles.get(game.player.spawnLoc);
         game.insertAction(new DisplayText.Clear(game,
                           new WaitFrames(game, 3,new DisplayText(game, ""+game.player.name.toUpperCase()+" is out of useable POKÈMON!", null, null,
                           new DisplayText(game, ""+game.player.name.toUpperCase()+" whited out!", null, null,
@@ -89,6 +90,8 @@ class AfterFriendlyFaint extends Action {
                           new SetField(game.map, "interiorTilesIndex", interiorTilesIndex,
                           new SetField(game.player, "dirFacing", "down",
                           new SetField(game.player, "currSprite", game.player.standingSprites.get("down"),
+                          // Required by musicController to know which song to play.
+                          new SetField(game.map, "currRoute", playerTile.routeBelongsTo,
                           new Game.SetCamPos(game.player.spawnLoc.cpy().add(16, 0),
                           new SplitAction(new BattleFadeOut(game, 4, null),
                           new BattleFadeOutMusic(game,
@@ -97,13 +100,14 @@ class AfterFriendlyFaint extends Action {
                           new SplitAction(//new SetField(game, "currMusic", game.map.currRoute.music,
 //                                          new WaitFrames(game, 100,
                                           // TODO: test
-                                          new CallMethod(game.loadedMusic.get(game.musicController.currOverworldMusic), "setVolume", new Object[]{0.1f},
+//                                          new CallMethod(game.loadedMusic.get(game.musicController.currOverworldMusic), "setVolume", new Object[]{0.1f},  // TODO: remove
                                           new SetField(game.musicController, "resumeOverworldMusic", true,
 //                                          new FadeMusic("currMusic", "in", "", 0.2f, false, 1f,
-                                          new FadeMusic(game.loadedMusic.get(game.musicController.currOverworldMusic), 0.2f,  // this won't work?
-                                          null))),
+//                                          new FadeMusic(game.loadedMusic.get(game.musicController.currOverworldMusic), 0.2f,  // TODO: remove
+                                          null),
 //                          new SplitAction(new FadeIn(),
-                          null))))))))))))))));
+                          new SetField(game, "playerCanMove", true,
+                          null))))))))))))))))));
     }
     // TODO: remove
 //    static class FadeIn extends Action {
@@ -1003,6 +1007,185 @@ class Attack {
 
         }
     }
+
+    /**
+     * This was (hopefully) easier than an attack animation.
+     */
+    static class CrushGrip extends Action {
+        public int layer = 109;
+        public int timer = -40;
+        boolean drawFriendly = false;
+        Sprite sprite;
+        Sprite sprite2;
+        Music soundEffect;
+        Music soundEffect2;
+        Vector2 pos;
+        
+        public CrushGrip(Game game, Pokemon target, Action nextAction) {
+            this.nextAction = nextAction;
+            Texture text = TextureCache.get(Gdx.files.internal("attacks/crush_grip1.png"));
+            this.sprite = new Sprite(text, 224-32, 0, 32, 32);
+            text = TextureCache.get(Gdx.files.internal("attacks/crush_grip1.png"));
+            this.sprite2 = new Sprite(text, 64, 0, 32, 32);
+            if (target == game.battle.oppPokemon) {
+                this.pos = new Vector2(116-30, 92-10);
+                this.drawFriendly = false;
+            }
+            else {
+                this.pos = new Vector2(24+30, 52+10);
+                this.drawFriendly = true;
+            }
+        }
+
+        public String getCamera() {return "gui";}
+
+        public int getLayer(){return this.layer;}
+
+        @Override
+        public void firstStep(Game game) {
+//            this.soundEffect = Gdx.audio.newMusic(Gdx.files.internal("sounds/ap1.ogg"));
+            this.soundEffect = Gdx.audio.newMusic(Gdx.files.internal("attacks/rolling_kick_player_gsc/sound.ogg"));
+            this.soundEffect.setLooping(false);
+            this.soundEffect.setVolume(1f);
+
+            this.soundEffect2 = Gdx.audio.newMusic(Gdx.files.internal("attacks/rock_throw_player_gsc/sound.ogg"));
+            this.soundEffect2.setLooping(false);
+            this.soundEffect2.setVolume(1f);
+            
+        }
+
+        @Override
+        public void step(Game game) {
+            int offset = 0;
+            if (this.timer < -20) {
+            }
+            else if (this.timer < -10) {
+                int friendly = 1;
+                if (this.drawFriendly) {
+                    friendly = -1;
+                }
+                this.pos.add(2*friendly, 1*friendly);
+            }
+            else if (this.timer < 20) {
+            }
+            else if (this.timer < 166) {
+                if (this.timer % 2 == 0) {
+                    offset = 2;
+                }
+                else {
+                    offset = -2;
+                }
+                game.uiBatch.setTransformMatrix(new Matrix4(new Vector3(offset, 0, 0), new Quaternion(), new Vector3(1, 1, 1)));
+            }
+            else if (this.timer < 206) {
+            }
+            else if (this.timer < 260) {  //+60
+                SpriteProxy.inverseColors = true;
+            }
+            else {
+                SpriteProxy.inverseColors = false;
+                this.soundEffect.stop();
+                this.soundEffect.dispose();
+                this.soundEffect2.stop();
+                this.soundEffect2.dispose();
+                DrawFriendlyHealth.shouldDraw = true;
+                DrawEnemyHealth.shouldDraw = true;
+                game.actionStack.remove(this);
+                game.insertAction(this.nextAction);
+            }
+
+            if (this.timer < 90) {
+            }
+            else if (this.timer < 98) {
+                game.uiBatch.draw(this.sprite2, this.pos.x-offset-8, this.pos.y+8);
+            }
+            else if (this.timer < 106) {
+            }
+            else if (this.timer < 114) {
+                game.uiBatch.draw(this.sprite2, this.pos.x-offset+8, this.pos.y+8);
+            }
+            else if (this.timer < 122) {
+            }
+            else if (this.timer < 130) {
+                game.uiBatch.draw(this.sprite2, this.pos.x-offset-8, this.pos.y-8);
+            }
+            else if (this.timer < 138) {
+            }
+            else if (this.timer < 146) {
+                game.uiBatch.draw(this.sprite2, this.pos.x-offset+8, this.pos.y-8);
+            }
+
+            if (this.timer == -20) {
+                this.soundEffect.play();
+            }
+            else if (this.timer == 20) {
+                this.soundEffect.stop();
+                this.soundEffect.dispose();
+                this.soundEffect2.play();
+                this.sprite.setRegion(224-64, 0, 32, 32);
+            }
+            else if (this.timer == 70) {
+                this.soundEffect2.pause();
+            }
+            else if (this.timer == 90) {
+                this.soundEffect = Gdx.audio.newMusic(Gdx.files.internal("sounds/ap1.ogg"));
+                this.soundEffect.play();
+//                this.sprite.setRegion(224-128, 0, 32, 32);
+            }
+            else if (this.timer == 98) {
+                this.sprite.setRegion(224-64, 0, 32, 32);
+            }
+            else if (this.timer == 106) {
+                this.soundEffect.stop();
+                this.soundEffect.play();
+//                this.sprite.setRegion(224-128, 0, 32, 32);
+            }
+            else if (this.timer == 114) {
+                this.sprite.setRegion(224-64, 0, 32, 32);
+            }
+            else if (this.timer == 122) {
+                this.soundEffect.stop();
+                this.soundEffect.play();
+//                this.sprite.setRegion(224-128, 0, 32, 32);
+            }
+            else if (this.timer == 130) {
+                this.sprite.setRegion(224-64, 0, 32, 32);
+            }
+            else if (this.timer == 138) {
+                this.soundEffect.stop();
+                this.soundEffect.play();
+//                this.sprite.setRegion(224-128, 0, 32, 32);
+            }
+            else if (this.timer == 166) {
+                game.uiBatch.setTransformMatrix(new Matrix4(new Vector3(0,0,0), new Quaternion(), new Vector3(1,1,1)));
+            }
+            else if (this.timer == 206) {
+                //
+//                this.soundEffect2.stop();
+//                this.soundEffect2.dispose();
+//                this.soundEffect2 = Gdx.audio.newMusic(Gdx.files.internal("sounds/nani.ogg"));
+                // TODO: remove
+
+                this.soundEffect2.play();
+//                this.sprite.setRegion(224-128, 0, 32, 32);
+            }
+//            else if (this.timer == 210) {
+//                this.sprite.setRegion(224-64, 0, 32, 32);
+//            }
+            
+            if (this.drawFriendly) {
+                DrawEnemyHealth.shouldDraw = false;
+            }
+            else {
+                DrawFriendlyHealth.shouldDraw = false;
+            }
+            
+            game.uiBatch.draw(this.sprite, this.pos.x-offset, this.pos.y);
+
+            this.timer++;
+        }
+    }
+    
 
     // this is also the Night Shade attack
     // TODO: this attack lags, you can tell b/c
@@ -1923,9 +2106,22 @@ public class Battle {
 //            // 0 power attacks include defense curl, swords dance, etc.
 //            return 0;
 //        }
+        int power = attack.power;
+        if (attack.name.equals("dragon energy")) {
+            power = (power * source.currentStats.get("hp"))/source.maxStats.get("hp");
+            if (power < 1) {
+                power = 1;
+            }
+        }
+        // https://bulbapedia.bulbagarden.net/wiki/Crush_Grip_(move)#Generation_IV
+        // Using gen 3 formula
+        else if (attack.name.equals("crush grip")) {
+            power = 1 + ((120 * target.currentStats.get("hp"))/target.maxStats.get("hp"));
+            System.out.println(power);
+        }
         int attackStat = attack.isPhysical ? source.currentStats.get("attack") : source.currentStats.get("specialAtk");
         int defenseStat = attack.isPhysical ? target.currentStats.get("defense") : target.currentStats.get("specialDef");
-        int damage = (int)Math.floor(Math.floor(Math.floor(2 * source.level / 5 + 2) * attackStat * attack.power / defenseStat) / 50) + 2;
+        int damage = (int)Math.floor(Math.floor(Math.floor(2 * source.level / 5 + 2) * attackStat * power / defenseStat) / 50) + 2;
         if (source.types.contains(attack.type)) {damage = (int)(damage * 1.5f);}  // STAB
         // Factor in type effectiveness
         float multiplier = 1f;
@@ -1956,7 +2152,7 @@ public class Battle {
         // TODO: focus energy (use boolean in pokemon class)
         // If attack is Aero Blast, Crab Hammer, Cross Chop, Karate Chop, Razor Leaf, or Slash, add 2 to C. 
         if (attack.name.equals("aero blast") || attack.name.equals("crab hammer") || attack.name.equals("cross chop") ||
-                attack.name.equals("karate chop") || attack.name.equals("razor leaf") || attack.name.equals("slash")) {
+            attack.name.equals("karate chop") || attack.name.equals("razor leaf") || attack.name.equals("slash")) {
 //        if (attack != null && critAttacks.contains(attack));
             c += 2;
         }
@@ -2095,14 +2291,107 @@ public class Battle {
         else if (ballUsed.equals("ultra ball")) {
             rateModified *= 2;
         }
-        // TODO: other pokeballs
-//      else if (ballUsed.equals("heavy ball")) {
-//      }
         else if (ballUsed.equals("fast ball") && (pokemon.name.equals("tangela") || 
                                                   pokemon.name.equals("grimer")  || 
                                                   pokemon.name.equals("magnemite"))) {
             rateModified *= 4;
         }
+        
+        // TODO: lure ball
+        // TODO: heavy ball is just a list of heavy pokemon for now (maybe check weight later)
+        // TODO: what was friend ball supposed to do?
+        else if (ballUsed.equals("heavy ball")) {
+            String[] lbs903 = new String[]{"snorlax", "regigigas"};
+            String[] lbs677 = new String[]{"steelix"};
+            String[] lbs451 = new String[]{"golem",
+                                           "registeel",
+                                           "dragonite",
+                                           "onix",
+                                           "lugia",
+                                           "lapras",
+                                           "regirock",
+                                           "gyarados",
+                                           "hariyama",
+                                           "rhyperior",
+                                           "mamoswine"};
+            String[] lbs225 = new String[]{"crustle",
+                                           "regidrago",
+                                           "tyranitaur",
+                                           "ho-oh",
+                                           "regice",
+                                           "pupitar",
+                                           "arcanine",
+                                           "graveler",
+                                           "rhyhorn",
+                                           "scizor",
+                                           "exeggutor",
+                                           "mewtwo",
+                                           "forretress",
+                                           "ursaring",
+                                           "machamp",
+                                           "cloyster",
+                                           "regieleki"};
+            int foundRate = rateModified -20;
+            for (String name : lbs903) {
+                if (name.equals(pokemon.name)) {
+                    foundRate = rateModified +40;
+                    break;
+                }
+            }
+            for (String name : lbs677) {
+                if (name.equals(pokemon.name)) {
+                    foundRate = rateModified +30;
+                    break;
+                }
+            }
+            for (String name : lbs451) {
+                if (name.equals(pokemon.name)) {
+                    foundRate = rateModified +20;
+                    break;
+                }
+            }
+            for (String name : lbs225) {
+                if (name.equals(pokemon.name)) {
+                    foundRate = rateModified;
+                    break;
+                }
+            }
+            rateModified = foundRate;
+        }
+        else if (ballUsed.equals("level ball")) {
+            if (game.player.currPokemon.level / 4 > pokemon.level) {
+                rateModified *= 8;
+            }
+            else if (game.player.currPokemon.level / 2 > pokemon.level) {
+                rateModified *= 4;
+            }
+            else if (game.player.currPokemon.level > pokemon.level) {
+                rateModified *= 2;
+            }
+        }
+        else if (ballUsed.equals("love ball")) {
+            // TODO: this is using the 'fixed' version, where pokemon
+            //       have to be opposite genders.
+            if (!pokemon.gender.equals("unknown") && 
+                !game.player.currPokemon.gender.equals("unknown") &&
+                !game.player.currPokemon.gender.equals(pokemon.gender)) {
+                rateModified *= 8;
+            }
+        }
+        else if (ballUsed.equals("moon ball")) {
+            // TODO: can't remember any more
+            String[] moonStoneMons = new String[]{"clefairy",
+                                                  "jigglypuff",
+                                                  "nidorina",
+                                                  "nidorino"};
+            for (String name : moonStoneMons) {
+                if (pokemon.name.equals(name)) {
+                    rateModified *= 4;
+                    break;
+                }
+            }
+        }
+
         if (rateModified > 255){
             rateModified = 255;
         }
@@ -2681,20 +2970,20 @@ public class Battle {
                 }
                 // TODO: Technically should also check that move type == electric I believe
                 // Electric types cannot be paralyzed (this covers HIT and non-HIT moves)
-                if (enemyPokemon.types.contains("ELECTRIC") && status.equals("paralyze")) {
+                if (attack.type.equals("electric") && enemyPokemon.types.contains("ELECTRIC") && status.equals("paralyze")) {
                     attackMisses = true;
                 }
                 // Poison types cannot be poisoned
-                if (enemyPokemon.types.contains("POISON") && (status.equals("poison") || status.equals("toxic"))) {
+                if (attack.type.equals("poison") && enemyPokemon.types.contains("POISON") && (status.equals("poison") || status.equals("toxic"))) {
                     attackMisses = true;
                 }
                 // Ice types cannot be frozen
                 // TODO: but they can by tri-attack (not sure if keeping this feature)
-                if (enemyPokemon.types.contains("ICE") && status.equals("freeze")) {
+                if (attack.type.equals("ice") && enemyPokemon.types.contains("ICE") && status.equals("freeze")) {
                     attackMisses = true;
                 }
                 // Fire types cannot be burned
-                if (enemyPokemon.types.contains("FIRE") && status.equals("burn")) {
+                if (attack.type.equals("fire") && enemyPokemon.types.contains("FIRE") && status.equals("burn")) {
                     attackMisses = true;
                 }
                 // Target is always enemy for status moves
@@ -2710,7 +2999,7 @@ public class Battle {
                     return attackAction;
 //                    }
                 }
-                if (!attackMisses) {
+                if (!attackMisses && target.status == null) {
                     // Animation will have already played for 'HIT' attacks
                     if (!attack.effect.contains("HIT")) {
                         attackAction.append(new LoadAndPlayAnimation(game, attack.name, enemyPokemon, null));
@@ -2732,35 +3021,35 @@ public class Battle {
                     if (status.equals("paralyze")) {
                         // Reduce speed to 1/4
                         target.currentStats.put("speed", target.currentStats.get("speed")/4);
-                        text = "Enemy "+target.name.toUpperCase()+" was PARALYZED! It might not be able to attack!";
+                        text = enemy+target.name.toUpperCase()+" was PARALYZED! It might not be able to attack!";
                     }
                     else if (status.equals("burn")) {
                         // Reduce attack to 1/4
                         target.currentStats.put("attack", target.currentStats.get("attack")/4);
-                        text = "Enemy "+target.name.toUpperCase()+" was burned!";
+                        text = enemy+target.name.toUpperCase()+" was burned!";
                     }
                     else if (status.equals("sleep")) {
                         // Add to statusCounter
                         target.statusCounter = game.map.rand.nextInt(5) + 1;
-                        text = "Enemy "+target.name.toUpperCase()+" fell asleep!";
+                        text = enemy+target.name.toUpperCase()+" fell asleep!";
                     }
                     else if (status.equals("poison")) {
-                        text = "Enemy "+target.name.toUpperCase()+" was poisoned!";
+                        text = enemy+target.name.toUpperCase()+" was poisoned!";
                     }
                     else if (status.equals("confuse")) {
                         target.statusCounter = game.map.rand.nextInt(5) + 1;
-                        text = "Enemy "+target.name.toUpperCase()+" is confused!";
+                        text = enemy+target.name.toUpperCase()+" is confused!";
                     }
                     else if (status.equals("freeze")) {
-                        text = "Enemy "+target.name.toUpperCase()+"' frozen solid!";
+                        text = enemy+target.name.toUpperCase()+"' frozen solid!";
                     }
                     else if (status.equals("toxic")) {
                         // Use statusCounter to count how many turns toxic has been in effect.
                         target.statusCounter = 1;
-                        text = "Enemy "+target.name.toUpperCase()+"' badly poisoned!";
+                        text = enemy+target.name.toUpperCase()+"' badly poisoned!";
                     }
                     else if (status.equals("attract")) {
-                        text = "Enemy "+enemyPokemon.name.toUpperCase()+" became infatuated with "+friendlyPokemon.name.toUpperCase()+"!";
+                        text = enemy+enemyPokemon.name.toUpperCase()+" became infatuated with "+friendlyPokemon.name.toUpperCase()+"!";
                     }
                     if (text != null) {
                         attackAction.append(new DisplayText.Clear(game,
@@ -2804,8 +3093,9 @@ public class Battle {
                 }
             }
             // Recover/Heal effects
-            if (attack.effect.equals("EFFECT_HEAL") || attack.effect.equals("EFFECT_SYNTHESIS")) {
-
+            if (attack.effect.equals("EFFECT_HEAL") ||
+                attack.effect.equals("EFFECT_SYNTHESIS") ||
+                attack.effect.equals("EFFECT_LEECH_HIT")) {
                 // Default value for Recover
                 int amount = friendlyPokemon.maxStats.get("hp")/2;
                 // Synthesis effect notes:
@@ -2819,6 +3109,12 @@ public class Battle {
                     // TODO: 'morning' time of day doesn't exist yet. Shouldn't require any change here tho.
                     if (game.map.timeOfDay.equals("day")) {
                         amount *= 2;
+                    }
+                }
+                else if (attack.effect.equals("EFFECT_LEECH_HIT")) {
+                    amount = attack.damage/2;
+                    if (amount < 1) {
+                        amount = 1;
                     }
                 }
                 
@@ -2840,8 +3136,19 @@ public class Battle {
                                         null))))));
                 }
             }
+
+            // TODO: not sure if this effect is accurate
+            if (attack.effect.equals("EFFECT_SELFDESTRUCT")) {
+                friendlyPokemon.currentStats.put("hp", 0);
+            }
+
             // Check if attack traps target pokemon
-            if (enemyPokemon.trappedBy != null) {
+            if (enemyPokemon.trappedBy != null &&
+                (attack.name.equals("whirlpool") ||
+                 attack.name.equals("fire spin") ||
+                 attack.name.equals("wrap") ||
+                 attack.name.equals("thunder cage") ||
+                 attack.name.equals("clamp"))) {
                 attackAction.append(new DisplayText.Clear(game,
                                     new WaitFrames(game, 3,
                                     new DisplayText(game, enemyPokemon.name.toUpperCase()+" was trapped!",
@@ -3036,7 +3343,7 @@ public class Battle {
         }
     }
     // opposing pokemon
-    Pokemon oppPokemon;
+    public Pokemon oppPokemon;
 
     // action that is drawing the battle
      // this reference is used to stop drawing battle once it's complete
@@ -3138,7 +3445,7 @@ public class Battle {
         this.gen2TypeEffectiveness.get("fire").put("ghost", 1f);
         this.gen2TypeEffectiveness.get("fire").put("dragon", 0.5f);
         this.gen2TypeEffectiveness.get("fire").put("dark", 1f);
-        this.gen2TypeEffectiveness.get("fire").put("steel", 0.5f);
+        this.gen2TypeEffectiveness.get("fire").put("steel", 2f);
         this.gen2TypeEffectiveness.get("fire").put("fairy", 1f);
         this.gen2TypeEffectiveness.put("water", new HashMap<String, Float>());
         this.gen2TypeEffectiveness.get("water").put("normal", 1f);
@@ -3456,7 +3763,7 @@ public class Battle {
         gen2PhysicalTypes.add("ghost");
         gen2PhysicalTypes.add("steel");
 
-        // load all attacks and attributes
+        // Load all attacks and attributes
         try {
             FileHandle file = Gdx.files.internal("crystal_pokemon/moves.asm");
             Reader reader = file.reader();
@@ -3468,7 +3775,7 @@ public class Battle {
 //                if (lineNum == 0) {
 //                    this.dexNumber = line.split(" ; ")[1];
 //                } else
-                if (lineNum > 14 && lineNum < 266) {
+                if (lineNum > 14 && lineNum < 269) {
                     String[] attrs = line.split("\tmove ")[1].split(",\\s+");
                     Attack attack = new Attack(attrs[0].toLowerCase().replace('_', ' '), attrs[1], 
                                                Integer.valueOf(attrs[2]), attrs[3].toLowerCase(), Integer.valueOf(attrs[4]),
@@ -3528,16 +3835,18 @@ public class Battle {
         this.attacks.put(attack.name, attack);
     }
 
-    /*
+    /**
      * Reference - https:// bulbapedia.bulbagarden.net/wiki/Experience#Example_.28Generation_II_to_IV.29
+     * 
+     * numParticipated - number of Pokemon that participated in battle.
      */
-    int calcFaintExp() {
+    int calcFaintExp(int numParticipated) {
         int a = 1; // TODO: 1.5 if owned by trainer
         int t = 1; // TODO: 1.5 if traded
         int b = this.oppPokemon.baseStats.get("baseExp");
         int e = 1; // TODO: 1.5 if curr pokemon holding lucky egg
         int l = this.oppPokemon.level;
-        int s = 1; // TODO: equals number of pokemon participated in battle that didn't faint
+        int s = numParticipated;
         int exp = (a*t*b*e*l)/(7*s);
         // TODO: leveling takes too long, doing exp*2 for now. May remove this in the future if way
         // to get more exp is added.
@@ -3602,7 +3911,7 @@ public class Battle {
             // TODO: if keeping, refactor to remove references to Game.staticGame
             //  likely need global actionStack or something
 
-            // always goes you, then opponent
+            // Always goes you, then opponent
             Game.staticGame.actionStack.remove(this);
             if (Battle.this.oppPokemon.trappedBy != null) {
                 this.nextAction = new Battle.LoadAndPlayAnimation(Game.staticGame, Battle.this.oppPokemon.trappedBy, Battle.this.oppPokemon,
@@ -3758,10 +4067,44 @@ public class Battle {
                         return;
                     }
                 }
-//                else if (itemName.contains("berry") || itemName.equals("moomoo milk")) {
-//                    // TODO: player essentially does nothing
-//                }
-                // !!!
+                else if (itemName.equals("silph scope")) {
+                    // Replace oppPokemon with a random ghost
+                    // and play the fade in/out animation
+                    String[] pokemon = new String[]{"litwick", "lampent", "chandelure",
+                                                    "mimikyu", "misdreavus", "sableye",
+                                                    "gastly", "haunter", "gengar"};
+                    Pokemon ghost = new Pokemon(pokemon[Game.rand.nextInt(pokemon.length)],
+                                                game.battle.oppPokemon.level,
+                                                Pokemon.Generation.CRYSTAL);
+                    ghost.sprite.setPosition(game.battle.oppPokemon.sprite.getX(),
+                                             game.battle.oppPokemon.sprite.getY());
+                    playerAction = new DisplayText(game, game.player.name+" used "+itemName.toUpperCase()+"!",
+                                                   null, true, false,
+//                                   new DisplayText(game, "The "+game.battle.oppPokemon.name.toUpperCase()+" true form was revealed!",
+//                                                   null, true, false,
+                                   new SplitAction(
+                                       new WaitFrames(game, 96,
+                                       new SetField(game.battle, "oppPokemon", ghost,
+                                       null)),
+                                   new FadeAnim(game, 8,
+                                   new SplitAction(new WaitFrames(game, 4,
+                                                   new PlaySound(ghost,
+                                                   null)),
+                                   new PokemonIntroAnim(
+                                   new DisplayText.Clear(game,
+                                   new WaitFrames(game, 3,
+                                   new DisplayText(game, "Enemy "+ghost.name.toUpperCase()+" was revealed!",
+                                                   null, null,
+                                   null))))))));
+                }
+                else if (itemName.contains("berry") || itemName.equals("moomoo milk")) {
+                    // Don't do anything, action was already performed.
+                    playerAction = new Action() {
+                        public String getCamera() {
+                            return "gui";
+                        }
+                    };
+                }
                 else {
                     playerAction =  new DisplayText(game, "Dev note - Invalid item.", null, null,
                                     null);
@@ -3784,7 +4127,7 @@ public class Battle {
                     game.insertAction(new WaitFrames(game, 18,
                                       new DisplayText(game, "Got away safely!", null, null,
                                       new SplitAction(new BattleFadeOut(game,
-                                                      null),
+                                                      new SetField(game, "playerCanMove", true, null)),
                                       new BattleFadeOutMusic(game,
                                       new SetField(game.musicController, "resumeOverworldMusic", true,
                                       null))))));
@@ -3820,7 +4163,11 @@ public class Battle {
                         }
                     }
                     // TODO: determine if hit/miss, crit, effect hit, etc
-                    playerAttack = game.battle.attacks.get(game.player.currPokemon.attacks[DrawAttacksMenu.curr].toLowerCase());
+                    String attackName = game.player.currPokemon.attacks[DrawAttacksMenu.curr];
+                    if (attackName == null) {
+                        attackName = "struggle";
+                    }
+                    playerAttack = game.battle.attacks.get(attackName.toLowerCase());
                     playerAttack.isCrit = Battle.gen2DetermineCrit(game.player.currPokemon, playerAttack);
                     playerAttack.damage = Battle.gen2CalcDamage(game.player.currPokemon, playerAttack, game.battle.oppPokemon);
 
@@ -3828,10 +4175,15 @@ public class Battle {
                         playerAttack.name.toLowerCase().equals("whirlpool") ||
                         playerAttack.name.toLowerCase().equals("fire spin") ||
                         playerAttack.name.toLowerCase().equals("wrap") ||
+                        playerAttack.name.toLowerCase().equals("thunder cage") ||
                         playerAttack.name.toLowerCase().equals("clamp")) {
                         // 2-5 turns for trap
                         game.battle.oppPokemon.trappedBy = playerAttack.name.toLowerCase();
                         game.battle.oppPokemon.trapCounter = game.map.rand.nextInt(4) + 2;
+                        if (playerAttack.name.toLowerCase().equals("thunder cage")) {
+                            game.battle.oppPokemon.trapCounter = game.map.rand.nextInt(2) + 4;
+                        }
+                        //
                     }
                 }
                 // if this is a CLIENT, get all outcomes of attacks etc from the server.
@@ -3861,12 +4213,29 @@ public class Battle {
             }
             // Select enemy attack
             if (game.type != Game.Type.CLIENT) {
-                // Set up enemy attack. Can't choose disabled move.
-                int attackIndex = game.map.rand.nextInt(game.battle.oppPokemon.attacks.length);
-                // TODO: don't select disabled attack.
-                String attackChoice = game.battle.oppPokemon.attacks[attackIndex];
-                if (attackChoice == null) {
-                    attackChoice = "Struggle";
+                // TODO: remove
+//                int attackIndex = game.map.rand.nextInt(game.battle.oppPokemon.attacks.length);
+//                String attackChoice = game.battle.oppPokemon.attacks[attackIndex];
+//                if (attackChoice == null) {
+//                    attackChoice = "Struggle";
+//                }
+
+                // TODO: is enemy able to choose disabled move?
+                // TODO: check disabled index
+                ArrayList<String> validAttacks = new ArrayList<String>();
+                int i = 0;
+                for (String attack : game.battle.oppPokemon.attacks) {
+                    if (attack != null && game.battle.oppPokemon.disabledIndex != i) {
+                        validAttacks.add(attack);
+                    }
+                    i++;
+                }
+                String attackChoice = null;
+                if (validAttacks.isEmpty()) {
+                    attackChoice = "struggle";
+                }
+                else {
+                    attackChoice = validAttacks.get(game.map.rand.nextInt(validAttacks.size()));
                 }
                 enemyAttack = game.battle.attacks.get(attackChoice.toLowerCase());
                 // TODO: debug, remove
@@ -3883,10 +4252,15 @@ public class Battle {
                     enemyAttack.name.toLowerCase().equals("whirlpool") ||
                     enemyAttack.name.toLowerCase().equals("fire spin") ||
                     enemyAttack.name.toLowerCase().equals("wrap") ||
+                    enemyAttack.name.toLowerCase().equals("thunder cage") ||
                     enemyAttack.name.toLowerCase().equals("clamp")) {
                     // 2-5 turns for trap
                     game.player.currPokemon.trappedBy = enemyAttack.name.toLowerCase();
                     game.player.currPokemon.trapCounter = game.map.rand.nextInt(4) + 2;
+                    // 4-5 turns for thunder cage
+                    if (enemyAttack.name.toLowerCase().equals("thunder cage")) {
+                        game.player.currPokemon.trapCounter = game.map.rand.nextInt(2) + 4;
+                    }
                 }
             }
             // If Client, get enemy attack that was sent from server.
@@ -3920,6 +4294,9 @@ public class Battle {
             if (game.player.currPokemon.trappedBy != null) {
                 Attack trap = game.battle.attacks.get(game.player.currPokemon.trappedBy);
                 trap.damage = Battle.gen2CalcDamage(game.battle.oppPokemon, trap, game.player.currPokemon);  // TODO: does STAB apply to traps?
+                if (trap.name.equals("thunder cage")) {
+                    trap.damage = game.player.currPokemon.maxStats.get("hp")/8;
+                }
                 doTurn.append(new Battle.LoadAndPlayAnimation(game, game.player.currPokemon.trappedBy, game.player.currPokemon,
                               new DisplayText.Clear(game,
                               new WaitFrames(game, 3,
@@ -3936,6 +4313,9 @@ public class Battle {
             if (game.battle.oppPokemon.trappedBy != null) {
                 Attack trap = game.battle.attacks.get(game.battle.oppPokemon.trappedBy);
                 trap.damage = Battle.gen2CalcDamage(game.battle.oppPokemon, trap, game.player.currPokemon);  // TODO: does STAB apply to traps?
+                if (trap.name.equals("thunder cage")) {
+                    trap.damage = game.battle.oppPokemon.maxStats.get("hp")/8;
+                }
                 doTurn.append(new Battle.LoadAndPlayAnimation(game, game.battle.oppPokemon.trappedBy, game.battle.oppPokemon,
                               new DisplayText.Clear(game,
                               new WaitFrames(game, 3,
@@ -3988,7 +4368,6 @@ public class Battle {
         Pixmap pixmap;
         int pixmapX;
         int pixmapY;
-
         // TODO: remove
         ShaderProgram grayscaleShader = new ShaderProgram(EvolutionAnim.vertexShader,
                                                           EvolutionAnim.fragmentShader);
@@ -4017,8 +4396,12 @@ public class Battle {
                 // I did the Psychic animation manually before I ripped them and put them under attacks/
                 if (this.name.contains("psychic")) {
                     game.actionStack.remove(this);
-                    game.insertAction(new Attack.Psychic(game, this.target,
-                                                         false, this.nextAction));
+                    game.insertAction(new Attack.Psychic(game, this.target, false, this.nextAction));
+                    return;
+                }
+                else if (this.name.contains("crush_grip")) {
+                    game.actionStack.remove(this);
+                    game.insertAction(new Attack.CrushGrip(game, this.target, this.nextAction));
                     return;
                 }
 
@@ -4059,6 +4442,17 @@ public class Battle {
                 }
 //                this.enemyHealthbarOrigin = new Vector2(game.battle.drawAction.drawEnemyHealthAction.bgSprite.getX(),
 //                                                        game.battle.drawAction.drawEnemyHealthAction.bgSprite.getY());
+                
+                // TODO: test
+                // Pre-cache all frames in the attack animation
+                for (int i=0; ; i++) {
+                    FileHandle filehandle = Gdx.files.internal("attacks/" + this.name + "/output/frame-" + String.format("%03d", i) + ".png");
+                    if (!filehandle.exists()) {
+                        break;
+                    }
+                    // This is just for pre-caching
+                    TextureCache.get(filehandle);
+                }
             }
  
             // Reset vars at beginning
@@ -4459,7 +4853,12 @@ class BattleFadeOut extends Action {
         if (frames.isEmpty()) {
             game.insertAction(this.nextAction);
             game.actionStack.remove(this);
-            game.playerCanMove = true;
+            
+            // TODO: remove
+            // TODO: test
+//            game.playerCanMove = true;
+            
+            
             DrawBattle.shouldDrawOppPokemon = true;
             // TODO: gameboy game handles this differently
             // TODO: remove
@@ -4485,6 +4884,8 @@ class BattleFadeOut extends Action {
             // Traps go away from player's current Pokemon
             game.player.currPokemon.trappedBy = null;
             game.player.currPokemon.trapCounter = 0;
+            // TODO: test
+            game.battle.oppPokemon.canMove = true;
             return;
         }
 
@@ -4733,7 +5134,11 @@ class BattleIntroAnim1 extends Action {
         for (int i = 0; i < 28; i++) {
             frames.add(new Sprite(text, i*160, 0, 160, 144));
         }
-        for (int i = 0; i < 42; i++) {
+        int numFrames = 42;
+//        if (Game.staticGame.battle.oppPokemon != null && Game.staticGame.battle.oppPokemon.name.contains("regi")) {
+//            numFrames = 42*3 +20;
+//        }
+        for (int i = 0; i < numFrames; i++) {
             frames.add(new Sprite(text, 27*160, 0, 160, 144));
         }
         text = new Texture(Gdx.files.internal("battle/intro_frame3.png"));
@@ -5409,6 +5814,7 @@ class CatchPokemonWobblesThenCatch extends Action {
     ArrayList<Integer> repeats;
     String sound;
     ArrayList<String> sounds;
+    Tile pedistalTile;
 
     public int layer = 120;
     public CatchPokemonWobblesThenCatch(Game game, Action nextAction) {
@@ -5498,6 +5904,16 @@ class CatchPokemonWobblesThenCatch extends Action {
     public int getLayer(){return this.layer;}
 
     @Override
+    public void firstStep(Game game) {
+        for (Tile tile : game.map.tiles.values()) {
+            if (tile.name.contains("cave1_regipedistal1")) {
+                this.pedistalTile = tile;
+                break;
+            }
+        }
+    }
+
+    @Override
     public void step(Game game) {
         // set opp pokemon sprite alpha
 //        game.battle.oppPokemon.sprite.setAlpha(0);
@@ -5518,8 +5934,11 @@ class CatchPokemonWobblesThenCatch extends Action {
             Action newAction = new PokemonCaughtEvents(game,
                                 new SplitAction(new BattleFadeOut(game, null),
                                 new BattleFadeOutMusic(game,
-                                new SetField(game.musicController, "resumeOverworldMusic", true,
-                                null))));
+//                                new SetField(game.musicController, "resumeOverworldMusic", true,  // TODO: remove
+                                null)));
+            if (!game.battle.oppPokemon.name.contains("regi")) {
+                newAction.append(new SetField(game.musicController, "resumeOverworldMusic", true, null));
+            }
             game.battle.oppPokemon.previousOwner = game.player;
             game.battle.oppPokemon.aggroPlayer = false;
             if (game.player.pokemon.size() < 6) {
@@ -5532,10 +5951,10 @@ class CatchPokemonWobblesThenCatch extends Action {
                 if (game.player.spawnIndex != -1) {
                     game.battle.oppPokemon.mapTiles = game.map.interiorTiles.get(game.player.spawnIndex);
                 }
-                newAction.append(new SetField(game, "playerCanMove", false,
+                newAction.append(// new SetField(game, "playerCanMove", false,  // TODO: remove these
                                  new DisplayText(game, "Your party is full! "+game.battle.oppPokemon.name.toUpperCase()+" was sent to the last known safe place.", null, null,
-                                 new SetField(game, "playerCanMove", true,
-                                 null))));
+                                 // new SetField(game, "playerCanMove", true,
+                                 null));
                 // TODO: there will probably be bugs if pokemon overlaps in game.map.pokemon with another pokemon.
                 game.insertAction(game.battle.oppPokemon.new Standing());
             }
@@ -5553,11 +5972,90 @@ class CatchPokemonWobblesThenCatch extends Action {
             }
             if (game.player.pokemon.size() >= 6 && !game.player.displayedMaxPartyText) {
                 game.player.displayedMaxPartyText = true;
-                newAction.append(new SetField(game, "playerCanMove", false,
+                newAction.append(//new SetField(game, "playerCanMove", false,
                                  new DisplayText(game, "Your party is full! You will need to DROP some of them in order to catch more.", null, null,
-                                 new SetField(game, "playerCanMove", true,
-                                 null))));
+                                 //new SetField(game, "playerCanMove", true,
+                                 null));
             }
+
+            // If this was the regi encounter, so remove from the pedistal
+            if (game.battle.oppPokemon.name.equals("regigigas")) {
+                Tile regiTile = null;
+                for (Tile tile : game.map.tiles.values()) {
+                    if (tile.name.contains("cave1_regi3")) {
+                        regiTile = tile;
+                        break;
+                    }
+                }
+                System.out.println("hererererere");
+                System.out.println(game.battle.oppPokemon.position);
+                game.map.tiles.remove(regiTile.position);
+                newAction.append(new SetField(game, "playerCanMove", true, null));
+//                game.map.tiles.remove(game.battle.oppPokemon.position);
+//                game.map.tiles.remove(game.battle.oppPokemon.position.cpy().add(16, 0));
+            }
+            else if (this.pedistalTile != null &&
+                     game.battle.oppPokemon.name.contains("regi")) {
+                String text = "";
+                if (this.pedistalTile.nameUpper.equals("REGICE")) {
+                    text = "Cold ... very cold ... too cold ... but ... even with heat ... it lasts forever ... ";
+                }
+                else if (this.pedistalTile.nameUpper.equals("REGIROCK")) {
+                    text = "Simple stones ... such a creation ... each one so unique ... but only stones ... even in the head ... ";
+                }
+                else if (this.pedistalTile.nameUpper.equals("REGISTEEL")) {
+                    text = "Metals ... from underground ... so tough ... so flexible ... yet it' so old ... it has an unearthly presence ... ";
+                }
+                else if (this.pedistalTile.nameUpper.equals("REGIDRAGO")) {
+                    text = "Such a sad sight ... my child ... its my fault ... incomplete ... just a dragon' head ... but you're still ... so strong ... ";
+                }
+                else if (this.pedistalTile.nameUpper.equals("REGIELEKI")) {
+                    text = "Such a sad sight ... my child ... your electricity ... restrained ... but ... you are still ... so strong ... ";
+                }
+                this.pedistalTile.nameUpper = "";
+                this.pedistalTile.overSprite = null;
+                this.pedistalTile.items.remove(game.battle.oppPokemon.name.toUpperCase());
+                
+                // TODO: remove
+//                newAction.append(new SetField(game, "playerCanMove", false,  // TODO: refactor this, i think it's in battlefadeout
+//                                 null));
+
+                if (this.pedistalTile.items.isEmpty()) {
+                    Tile regiTile = null;
+                    for (Tile tile : game.map.tiles.values()) {
+                        if (tile.name.contains("cave1_regi2")) {
+                            regiTile = tile;
+                            break;
+                        }
+                    }
+                    Texture texture = TextureCache.get(Gdx.files.internal("tiles/cave1/cave1_floor2.png"));
+                    this.pedistalTile.sprite = new Sprite(texture, 0, 0, 16, 16);
+                    this.pedistalTile.sprite.setPosition(this.pedistalTile.position.x, this.pedistalTile.position.y);
+                    this.pedistalTile.name = "cave1_floor2";
+                    this.pedistalTile.attrs.put("solid", false);
+                    text += "My work is ... complete...";
+                    
+//                    // TODO: remove
+//                    texture = TextureCache.get(Gdx.files.internal("tiles/cave1/regi3.png"));
+//                    regiTile.sprite = new Sprite(texture, 0, 0, 32, 32);
+//                    regiTile.sprite.setPosition(this.pedistalTile.position.x-8, this.pedistalTile.position.y-9);
+                    
+                    newAction.append(new DisplayText(game, text, null, null, true, 
+                                     new SetField(regiTile, "name", "cave1_regi3", null)));
+                }
+                else {
+                    Texture texture = TextureCache.get(Gdx.files.internal("tiles/cave1/cave1_regipedistal1.png"));
+                    this.pedistalTile.overSprite = new Sprite(texture, 0, 0, 16, 16);
+                    // TODO: remove once DrawMap does game.mapBatch.draw(overSprite) instead
+                    this.pedistalTile.overSprite.setPosition(this.pedistalTile.position.x, this.pedistalTile.position.y);
+                    text += "I desire more ...";
+                    newAction.append(new DisplayText(game, text, null, null, true, 
+                                     new RegigigasOutroAnim(null)));
+                }
+                newAction.append(new SetField(game.musicController, "resumeOverworldMusic", true, null));
+//                newAction.append(new SetField(game, "playerCanMove", true, null));  // TODO: remove
+            }
+            newAction.append(new SetField(game, "playerCanMove", true, null));
             game.insertAction(newAction);
             newAction.step(game);  // need to draw the pokeball
             game.actionStack.remove(this);
@@ -5720,8 +6218,8 @@ class DepleteEnemyHealth extends Action {
 
     @Override
     public void step(Game game) {
-        if (this.firstStep == true) {
-            // apply damage if there is any (otherwise assume it's already applied)
+        if (this.firstStep) {
+            // Apply damage if there is any (otherwise assume it's already applied)
             if (this.damage > 0) {
                 int currHealth = game.battle.oppPokemon.currentStats.get("hp");
                 int finalHealth = currHealth - this.damage > 0 ? currHealth - this.damage : 0;
@@ -5761,23 +6259,53 @@ class DepleteEnemyHealth extends Action {
             game.actionStack.remove(this);
             // If enemy health is 0, do EnemyFaint
             if (game.battle.oppPokemon.currentStats.get("hp") <= 0) {
-                int exp = game.battle.calcFaintExp();
-                game.player.currPokemon.exp += exp;
+                int numParticipated = 0;
+                for (Pokemon pokemon : game.player.pokemon) {
+                    if (pokemon.participatedInBattle && pokemon.currentStats.get("hp") > 0) {
+                        numParticipated++;
+                    }
+                }
+                if (numParticipated <= 0) {
+                    numParticipated = 1;
+                }
+                // TODO: remove
+                System.out.println(numParticipated);
                 Action nextAction = new EnemyFaint(game,
                                     new RemoveDisplayText(  // TODO: refactor to stop using this
                                     new DisplayText.Clear(game,
                                     new WaitFrames(game, 3,
                                     new DisplayText(game, "Enemy "+game.battle.oppPokemon.name.toUpperCase()+" fainted!",
                                                     null, null,
-                                    new DisplayText(game, game.player.currPokemon.name.toUpperCase()+" gained "+String.valueOf(exp)+" EXP. Points!",
-                                                    null, true, true,
-                                    new GainExpAnimation(
-                                    null)))))));
-                nextAction.append(new SplitAction(new BattleFadeOut(game,
-                                                  null),
-                                  new BattleFadeOutMusic(game,
+                                    null)))));
+                for (Pokemon pokemon : game.player.pokemon) {
+                    if (pokemon.participatedInBattle && pokemon.currentStats.get("hp") > 0) {
+                        int exp = game.battle.calcFaintExp(numParticipated);
+                        pokemon.exp += exp;
+                        nextAction.append(new DisplayText(game, pokemon.name.toUpperCase()+" gained "+String.valueOf(exp)+" EXP. Points!",
+                                          null, true, true,
+                                          new GainExpAnimation(pokemon,
+                                          null)));
+                    }
+                }
+                // For each Pokemon that gained a level, check if it should evolve
+                // and play the evolve animation if it does.
+                for (Pokemon pokemon : game.player.pokemon) {
+                    // TODO: multiple evos in a row likely is broken
+                    nextAction.append(new CheckEvo(pokemon, null));
+                }
+                // TODO: remove
+//                int exp = game.battle.calcFaintExp();
+//                game.player.currPokemon.exp += exp;
+
+                // TODO: now for each Pokemon, check if evolved or not
+                
+                nextAction.append(new SplitAction(
+                                      new BattleFadeOut(game, null),
+                                  new SplitAction(
+                                      new BattleFadeOutMusic(game, null),
+                                  new WaitFrames(game, 30,
                                   new SetField(game.musicController, "resumeOverworldMusic", true,
-                                  null))));
+                                  null)))));
                 // If player made mewtwo faint, display message that it may return
                 // Also don't draw upper sprite, make unsolid.
                 if (SpecialMewtwo1.class.isInstance(game.battle.oppPokemon)) {
@@ -5786,11 +6314,11 @@ class DepleteEnemyHealth extends Action {
                     mewtwo.tile.attrs.put("solid", false);
                     mewtwo.tile.nameUpper = "mewtwo_overworld_hidden";
                     mewtwo.tile.overSprite = null;
-                    nextAction.append(new SetField(game, "playerCanMove", false,
+                    nextAction.append(//new SetField(game, "playerCanMove", false,
                                       new DisplayText(game, "MEWTWO fled... it may return when it' had time to recover.",
                                                       null, null,
-                                      new SetField(game, "playerCanMove", true,
-                                      null))));
+                                      //new SetField(game, "playerCanMove", true,
+                                      null));
                 }
                 // If the player fainted an overworld pokemon,
                 // then remove it's standing Action :(
@@ -5799,7 +6327,9 @@ class DepleteEnemyHealth extends Action {
                     // it gets garbage collected :O
                     game.actionStack.remove(game.battle.oppPokemon.standingAction);
                     game.battle.oppPokemon.standingAction = null;
+                    game.map.pokemon.remove(game.battle.oppPokemon.position);
                 }
+                nextAction.append(new SetField(game, "playerCanMove", true, null));
                 game.insertAction(nextAction);
             }
             // else, insert nextAction
@@ -5993,13 +6523,15 @@ class DrawAttacksMenu extends Action {
     int cursorDelay; // this is just extra detail. cursor has 2 frame delay before showing in R/B
     String attackLearning = null;  // if this has a value, this is just being used by player to select attack to forget.
     Vector2 offset = new Vector2(0, 0);
+    Pokemon pokemon;  // used if a Pokemon is learning a move
 
     public DrawAttacksMenu(Action nextAction) {
-        this(null, nextAction);
+        this(null, Game.staticGame.player.currPokemon, nextAction);
     }
 
-    public DrawAttacksMenu(String attackLearning, Action nextAction) {
+    public DrawAttacksMenu(String attackLearning, Pokemon pokemon, Action nextAction) {
         this.attackLearning = attackLearning;
+        this.pokemon = pokemon;
         if (this.attackLearning != null) {
             this.offset.add(0, 48);
         }
@@ -6034,7 +6566,7 @@ class DrawAttacksMenu extends Action {
         this.arrow.setPosition(this.newPos.x, this.newPos.y);
 
         // Convert pokemon attacks to sprites
-        for (String attack : Game.staticGame.player.currPokemon.attacks) {
+        for (String attack : this.pokemon.attacks) {
             if (attack == null) {
                 attack = "-";
             }
@@ -6085,8 +6617,8 @@ class DrawAttacksMenu extends Action {
             }
         }
         else if (InputProcessor.downJustPressed) {
-            if (DrawAttacksMenu.curr+1 < game.player.currPokemon.attacks.length &&
-                game.player.currPokemon.attacks[DrawAttacksMenu.curr+1] != null) {
+            if (DrawAttacksMenu.curr+1 < this.pokemon.attacks.length &&
+                this.pokemon.attacks[DrawAttacksMenu.curr+1] != null) {
                 DrawAttacksMenu.curr += 1;
                 newPos = coords.get(DrawAttacksMenu.curr);
             }
@@ -6096,27 +6628,50 @@ class DrawAttacksMenu extends Action {
         if (InputProcessor.aJustPressed) {
             if (this.attackLearning != null) {
                 game.actionStack.remove(this);
+                
+                // No confirmation
+//                game.insertAction(new DisplayText.Clear(game,
+//                                  new WaitFrames(game, 3,
+//                                  new DisplayText(game, "And one... two... three... POOF!",
+//                                                  null, null,
+//                                  new DisplayText(game, this.pokemon.name.toUpperCase() + " forgot " + this.pokemon.attacks[DrawAttacksMenu.curr].toUpperCase()+" and...",
+//                                                  null, null,
+//                                  new DisplayText(game, this.pokemon.name.toUpperCase() + " learned " + this.attackLearning.toUpperCase()+"!",
+//                                                  "fanfare1.ogg", true, true,
+//                                  this.nextAction))))));
+                // Confirmation
                 game.insertAction(new DisplayText.Clear(game,
                                   new WaitFrames(game, 3,
-                                  new DisplayText(game, "And one... two... three... POOF!",
-                                                  null, null,
-                                  new DisplayText(game, game.player.currPokemon.name.toUpperCase() + " forgot " + game.player.currPokemon.attacks[DrawAttacksMenu.curr].toUpperCase()+" and...",
-                                                  null, null,
-                                  new DisplayText(game, game.player.currPokemon.name.toUpperCase() + " learned " + this.attackLearning.toUpperCase()+"!",
-                                                  "fanfare1.ogg", true, true,
-                                  this.nextAction))))));
-                game.player.currPokemon.attacks[DrawAttacksMenu.curr] = this.attackLearning;
-                if (game.type == Game.Type.CLIENT) {
-                    game.client.sendTCP(new Network.LearnMove(game.player.network.id, 0, DrawAttacksMenu.curr, this.attackLearning));
-                }
+                                  new DisplayText(game, "Replace "+this.pokemon.attacks[DrawAttacksMenu.curr].toUpperCase()+"?",
+                                                  null, true, false,
+                                  new DrawYesNoMenu(null,
+                                      new DisplayText.Clear(game,
+                                      new WaitFrames(game, 3,
+                                      new DisplayText(game, "And one... two... three... POOF!",
+                                                      null, null,
+                                      new DisplayText(game, this.pokemon.name.toUpperCase() + " forgot " + this.pokemon.attacks[DrawAttacksMenu.curr].toUpperCase()+" and...",
+                                                      null, null,
+                                      new DisplayText(game, this.pokemon.name.toUpperCase() + " learned " + this.attackLearning.toUpperCase()+"!",
+                                                      "fanfare1.ogg", true, true,
+                                      new SetArrayAtIndex(this.pokemon.attacks, DrawAttacksMenu.curr, this.attackLearning,
+                                      this.nextAction)))))),
+                                  new DisplayText.Clear(game,
+                                  new WaitFrames(game, 3,                                      
+                                  new DisplayText(game, "Which move should be forgotten?",
+                                                  null, true, false,
+                                  this))))))));
+//                this.pokemon.attacks[DrawAttacksMenu.curr] = this.attackLearning;
+//                if (game.type == Game.Type.CLIENT) {
+//                    game.client.sendTCP(new Network.LearnMove(game.player.network.id, 0, DrawAttacksMenu.curr, this.attackLearning));
+//                }
                 return;
             }
             // Warning text if attack is disabled.
-            if (game.player.currPokemon.disabledIndex == DrawAttacksMenu.curr) {
+            if (this.pokemon.disabledIndex == DrawAttacksMenu.curr) {
                 game.actionStack.remove(this);
                 game.insertAction(new DisplayText.Clear(game,
                                   new WaitFrames(game, 3,
-                                  new DisplayText(game, game.player.currPokemon.attacks[DrawAttacksMenu.curr].toUpperCase()+" is disabled!",
+                                  new DisplayText(game, this.pokemon.attacks[DrawAttacksMenu.curr].toUpperCase()+" is disabled!",
                                                   null, null,
                                   new WaitFrames(game, 3,
                                   this)))));
@@ -6133,7 +6688,7 @@ class DrawAttacksMenu extends Action {
             Action attack = new SplitAction(new PlaySound("click1", null), null);
             if (game.type == Game.Type.CLIENT) {
                 // send move to server, wait response
-                String attackName = game.player.currPokemon.attacks[DrawAttacksMenu.curr];
+                String attackName = this.pokemon.attacks[DrawAttacksMenu.curr];
                 attack.append(new Battle.WaitTurnData(game, null));
                 game.client.sendTCP(new com.pkmngen.game.Network.DoBattleAction(game.player.network.id, Battle.DoTurn.Type.ATTACK, attackName));
             }
@@ -6148,36 +6703,57 @@ class DrawAttacksMenu extends Action {
         else if (InputProcessor.bJustPressed) {
             if (this.attackLearning != null) {
                 game.actionStack.remove(this);
+                // No confirmation version
+//                game.insertAction(new DisplayText.Clear(game,
+//                                  new WaitFrames(game, 3,
+//                                  new DisplayText(game, this.pokemon.name.toUpperCase()+" did not learn " + this.attackLearning.toUpperCase()+".",
+//                                                  null, null,
+//                                  this.nextAction))));
+                // With confirmation version
                 game.insertAction(new DisplayText.Clear(game,
                                   new WaitFrames(game, 3,
-                                  new DisplayText(game, game.player.currPokemon.name.toUpperCase()+" did not learn " + this.attackLearning.toUpperCase()+".",
-                                                  null, null,
-                                  this.nextAction))));
+                                  new DisplayText(game, "Give up on learning "+this.attackLearning.toUpperCase()+"?",
+                                                  null, true, false,
+                                  new DrawYesNoMenu(null,
+                                      new DisplayText.Clear(game,
+                                      new WaitFrames(game, 3,
+                                      new DisplayText(game, this.pokemon.name.toUpperCase()+" did not learn " + this.attackLearning.toUpperCase()+".",
+                                                      null, null,
+                                      this.nextAction))),
+                                  new DisplayText.Clear(game,
+                                  new WaitFrames(game, 3,
+                                  new DisplayText(game, "Which move should be forgotten?",
+                                                  null, true, false,
+                                  this))))))));
                 return;
             }
             game.actionStack.remove(this);
             game.insertAction(this.nextAction);
         }
-
-        // System.out.println("curr: " + curr);
-
-        // draw text box
+        // Draw text box
         this.textBox.draw(game.uiBatch);
 
         // debug
 //        helperSprite.draw(game.floatingBatch);
 
-        // draw the attack strings
+        // Draw the attack strings
         int j = 0;
         for (ArrayList<Sprite> word : this.spritesToDraw) {
             for (Sprite sprite : word) {
-                // convert string to text
+                // Convert string to text
                 game.uiBatch.draw(sprite, sprite.getX() + 40, sprite.getY() - j*8 + 8);
             }
             j+=1;
         }
-
-        // draw arrow
+        // Draw attack type
+        // TODO: cache this
+        char[] textArray = game.battle.attacks.get(this.pokemon.attacks[DrawAttacksMenu.curr]).type.toUpperCase().toCharArray();
+        Sprite letterSprite;
+        for (int m=0; m < textArray.length; m++) {
+            letterSprite = game.textDict.get(textArray[m]);
+            game.uiBatch.draw(letterSprite, 16 +8*m, 56);
+        }
+        // Draw arrow
         if (this.cursorDelay >= 2) {
             this.arrow.setPosition(newPos.x+this.offset.x, newPos.y+this.offset.y);
             this.arrow.draw(game.uiBatch);
@@ -6264,7 +6840,9 @@ class DrawBattle extends Action {
 
         @Override
         public void step(Game game) {
-            if (!game.actionStack.contains(DrawBattle.this) || game.map.timeOfDay.equals("day")) {
+            if (!game.actionStack.contains(DrawBattle.this) ||
+                game.map.timeOfDay.equals("day") ||
+                game.map.currRoute.isDungeon) {
                 game.actionStack.remove(this);
                 return;
             }
@@ -6929,11 +7507,13 @@ class DrawEnemyHealth extends Action {
             }
             // Draw gender icon if the enemy pokemon is male or female
 //            int nameOffset = game.battle.oppPokemon.name.length() > 8 ? game.battle.oppPokemon.name.length()-8 : 0;
-            if (game.battle.oppPokemon.gender.equals("male")) {
-                game.uiBatch.draw(TextureCache.maleSymbol, 72 +this.translateAmt.x, 136 -8);
-            }
-            else if (game.battle.oppPokemon.gender.equals("female")) {
-                game.uiBatch.draw(TextureCache.femaleSymbol, 72 +this.translateAmt.x, 136 -8);
+            if (!game.battle.oppPokemon.name.equals("ghost")) {
+                if (game.battle.oppPokemon.gender.equals("male")) {
+                    game.uiBatch.draw(TextureCache.maleSymbol, 72 +this.translateAmt.x, 136 -8);
+                }
+                else if (game.battle.oppPokemon.gender.equals("female")) {
+                    game.uiBatch.draw(TextureCache.femaleSymbol, 72 +this.translateAmt.x, 136 -8);
+                }
             }
         }
         // Detect when battle is over,
@@ -7085,13 +7665,12 @@ class DrawFriendlyHealth extends Action {
             }
             // Draw gender icon if the friendly pokemon is male or female
 //            int nameOffset = game.battle.oppPokemon.name.length() > 8 ? game.battle.oppPokemon.name.length()-8 : 0;
-            if (game.battle.oppPokemon.gender.equals("male")) {
+            if (game.player.currPokemon.gender.equals("male")) {
                 game.uiBatch.draw(TextureCache.maleSymbol, 136, 72);
             }
-            else if (game.battle.oppPokemon.gender.equals("female")) {
+            else if (game.player.currPokemon.gender.equals("female")) {
                 game.uiBatch.draw(TextureCache.femaleSymbol, 136, 72);
             }
-            
         }
         // detect when battle is over,
         // object will remove itself from AS
@@ -7223,7 +7802,8 @@ class DrawItemMenu extends MenuAction {
         }
 
         // draw text box
-        this.textBox.draw(game.uiBatch);
+//        this.textBox.draw(game.uiBatch);
+        game.uiBatch.draw(this.textBox, this.textBox.getX(), this.textBox.getY());
 
         // debug
 //        helperSprite.draw(game.floatingBatch);
@@ -7244,8 +7824,9 @@ class DrawItemMenu extends MenuAction {
         // return at this point if this menu is disabled
         if (this.disabled) {
             this.refresh = true;
-            this.arrowWhite.setPosition(newPos.x, newPos.y);
-            this.arrowWhite.draw(game.uiBatch);
+//            this.arrowWhite.setPosition(newPos.x, newPos.y);
+//            this.arrowWhite.draw(game.uiBatch);
+            game.uiBatch.draw(this.arrowWhite, newPos.x, newPos.y);
             return;
         }
         if (this.refresh) {
@@ -7277,8 +7858,9 @@ class DrawItemMenu extends MenuAction {
 
         // Draw arrow
         if (this.cursorDelay >= 5) {
-            this.arrow.setPosition(newPos.x, newPos.y);
-            this.arrow.draw(game.uiBatch);
+//            this.arrow.setPosition(newPos.x, newPos.y);
+//            this.arrow.draw(game.uiBatch);
+            game.uiBatch.draw(this.arrow, newPos.x, newPos.y);
         }
         else {
             this.cursorDelay+=1;
@@ -7287,7 +7869,8 @@ class DrawItemMenu extends MenuAction {
         // Draw downarrow if applicable
         if ((this.itemsList.size() - this.currIndex) > 4 ) {
             if (this.downArrowTimer < 22) {
-                this.downArrow.draw(game.uiBatch);
+//                this.downArrow.draw(game.uiBatch);
+                game.uiBatch.draw(this.downArrow, this.downArrow.getX(), this.downArrow.getY());
             }
             this.downArrowTimer++;
         }
@@ -7458,7 +8041,8 @@ class DrawPlayerMenu extends MenuAction {
         // System.out.println("curr: " + curr);
 
         // draw text box
-        this.textBox.draw(game.uiBatch);
+//        this.textBox.draw(game.uiBatch);
+        game.uiBatch.draw(this.textBox, this.textBox.getX(), this.textBox.getY());
 
         // debug
 //        helperSprite.draw(game.floatingBatch);
@@ -7518,7 +8102,10 @@ class DrawPlayerMenu extends MenuAction {
                 saveAction.step(game);
                 game.insertAction(new DisplayText(game, game.player.name+" saved the game!", "save1.ogg", null,
                                   new SetField(game, "playerCanMove", true,
-                                  null)));
+                                  // TODO: migrate to just use this
+                                  // Required if player is flying
+                                  new SetField(game.player, "canMove", true,
+                                  null))));
             }
 
             game.actionStack.remove(this);
@@ -7535,8 +8122,9 @@ class DrawPlayerMenu extends MenuAction {
 
         // draw arrow
         if (this.cursorDelay >= 2) {
-            this.arrow.setPosition(newPos.x, newPos.y);
-            this.arrow.draw(game.uiBatch);
+//            this.arrow.setPosition(newPos.x, newPos.y);
+//            this.arrow.draw(game.uiBatch);
+            game.uiBatch.draw(this.arrow, newPos.x, newPos.y);
         }
         else {
             this.cursorDelay+=1;
@@ -7579,7 +8167,8 @@ class DrawPlayerMenu extends MenuAction {
         @Override
         public void step(Game game) {
             // get next frame
-            this.sprite.draw(game.uiBatch);
+//            this.sprite.draw(game.uiBatch);
+            game.uiBatch.draw(this.sprite, this.sprite.getX(), this.sprite.getY());
 
             // set sprite position
             // if done with anim, do nextAction
@@ -7681,7 +8270,8 @@ class DrawPokemonMenu extends MenuAction {
         if (this.prevMenu != null) {
             this.prevMenu.step(game);
         }
-        this.bgSprite.draw(game.uiBatch);
+        game.uiBatch.draw(this.bgSprite, this.bgSprite.getX(), this.bgSprite.getY());
+//        this.bgSprite.draw(game.uiBatch);  // TODO: remove
         // 1 frame delay - delay when switching to new avatar
         // 6 frames first, 6 second
         // draw health bars
@@ -7707,13 +8297,17 @@ class DrawPokemonMenu extends MenuAction {
             }
 
             // Draw pokemon name
-            char[] textArray = currPokemon.name.toUpperCase().toCharArray();
+            // TODO: cache this somewhere
+            // .split("_")[0] is to not display the _w in unown_w, for example
+            // TODO: I just need to implement real vs displayed name, somehow
+            //       Displayed is probably the nickname, whereas real probably
+            //       should be an enum, maybe.
+            char[] textArray = currPokemon.name.split("_")[0].toUpperCase().toCharArray();
             Sprite letterSprite;
             for (int j=0; j < textArray.length; j++) {
                 letterSprite = game.textDict.get(textArray[j]);
                 game.uiBatch.draw(letterSprite, 24 +8*j, 136 -16*i);
             }
-            
             if (currPokemon.name.equals("egg")) {
                 continue;
             }
@@ -7811,7 +8405,7 @@ class DrawPokemonMenu extends MenuAction {
         }
 
         // Draw 'Choose a pokemon' text
-        if (DrawPokemonMenu.drawChoosePokemonText == true) {
+        if (DrawPokemonMenu.drawChoosePokemonText) {
             char[] textArray = "Choose a POKÈMON.".toCharArray();
             Sprite letterSprite;
             for (int j=0; j < textArray.length; j++) {
@@ -7822,8 +8416,9 @@ class DrawPokemonMenu extends MenuAction {
 
         if (this.drawArrowWhite) {
             // draw white arrow
-            this.arrowWhite.setPosition(this.newPos.x, this.newPos.y);
-            this.arrowWhite.draw(game.uiBatch);
+//            this.arrowWhite.setPosition(this.newPos.x, this.newPos.y);
+//            this.arrowWhite.draw(game.uiBatch);
+            game.uiBatch.draw(this.arrowWhite, newPos.x, newPos.y);
         }
         
 
@@ -7859,8 +8454,9 @@ class DrawPokemonMenu extends MenuAction {
         newPos = this.arrowCoords.get(DrawPokemonMenu.currIndex);
 
         // draw the arrow sprite
-        this.arrow.setPosition(this.newPos.x, this.newPos.y);
-        this.arrow.draw(game.uiBatch);
+//        this.arrow.setPosition(this.newPos.x, this.newPos.y);
+//        this.arrow.draw(game.uiBatch);
+        game.uiBatch.draw(this.arrow, newPos.x, newPos.y);
 
         // Button interaction is below drawing b/c I want to be able to return here
         // if press a, draw use/toss for item
@@ -7941,12 +8537,38 @@ class DrawPokemonMenu extends MenuAction {
                     if (diff < restoreAmt) {
                         restoreAmt = diff;
                     }
+                    // TODO: yields would prevent from having to check if in battle or not here.
+                    // TODO: remove
+//                    game.insertAction(new RestoreHealth(currPokemon, -restoreAmt,
+//                                      new DisplayText(game, currPokemon.name.toUpperCase()+" gained "+String.valueOf(restoreAmt)+" hp!", null, null,
+//                                      new SetField(this, "goAway", true,
+//                                      new DrawPokemonMenu.Outro(
+//                                      this.prevMenu)))));
                     game.insertAction(new PlaySound("potion1", null));
-                    game.insertAction(new RestoreHealth(currPokemon, -restoreAmt,
-                                      new DisplayText(game, currPokemon.name.toUpperCase()+" gained "+String.valueOf(restoreAmt)+" hp!", null, null,
-                                      new SetField(this, "goAway", true,
-                                      new DrawPokemonMenu.Outro(
-                                      this.prevMenu)))));
+                    Action nextAction = new RestoreHealth(currPokemon, -restoreAmt,
+                                        new DisplayText(game, currPokemon.name.toUpperCase()+" gained "+String.valueOf(restoreAmt)+" hp!", null, null,
+                                        new SetField(this, "goAway", true,
+                                        null)));
+                    if (game.battle.drawAction == null) {
+                        nextAction.append(new DrawPokemonMenu.Outro(this.prevMenu));
+                    }
+                    else {
+                        game.battle.network.turnData = new BattleTurnData();
+                        game.battle.network.turnData.itemName = this.item;
+                        // TODO: test
+                        // TODO: instead of this prevMenu.prevMenu stuff, just
+                        //       have Battle.DoTurn insert a new battle menu
+                        //       action after each turn.
+                        System.out.println(this.prevMenu.prevMenu);
+                        this.prevMenu.prevMenu.disabled = false;
+//                        game.actionStack.remove(this.prevMenu.prevMenu);  // No idea why this is needed.
+                        nextAction.append(new DrawPokemonMenu.Outro(
+                                          new Battle.DoTurn(game, Battle.DoTurn.Type.ITEM, this.prevMenu.prevMenu)));
+                        // Do this or else it's step() will be called b/c this
+                        // menu persists for a while.
+                        this.prevMenu.prevMenu = null;  
+                    }
+                    game.insertAction(nextAction);
                     return;
                 }
                 if (this.item.equals("rare candy")) {
@@ -8038,6 +8660,11 @@ class DrawPokemonMenu extends MenuAction {
 
         Sprite bgSprite;
 
+        public Outro(Action nextAction) {
+            this(null);
+            this.nextAction = nextAction;
+        }
+
         public Outro(MenuAction prevMenu) {
             this.prevMenu = prevMenu;
             if (this.prevMenu != null) {
@@ -8070,6 +8697,7 @@ class DrawPokemonMenu extends MenuAction {
                     this.prevMenu.disabled = false;
                     this.prevMenu.drawArrowWhite = false;
                 }
+                game.insertAction(this.nextAction);
                 game.actionStack.remove(this);
             }
         }
@@ -8105,10 +8733,13 @@ class DrawPokemonMenu extends MenuAction {
 
         // Maps menu selection to an action
         public Action getAction(Game game, String word, MenuAction prevMenu) {
-//            if (word.equals("STATS")) {
-//                return new SelectedMenu.Switch(prevMenu); // TODO - Stats menu
-//            }
-            if (word.equals("SWITCH")) {
+            if (word.equals("STATS")) {
+                Pokemon currPokemon = game.player.pokemon.get(DrawPokemonMenu.currIndex);
+                return new DrawStatsScreen.Intro(
+                       new DrawStatsScreen(game, currPokemon, prevMenu));
+                
+            }
+            else if (word.equals("SWITCH")) {
                 Pokemon currPokemon = game.player.pokemon.get(DrawPokemonMenu.currIndex);
                 if (game.battle.drawAction == null) {
                     // TODO: this should check game.battle == null after refactor
@@ -8190,7 +8821,7 @@ class DrawPokemonMenu extends MenuAction {
                 }
                 pokemon.position = pos;
                 pokemon.mapTiles = game.map.tiles;
-                // If player is dropping the pokemon using a Filed Move,
+                // If player is dropping the pokemon using a Field Move,
                 // just swap sprites back from the pokemon and remove
                 // it's standing action.
                 if (game.player.hmPokemon == pokemon) {
@@ -8202,6 +8833,7 @@ class DrawPokemonMenu extends MenuAction {
                     game.player.isCutting = false;
                     game.player.isHeadbutting = false;
                     game.player.isSmashing = false;
+                    game.player.isAttacking = false;
                 }
                 return new SelectedMenu.ExitAfterActions(this.prevMenu,
                        new PlaySound(pokemon,
@@ -8214,7 +8846,8 @@ class DrawPokemonMenu extends MenuAction {
                     (word.equals("HEADBUTT") && game.player.isHeadbutting) ||
                     (word.equals("CUT") && game.player.isCutting) ||
                     (word.equals("SMASH") && game.player.isSmashing) ||
-                    (word.equals("RIDE") && game.player.isJumping)) {
+                    (word.equals("RIDE") && game.player.isJumping) ||
+                    (word.equals("ATTACK") && game.player.isAttacking)) {
                     this.disabled = true;
                     game.insertAction(this.prevMenu);
                     return new PlaySound("error1",
@@ -8229,8 +8862,14 @@ class DrawPokemonMenu extends MenuAction {
                     game.player.isCutting ||
                     game.player.isHeadbutting ||
                     game.player.isSmashing ||
-                    game.player.isJumping) {
+                    game.player.isJumping ||
+                    game.player.isAttacking) {
                     game.player.swapSprites(game.player.hmPokemon);
+                    
+                    // TODO: this is currently just used to stop
+                    //       player from planting or fertilizing
+                    // No need to do this if pokemon is just following, though.
+                    game.player.currPlanting = null;
                 }
                 game.actionStack.remove(game.player.hmPokemon.standingAction);
                 game.player.hmPokemon = null;
@@ -8239,6 +8878,7 @@ class DrawPokemonMenu extends MenuAction {
                 game.player.isCutting = false;
                 game.player.isHeadbutting = false;
                 game.player.isSmashing = false;
+                game.player.isAttacking = false;
             }
             if (word.equals("FLY")) {
                 if (game.map.tiles != game.map.overworldTiles) {
@@ -8264,6 +8904,7 @@ class DrawPokemonMenu extends MenuAction {
                 game.player.isSmashing = false;
                 game.player.isHeadbutting = false;
                 game.player.isJumping = false;
+                game.player.isAttacking = false;
                 return new SelectedMenu.ExitAfterActions(this.prevMenu,
                        new PlaySound(pokemon,
                        // trick ExitAfterActions
@@ -8301,6 +8942,18 @@ class DrawPokemonMenu extends MenuAction {
                 game.player.isSmashing = false;
                 game.player.isHeadbutting = false;
                 game.player.isJumping = false;
+                game.player.isAttacking = false;
+                if (game.map.tiles == game.map.overworldTiles) {
+                    game.player.buildTiles = game.player.outdoorBuildTiles;
+                }
+                else {
+                    game.player.buildTiles = game.player.indoorBuildTiles;
+                }
+                while (game.player.buildTileIndex > 0 && game.player.buildTileIndex >= game.player.buildTiles.size()) {
+                    game.player.buildTileIndex--;
+                }
+                game.player.currBuildTile = game.player.buildTiles.get(game.player.buildTileIndex);
+                //
                 return new SelectedMenu.ExitAfterActions(this.prevMenu,
                        new PlaySound(pokemon,
                        new DisplayText(game, pokemon.name.toUpperCase()+" used BUILD! Press C and V to select tiles.", null, null,
@@ -8321,6 +8974,7 @@ class DrawPokemonMenu extends MenuAction {
                 game.player.isBuilding = false;
                 game.player.isHeadbutting = false;
                 game.player.isJumping = false;
+                game.player.isAttacking = false;
                 return new SelectedMenu.ExitAfterActions(this.prevMenu,
                        new PlaySound(pokemon,
                        new DisplayText(game, pokemon.name.toUpperCase()+" is using CUT!", null, null,
@@ -8335,6 +8989,7 @@ class DrawPokemonMenu extends MenuAction {
                 game.player.isBuilding = false;
                 game.player.isHeadbutting = false;
                 game.player.isJumping = false;
+                game.player.isAttacking = false;
                 return new SelectedMenu.ExitAfterActions(this.prevMenu,
                        new PlaySound(pokemon,
                        new DisplayText(game, pokemon.name.toUpperCase()+" is using ROCK SMASH!", null, null,
@@ -8354,6 +9009,7 @@ class DrawPokemonMenu extends MenuAction {
                 game.player.isCutting = false;
                 game.player.isSmashing = false;
                 game.player.isJumping = false;
+                game.player.isAttacking = false;
                 return new SelectedMenu.ExitAfterActions(this.prevMenu,
                        new PlaySound(pokemon,
                        new DisplayText(game, pokemon.name.toUpperCase()+" is using HEADBUTT!", null, null,
@@ -8372,9 +9028,25 @@ class DrawPokemonMenu extends MenuAction {
                 game.player.isCutting = false;
                 game.player.isSmashing = false;
                 game.player.isJumping = true;
+                game.player.isAttacking = false;
                 return new SelectedMenu.ExitAfterActions(this.prevMenu,
                        new PlaySound(pokemon,
                        new DisplayText(game, pokemon.name.toUpperCase()+" is using RIDE!", null, null,
+                       null)));
+            }
+            else if (word.equals("ATTACK")) {
+                Pokemon pokemon = game.player.pokemon.get(DrawPokemonMenu.currIndex);
+                game.player.swapSprites(pokemon);
+                game.insertAction(pokemon.new Follow(game.player));
+                game.player.isHeadbutting = false;
+                game.player.isBuilding = false;
+                game.player.isCutting = false;
+                game.player.isSmashing = false;
+                game.player.isJumping = false;
+                game.player.isAttacking = true;
+                return new SelectedMenu.ExitAfterActions(this.prevMenu,
+                       new PlaySound(pokemon,
+                       new DisplayText(game, pokemon.name.toUpperCase()+" is using ATTACK!", null, null,
                        null)));
             }
             // TODO: how to make pokemon stop following
@@ -8398,36 +9070,44 @@ class DrawPokemonMenu extends MenuAction {
 
         @Override
         public void firstStep(Game game) {
-            int numHms = -1;
+//            int numHms = -1;
             ArrayList<String> fieldMoves = new ArrayList<String>(this.pokemon.hms);
             fieldMoves.remove("FLASH");  // TODO: just have FLASH pkmn follow for now
             fieldMoves.add("FOLLOW");
 //            if (fieldMoves.isEmpty()) {  // TODO: potentially remove
 //                fieldMoves.add("FOLLOW");
 //            }
+//            if (game.battle.drawAction == null) {
+//                numHms = fieldMoves.size();
+//            }
+//            int coordsIndex = 0;
             if (game.battle.drawAction == null) {
-                numHms = fieldMoves.size();
-            }
-            this.getCoords.put(0, new Vector2(97, 40 +16*numHms));
-            this.getCoords.put(1, new Vector2(97, 40-16 +16*numHms));
-            this.getCoords.put(2, new Vector2(97, 40-32 +16*numHms));
-
-            if (game.battle.drawAction == null) {
-                int i = 3;
+//                this.getCoords.put(coordsIndex++, new Vector2(97, 40 +16*numHms +16));
+//                this.getCoords.put(coordsIndex++, new Vector2(97, 40-16 +16*numHms +16));
+//                this.getCoords.put(coordsIndex++, new Vector2(97, 40-32 +16*numHms +16));
                 // Add HMs from selected pokemon
                 for (String hm : fieldMoves) {
                     this.words.add(hm);
-                    this.getCoords.put(i, new Vector2(97, 40 -16*i +16*numHms));
-                    i++;
+//                    this.getCoords.put(coordsIndex, new Vector2(97, 40 -16*coordsIndex +16*numHms));
+//                    coordsIndex++;
                 }
+                this.words.add("STATS");
+//                this.getCoords.put(coordsIndex++, new Vector2(97, 40-32 +16*numHms));
             }
-
-//            this.words.add("STATS");
+            else {
+//                this.getCoords.put(coordsIndex++, new Vector2(97, 40 +16*numHms));
+//                this.getCoords.put(coordsIndex++, new Vector2(97, 40-16 +16*numHms));
+//                this.getCoords.put(coordsIndex++, new Vector2(97, 40-32 +16*numHms));
+            }
             this.words.add("SWITCH");
             if (game.battle.drawAction == null) {
                 this.words.add("DROP");  // ideas: OPEN, FREE, DROP,
             }
             this.words.add("CANCEL");
+            
+            for (int i=0; i < this.words.size(); i++) {
+                this.getCoords.put(i, new Vector2(97, -8 +16*(this.words.size()-i)));
+            }
 
             this.newPos =  this.getCoords.get(0);
             this.arrow.setPosition(newPos.x, newPos.y);
@@ -8488,8 +9168,9 @@ class DrawPokemonMenu extends MenuAction {
             }
 
             // draw arrow sprite
-            this.arrow.setPosition(newPos.x, newPos.y);
-            this.arrow.draw(game.uiBatch);
+//            this.arrow.setPosition(newPos.x, newPos.y);
+//            this.arrow.draw(game.uiBatch);
+            game.uiBatch.draw(this.arrow, newPos.x, newPos.y);
 
             if (InputProcessor.aJustPressed) {
                 // get action for this item
@@ -8856,8 +9537,9 @@ class DrawUseTossMenu extends MenuAction {
         if (prevMenu != null) {
             prevMenu.step(game);
         }
-        // draw text box
-        this.textBox.draw(game.uiBatch);
+        // Draw text box
+//        this.textBox.draw(game.uiBatch);
+        game.uiBatch.draw(this.textBox, this.textBox.getX(), this.textBox.getY());
 
         // Draw use/drop
         for (int i=0; i < this.words.size(); i++) {
@@ -8892,8 +9574,9 @@ class DrawUseTossMenu extends MenuAction {
 
         // draw arrow
         if (this.cursorDelay >= 2) {
-            this.arrow.setPosition(newPos.x, newPos.y);
-            this.arrow.draw(game.uiBatch);
+//            this.arrow.setPosition(newPos.x, newPos.y);
+//            this.arrow.draw(game.uiBatch);
+            game.uiBatch.draw(this.arrow, newPos.x, newPos.y);
         }
         else {
             this.cursorDelay+=1;
@@ -8979,7 +9662,8 @@ class DrawUseTossMenu extends MenuAction {
                     game.player.isCutting ||
                     game.player.isHeadbutting ||
                     game.player.isJumping ||
-                    game.player.isSmashing) {
+                    game.player.isSmashing ||
+                    game.player.isAttacking) {
                     this.disabled = true;
                     game.insertAction(this.prevMenu);
                     game.insertAction(new PlaySound("error1",
@@ -9019,7 +9703,8 @@ class DrawUseTossMenu extends MenuAction {
                     game.client.sendTCP(new com.pkmngen.game.Network.Sleep(game.player.network.id, true));
                 }
                 // Save this spot as next place to go to if player blacks out
-                game.player.spawnLoc.set(game.player.position);
+//                game.player.spawnLoc.set(game.player.position);  // TODO: remove
+                game.player.spawnLoc = game.player.position.cpy();
                 game.player.spawnIndex = -1;
                 if (game.map.tiles != game.map.overworldTiles) {
                     game.player.spawnIndex = game.map.interiorTilesIndex;
@@ -9039,6 +9724,70 @@ class DrawUseTossMenu extends MenuAction {
                                   null)))))))));
                 return;
             }
+            // TODO: test
+            if (itemName.equals("escape rope")) {
+                // Can't use this while using a non-FOLLOW field move
+                if (game.player.isBuilding || 
+                    game.player.isCutting ||
+                    game.player.isHeadbutting ||
+                    game.player.isJumping ||
+                    game.player.isSmashing ||
+                    game.player.isAttacking) {
+                    this.disabled = true;
+                    game.insertAction(this.prevMenu);
+                    game.insertAction(new PlaySound("error1",
+                                      new SetField(this.prevMenu, "disabled", false,
+                                      null)));
+                    return;
+                }
+                game.playerCanMove = false;
+                // Find nearest edge tile
+                Vector2 nearest = null;
+                int dst2 = 0;
+                for (Vector2 pos : game.map.edges) {
+                    Tile tile = game.map.overworldTiles.get(pos);
+                    if (tile.name.contains("mansion")) {
+                        continue;
+                    }
+                    int dist = (int)game.player.position.dst2(pos);
+                    if (nearest == null || dist < dst2) {
+                        dst2 = dist;
+                        nearest = pos;
+                    }
+                }
+                System.out.println(nearest);
+                System.out.println(dst2);
+                // TODO: edgeTile route is always null?
+//                Tile edgeTile = game.map.tiles.get(nearest);
+//                System.out.println(edgeTile.routeBelongsTo);
+//                Route route = game.map.tiles.get(game.player.position).routeBelongsTo;
+//                if (edgeTile.route != null) {
+//                    
+//                }
+                game.insertAction(new DisplayText(game, "Return to the shore?", null, true, false,
+                                  new DrawYesNoMenu(null,
+                                      new DisplayText.Clear(game,
+                                      new WaitFrames(game, 3,
+                                      new FadeMusic(game.currMusic, -0.0125f,
+                                      new WaitFrames(game, 60,
+                                      new SplitAction(
+                                          new WaitFrames(game, 6,
+                                          new Game.SetCamPos(nearest.cpy().add(16, 0),
+                                          new SetField(game.player, "position", nearest,
+                                          null))),
+                                      new EnterBuilding(game, "exit", //game.map.overworldTiles,
+                                      new SetField(game.map, "currRoute", new Route("", 2),
+                                      new SetField(game.map, "interiorTilesIndex", 100,
+                                      new WaitFrames(game, 60,
+                                      new SetField(game.musicController, "resumeOverworldMusic", true,
+                                      new SetField(game, "playerCanMove", true,
+                                      null))))))))))),
+                                  new DisplayText.Clear(game,
+                                  new WaitFrames(game, 3,
+                                  new SetField(game, "playerCanMove", true,
+                                  null))))));
+                return;
+            }
             if (itemName.contains("repel")) {
                 // Deduct from inventory
                 game.player.itemsDict.put(itemName, game.player.itemsDict.get(itemName)-1);
@@ -9055,98 +9804,140 @@ class DrawUseTossMenu extends MenuAction {
                                   null)));
                 return;
             }
-            if (itemName.contains("apricorn")) {
-                // Perform this action on the tile in from of the player.
-                Vector2 pos = game.player.position.cpy();
-                if (game.player.dirFacing.equals("up")) {
-                    pos.add(0, 16);
+            if (itemName.contains("apricorn") || itemName.equals("manure") || itemName.equals("miracle seed")) {
+                // TODO: if using field move, then swap the field move out
+                game.insertAction(this.prevMenu);
+                game.player.currPlanting = itemName;
+                // TODO: migrate to use currFieldMove
+                // If player is using an hm, they aren't anymore
+                if (game.player.hmPokemon != null) {
+                    // Only remove hmPokemon if it's not followign
+                    // TODO: use currFieldMove
+                    if (game.player.isBuilding || 
+                        game.player.isCutting ||
+                        game.player.isHeadbutting ||
+                        game.player.isSmashing ||
+                        game.player.isAttacking ||
+                        game.player.isJumping) {
+                        game.player.swapSprites(game.player.hmPokemon);
+                        game.actionStack.remove(game.player.hmPokemon.standingAction);
+                        game.player.hmPokemon = null;
+                        game.player.isJumping = false;
+                        game.player.isBuilding = false;
+                        game.player.isCutting = false;
+                        game.player.isHeadbutting = false;
+                        game.player.isSmashing = false;
+                        game.player.isAttacking = false;
+                    }
                 }
-                else if (game.player.dirFacing.equals("down")) {
-                    pos.add(0, -16);
+                String text = "Press X to plant seeds.";
+                if (itemName.equals("manure")) {
+                    text = "Press X to fertilize saplings.";
                 }
-                else if (game.player.dirFacing.equals("right")) {
-                    pos.add(16, 0);
-                }
-                else if (game.player.dirFacing.equals("left")) {
-                    pos.add(-16, 0);
-                }
-                if (!game.map.tiles.get(pos).name.equals("green1") || game.map.tiles.get(pos).nameUpper.contains("tree_planted")) {
-                    this.disabled = true;
-                    game.actionStack.remove(this);
-                    game.insertAction(new DisplayText(game, "Seeds must be planted in good soil!", null, false, true,  //CanÏ plant here!
-                                      new SetField(this.prevMenu, "disabled", false,
-                                      this.prevMenu)));
-                    return;
-                }
-                game.playerCanMove = false;
-                game.insertAction(new WaitFrames(game, 10,
-                                  new SplitAction(new PlantTree(pos, null),
-                                  new PlaySound("seed1", //new SplitAction(null),
-                                  new WaitFrames(game, 4,
-                                  new PlaySound("ledge2",
+                game.insertAction(new DisplayText(game, text, null, false, true,
                                   new WaitFrames(game, 10,
+                                  new RemoveAction(this.prevMenu,  // tried to use CallMethod but remove() isn't visible
                                   new SetField(game, "playerCanMove", true,
-                                  null))))))));
-                // Deduct from inventory
-                game.player.itemsDict.put(itemName, game.player.itemsDict.get(itemName)-1);
-                if (game.player.itemsDict.get(itemName) <= 0) {
-                    game.player.itemsDict.remove(itemName);
-                }
-                // Tell server.
-                if (game.type == Game.Type.CLIENT) {
-                    game.client.sendTCP(new Network.UseItem(game.player.network.id, itemName,
-                                                            game.player.dirFacing));
-                }
+                                  null)))));
+
+                // TODO: this code would plant the seed in front of the player
+                // now it sets player.currFieldMove to the item
+//                // Perform this action on the tile in from of the player.
+//                Vector2 pos = game.player.position.cpy();
+//                if (game.player.dirFacing.equals("up")) {
+//                    pos.add(0, 16);
+//                }
+//                else if (game.player.dirFacing.equals("down")) {
+//                    pos.add(0, -16);
+//                }
+//                else if (game.player.dirFacing.equals("right")) {
+//                    pos.add(16, 0);
+//                }
+//                else if (game.player.dirFacing.equals("left")) {
+//                    pos.add(-16, 0);
+//                }
+//                if (!game.map.tiles.get(pos).name.equals("green1") ||
+//                    game.map.tiles.get(pos).nameUpper.contains("tree") ||
+//                    game.map.tiles.get(pos).attrs.get("solid")) {
+//                    this.disabled = true;
+//                    game.actionStack.remove(this);
+//                    game.insertAction(new DisplayText(game, "Seeds must be planted in good soil!", null, false, true,  //CanÏ plant here!
+//                                      new SetField(this.prevMenu, "disabled", false,
+//                                      this.prevMenu)));
+//                    return;
+//                }
+//                game.playerCanMove = false;
+//                game.insertAction(new WaitFrames(game, 10,
+//                                  new SplitAction(new PlantTree(pos, null),
+//                                  new PlaySound("seed1", //new SplitAction(null),
+//                                  new WaitFrames(game, 4,
+//                                  new PlaySound("ledge2",
+//                                  new WaitFrames(game, 10,
+//                                  new SetField(game, "playerCanMove", true,
+//                                  null))))))));
+//                // Deduct from inventory
+//                game.player.itemsDict.put(itemName, game.player.itemsDict.get(itemName)-1);
+//                if (game.player.itemsDict.get(itemName) <= 0) {
+//                    game.player.itemsDict.remove(itemName);
+//                }
+//                // Tell server.
+//                if (game.type == Game.Type.CLIENT) {
+//                    game.client.sendTCP(new Network.UseItem(game.player.network.id, itemName,
+//                                                            game.player.dirFacing));
+//                }
                 return;
             }
-            if (itemName.contains("manure")) {
-                // Perform this action on the tile in from of the player.
-                Vector2 pos = game.player.position.cpy();
-                if (game.player.dirFacing.equals("up")) {
-                    pos.add(0, 16);
-                }
-                else if (game.player.dirFacing.equals("down")) {
-                    pos.add(0, -16);
-                }
-                else if (game.player.dirFacing.equals("right")) {
-                    pos.add(16, 0);
-                }
-                else if (game.player.dirFacing.equals("left")) {
-                    pos.add(-16, 0);
-                }
-                Tile tile = game.map.tiles.get(pos);
-                if (tile.nameUpper.contains("fertilized")) {
-                    this.disabled = true;
-                    game.actionStack.remove(this);
-                    game.insertAction(new DisplayText(game, "Already fertilized!", null, false, true, 
-                                      new SetField(this.prevMenu, "disabled", false,
-                                      this.prevMenu)));
-                    return;
-                }
-                if (!tile.nameUpper.contains("tree_planted")) {
-                    this.disabled = true;
-                    game.actionStack.remove(this);
-                    game.insertAction(new DisplayText(game, "Nothing here to fertilize!", null, false, true, 
-                                      new SetField(this.prevMenu, "disabled", false,
-                                      this.prevMenu)));
-                    return;
-                }
-                tile.nameUpper = tile.nameUpper+"_fertilized";
-                // Deduct from inventory
-                game.player.itemsDict.put(itemName, game.player.itemsDict.get(itemName)-1);
-                if (game.player.itemsDict.get(itemName) <= 0) {
-                    game.player.itemsDict.remove(itemName);
-                }
-                // Change lower appearance
-                game.map.tiles.put(tile.position, new Tile("mountain1", tile.nameUpper, tile.position.cpy(), true, tile.routeBelongsTo));
-                this.disabled = true;
-                game.actionStack.remove(this);
-                game.insertAction(new DisplayText(game, "The manure fertilized the plant!", "fanfare1.ogg", false, true, 
-                                  new SetField(this.prevMenu, "disabled", false,
-                                  this.prevMenu)));
-                // TODO: Tell server (?)
-                return;
-            }
+            // TODO: this code would place manure 'one at a time' without showing
+            //       a build tile in front of the player
+            // Probably stash this in unused_code.java
+//            if (itemName.contains("manure")) {
+//                // Perform this action on the tile in front of the player.
+//                Vector2 pos = game.player.position.cpy();
+//                if (game.player.dirFacing.equals("up")) {
+//                    pos.add(0, 16);
+//                }
+//                else if (game.player.dirFacing.equals("down")) {
+//                    pos.add(0, -16);
+//                }
+//                else if (game.player.dirFacing.equals("right")) {
+//                    pos.add(16, 0);
+//                }
+//                else if (game.player.dirFacing.equals("left")) {
+//                    pos.add(-16, 0);
+//                }
+//                Tile tile = game.map.tiles.get(pos);
+//                if (tile.nameUpper.contains("fertilized")) {
+//                    this.disabled = true;
+//                    game.actionStack.remove(this);
+//                    game.insertAction(new DisplayText(game, "Already fertilized!", null, false, true, 
+//                                      new SetField(this.prevMenu, "disabled", false,
+//                                      this.prevMenu)));
+//                    return;
+//                }
+//                if (!tile.nameUpper.contains("tree_planted")) {
+//                    this.disabled = true;
+//                    game.actionStack.remove(this);
+//                    game.insertAction(new DisplayText(game, "Nothing here to fertilize!", null, false, true, 
+//                                      new SetField(this.prevMenu, "disabled", false,
+//                                      this.prevMenu)));
+//                    return;
+//                }
+//                tile.nameUpper = tile.nameUpper+"_fertilized";
+//                // Deduct from inventory
+//                game.player.itemsDict.put(itemName, game.player.itemsDict.get(itemName)-1);
+//                if (game.player.itemsDict.get(itemName) <= 0) {
+//                    game.player.itemsDict.remove(itemName);
+//                }
+//                // Change lower appearance
+//                game.map.tiles.put(tile.position, new Tile("mountain1", tile.nameUpper, tile.position.cpy(), true, tile.routeBelongsTo));
+//                this.disabled = true;
+//                game.actionStack.remove(this);
+//                game.insertAction(new DisplayText(game, "The manure fertilized the plant!", "fanfare1.ogg", false, true, 
+//                                  new SetField(this.prevMenu, "disabled", false,
+//                                  this.prevMenu)));
+//                // TODO: Tell server (?)
+//                return;
+//            }
             if (itemName.equals("moomoo milk") || itemName.equals("berry juice") || itemName.equals("rare candy")) {
                 this.disabled = true;
                 game.insertAction(new DrawPokemonMenu.Intro(
@@ -9169,8 +9960,19 @@ class DrawUseTossMenu extends MenuAction {
 //                              null)));
 //            return;
 //        }
-        // if this item can't be used in battle, player error noise.
-        if (!itemName.contains("ball") && !itemName.contains("berry") && !itemName.equals("moomoo milk")) {  // TODO: more items
+        // If this item can't be used in battle, player error noise.
+        if (!itemName.contains("ball") &&
+            !itemName.contains("berry") &&
+            !itemName.equals("moomoo milk") &&
+            !itemName.equals("silph scope")) {  // TODO: more items
+            game.insertAction(this.prevMenu);
+            game.insertAction(new PlaySound("error1",
+                              new SetField(this.prevMenu, "disabled", false,
+                              null)));
+            return;
+        }
+        // Silph scope must be used on a ghost
+        if (itemName.equals("silph scope") && !game.battle.oppPokemon.name.equals("ghost")) {
             game.insertAction(this.prevMenu);
             game.insertAction(new PlaySound("error1",
                               new SetField(this.prevMenu, "disabled", false,
@@ -9181,6 +9983,15 @@ class DrawUseTossMenu extends MenuAction {
         if (itemName.contains("ball") && game.battle.oppPokemon.name.equals("ghost")) {
             game.insertAction(new DisplayText(game, game.battle.oppPokemon.name.toUpperCase()+" canÏ be caught!", null, null,
                               new SetField(this.prevMenu, "disabled", false,
+                              this.prevMenu)));
+            return;
+        }
+
+        if (itemName.equals("moomoo milk") || itemName.equals("berry juice")) {
+//            game.actionStack.remove(this);  // TODO: remove
+            this.disabled = true;
+            game.insertAction(new DrawPokemonMenu.Intro(
+                              new DrawPokemonMenu(game, itemName,
                               this.prevMenu)));
             return;
         }
@@ -9209,10 +10020,12 @@ class DrawUseTossMenu extends MenuAction {
             game.battle.network.turnData = new BattleTurnData();
             game.battle.network.turnData.itemName = itemName;
         }
-        // Deduct item from inventory
-        game.player.itemsDict.put(itemName, game.player.itemsDict.get(itemName)-1);
-        if (game.player.itemsDict.get(itemName) <= 0) {
-            game.player.itemsDict.remove(itemName);
+        // Deduct item from inventory (except for key items, like the silph scope)
+        if (!itemName.equals("silph scope")) {
+            game.player.itemsDict.put(itemName, game.player.itemsDict.get(itemName)-1);
+            if (game.player.itemsDict.get(itemName) <= 0) {
+                game.player.itemsDict.remove(itemName);
+            }
         }
         action.append(new Battle.DoTurn(game, Battle.DoTurn.Type.ITEM, this.prevMenu.prevMenu));
         game.actionStack.remove(this);
@@ -9977,8 +10790,8 @@ class EvolutionAnim extends Action {
             }
             if (this.timer == 36) {
                 game.insertAction(new EnterBuilding(game, "",
-                                  new PlayerCanMove(game,
-                                  null)));
+//                                  new PlayerCanMove(game,
+                                  null));
             }
             if (this.timer == 45) {
                 EvolutionAnim.isDone = true;
@@ -10130,80 +10943,34 @@ class FriendlyFaint extends Action {
     }
 }
 
-/*
- * TODO: not doing 'blue bar' animation for now, do at some point.
+/**
+ * Check if the Pokemon should evolve. If so, play the evolve
+ * animation.
  */
-class GainExpAnimation extends Action {
-    boolean gainedLevel = false;
+class CheckEvo extends Action {
+    Pokemon pokemon;
 
-    public GainExpAnimation(Action nextAction) {
+    public CheckEvo(Pokemon pokemon, Action nextAction) {
+        this.pokemon = pokemon;
         this.nextAction = nextAction;
     }
 
     @Override
     public void step(Game game) {
-        if (game.player.currPokemon.level < 100 && game.player.currPokemon.gen2CalcExpForLevel(game.player.currPokemon.level+1) <= game.player.currPokemon.exp) {
-            // TODO: debug, remove
-//            System.out.println("Curr exp: " + String.valueOf(game.player.currPokemon.exp));
-//            System.out.println("Needed for next level: " + String.valueOf(game.player.currPokemon.gen2CalcExpForLevel(game.player.currPokemon.level+1)));
-//            game.player.currPokemon.level += 1;  // TODO: remove
-            game.player.currPokemon.gainLevel(1);
-            game.actionStack.remove(this);
-            Action action = new DisplayText.Clear(game,
-                            new WaitFrames(game, 3,
-                            new DisplayText(game, game.player.currPokemon.name.toUpperCase() + " grew to level " + game.player.currPokemon.level+"!",
-                                            "fanfare1.ogg", true, true,
-                            null)));
-            // Check if any moves learned
-            if (game.player.currPokemon.learnSet.containsKey(game.player.currPokemon.level)) {
-                for (String attack : game.player.currPokemon.learnSet.get(game.player.currPokemon.level)) {
-                    boolean learned = false;
-                    for (int i = 0; i < 4; i++) {
-                        if (game.player.currPokemon.attacks[i] == null) {
-                            action.append(new DisplayText.Clear(game,
-                                          new WaitFrames(game, 3,
-                                          new DisplayText(game, game.player.currPokemon.name.toUpperCase() + " learned " + attack.toUpperCase()+"!",
-                                                          "fanfare1.ogg", true, true,
-                                          null))));
-                            game.player.currPokemon.attacks[i] = attack;
-                            if (game.type == Game.Type.CLIENT) {
-                                game.client.sendTCP(new Network.LearnMove(game.player.network.id, 0, i, attack));
-                            }
-                            learned = true;
-                            break;
-                        }
-                    }
-                    if (!learned) {
-                        action.append(new DisplayText.Clear(game,
-                                      new WaitFrames(game, 3,
-                                      new DisplayText(game, game.player.currPokemon.name.toUpperCase() + " is trying to learn " + attack.toUpperCase()+".",
-                                                      null, null,
-                                      new DisplayText(game, "Which move should be forgotten?",
-                                                      null, true, false,
-                                      new DrawAttacksMenu(attack,
-                                      null))))));
-                    }
-                }
-            }
-            action.append(this);
-            game.insertAction(action);
-            this.gainedLevel = true;
-            return;
-        }
-
         // Check if the Pokemon should evolve
-        if (this.gainedLevel) {
-            for (int i=1; i <= game.player.currPokemon.level; i++) {
-                if (Pokemon.gen2Evos.get(game.player.currPokemon.name.toLowerCase()).containsKey(String.valueOf(i))) {
-                    String evolveTo = Pokemon.gen2Evos.get(game.player.currPokemon.name.toLowerCase()).get(String.valueOf(i));
+        if (this.pokemon.gainedLevel) {
+            this.pokemon.gainedLevel = false;
+            for (int i=1; i <= this.pokemon.level; i++) {
+                if (Pokemon.gen2Evos.get(this.pokemon.name.toLowerCase()).containsKey(String.valueOf(i))) {
+                    String evolveTo = Pokemon.gen2Evos.get(this.pokemon.name.toLowerCase()).get(String.valueOf(i));
                     this.nextAction = new WaitFrames(game, 61,
                                     new WaitFrames(game, 3,  // NOTE: this is in case I add 3 frame delay to DisplayText, in that case
                                                              // remove this line.
-                                    new DisplayText(game, "What? "+game.player.currPokemon.name.toUpperCase()+" is evolving!",
+                                    new DisplayText(game, "What? "+this.pokemon.name.toUpperCase()+" is evolving!",
                                                     null, true, false,
                                     new WaitFrames(game, 51,
-                                    new EvolutionAnim(game.player.currPokemon, evolveTo,
-                                    new PlaySound(game.player.currPokemon,
+                                    new EvolutionAnim(this.pokemon, evolveTo,
+                                    new PlaySound(this.pokemon,
                                     new SplitAction(
                                         new EvolutionAnim.StartMusic(),
                                     new Battle.LoadAndPlayAnimation(game, "evolve", null,
@@ -10211,7 +10978,7 @@ class GainExpAnimation extends Action {
                                     new PlaySound(new Pokemon(evolveTo.toLowerCase(), 10, Pokemon.Generation.CRYSTAL),
                                     new DisplayText.Clear(game,
                                     new WaitFrames(game, 3,
-                                    new DisplayText(game, "Congratulations! Your "+game.player.currPokemon.name.toUpperCase(),
+                                    new DisplayText(game, "Congratulations! Your "+this.pokemon.name.toUpperCase(),
                                                     null, true, true,
                                     new DisplayText.Clear(game,
                                     new WaitFrames(game, 3,
@@ -10226,6 +10993,117 @@ class GainExpAnimation extends Action {
                 }
             }
         }
+        game.actionStack.remove(this);
+        game.insertAction(//new DisplayText.Clear(game,
+                          //new WaitFrames(game, 3,
+                          this.nextAction);
+    }
+}
+
+/**
+ * TODO: not doing 'blue bar' animation for now, do at some point.
+ */
+class GainExpAnimation extends Action {
+//    boolean gainedLevel = false;
+    Pokemon pokemon;
+
+    public GainExpAnimation(Pokemon pokemon, Action nextAction) {
+        this.pokemon = pokemon;
+        this.nextAction = nextAction;
+    }
+
+    @Override
+    public void step(Game game) {
+        if (pokemon.level < 100 &&
+            pokemon.gen2CalcExpForLevel(pokemon.level+1) <= pokemon.exp) {
+            // TODO: debug, remove
+//            System.out.println("Curr exp: " + String.valueOf(game.player.currPokemon.exp));
+//            System.out.println("Needed for next level: " + String.valueOf(game.player.currPokemon.gen2CalcExpForLevel(game.player.currPokemon.level+1)));
+//            game.player.currPokemon.level += 1;  // TODO: remove
+            pokemon.gainLevel(1);
+            game.actionStack.remove(this);
+            Action action = new DisplayText.Clear(game,
+                            new WaitFrames(game, 3,
+                            new DisplayText(game, pokemon.name.toUpperCase() + " grew to level " + pokemon.level+"!",
+                                            "fanfare1.ogg", true, true,
+                            null)));
+            // Check if any moves learned
+            if (pokemon.learnSet.containsKey(pokemon.level)) {
+                for (String attack : pokemon.learnSet.get(pokemon.level)) {
+                    // TODO: eventually remove this check
+                    if (Pokemon.attacksNotImplemented.contains(attack.toLowerCase())) {
+                        continue;
+                    }
+                    boolean learned = false;
+                    for (int i = 0; i < 4; i++) {
+                        if (pokemon.attacks[i] == null) {
+                            action.append(new DisplayText.Clear(game,
+                                          new WaitFrames(game, 3,
+                                          new DisplayText(game, pokemon.name.toUpperCase() + " learned " + attack.toUpperCase()+"!",
+                                                          "fanfare1.ogg", true, true,
+                                          null))));
+                            pokemon.attacks[i] = attack;
+                            if (game.type == Game.Type.CLIENT) {
+                                game.client.sendTCP(new Network.LearnMove(game.player.network.id, 0, i, attack));
+                            }
+                            learned = true;
+                            break;
+                        }
+                    }
+                    if (!learned) {
+                        action.append(new DisplayText.Clear(game,
+                                      new WaitFrames(game, 3,
+                                      new DisplayText(game, pokemon.name.toUpperCase() + " is trying to learn " + attack.toUpperCase()+".",
+                                                      null, null,
+                                      new DisplayText(game, "Which move should be forgotten?",
+                                                      null, true, false,
+                                      new DrawAttacksMenu(attack, pokemon,
+                                      null))))));
+                    }
+                }
+            }
+            action.append(this);
+            game.insertAction(action);
+//            this.gainedLevel = true;
+            this.pokemon.gainedLevel = true;
+            return;
+        }
+        // TODO: remove
+//        // Check if the Pokemon should evolve
+//        if (this.gainedLevel) {
+//            for (int i=1; i <= game.player.currPokemon.level; i++) {
+//                if (Pokemon.gen2Evos.get(game.player.currPokemon.name.toLowerCase()).containsKey(String.valueOf(i))) {
+//                    String evolveTo = Pokemon.gen2Evos.get(game.player.currPokemon.name.toLowerCase()).get(String.valueOf(i));
+//                    this.nextAction = new WaitFrames(game, 61,
+//                                    new WaitFrames(game, 3,  // NOTE: this is in case I add 3 frame delay to DisplayText, in that case
+//                                                             // remove this line.
+//                                    new DisplayText(game, "What? "+game.player.currPokemon.name.toUpperCase()+" is evolving!",
+//                                                    null, true, false,
+//                                    new WaitFrames(game, 51,
+//                                    new EvolutionAnim(game.player.currPokemon, evolveTo,
+//                                    new PlaySound(game.player.currPokemon,
+//                                    new SplitAction(
+//                                        new EvolutionAnim.StartMusic(),
+//                                    new Battle.LoadAndPlayAnimation(game, "evolve", null,
+//                                    new WaitFrames(game, 30,  // about 30 frames after bubble anim until pokemon cry is heard
+//                                    new PlaySound(new Pokemon(evolveTo.toLowerCase(), 10, Pokemon.Generation.CRYSTAL),
+//                                    new DisplayText.Clear(game,
+//                                    new WaitFrames(game, 3,
+//                                    new DisplayText(game, "Congratulations! Your "+game.player.currPokemon.name.toUpperCase(),
+//                                                    null, true, true,
+//                                    new DisplayText.Clear(game,
+//                                    new WaitFrames(game, 3,
+//                                    new DisplayText(game, "evolved into "+evolveTo.toUpperCase()+"!",
+//                                                    "fanfare2.ogg", true, false,
+////                                            new WaitFrames(game, 206,  // TODO: remove
+//                                    new DisplayText.Clear(game,
+//                                    new WaitFrames(game, 2,
+//                                    new EvolutionAnim.Done(
+//                                    this.nextAction)))))))))))))))))));
+//                    break;
+//                }
+//            }
+//        }
         // TODO: test that this is working.
         game.actionStack.remove(this);
         game.insertAction(new DisplayText.Clear(game,
@@ -12874,21 +13752,25 @@ class ThrowOutPokemonCrystal extends Action {
 
   @Override
   public void step(Game game) {
-      if (this.firstStep == true) {
+      if (this.firstStep) {
           game.battle.drawAction.drawFriendlyPokemonAction = this;
           this.firstStep = false;
 
           // Reset stat stages of Pokemon sending out.
           game.player.currPokemon.resetStatStages();
+          
+          // This pokemon participated in battle
+          game.player.currPokemon.participatedInBattle = true;
 
           // TODO: test
+          // TODO: remove
           // If oppPokemon is 10 levels higher than player.currPokemon,
           // silently raise speed stat.
-          if (game.player.currPokemon.level +10 <= game.battle.oppPokemon.level) {
-              System.out.println(game.player.currPokemon.currentStats.get("speed"));
-              game.player.currPokemon.gen2ApplyStatStage("speed", 12, true);
-              System.out.println(game.player.currPokemon.currentStats.get("speed"));
-          }
+//          if (game.player.currPokemon.level +10 <= game.battle.oppPokemon.level) {
+//              System.out.println(game.player.currPokemon.currentStats.get("speed"));
+//              game.player.currPokemon.gen2ApplyStatStage("speed", 12, true);
+//              System.out.println(game.player.currPokemon.currentStats.get("speed"));
+//          }
 
           // Clear confusion/attract
           // TODO: confusion needs to be handled outside of pokemon.status.
@@ -13297,3 +14179,379 @@ class ThrowRock extends Action {
         }
     }
 }
+
+
+
+class FadeAnim extends Action {
+    Sprite sprite;
+
+    public int layer = 114;
+    int timer = 0;
+    int slow = 1;  // TODO: remove, use some sort of into anim;
+
+    public FadeAnim(Game game, int slow, Action nextAction) {
+        this.nextAction = nextAction;
+        this.slow = slow;
+        // fade out from white anim
+        Texture text1 = TextureCache.get(Gdx.files.internal("battle/intro_frame6.png"));
+        this.sprite = new Sprite(text1);
+        this.sprite.setPosition(0,0);
+    }
+
+    public String getCamera() {return "gui";}
+
+    public int getLayer(){return this.layer;}
+
+    @Override
+    public void firstStep(Game game) {
+    }
+
+    @Override
+    public void step(Game game) {
+        if (this.timer < 2*slow) {
+        }
+        else if (this.timer < 4*slow) {
+            this.sprite.draw(game.uiBatch, .25f);
+        }
+        else if (this.timer < 6*slow) {
+            this.sprite.draw(game.uiBatch, .50f);
+        }
+        else if (this.timer < 12*slow) {
+            this.sprite.draw(game.uiBatch, 1f);
+        }
+        else if (this.timer < 14*slow) {
+            this.sprite.draw(game.uiBatch, .75f);
+        }
+        else if (this.timer < 16*slow) {
+            this.sprite.draw(game.uiBatch, .50f);
+        }
+        else if (this.timer < 18*slow) {
+            this.sprite.draw(game.uiBatch, .25f);
+        }
+        else {
+            game.actionStack.remove(this);
+            game.insertAction(this.nextAction);
+        }
+        this.timer++;
+    }
+}
+
+
+
+/**
+ * Gen 2 stats screen
+ */
+class DrawStatsScreen extends MenuAction {
+    public int layer = 107;
+    Sprite[] bgSprites = new Sprite[3];
+    Sprite helperSprite;
+    public int currIndex = 0;
+    Pokemon pokemon;
+    Sprite healthSprite;
+
+    public DrawStatsScreen(Game game, Pokemon pokemon, MenuAction prevMenu) {
+        this.prevMenu = prevMenu;
+        for (int i=0; i < 3; i++) {
+            Texture text = new Texture(Gdx.files.internal("menu/stats_screen"+String.valueOf(i+1)+".png"));  // TODO: un-ref
+            this.bgSprites[i] = new Sprite(text, 0, 0, 16*10, 16*9);
+        }
+        this.pokemon = pokemon;
+        Texture text = new Texture(Gdx.files.internal("battle/health1.png"));
+        this.healthSprite = new Sprite(text, 0,0,1,2);
+    }
+
+    public String getCamera() {return "gui";}
+
+    public int getLayer(){return this.layer;}
+
+    @Override
+    public void firstStep(Game game) {
+        game.battle.oppPokemon = this.pokemon;
+        game.insertAction(new WaitFrames(game, 4, new PlaySound(this.pokemon, null)));
+        game.insertAction(new PokemonIntroAnim(null));
+    }
+
+    @Override
+    public void step(Game game) {
+        game.uiBatch.draw(this.bgSprites[this.currIndex], 0, 0);
+        // Draw pokemon sprite at 88, and center it
+        Sprite sprite = new Sprite(this.pokemon.sprite);
+        sprite.flip(true, false);
+        game.uiBatch.draw(sprite, (56-this.pokemon.sprite.getWidth())/2, 88);
+        
+        // TODO: probably just init all this in firststep
+        // Level at 120, 144-8
+        int tensPlace = this.pokemon.level/10;
+        Sprite tensPlaceSprite;
+        if (tensPlace > 0) {
+            tensPlaceSprite = game.transparentDict.get(Character.forDigit(tensPlace, 10));
+            game.uiBatch.draw(tensPlaceSprite, 120, 144 -8);
+        }
+        int offset = 0;
+        if (this.pokemon.level >= 10) {
+            offset = 8;
+        }
+        int onesPlace = this.pokemon.level % 10;
+        Sprite onesPlaceSprite = game.transparentDict.get(Character.forDigit(onesPlace, 10));
+        game.uiBatch.draw(onesPlaceSprite, 120 +offset, 144 -8);
+        // Gender
+        if (this.pokemon.gender.equals("male")) {
+            game.uiBatch.draw(TextureCache.maleSymbol, 144, 144 -8);
+        }
+        else if (this.pokemon.gender.equals("female")) {
+            game.uiBatch.draw(TextureCache.femaleSymbol, 144, 144 -8);
+        }
+        // Name 64, 120
+        char[] textArray = this.pokemon.name.toUpperCase().toCharArray();
+        Sprite letterSprite;
+        for (int j=0; j < textArray.length; j++) {
+            letterSprite = game.transparentDict.get(textArray[j]);
+            game.uiBatch.draw(letterSprite, 64 +8*j, 120);
+        }
+        
+        if (this.currIndex == 0) {
+            // max health 17, 57
+            int maxHealth = this.pokemon.maxStats.get("hp");
+            int hundredsPlace = maxHealth/100;
+            if (hundredsPlace > 0) {
+                Sprite hundredsPlaceSprite = game.transparentDict.get(Character.forDigit(hundredsPlace,10));
+                game.uiBatch.draw(hundredsPlaceSprite, 16-8, 56);
+            }
+            tensPlace = (maxHealth % 100) / 10;
+            if (tensPlace > 0 || hundredsPlace > 0) {
+                tensPlaceSprite = game.transparentDict.get(Character.forDigit(tensPlace, 10));
+                game.uiBatch.draw(tensPlaceSprite, 16-8 +8, 56);
+            }
+            onesPlace = maxHealth % 10;
+            onesPlaceSprite = game.transparentDict.get(Character.forDigit(onesPlace,10));
+            game.uiBatch.draw(onesPlaceSprite, 16-8 +16, 56);
+            // Draw pkmn current health text
+            int currHealth = this.pokemon.currentStats.get("hp");
+            hundredsPlace = currHealth/100;
+            if (hundredsPlace > 0) {
+                Sprite hundredsPlaceSprite = game.transparentDict.get(Character.forDigit(hundredsPlace, 10));
+                game.uiBatch.draw(hundredsPlaceSprite, 48-8, 56);
+            }
+            tensPlace = (currHealth % 100) / 10;
+            if (tensPlace > 0 || hundredsPlace > 0) {
+                tensPlaceSprite = game.transparentDict.get(Character.forDigit(tensPlace, 10));
+                game.uiBatch.draw(tensPlaceSprite, 48-8 +8, 56);
+            }
+            onesPlace = currHealth % 10;
+            onesPlaceSprite = game.transparentDict.get(Character.forDigit(onesPlace, 10));
+            game.uiBatch.draw(onesPlaceSprite, 48-8 +16, 56);
+
+            // Status 48, 33
+            String text = "OK";
+            if (this.pokemon.status != null) {
+                if (this.pokemon.status.equals("poison") || this.pokemon.status.equals("toxic")) {
+                    text = "PSN";
+                }
+                else if (this.pokemon.status.equals("paralyze")) {
+                    text = "PAR";
+                }
+                else if (this.pokemon.status.equals("freeze")) {
+                    text = "FRZ";
+                }
+                else if (this.pokemon.status.equals("sleep")) {
+                    text = "SLP";
+                }
+                else if (this.pokemon.status.equals("burn")) {
+                    text = "BRN";
+                }
+            }
+            textArray = text.toCharArray();
+            for (int j=0; j < textArray.length; j++) {
+                letterSprite = game.transparentDict.get(textArray[j]);
+                game.uiBatch.draw(letterSprite, 48 +8*j, 32);
+            }
+            
+            // Type 1 - 8, 17
+            textArray = this.pokemon.types.get(0).toCharArray();
+            for (int j=0; j < textArray.length; j++) {
+                letterSprite = game.transparentDict.get(textArray[j]);
+                game.uiBatch.draw(letterSprite, 8 +8*j, 16);
+            }
+            // Type 2 - 8, 9
+            textArray = this.pokemon.types.get(1).toCharArray();
+            for (int j=0; j < textArray.length && !this.pokemon.types.get(0).equals(this.pokemon.types.get(1)); j++) {
+                letterSprite = game.transparentDict.get(textArray[j]);
+                game.uiBatch.draw(letterSprite, 8 +8*j, 8);
+            }
+            
+            // Exp points 80, 57
+            String exp = String.valueOf(this.pokemon.exp);
+            text = "";
+            for (int i=0; i < 10-exp.length(); i++) {
+                text += " ";
+            }
+            textArray = (text+exp).toCharArray();
+            for (int j=0; j < textArray.length; j++) {
+                letterSprite = game.transparentDict.get(textArray[j]);
+                game.uiBatch.draw(letterSprite, 80 +8*j, 56);
+            }
+            // Draw health bar
+            int targetSize = (int)Math.ceil((this.pokemon.currentStats.get("hp")*48) / this.pokemon.maxStats.get("hp"));
+            for (int j=0; j < targetSize; j++) {
+                game.uiBatch.draw(this.healthSprite, 16 +1*j, 67);
+            }
+            // Exp to next level
+            exp = String.valueOf(this.pokemon.gen2CalcExpForLevel(this.pokemon.level+1)-this.pokemon.exp);
+            text = "";
+            for (int i=0; i < 10-exp.length(); i++) {
+                text += " ";
+            }
+            textArray = (text+exp).toCharArray();
+            for (int j=0; j < textArray.length; j++) {
+                letterSprite = game.transparentDict.get(textArray[j]);
+                game.uiBatch.draw(letterSprite, 80 +8*j, 32);
+            }
+            // Draw next pokemon level
+            textArray = String.valueOf(pokemon.level+1).toCharArray();
+            for (int j=0; j < textArray.length; j++) {
+                letterSprite = game.transparentDict.get(textArray[j]);
+                game.uiBatch.draw(letterSprite, 144 +8*j, 24);
+            }
+        }
+        else if (this.currIndex == 1) {
+            // Draw moves
+            for (int i=0; i < this.pokemon.attacks.length; i++) {
+                // Attack name
+                String attack = this.pokemon.attacks[i];
+                if (attack == null) {
+                    attack = "-";
+                }
+                textArray = attack.toUpperCase().toCharArray();
+                for (int j=0; j < textArray.length; j++) {
+                    letterSprite = game.transparentDict.get(textArray[j]);
+                    game.uiBatch.draw(letterSprite, 64 +8*j, 56 -i*16);
+                }
+                // TODO: later draw power points
+            }
+        }
+        else {
+            // OT which is just trainer name for now
+            if (this.pokemon.previousOwner != null) {
+                textArray = this.pokemon.previousOwner.name.toUpperCase().toCharArray();
+                for (int j=0; j < textArray.length; j++) {
+                    letterSprite = game.transparentDict.get(textArray[j]);
+                    game.uiBatch.draw(letterSprite, 16 +8*j, 32);
+                }
+            }
+            // Draw all stats
+            // 152-16, 64 -16*i
+            String[] allStats = new String[]{"attack", "defense", "specialAtk", "specialDef", "speed"};
+            for (int i=0; i < allStats.length; i++) {
+                String val = String.valueOf(this.pokemon.maxStats.get(allStats[i]));
+                String text = "";
+                for (int k=0; k < 3-val.length(); k++) {
+                    text += " ";
+                }
+                textArray = (text+val).toCharArray();
+                for (int j=0; j < textArray.length; j++) {
+                    letterSprite = game.transparentDict.get(textArray[j]);
+                    game.uiBatch.draw(letterSprite, 152-16 +8*j, 64 -16*i);
+                }
+            }
+        }
+        // TODO: up/down toggles pokemon
+        // Handle arrow input
+        if (InputProcessor.leftJustPressed) {
+            if (this.currIndex > 0) {
+                this.currIndex -= 1;
+            }
+        }
+        else if (InputProcessor.rightJustPressed) {
+            if (this.currIndex < 2) {
+                this.currIndex += 1;
+            }
+        }
+        if (InputProcessor.bJustPressed && this.prevMenu != null) {
+            game.actionStack.remove(this);
+            game.insertAction(new DrawStatsScreen.Outro(this.prevMenu));
+            return;
+        }
+    }
+
+    static class Intro extends Action {
+        public int layer = 110;
+        int duration = 30;
+        Sprite bgSprite;
+
+        public Intro(Action nextAction) {
+            this.nextAction = nextAction;
+            Texture text = new Texture(Gdx.files.internal("battle/intro_frame6.png"));
+            this.bgSprite = new Sprite(text, 0, 0, 16*10, 16*9);
+        }
+
+        public Intro(int duration, Action nextAction) {
+            this(nextAction);
+            this.duration = duration;
+        }
+
+        public String getCamera() {return "gui";}
+
+        public int getLayer(){return this.layer;}
+
+        @Override
+        public void step(Game game) {
+            this.bgSprite.draw(game.uiBatch);
+            this.duration--;
+            if (this.duration <= 0) {
+                game.insertAction(this.nextAction);
+                game.actionStack.remove(this);
+            }
+        }
+    }
+
+    static class Outro extends Action {
+        // 33 frames white
+        // 1 frame where cursor is still white and can't move cursor (people aren't visible)
+        // 1 frame people aren't visible (not implementing)
+        MenuAction prevMenu;
+        public int layer = 110;
+        int duration = 34;
+        Sprite bgSprite;
+
+        public Outro(MenuAction prevMenu) {
+            this.prevMenu = prevMenu;
+            if (this.prevMenu != null) {
+                this.prevMenu.drawArrowWhite = true;
+            }
+
+            Texture text = new Texture(Gdx.files.internal("battle/intro_frame6.png"));
+            this.bgSprite = new Sprite(text, 0, 0, 16*10, 16*9);
+        }
+        public String getCamera() {return "gui";}
+
+        public int getLayer(){return this.layer;}
+
+        @Override
+        public void step(Game game) {
+            if (this.prevMenu != null) {
+                this.prevMenu.step(game);
+            }
+
+            this.duration--;
+
+            // last from no white bg
+            if (this.duration > 0) {
+                this.bgSprite.draw(game.uiBatch);
+            }
+
+            if (this.duration <= 0) {
+                if (this.prevMenu != null) {
+                    game.insertAction(this.prevMenu);
+                    this.prevMenu.disabled = false;
+                    this.prevMenu.drawArrowWhite = false;
+                }
+                game.insertAction(this.nextAction);
+                game.actionStack.remove(this);
+            }
+        }
+    }
+}
+
+
+
+

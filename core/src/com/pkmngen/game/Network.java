@@ -1484,7 +1484,7 @@ class ServerBroadcast extends Action {
                                             Route currRoute = game.map.tiles.get(player.position).routeBelongsTo;
                                             currRoute.pokemon.remove(battle.oppPokemon);
                                             currRoute.genPokemon(256);
-                                            player.currPokemon.exp += battle.calcFaintExp();
+                                            player.currPokemon.exp += battle.calcFaintExp(1);
                                             while (player.currPokemon.level < 100 && player.currPokemon.gen2CalcExpForLevel(player.currPokemon.level+1) <= player.currPokemon.exp) {
                                                 player.currPokemon.level += 1;
                                             }
@@ -1531,7 +1531,7 @@ class ServerBroadcast extends Action {
                                             Route currRoute = game.map.tiles.get(player.position).routeBelongsTo;
                                             currRoute.pokemon.remove(battle.oppPokemon);
                                             currRoute.genPokemon(256);
-                                            player.currPokemon.exp += battle.calcFaintExp();
+                                            player.currPokemon.exp += battle.calcFaintExp(1);
                                             while (player.currPokemon.level < 100 && player.currPokemon.gen2CalcExpForLevel(player.currPokemon.level+1) <= player.currPokemon.exp) {
                                                 player.currPokemon.level += 1;
                                             }
@@ -1791,9 +1791,9 @@ class ServerBroadcast extends Action {
                                 }
                                 Player player = game.players.get(craft.playerId);
                                 // check requirements
-                                if (player.hasCraftRequirements(craft.craftIndex, craft.amount)) {
+                                if (player.hasCraftRequirements(Player.crafts, craft.craftIndex, craft.amount)) {
                                     // if passed, update inventory
-                                    player.craftItem(craft.craftIndex, craft.amount);
+                                    player.craftItem(Player.crafts, craft.craftIndex, craft.amount);
                                 }
 //                                // TODO: debug, delete
 //                                for (String item : player.itemsDict.keySet()) {

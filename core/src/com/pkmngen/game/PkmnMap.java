@@ -28,8 +28,13 @@ import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.esotericsoftware.kryo.io.Output;
+import com.pkmngen.game.Player.Craft;
 import com.pkmngen.game.Player.Flying;
+import com.pkmngen.game.Pokemon.Generation;
+import com.pkmngen.game.SpecialBattleMewtwo.RocksEffect1;
+import com.pkmngen.game.SpecialBattleMewtwo.RocksEffect2;
 import com.pkmngen.game.util.LinkedMusic;
+import com.pkmngen.game.util.SpriteProxy;
 import com.pkmngen.game.util.TextureCache;
 
 import box2dLight.PointLight;
@@ -164,19 +169,30 @@ class DrawMap extends Action {
 //            game.map.tiles.remove(tile.position);
 //            this.texture = TextureCache.get(this.pixels);
 
-            game.mapBatch.draw(tile.sprite, tile.sprite.getX(), tile.sprite.getY());
+            if (tile.sprite instanceof SpriteProxy) {
+                game.mapBatch.draw((SpriteProxy)tile.sprite, tile.sprite.getX(), tile.sprite.getY());
+            }
+            else {
+                game.mapBatch.draw(tile.sprite, tile.sprite.getX(), tile.sprite.getY());
+            }
+            
             // TODO: might cause performance issue
-            if (tile.nameUpper.contains("stairs") || tile.nameUpper.contains("door")) {
+            if (tile.nameUpper.contains("stairs") ||
+                tile.nameUpper.contains("door") ||
+                tile.nameUpper.contains("stool")) {
                 game.mapBatch.draw(tile.overSprite, tile.overSprite.getX(), tile.overSprite.getY());
             }
             // Play the closest/loudest egg hop sound effects
             if (game.playerCanMove &&
-                game.map.pokemon.containsKey(currPos) &&
-                game.map.pokemon.get(currPos).name.equals("egg")) {
+                game.map.pokemon.containsKey(currPos)) {
+//                game.map.pokemon.get(currPos).name.equals("egg") &&  // TODO: remove
+//                game.map.pokemon.get(currPos).mapTiles == game.map.tiles) {
                 Pokemon pokemon = game.map.pokemon.get(currPos);
                 // TODO: doing in drawmap
                 // Play sounds for nearby pokemon eggs
                 if (pokemon.standingAction != null &&
+                    pokemon.name.equals("egg") &&
+                    pokemon.mapTiles == game.map.tiles &&
                     Pokemon.Standing.class.isInstance(pokemon.standingAction)) {
                     Pokemon.Standing standingAction = ((Pokemon.Standing)pokemon.standingAction);
                     // As egg gets farther away, decrease the volume of the sound effect.
@@ -402,7 +418,10 @@ class DrawMapGrass extends Action {
                 tile.overSprite.draw(game.mapBatch);
             }
 
-            if (tile.overSprite != null && !tile.nameUpper.contains("stairs") && !tile.nameUpper.contains("door")) {
+            if (tile.overSprite != null &&
+                !tile.nameUpper.contains("stairs") &&
+                !tile.nameUpper.contains("door") &&
+                !tile.nameUpper.contains("stool")) {
                 if (tile.nameUpper.equals("campfire1") && game.mapBatch.getColor().r < 0.2f) {
                     Color tempColor = game.mapBatch.getColor();
                     game.mapBatch.setColor(new Color(0.2f, 0.2f, 0.2f, 1f));
@@ -429,8 +448,7 @@ class DrawMapTrees extends Action {
     Vector3 worldCoordsTL;
     Vector3 worldCoordsBR;
     Tile tile;
-    public DrawMapTrees(Game game) {
-    }
+    public DrawMapTrees(Game game) {}
 
     public int getLayer() {
         return this.layer;
@@ -470,7 +488,9 @@ class DrawMapTrees extends Action {
             if (tile.position.y > game.player.position.y) {
                 continue;
             }
-            if (tile.overSprite != null && (tile.name.contains("tree") || tile.nameUpper.contains("tree"))) {
+
+            // Still checking overSprite != null for safety
+            if (tile.overSprite != null && tile.drawAsTree) {
                 // TODO: test if that works for drawing the top part
                 game.mapBatch.draw(tile.overSprite.getTexture(),
                                    tile.overSprite.getX(), tile.overSprite.getY()+16,
@@ -547,6 +567,42 @@ class EnteiTile extends Tile {
     }
 }
 
+
+class LightningFlash extends Action {
+    Sprite sprite;
+    int timer = 0;
+
+    public LightningFlash(Action nextAction) {
+        this.nextAction = nextAction;
+        Texture text1 = TextureCache.get(Gdx.files.internal("battle/intro_frame6.png"));
+        this.sprite = new Sprite(text1);
+        this.sprite.setPosition(0,0);
+    }
+
+    public String getCamera() {return "gui";}
+    
+    @Override
+    public void step(Game game) {
+        if (this.timer % 4 < 2) {
+            for (int i = -1; i < 2; i+= 1) {
+                for (int j = -1; j < 2; j+= 1) {
+                    game.uiBatch.draw(this.sprite, 160*i, 144*j);
+                }
+            }
+        }
+
+        if (this.timer < 80) {
+            
+        }
+        else {
+            game.actionStack.remove(this);
+            game.insertAction(this.nextAction);
+        }
+        this.timer++;
+    }
+    
+}
+
 // TODO: shader method
 class EnterBuilding extends Action {
     Sprite sprite;
@@ -610,6 +666,18 @@ class EnterBuilding extends Action {
         }
         else if (this.timer < 12*slow) {
             if (this.timer == 6*slow) {
+                
+                // TODO: test
+                Tile tile = game.map.overworldTiles.get(game.player.position);
+                if (tile != null && tile.name.equals("cave1_door1")) {
+                    if (this.action.equals("enter")) {
+                        game.map.interiorTilesIndex=90;
+                    }
+                    else {
+                        game.map.interiorTilesIndex=100;
+                    }
+                }
+                
                 if (this.whichTiles != null) {
                     game.map.tiles = this.whichTiles;
                 }
@@ -619,6 +687,19 @@ class EnterBuilding extends Action {
                 else if (this.action.equals("exit")){
                     game.map.tiles = game.map.overworldTiles;
                 }
+                
+                // Player buildtile stuff
+                if (game.map.tiles == game.map.overworldTiles) {
+                    game.player.buildTiles = game.player.outdoorBuildTiles;
+                }
+                else {
+                    game.player.buildTiles = game.player.indoorBuildTiles;
+                }
+                while (game.player.buildTileIndex > 0 && game.player.buildTileIndex >= game.player.buildTiles.size()) {
+                    game.player.buildTileIndex--;
+                }
+                game.player.currBuildTile = game.player.buildTiles.get(game.player.buildTileIndex);
+
                 if (this.action.equals("exit")) {
                     Gdx.gl.glClearColor(1, 1, 1, 1);
                 }
@@ -626,17 +707,18 @@ class EnterBuilding extends Action {
                     Gdx.gl.glClearColor(0, 0, 0, 1);
                 }
 
+
                 // Fade music if required
-                Tile tile = game.map.tiles.get(game.player.position);
+                tile = game.map.tiles.get(game.player.position);
                 if (tile != null) {
                     Route newRoute = tile.routeBelongsTo;
-                    if (newRoute != null && !newRoute.name.equals(game.map.currRoute.name) && (newRoute.transitionMusic != game.map.currRoute.transitionMusic)) {
-                        
+                    if (newRoute != null && !newRoute.name.equals(game.map.currRoute.name) && (newRoute.isDungeon != game.map.currRoute.isDungeon)) {
+
                         // set flag in controller
                         // if going back to overworld, then what?
                         // handle batch shading separately
                         game.musicController.fadeToDungeon = true;
-                        
+
                         // TODO: fix
                         //  - need to resume overworld music.
 //                        String nextMusicName = newRoute.getNextMusic(false);
@@ -665,13 +747,21 @@ class EnterBuilding extends Action {
 //                        game.fadeMusicAction = nextMusic;
                         game.map.currRoute = newRoute;
                     }
-                    if (!game.map.timeOfDay.equals("night")) {
-                        if (newRoute != null && newRoute.name.contains("pkmnmansion")) {
-                            game.mapBatch.setColor(new Color(0.8f, 0.8f, 0.8f, 1f));
-                        }
-                        else {
+                    if (newRoute != null && newRoute.name.contains("pkmnmansion")) {
+                        game.mapBatch.setColor(new Color(0.8f, 0.8f, 0.8f, 1f));
+                    }
+                    else if (newRoute != null && newRoute.name.equals("regi_cave1")) {
+//                        game.mapBatch.setColor(new Color(0.08f, 0.08f, 0.3f, 1.0f));
+//                        game.mapBatch.setColor(new Color(0.2f, 0.2f, 0.5f, 1.0f));  // TODO: re-enable?
+                    } 
+                    else if (!game.map.timeOfDay.equals("night")) {
+                        // TODO: remove
+//                        if (newRoute != null && newRoute.name.contains("pkmnmansion")) {
+//                            game.mapBatch.setColor(new Color(0.8f, 0.8f, 0.8f, 1f));
+//                        }
+//                        else {
                             game.mapBatch.setColor(new Color(1f, 1f, 1f, 1f));
-                        }
+//                        }
                     }
                     else {
                         // Is night, so set to night color
@@ -791,8 +881,7 @@ class DrawCampfireAuras extends Action {
  *       also want it to move flowers.
  */
 class MoveWater extends Action {
-    public int layer = 109;  // 110 TODO: test
-
+    public int layer = 109;
     ArrayList<Vector2> positions;
     Vector2 position;
     ArrayList<Integer> repeats;
@@ -803,12 +892,23 @@ class MoveWater extends Action {
     Vector3 worldCoordsBR;
     Tile tile;
     Sprite[] campfireSprites;
+    Sprite[] torchSprites = new Sprite[2];
     int campfireTimer = 0;
+    int regiCaveTimer = 0;
+    public static int regiTimer2 = 0;
+    public boolean justFlipped = false;
+    int regiCaveInterval = 40; //60;
 //    PointLight pointLight;  // TODO: remove
     Pixmap pixmap;
+    // Sep pixmap for roaming and riding mons,
+    // Needed for optimization
+    Pixmap roamingPixmap;  
     Pixmap firePixmap1;
     Pixmap firePixmap2;
+    Pixmap torchPixmap1;
+    Pixmap torchPixmap2;
     int timer = 0;
+    Vector2 prevPos = new Vector2();
 
     public MoveWater(Game game) {
         this.positions = new ArrayList<Vector2>();
@@ -821,9 +921,27 @@ class MoveWater extends Action {
 //        this.campfireSprites[2] = new Sprite(text, 0,  0, 160, 144);
 //        text = TextureCache.get(Gdx.files.internal("fire_mask2.png"));
 //        this.campfireSprites[3] = new Sprite(text, 0, 0, 160, 144);
+
+        text = TextureCache.get(Gdx.files.internal("tiles/torch_sheet1.png"));
+        this.torchSprites[0] = new Sprite(text, 0,  60, 16, 20);
+        this.torchSprites[1] = new Sprite(text, 16, 60, 16, 20);
+        text = TextureCache.get(Gdx.files.internal("torch_mask1.png"));
+        TextureData temp = text.getTextureData();
+        if (!temp.isPrepared()) {
+            temp.prepare();
+        }
+        this.torchPixmap1 = temp.consumePixmap();
+        text = TextureCache.get(Gdx.files.internal("torch_mask2.png"));
+        temp = text.getTextureData();
+        if (!temp.isPrepared()) {
+            temp.prepare();
+        }
+        this.torchPixmap2 = temp.consumePixmap();
+
+        //
         text = TextureCache.get(Gdx.files.internal("fire_mask3.png"));
         this.campfireSprites[2] = new Sprite(text, 0,  0, 160, 144);
-        TextureData temp = text.getTextureData();
+        temp = text.getTextureData();
         if (!temp.isPrepared()) {
             temp.prepare();
         }
@@ -842,7 +960,11 @@ class MoveWater extends Action {
 //        this.pointLight.setPosition(0f, 0f);
 
         this.pixmap = new Pixmap(160*3, 144*3, Pixmap.Format.RGBA8888);
-        this.pixmap.setColor(new Color(0f, 0f, 0f, 1f));
+//        this.pixmap.setColor(new Color(0f, 0f, 0f, 1f));  // previous behavior when this was the only pixmap
+        this.pixmap.setColor(new Color(0f, 0f, 0f, 0f));
+        
+        this.roamingPixmap = new Pixmap(160*3, 144*3, Pixmap.Format.RGBA8888);
+        this.roamingPixmap.setColor(new Color(0f, 0f, 0f, 1f));
     }
 
     public int getLayer() {
@@ -869,7 +991,18 @@ class MoveWater extends Action {
 
     @Override
     public void step(Game game) {
-        this.pixmap.fill();
+        // TODO: battle still lags pretty badly even with this optimization
+        //       probably need to not draw overworld at all while in battle.
+        // Possible that there could be a way to only change the mask when
+        // a new campfire tile is built.
+        // TODO: this optimization is broken for roaming pokemon and field move
+        //       fire-type pokemon.
+        this.roamingPixmap.fill();
+        if (this.campfireTimer % 10 == 0) {
+            this.pixmap.fill();
+//            this.prevPos.set(game.player.position.x +8 -240, game.player.position.y +8 -216);
+            this.prevPos.set(game.player.position.x, game.player.position.y);
+        }
         // TODO: remove
 //        Sprite currMask = this.campfireSprites[3];
 //        if (this.campfireTimer % 20 < 10) {
@@ -881,8 +1014,10 @@ class MoveWater extends Action {
 //        }
 //        Pixmap currPixmap = temp.consumePixmap();
         Pixmap currPixmap = this.firePixmap2;
+        Pixmap currTorchPixmap = this.torchPixmap2;
         if (this.campfireTimer % 20 < 10) {
             currPixmap = this.firePixmap1;
+            currTorchPixmap = this.torchPixmap1;
         }
         worldCoordsTL = game.cam.unproject(new Vector3(-256, -256, 0f));
         worldCoordsBR = game.cam.unproject(new Vector3(game.currScreen.x+256, game.currScreen.y+256, 0f));
@@ -947,19 +1082,130 @@ class MoveWater extends Action {
                 // Attempt at fixing campfire aura issue using a pixmap
                 // Issue was that pixel 'lightness' would keep increasing until
                 // everything was white and hard to see.
-                if (game.mapBatch.getColor().r < .5f) {
-                    int xPos = (int)(tile.position.x -80 -(game.player.position.x -240));
-                    int yPos = (int)(296 -(tile.position.y +8 -72 -(game.player.position.y -216)));
-                    this.pixmap.drawPixmap(currPixmap, xPos, yPos);
+                if (this.campfireTimer % 10 == 0) {
+                    if (game.mapBatch.getColor().r < .5f) {
+                        int xPos = (int)(tile.position.x -80 -(game.player.position.x -240));
+                        int yPos = (int)(296 -(tile.position.y +8 -72 -(game.player.position.y -216)));
+                        this.pixmap.drawPixmap(currPixmap, xPos, yPos);
+                    }
                 }
             }
-            if (pokemon != null && pokemon.hms.contains("FLASH") && game.mapBatch.getColor().r < .5f) {
+            else if (tile.isTorch || tile.items.containsKey("torch")) {
+                tile.isTorch = true;
+                Sprite newSprite;
+                if (this.campfireTimer < 40) {
+                    newSprite = new Sprite(this.torchSprites[0]);
+                }
+                else {
+                    newSprite = new Sprite(this.torchSprites[1]);
+                }
+                // Apply the campfire aura
+                Color color = game.mapBatch.getColor();
+                if (game.mapBatch.getColor().r < .5f) {
+                    game.mapBatch.setColor(0.2f, 0.2f, 0.2f, 1f);
+                    if (this.campfireTimer % 10 == 0) {
+                        int xPos = (int)(tile.position.x -80 -(game.player.position.x -240));
+                        int yPos = (int)(296 -(tile.position.y +8 -72 -(game.player.position.y -216)));
+                        this.pixmap.drawPixmap(currTorchPixmap, xPos +40, yPos +36);
+                    }
+                }
+                int offsetX = 0;
+//                if (tile.nameUpper.equals("fence1")) {
+//                    offsetX = -4;
+//                }
+                game.mapBatch.draw(newSprite, tile.position.x +offsetX, tile.position.y+4 +2);
+                game.mapBatch.setColor(color);
+            }
+            else if (tile.name.equals("cave1_regi3")) {
+                if (game.battle.drawAction != null) {
+                    // TODO: remove
+//                    tile.sprite.setPosition(tile.position.x-8, tile.position.y-9);
+//                    tile.sprite.setRegion(0, 0, 48, 48);
+//                    if (this.regiTimer2 % 80 == 0) {
+//                        tile.sprite.setRegion(160, 0, 32, 32);
+//                    }
+//                    else if (this.regiTimer2 % 80 == 40) {
+//                        tile.sprite.setRegion(128, 0, 32, 32);
+//                    }
+//                    tile.sprite.setRegion(160, 0, 32, 32);
+                    // The commented stuff here would make regigigas dance when you
+                    // interacted with him.
+                    if (this.regiTimer2 == 0) {
+                        tile.sprite.setRegion(160, 0, 32, 32);
+//                        tile.sprite.setRegion(432, 0, 48, 48);
+//                        tile.sprite.setPosition(tile.position.x-8, tile.position.y-9);
+                    }
+//                    else if (this.regiTimer2 == 15) {
+//                        tile.sprite.setRegion(384, 0, 48, 48);
+//                        tile.sprite.setPosition(tile.position.x-8, tile.position.y-9);
+//                    }
+                    this.justFlipped = true;
+                }
+                else {
+                    if (this.justFlipped) { // annoying work-around
+                        this.justFlipped = false;
+                        tile.sprite.setPosition(tile.position.x, tile.position.y);
+                        tile.sprite.setRegion(128, 0, 32, 32);
+                    }
+                    if (this.regiTimer2 == 0) {
+                        tile.sprite.setRegion(160, 0, 32, 32);
+                    }
+                    else if (this.regiTimer2 == 4) {
+                        tile.sprite.setRegion(128, 0, 32, 32);
+                    }
+                    else if (this.regiTimer2 == 8) {
+                        tile.sprite.setRegion(160, 0, 32, 32);
+                    }
+                    else if (this.regiTimer2 == 12) {
+                        tile.sprite.setRegion(128, 0, 32, 32);
+                    }
+                    else if (this.regiTimer2 == 16) {
+                        tile.sprite.setRegion(160, 0, 32, 32);
+                    }
+                    else if (this.regiTimer2 == 20) {
+                        tile.sprite.setRegion(128, 0, 32, 32);
+                    }
+                    else if (this.regiTimer2 == 36 +16) {
+                        tile.sprite.setRegion(192, 0, 32, 32);
+                    }
+                    else if (this.regiTimer2 == 40 +16) {
+                        tile.sprite.setRegion(224, 0, 32, 32);
+                    }
+                    else if (this.regiTimer2 == 44 +16) {
+                        tile.sprite.setRegion(256, 0, 32, 32);
+                    }
+                    else if (this.regiTimer2 == 48 +16) {
+                        tile.sprite.setRegion(288, 0, 32, 32);
+                    }
+                    else if (this.regiTimer2 == 52 +16) {
+                        tile.sprite.setRegion(128, 0, 32, 32);
+                    }
+                }
+                
+                // TODO: remove
+//                else if (this.regiTimer2 == 0) {
+//                    tile.sprite.setRegion(0, 0, 48, 48);
+//                    tile.sprite.setPosition(tile.position.x-8, tile.position.y-9);
+//                }
+//                else if (this.regiTimer2 == 15) {
+//                    tile.sprite.setRegion(48, 0, 48, 48);
+//                    tile.sprite.setPosition(tile.position.x-8, tile.position.y-9);
+//                }
+            }
+            if (pokemon != null &&
+                pokemon.mapTiles == game.map.tiles &&
+                pokemon.hms.contains("FLASH") &&
+                game.mapBatch.getColor().r < .5f) {
                 int xPos = (int)(pokemon.position.x -80 -(game.player.position.x -240));
                 int yPos = (int)(296 -(pokemon.position.y +8 -72 -(game.player.position.y -216)));
-                this.pixmap.drawPixmap(currPixmap, xPos, yPos);
+//                    this.pixmap.drawPixmap(currPixmap, xPos, yPos);
+                this.roamingPixmap.drawPixmap(currPixmap, xPos, yPos);
             }
         }
-        if (game.mapBatch.getColor().r < .5f && game.player.hmPokemon != null && game.player.hmPokemon.currOwSprite != null && game.player.hmPokemon.hms.contains("FLASH")) {
+        if (game.mapBatch.getColor().r < .5f &&
+            game.player.hmPokemon != null &&
+            game.player.hmPokemon.currOwSprite != null &&
+            game.player.hmPokemon.hms.contains("FLASH")) {
 //            Pokemon pokemon = game.player.hmPokemon;  // TODO: remove
             Vector2 position = game.player.hmPokemon.position;
             // TODO: use game.player.currFieldMove instead
@@ -969,12 +1215,14 @@ class MoveWater extends Action {
                 game.player.isCutting ||
                 game.player.isHeadbutting ||
                 game.player.isSmashing ||
-                game.player.isJumping) {
+                game.player.isJumping ||
+                game.player.isAttacking) {
                 position = game.player.position;
             }
             int xPos = (int)(position.x -80 -(game.player.position.x -240));
             int yPos = (int)(296 -(position.y +8 -72 -(game.player.position.y -216)));
-            this.pixmap.drawPixmap(currPixmap, xPos, yPos);
+//                this.pixmap.drawPixmap(currPixmap, xPos, yPos);
+            this.roamingPixmap.drawPixmap(currPixmap, xPos, yPos);
         }
         if (game.mapBatch.getColor().r < 1f) {
             Color tempColor = game.mapBatch.getColor();
@@ -982,14 +1230,22 @@ class MoveWater extends Action {
             int temp1 = game.mapBatch.getBlendSrcFunc();
             int temp2 = game.mapBatch.getBlendDstFunc();
             game.mapBatch.setBlendFunction(GL20.GL_DST_COLOR, GL20.GL_SRC_ALPHA);
-            Texture texture = new Texture(this.pixmap);
+            
+            // Campfire pixmap needs to be drawn onto the roaming pixmap
+            this.roamingPixmap.drawPixmap(this.pixmap, (int)(this.prevPos.x - game.player.position.x), (int)(game.player.position.y-this.prevPos.y));
+            
+//            Texture texture = new Texture(this.pixmap);
+            Texture texture = new Texture(this.roamingPixmap);
             // TODO: diff levels of exposure depending on batch color
             game.mapBatch.draw(texture, game.player.position.x +8 -240, game.player.position.y +8 -216);
-            if (tempColor.r < 0.8f) {
-                game.mapBatch.draw(texture, game.player.position.x +8 -240, game.player.position.y +8 -216);
-            }
+//            game.mapBatch.draw(texture, this.prevPos.x, this.prevPos.y);
             if (tempColor.r < 0.5f) {
                 game.mapBatch.draw(texture, game.player.position.x +8 -240, game.player.position.y +8 -216);
+//                game.mapBatch.draw(texture, this.prevPos.x, this.prevPos.y);
+            }
+            if (tempColor.r < 0.1f) {
+                game.mapBatch.draw(texture, game.player.position.x +8 -240, game.player.position.y +8 -216);
+//                game.mapBatch.draw(texture, this.prevPos.x, this.prevPos.y);
             }
             game.mapBatch.setBlendFunction(temp1, temp2);
             game.mapBatch.setColor(tempColor);
@@ -1001,6 +1257,73 @@ class MoveWater extends Action {
         else {
             this.campfireTimer = 0;
         }
+        if (game.battle.drawAction != null && this.regiTimer2 < 30) {
+            this.regiTimer2++;
+        }
+        else if (game.battle.drawAction == null && this.regiTimer2 < 160) {
+            this.regiTimer2++;
+        }
+        else {
+            this.regiTimer2 = 0;
+        }
+        if (game.map.currRoute != null &&
+            game.battle.drawAction == null &&  // TODO: might be kind of cool tho.
+            game.map.currRoute.name.equals("regi_cave1")) {
+
+//            if (game.battle.drawAction != null) {
+                game.uiBatch.setColor(new Color(1f, 1f, 1f, 1.0f));
+                game.mapBatch.setColor(new Color(0.6f, 0.6f, 0.6f, 1.0f));
+//            }
+//            else 
+            if (this.regiCaveTimer < this.regiCaveInterval*1) {
+//                SpriteProxy.darkenColors1 = true;
+//                SpriteProxy.darkenColors2 = false;
+                game.uiBatch.setColor(new Color(0.7f, 0.7f, 0.8f, 1.0f));
+                game.mapBatch.setColor(new Color(0.5f, 0.5f, 0.8f, 1.0f));
+            }
+            else if (this.regiCaveTimer < this.regiCaveInterval*2) {
+//                SpriteProxy.darkenColors1 = false;
+//                SpriteProxy.darkenColors2 = true;
+                game.uiBatch.setColor(new Color(0.6f, 0.6f, 0.7f, 1.0f));
+                game.mapBatch.setColor(new Color(0.4f, 0.4f, 0.7f, 1.0f));
+            }
+            else if (this.regiCaveTimer < this.regiCaveInterval*3) {
+//                SpriteProxy.darkenColors1 = true;
+//                SpriteProxy.darkenColors2 = false;
+                game.uiBatch.setColor(new Color(0.7f, 0.7f, 0.8f, 1.0f));
+                game.mapBatch.setColor(new Color(0.30f, 0.30f, 0.60f, 1.0f));
+            }
+            else if (this.regiCaveTimer < this.regiCaveInterval*4) {
+//                SpriteProxy.darkenColors1 = false;
+//                SpriteProxy.darkenColors2 = true;
+                game.uiBatch.setColor(new Color(0.6f, 0.6f, 0.7f, 1.0f));
+                game.mapBatch.setColor(new Color(0.20f, 0.20f, 0.50f, 1.0f));
+            }
+            else if (this.regiCaveTimer < this.regiCaveInterval*5) {
+//                SpriteProxy.darkenColors1 = true;
+//                SpriteProxy.darkenColors2 = false;
+                game.uiBatch.setColor(new Color(0.7f, 0.7f, 0.8f, 1.0f));
+                game.mapBatch.setColor(new Color(0.30f, 0.30f, 0.60f, 1.0f));
+            }
+            else {
+//                SpriteProxy.darkenColors1 = false;
+//                SpriteProxy.darkenColors2 = true;
+                game.uiBatch.setColor(new Color(0.6f, 0.6f, 0.7f, 1.0f));
+                game.mapBatch.setColor(new Color(0.4f, 0.4f, 0.7f, 1.0f));
+            }
+
+            if (this.regiCaveTimer < this.regiCaveInterval*6) {
+                this.regiCaveTimer++;
+            }
+            else {
+                this.regiCaveTimer = 0;
+            }
+        }
+        // TODO: might screw other effects up in the future.
+        else {
+            game.uiBatch.setColor(new Color(1f, 1f, 1f, 1.0f));
+        }
+        
         // repeat sprite/pos for current object for 'frames[0]' number of
         // frames.
         if (this.repeats.get(0) > 0) {
@@ -1041,11 +1364,11 @@ public class PkmnMap {
 
     // Used to know where to spawn new players
     ArrayList<Vector2> edges = new ArrayList<Vector2>();
-    // routes on map
+    // Routes on map
     ArrayList<Route> routes;
     // debating whether I should just make tiles have references
     // to route objects, and not have currRoute here
-    Route currRoute;
+    public Route currRoute;
     String currBiome = "";
     // needed for wild encounters etc
     Random rand;
@@ -1059,6 +1382,7 @@ public class PkmnMap {
             unownUsed.add(String.valueOf(textArray[i]));
         }
     }
+//    int numRocks = 0;  // TODO: remove
 
     // TODO: test
 //    Synced.HashMap<Vector2, Tile> testTiles = new Synced.HashMap<Vector2, Tile>("game.map.tiles");
@@ -1588,7 +1912,7 @@ class Route {
     ArrayList<String> musics = new ArrayList<String>();
     int musicsIndex = 0;
     
-    boolean transitionMusic = false;  // some routes require music transition. ie, cave, pokemon mansion
+    boolean isDungeon = false;  // some routes require music transition. ie, cave, pokemon mansion
 
     // TODO: remove
 //    Random rand;
@@ -1607,7 +1931,10 @@ class Route {
             this.pokemon.add(new Pokemon(pokemonData));
         }
         if (name.equals("pkmnmansion1")) {
-            this.transitionMusic = true;
+            this.isDungeon = true;
+        }
+        if (name.equals("regi_cave1")) {
+            this.isDungeon = true;
         }
     }
 
@@ -1619,7 +1946,8 @@ class Route {
         this.allowedPokemon = new ArrayList<String>();
         
         // TODO: possibly different per-route
-        this.musics.add("nature1_render");
+//        this.musics.add("nature1_render");  // TODO: this is being removed or replaced by something
+        this.musics.add("pokemon_tcg_gym1");
         this.musics.add("overw3");
         this.musics.add("route_42");
         this.musics.add("national_park1");
@@ -1732,6 +2060,7 @@ class Route {
           this.allowedPokemon.add("vulpix");
           this.allowedPokemon.add("breloom");  // nuuk
           this.allowedPokemon.add("sableye");  // nuuk
+          this.allowedPokemon.add("litwick");  // Goose
         }
         else if (name.equals("forest1")) {
             this.allowedPokemon.add("oddish");
@@ -1740,7 +2069,7 @@ class Route {
             this.allowedPokemon.add("pidgeotto");
             this.allowedPokemon.add("spearow");
 //            this.allowedPokemon.add("swablu");  // TODO: permissions
-            this.allowedPokemon.add("taillow");  // prism and nuuk
+            this.allowedPokemon.add("taillow");  // nuuk
             this.allowedPokemon.add("hoppip");
 //            this.allowedPokemon.add("machop");
             this.allowedPokemon.add("bulbasaur");
@@ -1816,6 +2145,9 @@ class Route {
             //
             this.allowedPokemon.add("wingull");  // nuuk
             this.allowedPokemon.add("surskit");  // nuuk
+            //
+            this.allowedPokemon.add("corphish");  // sir-feralipogchamp discord
+            //
         }
         else if (name.equals("desert1")) {
             // TODO: these are just some ideas
@@ -1847,6 +2179,7 @@ class Route {
             this.allowedPokemon.add("swinub");
             this.allowedPokemon.add("piloswine");
             this.allowedPokemon.add("jynx");
+            this.allowedPokemon.add("delibird");  // TODO: make sure roaming spawns aren't wonky after adding
             // TODO: remove
 //            this.music = Gdx.audio.newMusic(Gdx.files.internal("route1_1.ogg"));
 //            this.music.setLooping(true);
@@ -1861,14 +2194,21 @@ class Route {
             this.allowedPokemon.add("growlithe");
             this.allowedPokemon.add("ponyta");
             this.allowedPokemon.add("ditto");
-            this.transitionMusic = true;
+            this.isDungeon = true;
             this.musics.clear();
 //            this.musics.add("pkmnmansion1");  // gbs version (didn't work)
             this.musics.add("pkmnmansion");
             this.musics.add("pkmnmansion");
         }
+        else if (this.name.equals("regi_cave1")) {
+            this.allowedPokemon.clear();  // no wild spawns
+            this.isDungeon = true;
+            this.musics.clear();
+            this.musics.add("sealed_chamber2");
+            this.musics.add("sealed_chamber2");
+        }
+        // TODO: remove
         else if (name.equals("rock_smash1")) {
-            this.allowedPokemon.add("geodude");
             this.allowedPokemon.add("geodude");
             this.allowedPokemon.add("geodude");
             this.allowedPokemon.add("shuckle");
@@ -1909,7 +2249,8 @@ class Route {
 //        this.pokemon.clear();
 ////        Pokemon debug = new Pokemon("machamp", 22, Pokemon.Generation.CRYSTAL);  // 22
 ////        Pokemon debug = new Pokemon("garchompbeta", 70, Pokemon.Generation.CRYSTAL);  // 22
-//        Pokemon debug = new Pokemon("murkrow", 44, Pokemon.Generation.CRYSTAL);
+//        Pokemon debug = new Pokemon("murkrow", 44, Pokemon.Generation.CRYSTAL, true);
+//        debug.aggroPlayer = true;
 ////        Pokemon debug = new Pokemon("ghost", 44, Pokemon.Generation.CRYSTAL);
 ////        debug.currentStats.put("hp", 20);
 //        debug.attacks[0] = "thunder wave";
@@ -1943,15 +2284,17 @@ class Route {
     public void genPokemon(int maxCatchRate, boolean shouldEvo) {
         // TODO - bug if maxed out on catch rates, and need to repeat a pkmn
 
-        // if less than needed pokemon for randomization, just use them all.
-        if (this.allowedPokemon.size() < 4) {
-            for (String pokemonName : this.allowedPokemon) {
-                this.pokemon.add(new Pokemon(pokemonName,
-                                             this.level + Game.rand.nextInt(3),
-                                             Pokemon.Generation.CRYSTAL));
-            }
-            return;
-        }
+        // If less than needed pokemon for randomization, just use them all.
+        // TODO: test
+        // TODO: remove
+//        if (this.allowedPokemon.size() < 4) {
+//            for (String pokemonName : this.allowedPokemon) {
+//                this.pokemon.add(new Pokemon(pokemonName,
+//                                             this.level + Game.rand.nextInt(3),
+//                                             Pokemon.Generation.CRYSTAL));
+//            }
+//            return;
+//        }
 
         int randomNum;
         int randomLevel;
@@ -1960,8 +2303,9 @@ class Route {
         for (Pokemon pkmn : this.pokemon) {
             usedPokemon.add(pkmn.name);
         }
-        // below will add from allowed pkmn based on catchRate
-        while (this.pokemon.size() < 4) { // 4 total pokemon in route
+        // Below will add from allowed pkmn based on catchRate
+        // 4 total pokemon in route
+        while (this.pokemon.size() < 4 && this.pokemon.size() < this.allowedPokemon.size()) {
             // TODO: debug, remove
 //            System.out.println("debug:");
 //            System.out.println(this.allowedPokemon);
@@ -1969,7 +2313,9 @@ class Route {
             randomNum = Game.rand.nextInt(this.allowedPokemon.size());
             randomLevel = Game.rand.nextInt(3);
             pokemonName = this.allowedPokemon.get(randomNum);
-            // this breaks if less than 5 available pokemon in route
+            // TODO: this forces all pokemon to be unique, which is a weird choice
+            //       I don't see how one pokemon could be more common than another,
+            //       then.
             if (usedPokemon.contains(pokemonName) && this.allowedPokemon.size() > 4) {
                 continue;
             }
@@ -2049,16 +2395,17 @@ class Route {
 
     // get next music. if random == true, get random one that isn't same as current
     public String getNextMusic(boolean random) {
-        // for now, do nature sounds between each song
-        if (this.musicsIndex != 0) {
-            this.musicsIndex = 0;
-            return this.musics.get(this.musicsIndex);
-        }
+//        // For now, do nature sounds between each song
+//        if (this.musicsIndex != 0) {
+//            this.musicsIndex = 0;
+//            return this.musics.get(this.musicsIndex);
+//        }
+
         // TODO: this doesn't work given the above code
         int nextIndex = 0;
         if (random) {
             nextIndex = this.musicsIndex;
-            while (nextIndex == this.musicsIndex || nextIndex == 0) {
+            while (nextIndex == this.musicsIndex) {  // || nextIndex == 0  // TODO: remove
                 nextIndex = Game.staticGame.map.rand.nextInt(this.musics.size());
             }
         }
@@ -2194,9 +2541,9 @@ class Tile {
     // temp fix to ledge direction thing
     // can't think of another place to put this.
     String ledgeDir;
-    Vector2 position;
-    Sprite sprite;
-    Sprite overSprite; // ledges
+    public Vector2 position;
+    public Sprite sprite;
+    public Sprite overSprite; // ledges
     // if not null, has item on this square that can be pick up by pressing A on the tile
     String hasItem;  
     int hasItemAmount = 0;
@@ -2204,6 +2551,11 @@ class Tile {
     // route that this tile belongs to
     // used to signal movement to new routes
     Route routeBelongsTo;
+    // This is flagged by MoveWater in an attempt to speed up
+    // computation.
+    public boolean isTorch = false;
+    // Cached value to tell game to draw this over the player
+    public boolean drawAsTree = false;
 
     // this is just my idea for tiles that do something when player walks over
     // it,
@@ -2214,10 +2566,10 @@ class Tile {
     // tall grass wild encounter is currently in-lined in playerMoving action
 
     // if you need to see what type of tile this is, use name variable
-    String name;
+    public String name;
     // Needed to store which object is above the 'terrain'. Like a tree, rock, house piece, etc.
     // This must be stored because it needs to be sent over the network, and saved locally.
-    String nameUpper = "";
+    public String nameUpper = "";
 
     String biome = "";
 
@@ -2229,8 +2581,79 @@ class Tile {
     // This has to be initialized manually. Defaulting to null to save space.
     ArrayList<Vector2> doorTiles;
 
-    // for when you collect items from this tile
-    HashMap<String, Integer> items = new HashMap<String, Integer>();
+    // For when you collect items from this tile
+    HashMap<String, Integer> items = null; // TODO: trying to improve perf new HashMap<String, Integer>();
+    
+    /** Api intending to increase perf.
+     * 
+     */
+    public HashMap<String, Integer> items() {
+        if (this.items == null) {
+            this.items = new HashMap<String, Integer>();
+            
+            // Init items here based on tile name and nameUpper
+            if (this.name.equals("grass2")) {
+                this.items.put("grass", 1);
+                // TODO: test
+                if (Game.rand.nextInt(256) < 64) {  // 1/4 chance atm
+                    this.items.put("miracle seed", 1);
+                }
+            }
+            else if (this.name.equals("grass3")) {
+                this.items.put("grass", 1);
+            }
+            else if (this.name.equals("grass4")) {
+                this.items.put("grass", 1);
+            }
+            else if (this.name.equals("grass_sand1")) {
+                this.items.put("grass", 1);
+            }
+            else if (this.nameUpper.equals("bush2_color")) {
+                this.items.put("log", 1);
+                String[] items = {"black apricorn", "blue apricorn", "green apricorn", "pink apricorn",
+                                  "red apricorn", "white apricorn", "yellow apricorn"};
+                if (Game.staticGame.map.rand.nextInt(2) == 0) {
+                    this.items.put(items[Game.staticGame.map.rand.nextInt(items.length)], 1);
+                }
+            }
+            else if (this.nameUpper.equals("tree2")) {
+                this.items.put("log", 2);
+                String[] items = {"black apricorn", "blue apricorn", "green apricorn", "pink apricorn",
+                                  "red apricorn", "white apricorn", "yellow apricorn"};
+                if (Game.staticGame.map.rand.nextInt(2) == 0) {
+                    this.items.put(items[Game.staticGame.map.rand.nextInt(items.length)], 2);
+                }
+            }
+            else if (this.nameUpper.equals("tree4")) {
+                this.items.put("log", 2);
+                String[] items = {"black apricorn", "blue apricorn", "green apricorn", "pink apricorn",
+                                  "red apricorn", "white apricorn", "yellow apricorn"};
+                if (Game.staticGame.map.rand.nextInt(2) == 0) {
+                    this.items.put(items[Game.staticGame.map.rand.nextInt(items.length)], 2);
+                }
+            }
+            if (!this.nameUpper.equals("")) {
+                if (!this.nameUpper.contains("floor") &&
+                    !this.nameUpper.contains("pokeball") &&
+                    !this.nameUpper.contains("bush") &&
+                    !this.nameUpper.equals("pokemon_mansion_key") &&
+                    !this.nameUpper.contains("REGI") &&
+                    !this.nameUpper.contains("tree") &&
+                    !this.nameUpper.contains("rock") &&
+                    !this.nameUpper.contains("campfire") &&
+                    !this.nameUpper.contains("fence") &&
+                    !this.nameUpper.contains("house")) {
+                    this.items.put("grass", 1);
+                    this.items.put("log", 1);
+                }
+                if (this.nameUpper.equals("rock1") ||
+                    this.nameUpper.equals("rock1_color")) {
+                    this.items.put("hard stone", 1);
+                }
+            }
+        }
+        return this.items;
+    }
 
     /**
      * Factory method. Useful when loading from file, and need to create Tile subclasses for some Tiles.
@@ -2296,6 +2719,9 @@ class Tile {
             this.attrs.put("grass", true);
 
             // this.sprite.setColor(new Color(.1f, .1f, .1f, 1f)); // debug
+        } else if (tileName.equals("grass_planted")) {
+            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/grass_planted.png"));
+            this.sprite = new Sprite(playerText, 0, 0, 16, 16);
         } else if (tileName.equals("grass2")) {
             Texture playerText = TextureCache.get(Gdx.files.internal("tiles/grass2_under.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
@@ -2303,7 +2729,12 @@ class Tile {
             this.overSprite = new Sprite(playerText, 0, 0, 16, 16);
             this.attrs.put("grass", true);
             this.attrs.put("cuttable", true);
-            this.items.put("grass", 1);
+            // TODO: remove
+//            this.items.put("grass", 1);
+//            // TODO: test
+//            if (Game.rand.nextInt(256) < 64) {  // 1/4 chance atm
+//                this.items.put("miracle seed", 1);
+//            }
             // this.sprite.setColor(new Color(.1f, .1f, .1f, 1f)); // debug
         } else if (tileName.equals("grass3")) {
             Texture playerText = TextureCache.get(Gdx.files.internal("tiles/grass3_under.png"));
@@ -2312,7 +2743,7 @@ class Tile {
             this.overSprite = new Sprite(playerText, 0, 0, 16, 16);
             this.attrs.put("grass", true);
             this.attrs.put("cuttable", true);
-            this.items.put("grass", 1);
+//            this.items.put("grass", 1);
         } else if (tileName.equals("grass4")) {
             Texture playerText = TextureCache.get(Gdx.files.internal("tiles/green1.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
@@ -2320,7 +2751,7 @@ class Tile {
             this.overSprite = new Sprite(playerText, 0, 0, 16, 16);
             this.attrs.put("grass", true);
             this.attrs.put("cuttable", true);
-            this.items.put("grass", 1);
+//            this.items.put("grass", 1);
         } else if (tileName.equals("grass_sand1")) {
             Texture playerText = TextureCache.get(Gdx.files.internal("tiles/sand1.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
@@ -2328,7 +2759,7 @@ class Tile {
             this.overSprite = new Sprite(playerText, 0, 0, 16, 16);
             this.attrs.put("grass", true);
             this.attrs.put("cuttable", true);
-            this.items.put("grass", 1);
+//            this.items.put("grass", 1);
         } else if (tileName.equals("flower1")) {
             Texture playerText = TextureCache.get(Gdx.files.internal("tiles/flower1.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
@@ -2369,7 +2800,53 @@ class Tile {
                 this.attrs.put("solid", true);
             }
         }
-
+        else if (tileName.contains("cave1") || tileName.contains("cave2")) {
+            if (tileName.equals("cave1_regi1")) {
+                Texture playerText = TextureCache.get(Gdx.files.internal("tiles/cave1/"+tileName+".png"));
+                this.sprite = new SpriteProxy(new Color(56.0f/255f, 56.0f/255f, 56.0f/255f, 1f),
+                                              new Color(192.0f/255f, 144.0f/255f, 56.0f/255f, 1f),
+                                              new Color(160.0f/255f, 120.0f/255f, 24.0f/255f, 1f),
+                                              playerText, 0, 0, 16, 16);
+                this.sprite = new SpriteProxy(playerText, 0, 0, 32, 32);
+            }
+            else if (tileName.equals("cave1_regi2") || tileName.equals("cave1_regi3")) {
+                Texture playerText = TextureCache.get(Gdx.files.internal("tiles/cave1/cave1_regi1.png"));
+                this.sprite = new SpriteProxy(playerText, 32*4, 0, 32, 32);
+            }
+//            else if (tileName.equals("cave1_regi5")) {
+//                
+//            }
+//            else if (tileName.equals("cave1_regi3")) {
+//                Texture texture = TextureCache.get(Gdx.files.internal("tiles/cave1/regi3.png"));
+//                this.sprite = new Sprite(texture, 0, 0, 48, 48);
+//                this.sprite.setPosition(this.position.x-8, this.position.y-9);
+//            }
+            else {
+                Texture playerText = TextureCache.get(Gdx.files.internal("tiles/cave1/"+tileName+".png"));
+                this.sprite = new SpriteProxy(new Color(56.0f/255f, 56.0f/255f, 56.0f/255f, 1f),
+                                              new Color(192.0f/255f, 144.0f/255f, 56.0f/255f, 1f),
+                                              new Color(160.0f/255f, 120.0f/255f, 24.0f/255f, 1f),
+                                              playerText, 0, 0, 16, 16);
+            }
+            
+            if (tileName.contains("up")) {
+                this.attrs.put("ledge", true);
+                this.ledgeDir = "up";
+            }
+            else if (!tileName.contains("floor") &&
+                !tileName.contains("ramp") &&
+                !tileName.contains("door")) {
+                this.attrs.put("solid", true);
+            }
+            if (this.name.equals("cave1_regipedistal1")) {
+                this.overSprite = this.sprite;
+                Texture playerText = TextureCache.get(Gdx.files.internal("tiles/cave1/cave1_up1.png"));
+                this.sprite = new SpriteProxy(new Color(56.0f/255f, 56.0f/255f, 56.0f/255f, 1f),
+                                              new Color(192.0f/255f, 144.0f/255f, 56.0f/255f, 1f),
+                                              new Color(160.0f/255f, 120.0f/255f, 24.0f/255f, 1f),
+                                              playerText, 0, 0, 16, 16);
+            }
+        }
         else if (tileName.equals("tree_large1")) { //
             Texture playerText;
             if (color) {
@@ -2643,12 +3120,13 @@ class Tile {
             this.attrs.put("solid", true);
             this.attrs.put("cuttable", true);
             this.attrs.put("headbuttable", true);
-            this.items.put("log", 1);
-            String[] items = {"black apricorn", "blue apricorn", "green apricorn", "pink apricorn",
-                              "red apricorn", "white apricorn", "yellow apricorn"};
-            if (Game.staticGame.map.rand.nextInt(2) == 0) {
-                this.items.put(items[Game.staticGame.map.rand.nextInt(items.length)], 1);
-            }
+//            bush2_color
+//            this.items.put("log", 1);
+//            String[] items = {"black apricorn", "blue apricorn", "green apricorn", "pink apricorn",
+//                              "red apricorn", "white apricorn", "yellow apricorn"};
+//            if (Game.staticGame.map.rand.nextInt(2) == 0) {
+//                this.items.put(items[Game.staticGame.map.rand.nextInt(items.length)], 1);
+//            }
         } else if (tileName.equals("bush2")) {
             Texture playerText;
             playerText = TextureCache.get(Gdx.files.internal("tiles/bush2_color.png"));
@@ -2717,13 +3195,13 @@ class Tile {
             playerText = TextureCache.get(Gdx.files.internal("tiles/tree2.png"));
             this.overSprite = new Sprite(playerText, 0, 0, 16, 32);
             this.name = "green1";
-            this.nameUpper = "tree2";
-            this.items.put("log", 2);
-            String[] items = {"black apricorn", "blue apricorn", "green apricorn", "pink apricorn",
-                              "red apricorn", "white apricorn", "yellow apricorn"};
-            if (Game.staticGame.map.rand.nextInt(2) == 0) {
-                this.items.put(items[Game.staticGame.map.rand.nextInt(items.length)], 2);
-            }
+//            this.nameUpper = "tree2";
+//            this.items.put("log", 2);
+//            String[] items = {"black apricorn", "blue apricorn", "green apricorn", "pink apricorn",
+//                              "red apricorn", "white apricorn", "yellow apricorn"};
+//            if (Game.staticGame.map.rand.nextInt(2) == 0) {
+//                this.items.put(items[Game.staticGame.map.rand.nextInt(items.length)], 2);
+//            }
             this.attrs.put("solid", true);
 //            this.attrs.put("tree", true);  // TODO: remove
             this.attrs.put("cuttable", true);
@@ -2740,12 +3218,12 @@ class Tile {
             this.overSprite = new Sprite(playerText, 0, 0, 16, 32);
             this.name = "snow1";
             this.nameUpper = "tree4";
-            this.items.put("log", 2);
-            String[] items = {"black apricorn", "blue apricorn", "green apricorn", "pink apricorn",
-                              "red apricorn", "white apricorn", "yellow apricorn"};
-            if (Game.staticGame.map.rand.nextInt(2) == 0) {
-                this.items.put(items[Game.staticGame.map.rand.nextInt(items.length)], 2);
-            }
+//            this.items.put("log", 2);
+//            String[] items = {"black apricorn", "blue apricorn", "green apricorn", "pink apricorn",
+//                              "red apricorn", "white apricorn", "yellow apricorn"};
+//            if (Game.staticGame.map.rand.nextInt(2) == 0) {
+//                this.items.put(items[Game.staticGame.map.rand.nextInt(items.length)], 2);
+//            }
             this.attrs.put("solid", true);
 //            this.attrs.put("tree", true);  // TODO: remove
             this.attrs.put("headbuttable", true);
@@ -2771,6 +3249,12 @@ class Tile {
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
             playerText = TextureCache.get(Gdx.files.internal("tiles/buildings/pkmnmansion_statue1.png"));
             this.overSprite = new Sprite(playerText, 0, 0, 16, 32);
+            this.attrs.put("solid", true);
+        } else if (tileName.equals("pkmnmansion_struct1")) {
+            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/buildings/pkmnmansion_floor1.png"));
+            this.sprite = new Sprite(playerText, 0, 0, 16, 16);
+            playerText = TextureCache.get(Gdx.files.internal("tiles/buildings/pkmnmansion_struct1.png"));
+            this.overSprite = new Sprite(playerText, 0, 0, 32, 32);
             this.attrs.put("solid", true);
         } else if (tileName.equals("pkmnmansion_shelf1")) {
             Texture playerText = TextureCache.get(Gdx.files.internal("tiles/buildings/pkmnmansion_floor1.png"));
@@ -2821,12 +3305,46 @@ class Tile {
             this.sprite = new Sprite(playerText, 0, 0, 16, 32);
             this.attrs.put("solid", true);
         }
+        else if (tileName.equals("house_plant1")) {
+            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/buildings/house_plant1.png"));
+            this.sprite = new Sprite(playerText, 0, 0, 16, 32);
+            this.attrs.put("solid", true);
+        }
+        else if (tileName.equals("house_plant2")) {
+            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/buildings/house_plant2.png"));
+            this.sprite = new Sprite(playerText, 0, 0, 16, 32);
+            this.attrs.put("solid", true);
+        }
+        else if (tileName.equals("house_gym1")) {
+            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/buildings/house_gym1.png"));
+            this.sprite = new Sprite(playerText, 0, 0, 16, 32);
+            this.attrs.put("solid", true);
+        }
+        else if (tileName.equals("house_wardrobe1")) {
+            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/buildings/house_wardrobe1.png"));
+            this.sprite = new Sprite(playerText, 0, 0, 16, 32);
+            this.attrs.put("solid", true);
+        }
+        else if (tileName.equals("house_shelf1")) {
+            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/buildings/house_shelf1.png"));
+            this.sprite = new Sprite(playerText, 0, 0, 16, 32);
+            this.attrs.put("solid", true);
+        }
+        else if (tileName.equals("house_stool1")) {
+            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/buildings/house_stool1.png"));
+            this.sprite = new Sprite(playerText, 0, 0, 16, 16);
+        }
+        else if (tileName.equals("torch1")) {
+            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/torch_sheet1.png"));
+            this.sprite = new Sprite(playerText, 0, 0, 16, 20);
+        }
         else {
             // just load from image file
             Texture playerText = TextureCache.get(Gdx.files.internal("tiles/buildings/"+tileName+".png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
             if (!tileName.contains("door") && !tileName.contains("floor") && 
-                !tileName.contains("rug") && !tileName.contains("__off")) {
+                !tileName.contains("rug") && !tileName.contains("__off") &&
+                !tileName.contains("carpet")) {
                 this.attrs.put("solid", true);
             }
         }
@@ -2845,30 +3363,71 @@ class Tile {
         if (!this.nameUpper.equals("")){
             // Load from image file based on the name
             Texture text;
-            if (this.nameUpper.contains("house")) {
+            if (this.nameUpper.contains("REGI")) {
+                text = TextureCache.get(Gdx.files.internal("tiles/cave1/overworld2.png"));
+                if (this.nameUpper.equals("REGIDRAGO")) {
+                    this.overSprite = new Sprite(text, 16, 0, 16, 16);
+                }
+                else if (this.nameUpper.equals("REGIELEKI")) {
+                    this.overSprite = new Sprite(text, 32, 0, 16, 16);
+                }
+                else if (this.nameUpper.equals("REGICE")) {
+                    this.overSprite = new Sprite(text, 48, 0, 16, 16);
+                }
+                else if (this.nameUpper.equals("REGIROCK")) {
+                    this.overSprite = new Sprite(text, 64, 0, 16, 16);
+                }
+                else if (this.nameUpper.equals("REGISTEEL")) {
+                    this.overSprite = new Sprite(text, 80, 0, 16, 16);
+                }
+            }
+            else if (this.nameUpper.contains("house")) {
                 text = TextureCache.get(Gdx.files.internal("tiles/buildings/"+this.nameUpper+".png"));
+                this.overSprite = new Sprite(text, 0, 0, 16, 16);
+            }
+            else if (this.nameUpper.equals("solid")) {
+                // No sprite, just invisible solid block
+                text = TextureCache.get(Gdx.files.internal("tiles/blank3.png"));
             }
             else {
                 text = TextureCache.get(Gdx.files.internal("tiles/"+this.nameUpper+".png"));
+                this.overSprite = new Sprite(text, 0, 0, 16, 16);
             }
-            this.overSprite = new Sprite(text, 0, 0, 16, 16);
             if (this.nameUpper.equals("house_bed1") ||
                 this.nameUpper.contains("tree2") ||
-                this.nameUpper.contains("tree4")) {
+                this.nameUpper.contains("tree4") ||
+                this.nameUpper.contains("house_plant1") ||
+                this.nameUpper.contains("house_plant2") ||
+                this.nameUpper.contains("house_gym1") ||
+                this.nameUpper.contains("house_wardrobe1") ||
+                this.nameUpper.contains("house_shelf1")) {
                 this.overSprite = new Sprite(text, 0, 0, 16, 32);
             }
             if (!this.nameUpper.contains("door") &&
                 !this.nameUpper.contains("floor") &&
-                !this.nameUpper.contains("tree_planted")) {
+                !this.nameUpper.contains("tree_planted") &&
+                !this.nameUpper.contains("stool")) {
                 this.attrs.put("solid", true);
             }
+            
+            // TODO: do inclusive, not exclusive
+            // every time I add something with a new nameUpper,
+            // it is cuttable by default
             if (!this.nameUpper.contains("floor") &&
                 !this.nameUpper.contains("pokeball") &&
                 !this.nameUpper.contains("bush") &&
-                !this.nameUpper.contains("tree")) {
+                !this.nameUpper.equals("pokemon_mansion_key") &&
+                !this.nameUpper.contains("REGI") &&
+                !this.nameUpper.contains("tree") &&
+                !this.nameUpper.contains("rock")) {
                 this.attrs.put("cuttable", true);
-                this.items.put("grass", 1);
-                this.items.put("log", 1);
+//                if (this.items.isEmpty() &&
+//                    !this.nameUpper.contains("campfire") &&
+//                    !this.nameUpper.contains("fence") &&
+//                    !this.nameUpper.contains("house")) {
+//                    this.items.put("grass", 1);
+//                    this.items.put("log", 1);
+//                }
             }
             if (this.nameUpper.contains("bush2_color") ||  // TODO: equals, not contains
                 this.nameUpper.equals("tree2") ||
@@ -2899,14 +3458,31 @@ class Tile {
             if (this.nameUpper.equals("mewtwo_overworld_hidden")) {
                 this.attrs.put("solid", false);
             }
+            if (this.nameUpper.equals("sign1")) {
+                this.attrs.put("cuttable", false);  // ruins unown spawns otherwise
+            }
             if (this.nameUpper.equals("rock1") ||
                 this.nameUpper.equals("rock1_color")) {
                 this.attrs.put("smashable", true);
                 this.attrs.put("cuttable", false);  // not sure why but cuttable can be true here.
-                this.items.clear();
-                this.items.put("stone", 1);
+                
+                // TODO: this could get me into trouble if I need to save items
+                // TODO: test
+//                this.items.clear();
+//                this.items.put("hard stone", 1);
+//                if (this.items.isEmpty()) {
+//                    this.items.put("hard stone", 1);
+//                }
             }
         }
+        if (this.overSprite != null &&
+            !this.nameUpper.contains("tree_planted") && 
+            (this.name.contains("tree") || this.nameUpper.contains("tree") ||
+             this.nameUpper.contains("house_gym") || this.nameUpper.contains("house_plant") ||
+             this.nameUpper.contains("house_shelf") || this.nameUpper.contains("house_wardrobe"))) {
+            this.drawAsTree = true;
+        }
+        
 
         this.sprite.setPosition(pos.x, pos.y);
         if (this.overSprite != null) {
@@ -2987,7 +3563,8 @@ class Tile {
                 this.pickUpItem(game.player);
             }
         }
-        else if (game.map.pokemon.containsKey(this.position)) {
+        else if (game.map.pokemon.containsKey(this.position)
+                 && game.map.pokemon.get(this.position).mapTiles == game.map.tiles) {
             Pokemon pokemon = game.map.pokemon.get(this.position);
             if (game.type == Game.Type.CLIENT) {
                 // Server will send a PausePokemon back if this succeeds.
@@ -2996,6 +3573,8 @@ class Tile {
                                                              true));
                 return;
             }
+            
+            
 
 //            game.map.pokemon.get(this.position)
             // TODO: play animation
@@ -3019,11 +3598,32 @@ class Tile {
                     return "gui";
                 }
             };
+            boolean isBaseSpecies = true;
+            if (Pokemon.baseSpecies.get(pokemon.name) != null) {
+                isBaseSpecies = Pokemon.baseSpecies.get(pokemon.name).equals(pokemon.name);
+            }
+            // If player is attacking
+            if (game.player.isAttacking ||
+                (game.player.isJumping && game.player.hmPokemon.types.contains("DARK"))) {
+                if (isBaseSpecies) {
+                    pokemon.happiness = 0;
+                }
+                // Enter battle with pokemon
+                game.battle.oppPokemon = pokemon;
+                game.player.setCurrPokemon();
+                game.insertAction(new SetField(pokemon, "dirFacing", oppDir,
+                                  new WaitFrames(game, 20,
+                                  new SplitAction(pokemon.new Emote("!", null),
+                                  new WaitFrames(game, 20,
+                                  new PlaySound(pokemon,
+                                  new SetField(game.musicController, "startBattle", "wild",
+                                  Battle.getIntroAction(game))))))));
+                return;
+            }
             if (pokemon.previousOwner == game.player && pokemon.hasItem != null) {
                 nextAction.append(new DisplayText(game, pokemon.name.toUpperCase()+" looks like it' holding something...", null, false, true,
                                   new DisplayText(game, pokemon.name.toUpperCase()+" gave you "+pokemon.hasItem.toUpperCase()+"!", "fanfare1.ogg", false, true,
                                   null)));
-
                 if (!game.player.alreadyDoneHarvestables.contains(pokemon.hasItem)) {
                     if (pokemon.hasItem.contains("manure")) {
                         nextAction.append(new DisplayText(game, "It smells pretty bad... surely it will come in handy!", null, false, true, null));
@@ -3052,10 +3652,6 @@ class Tile {
             }
             // If this is a wild evolved form, then it will aggro player if
             // interacted with twice in a row.
-            boolean isBaseSpecies = true;
-            if (Pokemon.baseSpecies.get(pokemon.name) != null) {
-                isBaseSpecies = Pokemon.baseSpecies.get(pokemon.name).equals(pokemon.name);
-            }
             if (pokemon.previousOwner != game.player && !isBaseSpecies) {
                 if (!pokemon.interactedWith) {
                     nextAction = new SetField(pokemon, "dirFacing", oppDir,
@@ -3140,11 +3736,150 @@ class Tile {
                                   new SetField(pokemon, "canMove", true,
                                   null))))),
                               new DisplayText.Clear(game,
-                              new WaitFrames(game, 3,
+                              new WaitFrames(game, 6,
 //                              new WaitFrames(game, 10,  // TODO: test to avoid textbox mayhem
                               new SetField(game, "playerCanMove", true, 
                               new SetField(pokemon, "canMove", true,
                               null)))))));
+            game.insertAction(nextAction);
+        }
+        else if (this.name.equals("cave1_regi5")) {
+            // Just copy what the tile next to it will do.
+            Tile leftTile = game.map.tiles.get(this.position.cpy().add(-16, 0));
+            if (leftTile != null) {
+                leftTile.onPressA(game);
+            }
+        }
+        // Regigigas while he is standing
+        // If all regis are caught, then enter battle.
+        else if (this.name.equals("cave1_regi2")) {
+            game.playerCanMove = false;
+            Action nextAction;
+            nextAction = new DisplayText(game, "It stands silently in place...", null, false, true,
+                         new WaitFrames(game, 6,
+                         new SetField(game, "playerCanMove", true,
+                         null)));
+            game.insertAction(nextAction);
+        }
+        else if (this.name.equals("cave1_regi3")) {
+            // Dancing sprite
+//            Texture texture = TextureCache.get(Gdx.files.internal("tiles/cave1/regi3.png"));
+//            this.sprite = new Sprite(texture, 0, 0, 48, 48);
+//            this.sprite.setPosition(this.position.x-8, this.position.y-9);
+            MoveWater.regiTimer2 = 0;
+            // Battle intro animation and text
+            game.playerCanMove = false;
+            game.battle.oppPokemon = new Pokemon("regigigas", 50, Generation.CRYSTAL);
+            // This is used to remove him from the map if caught.
+            game.battle.oppPokemon.position = this.position.cpy();
+            game.player.setCurrPokemon();
+            game.insertAction(//new WaitFrames(game, 40,
+                              new DisplayText(game, "...Zut zutt!", "crystal_pokemon/cries/486.ogg", null,
+                              new SetField(game.musicController, "startBattle", "regi_battle1",
+                              new SplitAction(
+                                  new CallMethod(game.uiBatch, "setColor", new Object[]{new Color(1f, 1f, 1f, 1.0f)}, null),
+                              new CallMethod(game.mapBatch, "setColor", new Object[]{new Color(0.5f, 0.5f, 0.5f, 1.0f)},
+                              new SplitAction(
+                                  new RegigigasIntroAnim.BattleIntro(null),
+    //                                              new WaitFrames(game, 240,
+                              new WaitFrames(game, 230,  // lines up the intro frame better with the music.
+//                              new SplitAction(
+//                                  new WaitFrames(game, 120,
+//                                  new SplitAction(
+//                                      new RegigigasIntroAnim.RocksEffect1(),
+//                                      new RegigigasIntroAnim.RocksEffect2())),
+                              Battle.getIntroAction(game))))))));
+        }
+        // Regi legendary pokemon is on this tile
+        else if (this.nameUpper.contains("REGI")) {
+            Pokemon regi = new Pokemon(this.nameUpper.toLowerCase(), 40, Generation.CRYSTAL);
+            // TODO: need text for their cry
+            game.playerCanMove = false;
+            game.battle.oppPokemon = regi;
+            game.player.setCurrPokemon();
+            String cryText = "";
+            if (this.nameUpper.equals("REGIELEKI")) {
+                cryText = "Zizi zizizi.";
+            }
+            else if (this.nameUpper.equals("REGIDRAGO")) {
+                cryText = "Zagd.";
+            }
+            else if (this.nameUpper.equals("REGISTEEL")) {
+                cryText = "Ji-ji-ze-ji-zoh.";
+            }
+            else if (this.nameUpper.equals("REGIROCK")) {
+                cryText = "Zaza zari za...";
+            }
+            else if (this.nameUpper.equals("REGICE")) {
+                cryText = "Jakiih!";
+            }
+
+//            game.uiBatch.setColor(new Color(1f, 1f, 1f, 1.0f));
+//            game.mapBatch.setColor(new Color(0.6f, 0.6f, 0.6f, 1.0f));
+            
+            game.insertAction(new DisplayText(game, cryText, "crystal_pokemon/cries/" + regi.dexNumber + ".ogg", null,
+                              new SetField(game.musicController, "startBattle", "regi_battle1",
+                              new SplitAction(
+                                  new CallMethod(game.uiBatch, "setColor", new Object[]{new Color(1f, 1f, 1f, 1.0f)}, null),
+                              new CallMethod(game.mapBatch, "setColor", new Object[]{new Color(0.5f, 0.5f, 0.5f, 1.0f)},
+                              new SplitAction(
+                                  new RegigigasIntroAnim.BattleIntro(null),
+//                              new WaitFrames(game, 240,
+                              new WaitFrames(game, 230,  // lines up the intro frame better with the music.
+                              Battle.getIntroAction(game))))))));
+        }
+        // This has to be after regi legendary encounter check b/c on same tile.
+        else if (this.name.equals("cave1_regipedistal1")) {
+            game.playerCanMove = false;
+            game.player.isCrafting = true;
+            // Fill regicrafts with whatever is available
+            game.player.regiCrafts.clear();
+            if (this.items.containsKey("REGISTEEL")) {
+                Craft craft = new Craft("REGISTEEL", 1);
+                craft.requirements.add(new Craft("metal coat", 70));
+                craft.requirements.add(new Craft("spell tag", 1));
+                game.player.regiCrafts.add(craft);
+            }
+            if (this.items.containsKey("REGIROCK")) {
+                Craft craft = new Craft("REGIROCK", 1);
+                craft.requirements.add(new Craft("hard stone", 70));
+                craft.requirements.add(new Craft("spell tag", 1));
+                game.player.regiCrafts.add(craft);
+            }
+            if (this.items.containsKey("REGICE")) {
+                Craft craft = new Craft("REGICE", 1);
+                craft.requirements.add(new Craft("nevermeltice", 70));
+                craft.requirements.add(new Craft("spell tag", 1));
+                game.player.regiCrafts.add(craft);
+            }
+            if (this.items.containsKey("REGIDRAGO")) {
+                Craft craft = new Craft("REGIDRAGO", 1);
+                craft.requirements.add(new Craft("dragon scale", 70));
+                craft.requirements.add(new Craft("dragon fang", 2));
+                craft.requirements.add(new Craft("spell tag", 1));
+                game.player.regiCrafts.add(craft);
+            }
+            if (this.items.containsKey("REGIELEKI")) {
+                Craft craft = new Craft("REGIELEKI", 1);
+                craft.requirements.add(new Craft("magnet", 70));
+                craft.requirements.add(new Craft("binding band", 2));
+                craft.requirements.add(new Craft("spell tag", 1));
+                game.player.regiCrafts.add(craft);
+            }
+            game.insertAction(new DrawCraftsMenu.Intro(null, 9,
+                              new DrawCraftsMenu(game, game.player.regiCrafts,
+                              new SetField(game, "playerCanMove", true,
+                              new SetField(game.player, "isCrafting", false,
+                              null)))));
+        }
+        // Pokemon mansion (dungeon) door
+        else if (this.nameUpper.contains("house_wardrobe")) {
+            game.playerCanMove = false;
+            Action nextAction = new DisplayText(game, "Arrow left or right to change clothes color.", null, true, true,
+                                new ChangePlayerColor(
+                                new DisplayText.Clear(game,
+                                new WaitFrames(game, 6,
+                                new SetField(game, "playerCanMove", true, null)))));
             game.insertAction(nextAction);
         }
         // Pokemon mansion (dungeon) door
@@ -3237,12 +3972,29 @@ class Tile {
                               new SpecialBattleMewtwo(game, mewtwo))))));
 //            game.fadeMusicAction = fadeMusic;
         }
-        else if (this.nameUpper.contains("bush") || (this.name.contains("grass") && !this.name.contains("ledge"))) {  // && !this.name.contains("large")
+        // TODO: feedback was that this was annoying
+        // TODO: optionally enable/disable based on feedback
+//        else if (this.nameUpper.contains("bush") || (this.name.contains("grass") && !this.name.contains("ledge"))) {  // && !this.name.contains("large")
+//            game.playerCanMove = false;
+//            game.insertAction(new DisplayText(game, "A Grass-type POKéMON can CUT this.", null, null,
+//                              new WaitFrames(game, 3, 
+//                              new SetField(game, "playerCanMove", true,
+//                              null))));
+//        }
+        else if (this.items.containsKey("torch")) {
             game.playerCanMove = false;
-            game.insertAction(new DisplayText(game, "A Grass-type POKéMON can CUT this.", null, null,
+            game.insertAction(new DisplayText(game, "Remove torch?", null, true, false,
+                              new DrawYesNoMenu(null,
+                                  new DisplayText.Clear(game,
+                                  new WaitFrames(game, 3,
+                                  new PickupItem(this.items, "torch",
+                                  new SetField(this, "isTorch", false,  // this caches whether tile is torch or not
+                                  new SetField(game, "playerCanMove", true,
+                                  null))))),
+                              new DisplayText.Clear(game,
                               new WaitFrames(game, 3, 
                               new SetField(game, "playerCanMove", true,
-                              null))));
+                              null))))));
         }
         else if (this.nameUpper.contains("rock1_color")) {
             game.playerCanMove = false;
@@ -3333,7 +4085,7 @@ class TrainerTipsTile extends Tile {
 
     public static void initMessages() {
         TrainerTipsTile.messages.clear();
-        TrainerTipsTile.messages.add("Stand still while holding X to stop using an HM.");
+        TrainerTipsTile.messages.add("Stand still while holding X to stop using a Field Move.");
         TrainerTipsTile.messages.add("You can craft POKéBALLS out of Apricorns at a campfire.");
         TrainerTipsTile.messages.add("If you white out during battle, you will return to the last place you used a sleeping bag.");
         TrainerTipsTile.messages.add("Using your sleeping bag will slowly restore your party' hp.");
@@ -3342,6 +4094,7 @@ class TrainerTipsTile extends Tile {
         TrainerTipsTile.messages.add("Use CUT on trees and tall grass to get building materials.");
         TrainerTipsTile.messages.add("POKéMON will lay EGGS when located near a compatible mate.");
 //        TrainerTipsTile.messages.add("Build fences to prevent your pokemon from running away when you let them out of their POKéBALL.");
+        TrainerTipsTile.messages.add("Stand still while holding X to stop using a Field Move.");
         TrainerTipsTile.messages.add("Build fences to prevent your POKéMON from wandering off when you let them out of their POKéBALL.");
         TrainerTipsTile.messages.add("You can build a door between two roof tiles to build a back door to your house.");
         TrainerTipsTile.messages.add("Sleeping indoors will restore hp twice as fast as sleeping outdoors.");
@@ -3350,6 +4103,8 @@ class TrainerTipsTile extends Tile {
         TrainerTipsTile.messages.add("POKéMON are happier when located in their natural habitat. If they are happy enough, they may give you items!");
         TrainerTipsTile.messages.add("Sleeping in a bed will over time cure your POKéMON' status conditions.");
         TrainerTipsTile.messages.add("Be wary of taking EGGS near wild POKéMON. Angry parents may attack!");
+        TrainerTipsTile.messages.add("Use the escape rope to return to the nearest location on the shore.");
+        TrainerTipsTile.messages.add("You can plant Miracle Seeds and Apricorns to grow grass and trees.");
     }
 
     @Override
@@ -3374,8 +4129,931 @@ class TrainerTipsTile extends Tile {
         game.insertAction(new DisplayText(game, "TRAINER TIPS!    ", null, null,
                           new DisplayText.Clear(game,
                           new DisplayText(game, this.message, null, null,
-                          new WaitFrames(game, 3,  // this fixes issue where final A press will re-trigger text.
+                          new WaitFrames(game, 3,  // This fixes issue where final A press will re-trigger text.
                           new SetField(game, "playerCanMove", true,
                           null))))));
     }
 }
+
+class RegigigasOutroAnim extends Action {
+    int timer = 0;
+    int phase = 0;
+    Tile regiTile;  // Tile that regigigas is on.
+    Tile pedistalTile;
+    Music soundEffect;
+    Music soundEffect2;
+    
+    public RegigigasOutroAnim(Action nextAction) {
+        this.nextAction = nextAction;
+    }
+
+    @Override
+    public void firstStep(Game game) {
+        for (Tile tile : game.map.tiles.values()) {
+            if (tile.name.equals("cave1_regi2")) {
+                this.regiTile = tile;
+                break;
+            }
+        }
+        // TODO: check that I call dispose on this later.
+//        this.soundEffect = Gdx.audio.newMusic(Gdx.files.internal("sounds/eq3.ogg"));
+        // TODO: dispose
+        this.soundEffect2 = Gdx.audio.newMusic(Gdx.files.internal("sounds/splash1.ogg"));
+        this.soundEffect2.setLooping(false);
+        this.soundEffect2.setVolume(0.3f);
+
+        this.soundEffect = Gdx.audio.newMusic(Gdx.files.internal("sounds/stomp1.ogg"));
+        this.soundEffect.setLooping(true);
+        this.soundEffect.setVolume(0.7f);
+    }
+
+    @Override
+    public void step(Game game) {
+        // EQ animation with sound effect
+        // regi fade in slowly
+        if (this.phase == 0) {
+            if (this.timer == 0) {
+                this.soundEffect.play();
+            }
+            int step = 40;
+//            int step = 60;
+            if (this.timer < step*8) {
+                if (this.timer % 4 == 0) {
+                    game.cam.translate(0, 2);
+                    game.player.position.add(0, 2);
+                    this.regiTile.sprite.translateY(2);
+                }
+                else if (this.timer % 4 == 2) {
+                    game.cam.translate(0, -2);
+                    game.player.position.add(0, -2);
+                    this.regiTile.sprite.translateY(-2);
+                }
+            }
+            if (this.timer == step*2) {
+                this.regiTile.sprite.setRegion(96, 0, 32, 32);
+//                this.soundEffect2.play();
+            }
+            else if (this.timer == step*4) {
+                this.regiTile.sprite.setRegion(64, 0, 32, 32);
+//                this.soundEffect2.play();
+            }
+            else if (this.timer == step*6) {
+                this.regiTile.sprite.setRegion(32, 0, 32, 32);
+//                this.soundEffect2.play();
+            }
+            else if (this.timer == step*8) {
+                this.regiTile.sprite.setRegion(0, 0, 32, 32);
+//                this.soundEffect2.play();
+//                game.cam.translate(0, -2);
+//                game.player.position.add(0, -2);
+//                this.regiTile.sprite.translateY(-2);
+                this.soundEffect.stop();
+            }
+            else if (this.timer == step*9) {
+                this.phase = 1;
+                this.timer = 0;
+            }
+        }
+        else if (this.phase == 1) {
+            this.regiTile.name = "cave1_regi1";
+            this.soundEffect.dispose();
+            this.soundEffect2.stop();
+            this.soundEffect2.dispose();
+            game.actionStack.remove(this);
+            game.insertAction(this.nextAction);
+        }
+        this.timer++;
+    }
+}
+
+
+class RegigigasIntroAnim extends Action {
+    int timer = 0;
+    int phase = 0;
+    Tile regiTile;  // Tile that regigigas is on.
+    Tile pedistalTile;
+    Music soundEffect;
+    Music soundEffect2;
+    Sprite lightningSprite;
+    String dirFacing = "left";
+    String regiName;
+    int regionNum = 0;
+    
+    public RegigigasIntroAnim(String regiName, String dirFacing, Action nextAction) {
+        this.regiName = regiName;
+        this.dirFacing = dirFacing;
+        this.nextAction = nextAction;
+        Texture text = TextureCache.get(Gdx.files.internal("lightning1.png"));
+        this.lightningSprite = new Sprite(text, 0, 0, 160, 144);
+    }
+
+    @Override
+    public void firstStep(Game game) {
+        for (Tile tile : game.map.tiles.values()) {
+            if (tile.name.equals("cave1_regi1")) {
+                this.regiTile = tile;
+                break;
+            }
+        }
+        for (Tile tile : game.map.tiles.values()) {
+            if (tile.name.contains("cave1_regipedistal1")) {
+                this.pedistalTile = tile;
+                break;
+            }
+        }
+        // TODO: check that I call dispose on this later.
+//        this.soundEffect = Gdx.audio.newMusic(Gdx.files.internal("sounds/eq3.ogg"));
+        // TODO: dispose
+        this.soundEffect2 = Gdx.audio.newMusic(Gdx.files.internal("sounds/splash1.ogg"));
+        this.soundEffect2.setLooping(false);
+        this.soundEffect2.setVolume(0.3f);
+
+        this.soundEffect = Gdx.audio.newMusic(Gdx.files.internal("sounds/stomp1.ogg"));
+        this.soundEffect.setLooping(true);
+        this.soundEffect.setVolume(0.7f);
+    }
+
+    @Override
+    public void step(Game game) {
+        // EQ animation with sound effect
+        // regi fade in slowly
+        if (this.phase == 0) {
+            if (this.timer == 0) {
+                this.soundEffect.play();
+            }
+            int step = 60;
+            if (this.timer < step*8) {
+                if (this.timer % 4 == 0) {
+                    game.cam.translate(0, 2);
+                    game.player.position.add(0, 2);
+                    this.regiTile.sprite.translateY(2);
+                }
+                else if (this.timer % 4 == 2) {
+                    game.cam.translate(0, -2);
+                    game.player.position.add(0, -2);
+                    this.regiTile.sprite.translateY(-2);
+                }
+            }
+            if (this.timer == step*2) {
+                this.regiTile.sprite.setRegionX(32);
+                this.regiTile.sprite.setRegionWidth(32);
+                this.soundEffect2.play();
+            }
+            else if (this.timer == step*4) {
+                this.regiTile.sprite.setRegionX(64);
+                this.regiTile.sprite.setRegionWidth(32);
+                this.soundEffect2.play();
+            }
+            else if (this.timer == step*6) {
+                this.regiTile.sprite.setRegionX(96);
+                this.regiTile.sprite.setRegionWidth(32);
+                this.soundEffect2.play();
+            }
+            else if (this.timer == step*8) {
+                this.regiTile.sprite.setRegionX(128);
+                this.regiTile.sprite.setRegionWidth(32);
+//                this.soundEffect2.play();
+//                game.cam.translate(0, -2);
+//                game.player.position.add(0, -2);
+//                this.regiTile.sprite.translateY(-2);
+                this.soundEffect.stop();
+            }
+            else if (this.timer == step*10) {
+                this.phase = 1;
+                this.timer = 0;
+            }
+        }
+        else if (this.phase == 1) {
+            if (this.timer == 1) {
+                this.soundEffect.stop();
+                this.soundEffect.dispose();
+//                this.soundEffect = Gdx.audio.newMusic(Gdx.files.internal("sounds/gigas_noises12.ogg"));
+                this.soundEffect = Gdx.audio.newMusic(Gdx.files.internal("sounds/gigas_noises14.ogg"));
+                this.soundEffect.setVolume(1f);
+                this.soundEffect.play();
+            }
+            
+            if (this.timer < 36) {
+                if (this.timer < 18) {
+                    if (this.timer % 4 == 0) {
+                        this.regiTile.sprite.setRegion(192, 0, 32, 32);
+                    }
+                    else if (this.timer % 4 == 2) {
+                        this.regiTile.sprite.setRegion(128, 0, 32, 32);
+                    }
+                }
+                else if (this.timer < 36) {
+                    if (this.timer % 6 == 0) {
+                        this.regiTile.sprite.setRegion(192, 0, 32, 32);
+                    }
+                    else if (this.timer % 6 == 3) {
+                        this.regiTile.sprite.setRegion(128, 0, 32, 32);
+                    }
+                }
+            }
+            else if (this.timer < 70) {
+                
+            }
+            else if (this.timer < 70 +36) {
+                if (this.timer == 70) {
+                    this.soundEffect.stop();
+                    this.soundEffect.play();
+                }
+                if (this.timer < 70 +18) {
+                    if (this.timer % 4 == 0) {
+                        this.regiTile.sprite.setRegion(224, 0, 32, 32);
+                    }
+                    else if (this.timer % 4 == 2) {
+                        this.regiTile.sprite.setRegion(128, 0, 32, 32);
+                    }
+                }
+                else if (this.timer < 70 +36) {
+                    if (this.timer % 6 == 0) {
+                        this.regiTile.sprite.setRegion(224, 0, 32, 32);
+                    }
+                    else if (this.timer % 6 == 3) {
+                        this.regiTile.sprite.setRegion(128, 0, 32, 32);
+                    }
+                }
+            }
+            else if (this.timer < 110) {
+                
+            }
+            else if (this.timer < 110 +36) {
+                if (this.timer == 110) {
+                    this.soundEffect.stop();
+                    this.soundEffect.play();
+                }
+                if (this.timer < 110 +18) {
+                    if (this.timer % 4 == 0) {
+                        this.regiTile.sprite.setRegion(288, 0, 32, 32);
+                    }
+                    else if (this.timer % 4 == 2) {
+                        this.regiTile.sprite.setRegion(128, 0, 32, 32);
+                    }
+                }
+                else if (this.timer < 110 +36) {
+                    if (this.timer % 6 == 0) {
+                        this.regiTile.sprite.setRegion(288, 0, 32, 32);
+                    }
+                    else if (this.timer % 6 == 3) {
+                        this.regiTile.sprite.setRegion(128, 0, 32, 32);
+                    }
+                }
+            }
+            else if (this.timer < 150) {
+                
+            }
+            else if (this.timer < 150 +36) {
+                if (this.timer == 150) {
+//                    this.soundEffect = Gdx.audio.newMusic(Gdx.files.internal("sounds/gigas_noises15.ogg"));
+//                    this.soundEffect.setVolume(1f);
+                    this.soundEffect.stop();
+                    this.soundEffect.play();
+                }
+                if (this.timer < 150 +18) {
+                    if (this.timer % 4 == 0) {
+                        this.regiTile.sprite.setRegion(256, 0, 32, 32);
+                    }
+                    else if (this.timer % 4 == 2) {
+                        this.regiTile.sprite.setRegion(128, 0, 32, 32);
+                    }
+                }
+                else if (this.timer < 150 +36) {
+                    if (this.timer % 6 == 0) {
+                        this.regiTile.sprite.setRegion(256, 0, 32, 32);
+                    }
+                    else if (this.timer % 6 == 3) {
+                        this.regiTile.sprite.setRegion(128, 0, 32, 32);
+                    }
+                }
+            }
+            else if (this.timer < 220) {
+                
+            }
+            else {
+                this.phase=4;
+                this.timer = 0;
+            }
+        }
+        // TODO: remove, unused
+        else if (this.phase == 1) {
+            if (this.timer == 20) {
+                this.soundEffect.stop();
+                this.soundEffect.dispose();
+                this.soundEffect = Gdx.audio.newMusic(Gdx.files.internal("sounds/gigas_noises2.ogg"));
+                this.soundEffect.setVolume(1f);
+                this.soundEffect.play();
+                this.soundEffect.pause();
+                this.soundEffect.setPosition(5);
+            }
+            if (this.timer < 120) {
+                
+            }
+            else if (this.timer < 180) {
+                if (this.timer == 120) {
+                    this.soundEffect.play();
+                }
+                if (this.timer % 6 == 0) {
+                    this.regiTile.sprite.setRegionX(160);
+                    this.regiTile.sprite.setRegionWidth(32);
+                }
+                else if (this.timer % 6 == 3) {
+                    this.regiTile.sprite.setRegionX(128);
+                    this.regiTile.sprite.setRegionWidth(32);
+                }
+            }
+            else if (this.timer < 240) {
+                
+            }
+            else {
+                this.soundEffect.stop();
+                this.phase++;
+                this.timer = 0;
+            }
+        }
+        // TODO: not using this one
+        else if (this.phase == 1) {
+            if (this.timer == 2) {
+                this.soundEffect.stop();
+                this.soundEffect.dispose();
+            }
+            if (this.timer == 20) {
+                this.soundEffect = Gdx.audio.newMusic(Gdx.files.internal("sounds/gigas_noises7.ogg"));
+                this.soundEffect.setVolume(1f);
+            }
+            if (this.timer < 80) {
+            
+            }
+            else if (this.timer < 140) {
+                if (this.timer % 4 == 0) {
+                    this.regiTile.sprite.setRegionX(128);
+                    this.regiTile.sprite.setRegionWidth(32);
+                    this.soundEffect.stop();
+                    this.soundEffect.play();
+                }
+                else if (this.timer % 4 == 3) {
+                    this.regiTile.sprite.setRegionX(160);
+                    this.regiTile.sprite.setRegionWidth(32);
+                }
+            }
+            else if (this.timer < 200) {
+                
+            }
+            else {
+                this.phase++;
+                this.timer = 0;
+            }
+        }
+        else if (this.phase == 2 || this.phase == 3) {
+            if (this.timer == 2) {
+                this.soundEffect.stop();
+                this.soundEffect.dispose();
+            }
+            if (this.timer == 20) {
+                this.soundEffect = Gdx.audio.newMusic(Gdx.files.internal("sounds/gigas_noises9.ogg"));
+                this.soundEffect.setVolume(1f);
+                this.soundEffect.play();
+                this.regiTile.sprite.setRegion(192, 0, 32, 32);
+            }
+            else if (this.timer == 24) {
+                this.regiTile.sprite.setRegion(224, 0, 32, 32);
+            }
+            else if (this.timer == 28) {
+                this.regiTile.sprite.setRegion(256, 0, 32, 32);
+            }
+            else if (this.timer == 32) {
+                this.regiTile.sprite.setRegion(288, 0, 32, 32);
+            }
+            else if (this.timer == 36) {
+                this.regiTile.sprite.setRegion(128, 0, 32, 32);
+            }
+            else if (this.timer == 100) {
+                this.phase++;
+                this.timer = 0;
+            }
+        }
+        // Flash eyes and then leave on
+        // play lightning strike
+        // play lightning strike flashes
+        // play lightning srike sound
+        else if (this.phase == 4) {
+
+            if (this.timer < 30) {
+            }
+            else if (this.timer < 60) {
+                if (this.timer % 6 == 0) {
+                    this.regiTile.sprite.setRegion(128, 0, 32, 32);
+                }
+                else if (this.timer % 6 == 3) {
+                    this.regiTile.sprite.setRegion(160, 0, 32, 32);
+                }
+            }
+            else if (this.timer < 80) {
+            
+            }
+            else if (this.timer < 160) {
+                if (this.timer % 4 == 0) {
+                    game.cam.translate(0, 2);
+                    game.player.position.add(0, 2);
+                    this.regiTile.sprite.translateY(2);
+                }
+                else if (this.timer % 4 == 2) {
+                    game.cam.translate(0, -2);
+                    game.player.position.add(0, -2);
+                    this.regiTile.sprite.translateY(-2);
+                }
+            }
+            else if (this.timer < 220) {
+                if (this.timer % 6 == 0) {
+                    this.pedistalTile.overSprite.setRegion(0, 0, 16, 16);
+                }
+                else if (this.timer % 6 == 3) {
+                    this.pedistalTile.overSprite.setRegion(this.regionNum, 0, 16, 16);
+                }
+            }
+//            else if (this.timer == 180) {
+//                game.cam.translate(0, -2);
+//                game.player.position.add(0, -2);
+//                this.regiTile.sprite.translateY(-2);
+//            }
+
+            if (this.timer == 1) {
+                this.lightningSprite.setRegion(160*4, 0, 160, 144);
+                this.soundEffect2.stop();
+                this.soundEffect2.dispose();
+                if (this.regiName.equals("REGIDRAGO")) {
+                    this.regionNum = 16;
+                }
+                else if (this.regiName.equals("REGIELEKI")) {
+                    this.regionNum = 32;
+                }
+                else if (this.regiName.equals("REGICE")) {
+                    this.regionNum = 48;
+                }
+                else if (this.regiName.equals("REGIROCK")) {
+                    this.regionNum = 64;
+                }
+                else if (this.regiName.equals("REGISTEEL")) {
+                    this.regionNum = 80;
+                }
+            }
+            else if (this.timer == 60) {
+                this.soundEffect = Gdx.audio.newMusic(Gdx.files.internal("attacks/thunderpunch_player_gsc/sound.ogg"));
+                this.soundEffect.setVolume(1f);
+                this.soundEffect.play();
+                SpriteProxy.inverseColors = true;
+                this.lightningSprite.setRegion(160*0, 0, 160, 144);
+                game.insertAction(new LightningFlash(null));
+            }
+            else if (this.timer == 62) {
+                SpriteProxy.inverseColors = false;
+                this.lightningSprite.setRegion(160*1, 0, 160, 144);
+            }
+            else if (this.timer == 64) {
+                SpriteProxy.inverseColors = true;
+                this.lightningSprite.setRegion(160*2, 0, 160, 144);
+            }
+            else if (this.timer == 68) {
+                SpriteProxy.inverseColors = false;
+                this.lightningSprite.setRegion(160*3, 0, 160, 144);
+            }
+            else if (this.timer == 80) {
+                this.lightningSprite.setRegion(160*4, 0, 160, 144);
+            }
+            else if (this.timer == 160) {
+                this.regiTile.sprite.setRegion(128, 0, 32, 32);
+                this.soundEffect2 = Gdx.audio.newMusic(Gdx.files.internal("sounds/hit.ogg"));
+                this.soundEffect2.setVolume(1f);
+                this.soundEffect2.play();
+                String knockBackDir = "left";
+                if (this.dirFacing.equals("right")) {
+                    knockBackDir = "left";
+                }
+                else if (this.dirFacing.equals("up")) {
+                    knockBackDir = "down";
+                }
+                game.player.dirFacing = this.dirFacing;
+                game.player.currSprite = game.player.standingSprites.get(game.player.dirFacing);
+                game.insertAction(new PlayerKnockedBack(game, game.player, knockBackDir));
+                
+
+                this.regiTile.name = "cave1_regi2";
+                this.pedistalTile.nameUpper = this.regiName;  // TODO: enable depending
+                Texture text = TextureCache.get(Gdx.files.internal("tiles/cave1/overworld2.png"));
+                this.pedistalTile.overSprite = new Sprite(text, this.regionNum, 0, 16, 16);
+                // TODO: remove once DrawMap does game.mapBatch.draw(overSprite) instead
+                this.pedistalTile.overSprite.setPosition(this.pedistalTile.position.x, this.pedistalTile.position.y);
+                
+            }
+            else if (this.timer == 190) {
+                
+                game.playerCanMove = true;
+            }
+            else if (this.timer == 230) {
+                game.actionStack.remove(this);
+            }
+            game.mapBatch.draw(this.lightningSprite, this.regiTile.position.x -110, this.regiTile.position.y -94);
+        }
+        this.timer++;
+    }
+
+    static class RocksEffect1 extends Action {
+//        public static int velocityX = 0;
+//        public static boolean shouldMoveX = false;
+        public static float velocityX = 2;
+        public static boolean shouldMoveX = true;
+
+        public static boolean shouldMoveY = true;
+
+        public int layer = 111;
+        Sprite textboxSprite;
+        Sprite[] sprites = new Sprite[20];
+        // flip-flop between these two velocities
+        int[] velocities = new int[]{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+        int[] velocities2 = new int[]{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+        int velocity = 1;
+        int whichVelocity = 0;
+        Random rand = new Random();
+        boolean firstStep = true;
+
+        public RocksEffect1() {
+            Texture text = new Texture(Gdx.files.internal("battle/battle_bg4.png"));
+            this.textboxSprite = new Sprite(text, 0, 0, 176, 160);
+            this.textboxSprite.setPosition(-8, -8);
+
+            text = new Texture(Gdx.files.internal("battle/rock2.png"));
+            this.sprites[0] = new Sprite(text, 0*32, 0, 32, 32);
+            this.sprites[0].setColor(1f, 1f, 1f, 1f);
+            this.sprites[1] = new Sprite(text, 1*32, 0, 32, 32);
+//            this.sprites[2] = new Sprite(text, 2*32, 0, 32, 32);
+//            this.sprites[3] = new Sprite(text, 5*32, 0, 32, 32);
+            this.sprites[2] = new Sprite(text, 2*32, 0, 32, 32);
+            this.sprites[3] = new Sprite(text, 5*32, 0, 32, 32);
+            this.sprites[4] = new Sprite(text, 6*32, 0, 32, 32);
+            this.sprites[5] = new Sprite(text, 1*32, 0, 32, 32);
+//            this.sprites[6] = new Sprite(text, 2*32, 0, 32, 32);
+//            this.sprites[7] = new Sprite(text, 5*32, 0, 32, 32);
+            this.sprites[6] = new Sprite(text, 2*32, 0, 32, 32);
+            this.sprites[7] = new Sprite(text, 5*32, 0, 32, 32);
+            this.sprites[8] = new Sprite(text, 6*32, 0, 32, 32);
+            this.sprites[9] = new Sprite(text, 0*32, 0, 32, 32);
+            this.sprites[10] = new Sprite(text, 1*32, 0, 32, 32);
+            this.sprites[11] = new Sprite(text, 2*32, 0, 32, 32);
+            this.sprites[12] = new Sprite(text, 5*32, 0, 32, 32);
+            this.sprites[13] = new Sprite(text, 6*32, 0, 32, 32);
+            this.sprites[14] = new Sprite(text, 1*32, 0, 32, 32);
+            this.sprites[15] = new Sprite(text, 2*32, 0, 32, 32);
+            this.sprites[16] = new Sprite(text, 5*32, 0, 32, 32);
+            this.sprites[17] = new Sprite(text, 6*32, 0, 32, 32);
+            this.sprites[18] = new Sprite(text, 0*32, 0, 32, 32);
+            this.sprites[19] = new Sprite(text, 0*32, 0, 32, 32);
+
+            for (int i=0; i < 20; i++) {
+                this.sprites[i].setPosition(rand.nextInt(160+32)-32, rand.nextInt(144) - 144);
+                this.sprites[i].setRotation(rand.nextInt(4) * 90);
+
+                this.velocities[i] = 2; //rand.nextInt(2) + 1;
+                this.velocities2[i] = this.velocities[i] - 1; // -1 +rand.nextInt(2);
+            }
+        }
+        public String getCamera() {return "gui";}
+
+        public int getLayer(){return this.layer;}
+
+        @Override
+        public void step(Game game) {
+            if (this.firstStep) {
+                RegigigasIntroAnim.RocksEffect2.drawRocks = true;
+                this.firstStep = false;
+            }
+
+            for (int i=0; i < 20; i++) {
+                if (this.whichVelocity == 0) {
+                    this.velocity = this.velocities[i];
+                }
+                else {
+                    this.velocity = this.velocities2[i];
+                }
+                if (!RocksEffect1.shouldMoveY) {
+                    this.velocity = 0;
+                }
+
+                RocksEffect1.velocityX = 0;
+//                if (this.sprites[i].getY() > 30) {
+//                    RocksEffect1.velocityX = 100f/this.sprites[i].getY();
+//                }
+                this.sprites[i].setPosition(this.sprites[i].getX() + RocksEffect1.velocityX,
+                                            this.sprites[i].getY() + this.velocity);
+                if (this.sprites[i].getY() > 144) {
+                    this.sprites[i].setPosition(rand.nextInt(160+32)-32, rand.nextInt(144) - 144);
+//                    this.sprites[i].setRotation(rand.nextInt(4) * 90);
+//                    this.velocities[i] = rand.nextInt(2) + 1;
+//                    this.velocities2[i] = this.velocities[i] -1 +rand.nextInt(2);
+                }
+//                if (this.sprites[i].getX() < 0) {
+//                    this.sprites[i].setPosition(160, rand.nextInt(144) - 32);
+//                }
+                if (this.sprites[i].getX() > 160) {
+                    this.sprites[i].setPosition(-32, this.sprites[i].getY());
+                }
+                this.sprites[i].draw(game.uiBatch);
+
+            }
+            this.whichVelocity = (this.whichVelocity + 1) % 2;
+
+            // need textbox over animation
+            this.textboxSprite.draw(game.uiBatch);
+
+            if (game.battle.drawAction == null) {
+                game.actionStack.remove(this);
+                return;
+            }
+        }
+    }
+
+    static class RocksEffect2 extends Action {
+        public static int velocityX = 0;
+        public static boolean shouldMoveX = false;
+        public static boolean shouldMoveY = true;
+        static boolean drawRocks = false;
+        public int layer = 131;
+        Sprite bgSprite;
+        Sprite bgSprite2;
+        Sprite[] sprites = new Sprite[10];
+        // flip-flop between these two velocities
+        int[] velocities = new int[]{1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+        int[] velocities2 = new int[]{1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+        int velocity = 1;
+        int whichVelocity = 0;
+        Random rand = new Random();
+        float[] bg_values = new float[]{0.8f, 0.8f, 0.8f, 0.8f, 0.8f, 0.8f,
+                                        0.8f, 0.8f, 0.8f, 0.8f, 0.8f, 0.8f,
+                                        0.8f, 0.8f, 0.8f, 0.8f, 0.8f, 0.8f,
+                                        0.8f, 0.8f, 0.8f, 0.8f, 0.8f, 0.8f,
+                                        0.8f, 0.8f, 0.8f, 0.8f, 0.8f, 0.8f,
+                                        0.8f, 0.8f, 0.8f, 0.8f, 0.8f, 0.8f,
+                                        0.8f, 0.8f, 0.8f, 0.8f, 0.8f, 0.8f,
+                                        0.8f, 0.8f, 0.8f, 0.8f, 0.8f, 0.8f,
+                                        0.8f, 0.8f, 0.8f, 0.8f, 0.8f, 0.8f,
+                                        0.8f, 0.8f, 08f, 0.8f, 0.8f, 0.8f,
+                                        0.8f, 0.8f, 0.8f, 0.8f, 0.8f, 0.8f,
+                                        0.8f, 0.8f, 0.8f, 0.8f, 0.8f, 0.8f,
+                                        0.8f, 0.8f, 0.8f, 0.8f, 0.8f, 0.8f,
+                                        0.8f, 0.8f, 0.8f, 0.8f, 0.8f, 0.8f,
+                                        0.8f, 0.8f, 0.8f, 0.8f, 0.8f, 0.8f,
+                                        0.8f, 0.8f, 0.8f, 0.8f, 0.8f, 0.8f,
+                                        0.8f, 0.8f, 08f, 0.8f, 0.8f, 0.8f,
+                                        0.8f, 0.8f, 0.8f, 0.8f, 0.8f, 0.8f,
+                                        0.8f, 0.8f, 0.8f, 0.8f, 0.8f, 0.8f,
+                                        0.8f, 0.8f, 0.8f, 0.8f, 0.8f, 0.8f,
+                                        0.8f, 0.8f, 0.8f, 0.8f, 0.8f, 0.8f,
+                                        0.8f, 0.8f, 0.8f, 0.8f, 0.8f, 0.8f,
+                                        0.8f, 0.8f, 0.8f, 0.8f, 0.8f, 0.8f,
+                                        0.8f, 0.8f, 0.8f, 0.8f, 0.8f, 0.8f,
+                                        0.8f, 0.8f, 0.8f, 0.8f, 0.8f, 0.8f,
+                                        0.8f, 0.8f, 0.8f, 0.8f, 0.8f, 0.8f,
+                                        0.9f, 0.9f, 0.9f, 0.9f, 0.9f, 0.9f,
+                                        0.95f, 0.95f, 0.95f, 0.95f, 0.95f, 0.95f,
+                                        1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+                                        1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+                                        1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+                                        1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+                                        1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+                                        1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+                                        1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+                                        1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+                                        0.95f, 0.95f, 0.95f, 0.95f, 0.95f, 0.95f,
+                                        0.9f, 0.9f, 0.9f, 0.9f, 0.9f, 0.9f,};
+        int bg_values_idx = 0;
+        float curr_value = 0f;
+
+        public RocksEffect2() {
+            Texture text = new Texture(Gdx.files.internal("battle/battle_bg3.png"));
+            this.bgSprite = new Sprite(text, 0, 0, 176, 160);
+            this.bgSprite.setPosition(-8, -8);
+
+            text = new Texture(Gdx.files.internal("battle/battle_bg5.png"));
+            this.bgSprite2 = new Sprite(text, 0, 0, 176, 160);
+            this.bgSprite2.setPosition(-8, -8);
+
+            text = new Texture(Gdx.files.internal("battle/rock1.png"));
+            this.sprites[0] = new Sprite(text, 0*32, 0, 32, 32);
+            this.sprites[0].setColor(0f, 0f, 0f, 1f);
+            this.sprites[1] = new Sprite(text, 1*32, 0, 32, 32);
+            this.sprites[1].setColor(0f, 0f, 0f, 1f);
+            this.sprites[2] = new Sprite(text, 2*32, 0, 32, 32);
+            this.sprites[2].setColor(0f, 0f, 0f, 1f);
+            this.sprites[3] = new Sprite(text, 5*32, 0, 32, 32);
+            this.sprites[3].setColor(0f, 0f, 0f, 1f);
+            this.sprites[4] = new Sprite(text, 0*32, 0, 32, 32);
+            this.sprites[4].setColor(0f, 0f, 0f, 1f);
+            this.sprites[5] = new Sprite(text, 1*32, 0, 32, 32);
+            this.sprites[5].setColor(0f, 0f, 0f, 1f);
+            this.sprites[6] = new Sprite(text, 2*32, 0, 32, 32);
+            this.sprites[6].setColor(0f, 0f, 0f, 1f);
+            this.sprites[7] = new Sprite(text, 5*32, 0, 32, 32);
+            this.sprites[7].setColor(0f, 0f, 0f, 1f);
+            this.sprites[8] = new Sprite(text, 0*32, 0, 32, 32);
+            this.sprites[8].setColor(0f, 0f, 0f, 1f);
+            this.sprites[9] = new Sprite(text, 0*32, 0, 32, 32);
+            this.sprites[9].setColor(0f, 0f, 0f, 1f);
+
+            for (int i=0; i < 10; i++) {
+                this.sprites[i].setPosition(rand.nextInt(160-32), rand.nextInt(46) + (144-46-32-46));
+                this.velocities[i] = rand.nextInt(5) + 4;
+                this.velocities2[i] = this.velocities[i];
+                this.sprites[i].setRotation(rand.nextInt(4) * 90);
+            }
+        }
+
+        public String getCamera() {return "gui";}
+
+        public int getLayer(){return this.layer;}
+
+        @Override
+        public void step(Game game) {
+            // didn't end up liking this
+//            // need bg under the animation
+//            this.curr_value = this.bg_values[this.bg_values_idx];
+////            System.out.println(curr_value);
+//            this.bg_values_idx += 1;
+//            if (this.bg_values_idx >= this.bg_values.length) {
+//                this.bg_values_idx = 0;
+//            }
+//
+//            this.bgSprite.setColor(this.curr_value, this.curr_value, this.curr_value, 1f);
+//            this.bgSprite2.setColor(this.curr_value, this.curr_value, this.curr_value, 1f);
+            this.bgSprite.draw(game.uiBatch);
+//            game.floatingBatch.draw(this.bgSprite, 0, 0);
+
+            if (RocksEffect2.drawRocks) {
+                for (int i=0; i < 10; i++) {
+                    if (this.velocities2[i] <= 0) {
+                        this.velocity = 1;
+                        this.velocities2[i] = this.velocities[i];
+                    }
+                    else {
+                        this.velocity = 0;
+                    }
+                    this.velocities2[i]--;
+
+                    if (!RocksEffect2.shouldMoveY) {
+                        this.velocity = 0;
+                    }
+
+                    this.sprites[i].setPosition(this.sprites[i].getX() + RocksEffect2.velocityX,
+                                                this.sprites[i].getY() + this.velocity);
+                    if (this.sprites[i].getY() > 144) {
+                        this.sprites[i].setPosition(rand.nextInt(160-32), rand.nextInt(46) + (144-46-32-46));
+                        this.sprites[i].setRotation(rand.nextInt(4) * 90);
+                        this.velocities[i] = rand.nextInt(5) + 4;
+                        this.velocities2[i] = this.velocities[i];
+                    }
+                    if (this.sprites[i].getX() < 0) {
+                        this.sprites[i].setPosition(160, rand.nextInt(144-32));
+                        this.sprites[i].setRotation(rand.nextInt(4) * 90);
+                    }
+                    this.sprites[i].draw(game.uiBatch);
+
+                }
+                this.whichVelocity = (this.whichVelocity + 1) % 2;
+                this.bgSprite2.draw(game.uiBatch);
+            }
+
+            if (game.battle.drawAction == null) {
+                game.actionStack.remove(this);
+                return;
+            }
+        }
+    }
+
+    public static class BattleIntro extends Action {
+        public int timer = 0;
+        public Sprite sprite;
+
+        public BattleIntro(Action nextAction) {
+            this.nextAction = nextAction;
+            Texture text = TextureCache.get(Gdx.files.internal("tiles/cave1/regi_eye1.png"));
+            this.sprite = new Sprite(text, 0, 0, 16, 16);
+        }
+        
+        @Override
+        public void firstStep(Game game) {}
+        
+        @Override
+        public String getCamera() {
+            return "gui";
+        }
+        
+        @Override
+        public int getLayer() {
+            return 140;
+        }
+
+        @Override
+        public void step(Game game) {
+            if (this.timer > 0) {
+                float alpha = 1f;
+                if (this.timer < 2) {
+                    alpha = 0.3f;
+                }
+                else if (this.timer < 4) {
+                    alpha = 0.6f;
+                }
+//                game.uiBatch.draw(this.sprite, this.regiTile.position.x-32+16, this.regiTile.position.y-64-16);
+                this.sprite.setAlpha(alpha);
+                this.sprite.setPosition(72-32+8, 80-64-8);
+                this.sprite.draw(game.uiBatch);
+//                game.uiBatch.draw(this.sprite, 72-32+8, 80-64-8);
+            }
+            if (this.timer > 70) {
+                float alpha = 1f;
+                if (this.timer < 70 +2) {
+                    alpha = 0.3f;
+                }
+                else if (this.timer < 70 +4) {
+                    alpha = 0.6f;
+                }
+                this.sprite.setAlpha(alpha);
+                this.sprite.setPosition(72-64+8, 80-16-8);
+                this.sprite.draw(game.uiBatch);
+//                game.uiBatch.draw(this.sprite, 72-64+8, 80-16-8);
+            }
+            if (this.timer > 140) {
+                float alpha = 1f;
+                if (this.timer < 140 +2) {
+                    alpha = 0.3f;
+                }
+                else if (this.timer < 140 +4) {
+                    alpha = 0.6f;
+                }
+                this.sprite.setAlpha(alpha);
+                this.sprite.setPosition(72-32+8, 80+32-8);
+                this.sprite.draw(game.uiBatch);
+//                game.uiBatch.draw(this.sprite, 72-32+8, 80+32-8);
+            }
+            if (this.timer > 190-6) {
+                float alpha = 1f;
+                if (this.timer < 190-6 +2) {
+                    alpha = 0.3f;
+                }
+                else if (this.timer < 190-6 +4) {
+                    alpha = 0.6f;
+                }
+                this.sprite.setAlpha(alpha);
+                game.uiBatch.draw(this.sprite, 72+16+8, 80+32-8);
+            }
+            if (this.timer > 230-6-6) {
+                float alpha = 1f;
+                if (this.timer < 230-6-6 +2) {
+                    alpha = 0.3f;
+                }
+                else if (this.timer < 230-6-6 +4) {
+                    alpha = 0.6f;
+                }
+                this.sprite.setAlpha(alpha);
+                this.sprite.setPosition(72+48+8, 80-16-8);
+                this.sprite.draw(game.uiBatch);
+//                game.uiBatch.draw(this.sprite, 72+48+8, 80-16-8);
+            }
+            if (this.timer > 260-10-6) {
+                float alpha = 1f;
+                if (this.timer < 260-10-6 +2) {
+                    alpha = 0.3f;
+                }
+                else if (this.timer < 260-10-6 +4) {
+                    alpha = 0.6f;
+                }
+                this.sprite.setAlpha(alpha);
+                this.sprite.setPosition(72+16+8, 80-64-8);
+                this.sprite.draw(game.uiBatch);
+//                game.uiBatch.draw(this.sprite, 72+16+8, 80-64-8);
+            }
+//            if (this.timer > 330) {
+//                float alpha = 1f;
+//                if (this.timer < 2) {
+//                    alpha = 0.3f;
+//                }
+//                else if (this.timer < 4) {
+//                    alpha = 0.6f;
+//                }
+//                game.mapBatch.draw(this.sprite, this.regiTile.position.x+32, this.regiTile.position.y-32);
+//            }
+
+            if (this.timer >= 370) {
+                game.actionStack.remove(this);
+                game.insertAction(this.nextAction);
+            }
+
+            this.timer++;
+        }
+    }
+}
+
+
+
+
+
+
+

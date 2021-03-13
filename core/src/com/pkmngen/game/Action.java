@@ -26,6 +26,7 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.esotericsoftware.kryonet.Server;
 import com.esotericsoftware.minlog.Log;
+import com.pkmngen.game.util.Direction;
 import com.pkmngen.game.util.LinkedMusic;
 
 // TODO: enums
@@ -124,7 +125,6 @@ public class Action {
 class DisplayText extends Action {
     public static boolean textPersist = false;
     ArrayList<Sprite> spritesNotDrawn;
-
     ArrayList<Sprite> spritesBeingDrawn;
 
     Sprite arrowSprite;
@@ -147,6 +147,7 @@ class DisplayText extends Action {
     boolean checkTrigger;
     boolean persist = false;  // if true, don't clear text after text is finished
     boolean waitInput = true;  // if true, wait for user to press A after text is complete
+    public boolean braillify = false;  // used for regigigas text
     boolean firstStep;
     public static boolean unownText = false;
     Texture unownTiles1;
@@ -154,12 +155,17 @@ class DisplayText extends Action {
     Texture unownTiles3;
 
     public DisplayText(Game game, String textString, String playSound, Action triggerAction, Action nextAction) {
+        this(game, textString, playSound, triggerAction, false, nextAction);
+    }
+
+    public DisplayText(Game game, String textString, String playSound, Action triggerAction, boolean braillify, Action nextAction) {
         this.nextAction = nextAction;
         this.firstStep = true;
         // Set end trigger action
         this.triggerAction = triggerAction;
         this.foundTrigger = false;
         this.checkTrigger = false;
+        this.braillify = braillify;
         this.spritesNotDrawn = new ArrayList<Sprite>();
         this.spritesBeingDrawn = new ArrayList<Sprite>();
 
@@ -190,10 +196,22 @@ class DisplayText extends Action {
                     line += " ";
                 }
                 lines += line;
+                if (this.braillify) {
+                    lines+=line;  // lines are repeated
+                }
                 line = word + " ";
             }
         }
-        lines+=line;
+        if (this.braillify) {
+            while (line.length() < 18) {
+                line += " ";
+            }
+            lines+=line;
+            lines+=line;  // lines are repeated
+        }
+        else {
+            lines+=line;
+        }
         char[] textArray = lines.toCharArray(); // iterate elements
         this.unownTiles1 = new Texture(Gdx.files.internal("unownTiles1.png"));
         this.unownTiles2 = new Texture(Gdx.files.internal("unownTiles2.png"));
@@ -203,6 +221,7 @@ class DisplayText extends Action {
         int j = 0;  ///, offsetNext = 0; // offsetNext if char sizes are ever different. atm it works.
         Sprite currSprite;
         Sprite letterSprite;
+//        boolean doBraille = true;
         for (char letter : textArray) {
             if (!DisplayText.unownText) {
                 letterSprite = game.textDict.get((char)letter);
@@ -235,7 +254,16 @@ class DisplayText extends Action {
                     letterSprite = new Sprite(this.unownTiles3, randX*8, 0, 8, 9);
                 }
             }
-            currSprite = new Sprite(letterSprite); // copy sprite from char-to-Sprite dictionary
+            currSprite = new Sprite(letterSprite);  // Copy sprite from char-to-Sprite dictionary
+            
+            // If braille effect (regi dialogue), then every other line is braille
+            if (this.braillify && j % 2 == 0) {
+                letterSprite = game.brailleDict.get((char)letter);
+                if (letterSprite == null) {
+                    letterSprite = game.textDict.get(' ');
+                }
+                currSprite = new Sprite(letterSprite);
+            }
 
             // currSprite.setPosition(10*3+8*i*3 +2, 26*3-16*j*3 +2); // offset x=8, y=25, spacing x=8, y=8(?)
             currSprite.setPosition(10+8*i +2-4, 26-16*j +2-4);
@@ -279,10 +307,21 @@ class DisplayText extends Action {
                        String playSound,
                        boolean textPersist,
                        boolean waitInput,
+                       boolean braillify,
                        Action nextAction) {
-        this(game, textString, playSound, null, nextAction);
+        this(game, textString, playSound, null, braillify, nextAction);
         this.persist = textPersist;
         this.waitInput = waitInput;
+    }
+
+    // TODO: migrate to using this only
+    public DisplayText(Game game,
+                       String textString,
+                       String playSound,
+                       boolean textPersist,
+                       boolean waitInput,
+                       Action nextAction) {
+        this(game, textString, playSound, textPersist, waitInput, false, nextAction);
     }
 
     public String getCamera() {return "gui";}
@@ -291,7 +330,7 @@ class DisplayText extends Action {
 
     // what to do at each iteration
     public void step(Game game) {
-        if (this.firstStep == true) {
+        if (this.firstStep) {
             // if you ever just pass 'null' to triggerAction, and
              // then remove game.displayTextAction from actionStack later,
              // text will stop displaying
@@ -320,6 +359,16 @@ class DisplayText extends Action {
 
         // draw all drawable
         for (Sprite sprite : spritesBeingDrawn) {
+            // Happens with regigigas braille text that scrolls up 
+            // really high each time it scrolls.
+            if (sprite.getY() > 46-8) {
+                continue;
+            }
+            // Sprites will appear below screen when scrolling,
+            // don't draw in this case.
+            if (sprite.getY() < 6) {
+                continue;
+            }
             sprite.draw(game.uiBatch);
         }
 
@@ -363,10 +412,13 @@ class DisplayText extends Action {
         //
 
         // if no sprites left in spritesNotDrawn, wait for player to hit A
+//        int max = 37;
+//        if (this.braillify) {
+//            max *= 2;
+//        }
         if (spritesBeingDrawn.size() >= 37 || spritesNotDrawn.isEmpty()) { // 18 characters per line allowed
-
-            // if at the end of text and need to play sound, do that
-            if (this.playSound == true && spritesNotDrawn.isEmpty()) {
+            // If at the end of text and need to play sound, do that
+            if (this.playSound && spritesNotDrawn.isEmpty()) {
                 game.insertAction(this.playSoundAction);
                 this.playSoundAction.step(game); // avoid latency
                 this.playSound = false;
@@ -380,7 +432,7 @@ class DisplayText extends Action {
                 return;
             }
 
-            // draw arrow
+            // Draw arrow
              // flash on and off
             if (this.timer <= 0){
                 if (this.timer <= -35){
@@ -407,7 +459,7 @@ class DisplayText extends Action {
                     game.actionStack.remove(this);
                 }
                 else {
-                    this.scrollUpAction = new DisplayText.ScrollTextUp(game, this.spritesBeingDrawn, this.spritesNotDrawn);
+                    this.scrollUpAction = new DisplayText.ScrollTextUp(game, this.spritesBeingDrawn, this.spritesNotDrawn, this.braillify);
                     game.insertAction(this.scrollUpAction);
                 }
             }
@@ -428,13 +480,17 @@ class DisplayText extends Action {
         if (InputProcessor.aPressed || InputProcessor.bPressed) {
             // if would take too many, stop
             for (int i=0; i < 3 && !spritesNotDrawn.isEmpty(); i++) {
-                spritesBeingDrawn.add(spritesNotDrawn.get(0));
-                spritesNotDrawn.remove(0);
+                spritesBeingDrawn.add(spritesNotDrawn.remove(0));
+                if (this.braillify && !spritesNotDrawn.isEmpty() && 35-spritesBeingDrawn.size() >= 0) {
+                    spritesBeingDrawn.add(spritesNotDrawn.remove(35-spritesBeingDrawn.size()));
+                }
             }
         }
         else {
-            spritesBeingDrawn.add(spritesNotDrawn.get(0));
-            spritesNotDrawn.remove(0);
+            spritesBeingDrawn.add(spritesNotDrawn.remove(0));
+            if (this.braillify && !spritesNotDrawn.isEmpty() && 35-spritesBeingDrawn.size() >= 0) {
+                spritesBeingDrawn.add(spritesNotDrawn.remove(35-spritesBeingDrawn.size()));
+            }
         }
 
     }
@@ -466,7 +522,6 @@ class DisplayText extends Action {
         public PlaySoundText(String sound, Action nextAction) {
             this.nextAction = nextAction;
             this.playedYet = false;
-
             if (sound.equals("fanfare1")) {
                 this.music = Gdx.audio.newMusic(Gdx.files.internal("catch_fanfare.mp3")); // use this
                 this.music.setLooping(false);
@@ -486,6 +541,9 @@ class DisplayText extends Action {
             else {
                 this.music = Gdx.audio.newMusic(Gdx.files.internal(sound)); // use this
                 this.music.setLooping(false);
+                if (sound.contains("cries")) {
+                    this.music.setVolume(0.5f);
+                }
             }
         }
 
@@ -517,12 +575,19 @@ class DisplayText extends Action {
 
         ArrayList<Sprite> text;
         ArrayList<Sprite> otherText;
+        boolean braillify = false;
+        int numRemove = 18;
 
         public int layer = 110;
 
         public ScrollTextUp(Game game, ArrayList<Sprite> text, ArrayList<Sprite> otherText) {
+            this(game, text, otherText, false);
+        }
+
+        public ScrollTextUp(Game game, ArrayList<Sprite> text, ArrayList<Sprite> otherText, boolean braillify) {
             this.text = text;
             this.otherText = otherText;
+            this.braillify = braillify;
 
             this.positions = new ArrayList<Vector2>();
             for (int i=0; i < 5; i++) {
@@ -533,6 +598,10 @@ class DisplayText extends Action {
                 this.positions.add(new Vector2(0,0));
             }
             this.positions.add(new Vector2(0,8));
+            
+            if (this.braillify) {
+                this.numRemove = 36;
+            }
         }
 
         public String getCamera() {return "gui";}
@@ -541,8 +610,7 @@ class DisplayText extends Action {
 
         // what to do at each iteration
         public void step(Game game) {
-            this.position = this.positions.get(0);
-            this.positions.remove(0);
+            this.position = this.positions.remove(0);
 
             for (Sprite sprite : this.text) {
                 sprite.setPosition(sprite.getX()+this.position.x, sprite.getY()+this.position.y);
@@ -554,11 +622,22 @@ class DisplayText extends Action {
             // if done, remove first 18 elements
             // frees up DisplayText's text array, which will get filled with new sprites
             if (this.positions.isEmpty()) {
-                for (int i=0; i<18; i++) {
+                if (this.braillify) {
+                    this.braillify = false;
+                    for (int i=0; i < 5; i++) {
+                        this.positions.add(new Vector2(0,0));
+                    }
+                    this.positions.add(new Vector2(0,8));
+                    for (int i=0; i < 5; i++) {
+                        this.positions.add(new Vector2(0,0));
+                    }
+                    this.positions.add(new Vector2(0,8));
+                    return;
+                }
+                for (int i=0; i<this.numRemove; i++) {
                     this.text.remove(0);
                 }
                 game.actionStack.remove(this);
-
                 return;
             }
         }
@@ -757,7 +836,7 @@ class DisplayTextIntro extends Action {
         }
 
         // don't do anything if trigger action is in actionStack
-        if (this.checkTrigger == true) {
+        if (this.checkTrigger) {
             if (game.actionStack.contains(this.triggerAction)) {
                 this.foundTrigger = true;
                 return;
@@ -837,10 +916,11 @@ class DisplayTextIntro extends Action {
             this.speedTimer = this.speed;
         }
 
-        // if would take too many, stop
+        // If would take too many, stop
         for (int i=0; i < 1 && !spritesNotDrawn.isEmpty() && spritesBeingDrawn.size() < 36; i++) {
-            spritesBeingDrawn.add(spritesNotDrawn.get(0));
-            spritesNotDrawn.remove(0);
+//            spritesBeingDrawn.add(spritesNotDrawn.get(0));
+//            spritesNotDrawn.remove(0);  // TODO: remove
+            spritesBeingDrawn.add(spritesNotDrawn.remove(0));
         }
     }
 
@@ -1492,7 +1572,8 @@ class DrawSetupMenu extends Action {
             }
             // Enter map size
             else if (j == 3+this.offset+this.offset2 && this.localHostJoinIndex != 2) {
-                char[] textArray = "Size  S M L XL XXL".toCharArray();
+//                char[] textArray = "Size  S M L XL XXL".toCharArray();  // TODO: remove
+                char[] textArray = "World S M L XL XXL".toCharArray();
                 Sprite letterSprite;
                 for (int i=0; i < textArray.length; i++) {
                     letterSprite = game.textDict.get(textArray[i]);
@@ -1703,14 +1784,25 @@ class DrawSetupMenu extends Action {
 //                                }
                                 game.actionStack.remove(this);
 
-                                // Size
-                                // TODO: uncomment
+                                // World size
                                 if (this.sizeIndex == 0) {
-//                                    this.sizeIndex = 1;
-                                    this.sizeIndex = -1;
+                                    if (!game.debugInputEnabled) {
+                                        this.sizeIndex = 1;
+                                    }
+                                    else {
+                                        this.sizeIndex = -1;
+                                    }
+                                }
+                                
+                                // TODO: remove somethign and make 100 always.
+                                // Largest worlds were causing issues.
+                                int something = 100;
+                                if (this.sizeIndex > 3) {
+                                    something = 80;  //  attempt to shrink larger worlds.
                                 }
                                 // TODO: would ideally be bigger, like 100*200*this.sizeIndex
-                                final int size = 100*100*(this.sizeIndex+2);
+                                final int size = 100*something*(this.sizeIndex+2);
+                                
                                 // TODO: debug, comment or removee
 //                                size = 100*100;  // 100*300 // 100*500 // 100*180 // 100*100 // 20*30 // 60*100 // 100*120
 
@@ -2296,6 +2388,7 @@ class MusicController extends Action {
 
     public String currOverworldMusic = null;
     public String startOverworldMusic = null;  // next overworld music queued to be played
+    public String startDungeonMusic = null;
     public boolean fadeToDungeon = false;
     public boolean resumeOverworldMusic = false;
     public boolean inTransition = false;
@@ -2330,14 +2423,30 @@ class MusicController extends Action {
 
         if (this.startBattle != null && !this.inBattle) {
             System.out.println("startBattle");
-            if (!this.currDayTime.equals("night") && !this.unownMusic) {
+            // TODO: needs to trigger in regi cave even if it's night
+            // probably check currRoute or something
+            if (game.map.currRoute.isDungeon || (!this.currDayTime.equals("night") && !this.unownMusic)) {
+
                 game.currMusic.pause();
-                game.currMusic = game.battle.music;
-                game.currMusic.stop();
-                game.currMusic.setVolume(0.3f);
-//                game.currMusic.setVolume(0f); // TODO: debug, remove
-//                BattleFadeOutMusic.stop = true;  // TODO: remove
-//                FadeMusic.pause = true;  // TODO: remove
+                if (this.startBattle.equals("wild")) {
+                    game.currMusic = game.battle.music;
+                    game.currMusic.stop();
+                    game.currMusic.setVolume(0.3f);
+//                    game.currMusic.setVolume(0f); // TODO: debug, remove
+//                    BattleFadeOutMusic.stop = true;  // TODO: remove
+//                    FadeMusic.pause = true;  // TODO: remove
+                }
+                else {
+                    if (!game.loadedMusic.containsKey(this.startBattle)) {
+                        game.loadedMusic.put(this.startBattle, new LinkedMusic("music/"+this.startBattle+"_intro", "music/"+this.startBattle));
+                    }
+                    game.currMusic = game.loadedMusic.get(this.startBattle);
+                    game.currMusic.stop();
+                    game.currMusic.setVolume(0.4f);
+//                    if (this.startBattle.contains("regi")) {
+//                        game.currMusic.setVolume(0.4f);
+//                    }
+                }
                 game.currMusic.play();
             }
             this.inBattle = true;
@@ -2354,7 +2463,11 @@ class MusicController extends Action {
         }
         if (this.battleFadeOut && this.inBattle) {
             System.out.println("battleFadeOut");
-            if (!this.currDayTime.equals("night") || game.map.timeOfDay.equals("day") || this.playerFainted || this.unownMusic) {
+            if (game.map.currRoute.isDungeon ||
+                !this.currDayTime.equals("night") ||
+                game.map.timeOfDay.equals("day") ||
+                this.playerFainted ||
+                this.unownMusic) {
 //                game.currMusic.setVolume(0.3f);  // Emulates previous behavior
                 float currVol = game.currMusic.getVolume();
                 currVol = 0.004f*(currVol/0.3f);  // Sounds slightly better for fanfare fade out.
@@ -2385,40 +2498,88 @@ class MusicController extends Action {
             System.out.println("resume overworld music");
             System.out.println(game.map.timeOfDay.equals("night"));
             System.out.println(this.inBattle);
-            if (this.startTimeOfDay == null && !this.inTransition) {
-                System.out.println(this.currOverworldMusic);
-                System.out.println(game.currMusic.getVolume());
-                if (!game.map.currRoute.name.contains("pkmnmansion")) {
-                    game.currMusic.pause();
-                    game.currMusic = game.loadedMusic.get(this.currOverworldMusic);
+//            if (!this.inTransition) {  // TODO: remove once tested
+                game.currMusic.pause();
+                if (game.map.currRoute.isDungeon) {
+                    String musicName = game.map.currRoute.getNextMusic(true);
+                    if (!game.loadedMusic.containsKey(musicName)) {
+                        Music music = Gdx.audio.newMusic(Gdx.files.internal("music/"+musicName+".ogg"));
+                        music.setLooping(true);
+                        game.loadedMusic.put(musicName, music);
+                    }
+                    game.currMusic = game.loadedMusic.get(musicName);
+                    // This didn't work when I set it while adding to game.loadedMusic
+                    // maybe FadeMusic re-sets the volume to 1f.
+                    // TODO: testing
+                    // sound pretty good
+                    game.currMusic.stop(); 
+                    if (musicName.contains("sealed_chamber")) {
+                        game.currMusic.setVolume(0.25f);
+                    }
                 }
-                else {
-                    // TODO: not ideal
-                    game.currMusic = game.loadedMusic.get("pkmnmansion");
+                else if (this.startTimeOfDay == null) {
+                    System.out.println(this.currOverworldMusic);
+                    System.out.println(game.currMusic.getVolume());
+                    if (!game.loadedMusic.containsKey(this.currOverworldMusic)) {
+                        game.loadedMusic.put(this.currOverworldMusic, Gdx.audio.newMusic(Gdx.files.internal("music/"+this.currOverworldMusic+".ogg")));
+                    }
+                    game.currMusic = game.loadedMusic.get(this.currOverworldMusic);
                 }
                 if (!game.currMusic.isPlaying()) {
                     game.currMusic.play();
                 }
-            }
+//            }  // TODO: remove once tested
             this.resumeOverworldMusic = false;
             this.playerFainted = false;
         }
         if (this.fadeToDungeon) {
             System.out.println("fadeToDungeon");
-            if (!this.currDayTime.equals("night")) {
+            // TODO: remove
+//            if (!this.currDayTime.equals("night")) {
                 String nextMusicName = this.currOverworldMusic;
                 // If previous overworld music was night, and it's not currently night, need to refresh.
-                if (game.map.currRoute.name.contains("pkmnmansion") || nextMusicName.contains("night")) {
+                if (game.map.currRoute.isDungeon || nextMusicName.contains("night")) {
                     nextMusicName = game.map.currRoute.getNextMusic(true);  // was false
                 }
-                Action action = new FadeMusic(game.currMusic, -0.025f,
-                                new WaitFrames(game, 10,
-                                null));
-                action.append(new SetField(this, "startOverworldMusic", nextMusicName, null));
+                System.out.println("nextMusicName");
+                System.out.println(nextMusicName);
+                // TODO: this was the previous behavior
+//                Action action = new FadeMusic(game.currMusic, -0.025f,
+//                                new WaitFrames(game, 10, 
+//                                null));
+                // This will accomodate musics that are at a different volume (hopefully)
+                float rate = game.currMusic.getVolume() * -0.025f;
+                Action action = new FadeMusic(game.currMusic, rate, null);
+                // TODO: potentially remove
+//                if (game.map.currRoute.isDungeon) {
+//                    action.append(new SetField(this, "startDungeonMusic", nextMusicName, null));
+//                }
+//                else {
+//                    action.append(new SetField(this, "startOverworldMusic", nextMusicName, null));
+//                }
+                action.append(new SetField(this, "resumeOverworldMusic", true, null));
                 game.insertAction(action);
-            }
+//            }
             this.fadeToDungeon = false;
         }
+        // TODO: potentially remove
+//        // Had to make this sep b/c overworld music fade was overriding the dungeon music
+//        if (this.startDungeonMusic != null && !this.inBattle && !this.evolving) {
+//            if (!this.unownMusic) {
+//                game.currMusic.pause();
+//                if (!game.loadedMusic.containsKey(this.startDungeonMusic)) {
+//                    game.loadedMusic.put(this.startDungeonMusic, Gdx.audio.newMusic(Gdx.files.internal("music/"+this.startDungeonMusic+".ogg")));
+//                }
+//                game.currMusic = game.loadedMusic.get(this.startDungeonMusic);
+//                game.currMusic.setLooping(true);
+//                // TODO: volume control some other way
+//                if (this.startDungeonMusic.contains("sealed_chamber")) {
+//                    game.currMusic.setVolume(0.25f);
+//                }
+//                game.currMusic.play();
+//            }
+//            this.startDungeonMusic = null;
+//        }
         if (this.startNightAlert != null) {
             game.currMusic.pause();
             if (!game.loadedMusic.containsKey(this.startNightAlert)) {
@@ -2436,25 +2597,35 @@ class MusicController extends Action {
         }
         if (this.startOverworldMusic != null && !this.inBattle && !this.evolving) {
             System.out.println("startOverworldMusic");
+            System.out.println(this.startOverworldMusic);
             // Was a fade in, just starting music now.
-            if (!this.currDayTime.equals("night") && !this.unownMusic) {
+            if (!game.map.currRoute.isDungeon && !this.currDayTime.equals("night") && !this.unownMusic) {
                 game.currMusic.pause();
                 if (!game.loadedMusic.containsKey(this.startOverworldMusic)) {
                     game.loadedMusic.put(this.startOverworldMusic, Gdx.audio.newMusic(Gdx.files.internal("music/"+this.startOverworldMusic+".ogg")));
                 }
                 game.currMusic = game.loadedMusic.get(this.startOverworldMusic);
-                if (!this.startOverworldMusic.contains("pkmnmansion")) {
-                    game.currMusic.setOnCompletionListener(this.musicCompletionListener);
-                    this.currOverworldMusic = this.startOverworldMusic;
-                }
-                else {
-                    game.currMusic.setLooping(true);
-                }
+//                if (!this.startOverworldMusic.contains("pkmnmansion") &&
+//                    !this.startOverworldMusic.contains("sealed_chamber")) {
+//                if (game.map.currRoute.isDungeon) {
+//                    game.currMusic.setLooping(true);
+//                }
+//                else {
+                game.currMusic.setOnCompletionListener(this.musicCompletionListener);
+                this.currOverworldMusic = this.startOverworldMusic;
+//                }
+//                // TODO: remove
+//                if (this.startOverworldMusic.contains("sealed_chamber")) {
+//                    game.currMusic.setVolume(0.25f);
+//                    System.out.println("here3");
+//                }
                 game.currMusic.play();
             }
             this.startOverworldMusic = null;
         }
-        if (this.startTimeOfDay != null && !this.inBattle && !this.playerFainted && !this.unownMusic && !this.evolving) {
+        if (this.startTimeOfDay != null && !this.inBattle &&
+                !this.playerFainted && !this.unownMusic &&
+                !this.evolving && !game.map.currRoute.isDungeon) {
             this.currDayTime = this.startTimeOfDay;
             if (game.battle.oppPokemon == null || !SpecialMewtwo1.class.isInstance(game.battle.oppPokemon)) {
                 if (this.startTimeOfDay.equals("day")) {
@@ -2487,7 +2658,9 @@ class MusicController extends Action {
 //                                           new WaitFrames(game, 360,
 //                                           new FadeMusic(nextMusicName, "in", "", 0.2f, true, 1f, musicCompletionListener,
 //                                           null)));
-                        this.inTransition = true;
+                        // TODO: this could cause problems if resumeoverworldmusic is set true
+                        // but inTransition is somehow also still true.
+//                        this.inTransition = true;  // TODO: test without
                         Action nextMusic = new FadeMusic(game.currMusic, -0.025f,  // used for fading night music out
                                            new WaitFrames(game, 360,
                                            new SetField(game.musicController, "startOverworldMusic", nextMusicName,
@@ -2496,6 +2669,7 @@ class MusicController extends Action {
 //                        game.fadeMusicAction = nextMusic; // TODO: is this being used?
 //                        MusicController.currOverworldMusic = nextMusicName;
                         game.insertAction(nextMusic);
+                        this.currOverworldMusic = nextMusicName;
                     }
                     else {
                         game.currMusic = Gdx.audio.newMusic(Gdx.files.internal("music/nature1_render.ogg"));
@@ -2542,6 +2716,7 @@ class MusicController extends Action {
 class PlaySound extends Action {
     Music music;
     String sound;
+    boolean cached = false;
 
     boolean playedYet; // do music.play on first step
 
@@ -2574,10 +2749,26 @@ class PlaySound extends Action {
     }
 
     public PlaySound(String sound, float volume, Action nextAction) {
+        this(sound, volume, false, nextAction);
+    }
+
+    public PlaySound(String sound, float volume, boolean cached, Action nextAction) {
         this.nextAction = nextAction;
         this.playedYet = false;
         this.sound = sound;
         this.music = null;
+        this.cached = cached;
+
+        if (cached) {
+            if (!Game.staticGame.loadedMusic.containsKey(sound)) {
+                Game.staticGame.loadedMusic.put(sound, Gdx.audio.newMusic(Gdx.files.internal(sound+".ogg")));
+            }
+            this.music = Game.staticGame.loadedMusic.get(sound);
+            this.music.stop();
+            this.music.setVolume(volume);
+            this.music.setLooping(false);
+            return;
+        }
 
         if (sound == "laser1") {
             this.music = Gdx.audio.newMusic(Gdx.files.internal("data/laser1.wav")); // use this
@@ -2862,7 +3053,9 @@ class PlaySound extends Action {
         }
         if (!this.music.isPlaying()) {
             // TODO: getting stuck here occasionally?
-            this.music.dispose();
+            if (!this.cached) {
+                this.music.dispose();
+            }
             game.actionStack.remove(this);
             game.insertAction(this.nextAction);
         }
@@ -2920,6 +3113,118 @@ class SetField extends Action {
             } catch (SecurityException e) {
                 e.printStackTrace();
             }
+        }
+        game.actionStack.remove(this);
+        game.insertAction(this.nextAction);
+    }
+}
+
+
+
+class SetArrayAtIndex extends Action {
+    Object[] object;
+    int index;
+    Object setTo;
+
+    public SetArrayAtIndex(Object[] object, int index, Object setTo, Action nextAction) {
+        this.nextAction = nextAction;
+        this.object = object;
+        this.index = index;
+        this.setTo = setTo;
+    }
+
+    @Override
+    public void step(Game game) {
+        if (this.object != null) {
+            try {
+                this.object[this.index] = this.setTo;
+            } catch (IllegalArgumentException e) {
+                e.printStackTrace();
+            } catch (SecurityException e) {
+                e.printStackTrace();
+            }
+        }
+        game.actionStack.remove(this);
+        game.insertAction(this.nextAction);
+    }
+}
+
+/**
+ * Ideally don't do this.
+ */
+class ChangePlayerColor extends Action {
+    
+//    public static int colorIndex = 0;
+    int index = 0;
+    
+    ArrayList<Color> colors = new ArrayList<Color>();
+
+    public ChangePlayerColor(Action nextAction) {
+        this.nextAction = nextAction;
+        this.colors.add(new Color(0.9137255f, 0.5294118f, 0.1764706f, 1f));  // Original texture color.
+        this.colors.add(new Color(46f/255f, 113f/255f, 1f, 1f));  // blue
+        this.colors.add(Color.CYAN);
+        this.colors.add(new Color(47f/255f, 229f/255f, 53f/255f, 1f));  // green
+        this.colors.add(Color.MAGENTA);
+        this.colors.add(Color.MAROON);
+        this.colors.add(Color.YELLOW);
+        this.colors.add(Color.OLIVE);
+        this.colors.add(Color.TEAL);
+        this.colors.add(Color.RED);
+        this.colors.add(Color.PURPLE);
+        this.colors.add(new Color(255f/255f, 115f/255f, 200f/255f, 1f));  // pink
+    }
+
+    @Override
+    public void step(Game game) {
+
+        if (InputProcessor.leftJustPressed) {
+            this.index--;
+            if (this.index < 0) {
+                this.index = this.colors.size()-1;
+            }
+            game.player.setColor(this.colors.get(this.index));
+            game.player.currSprite = game.player.standingSprites.get(game.player.dirFacing);
+        }
+        else if (InputProcessor.rightJustPressed) {
+            this.index++;
+            if (this.index >= this.colors.size()) {
+                this.index = 0;
+            }
+            game.player.setColor(this.colors.get(this.index));
+            game.player.currSprite = game.player.standingSprites.get(game.player.dirFacing);
+        }
+
+        if (InputProcessor.bJustPressed) {
+            game.actionStack.remove(this);
+            game.insertAction(this.nextAction);
+        }
+        
+    }
+}
+
+/**
+ * Ideally don't do this.
+ */
+class PickupItem extends Action {
+    HashMap<String, Integer> items;
+    String whichItem;
+    
+    public PickupItem(HashMap<String, Integer> items, String whichItem, Action nextAction) {
+        this.items = items;
+        this.whichItem = whichItem;
+        this.nextAction = nextAction;
+    }
+
+    @Override
+    public void step(Game game) {
+        game.insertAction(new PlaySound("seed1", null));
+        HashMap<String, Integer> items = new HashMap<String, Integer>();
+        this.items.remove(this.whichItem);
+        if (whichItem.equals("torch")) {
+            items.put("log", 1);
+            items.put("grass", 1);
+            game.insertAction(new DrawItemPickup(items, null));
         }
         game.actionStack.remove(this);
         game.insertAction(this.nextAction);
@@ -3063,3 +3368,20 @@ class WaitFrames extends Action {
         }
     }
 }
+
+class RemoveAction extends Action {
+    Action action;
+
+    public RemoveAction(Action action, Action nextAction) {
+        this.nextAction = nextAction;
+        this.action = action;
+    }
+
+    @Override
+    public void step(Game game) {
+        game.actionStack.remove(this);
+        game.actionStack.remove(this.action);
+        game.insertAction(this.nextAction);
+    }
+}
+
