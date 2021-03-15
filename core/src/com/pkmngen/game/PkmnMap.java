@@ -603,6 +603,99 @@ class LightningFlash extends Action {
     
 }
 
+/**
+ * TODO: remove this and use the teleport anim.
+ */
+class EscapeRope extends Action {
+    Sprite sprite;
+    Sprite sprite2;
+    public int layer = 114;  // TODO: check
+    int timer = 0;
+    int slow = 3;
+
+    public EscapeRope(Action nextAction) {
+        this.nextAction = nextAction;
+        // fade out from white anim
+        Texture text1 = TextureCache.get(Gdx.files.internal("battle/intro_frame6.png"));
+        this.sprite = new Sprite(text1);
+        this.sprite.setPosition(0, 0);
+        this.sprite2 = new Sprite(text1);
+        this.sprite.setPosition(-144, 0);
+    }
+
+    public String getCamera() {return "gui";}
+
+    public int getLayer(){return this.layer;}
+
+    @Override
+    public void step(Game game) {
+        if (this.timer < 2*slow) {
+            if (this.timer == 0) {
+                game.insertAction(new PlaySound("enter1", null));
+            }
+        }
+        else if (this.timer < 4*slow) {
+            this.sprite.draw(game.uiBatch, .25f);
+            this.sprite2.draw(game.uiBatch, .25f);
+        }
+        else if (this.timer < 6*slow) {
+            this.sprite.draw(game.uiBatch, .50f);
+            this.sprite2.draw(game.uiBatch, .50f);
+        }
+        else if (this.timer < 22*slow) {
+            if (this.timer == 6*slow) {
+                game.map.interiorTilesIndex=100;
+                game.map.tiles = game.map.overworldTiles;
+                game.player.dirFacing = "down";
+                game.player.currSprite = game.player.standingSprites.get(game.player.dirFacing);
+
+                // Player buildtile stuff
+                if (game.map.tiles == game.map.overworldTiles) {
+                    game.player.buildTiles = game.player.outdoorBuildTiles;
+                }
+                else {
+                    game.player.buildTiles = game.player.indoorBuildTiles;
+                }
+                while (game.player.buildTileIndex > 0 && game.player.buildTileIndex >= game.player.buildTiles.size()) {
+                    game.player.buildTileIndex--;
+                }
+                game.player.currBuildTile = game.player.buildTiles.get(game.player.buildTileIndex);
+                Gdx.gl.glClearColor(0, 0, 0, 1);
+                if (!game.map.timeOfDay.equals("night")) {
+                    game.mapBatch.setColor(new Color(1f, 1f, 1f, 1f));
+                }
+                else {
+                    // Is night, so set to night color
+                    game.mapBatch.setColor(new Color(0.08f, 0.08f, 0.3f, 1.0f));
+                }
+            }
+            this.sprite.draw(game.uiBatch, 1f);
+            this.sprite2.draw(game.uiBatch, 1f);
+        }
+        else if (this.timer < 24*slow) {
+            if (this.timer == 22*slow) {
+                game.insertAction(new PlaySound("exit1", null));
+            }
+            this.sprite.draw(game.uiBatch, .75f);
+            this.sprite2.draw(game.uiBatch, .75f);
+        }
+        else if (this.timer < 26*slow) {
+            this.sprite.draw(game.uiBatch, .50f);
+            this.sprite2.draw(game.uiBatch, .50f);
+        }
+        else if (this.timer < 28*slow) {
+            this.sprite.draw(game.uiBatch, .25f);
+            this.sprite2.draw(game.uiBatch, .25f);
+        }
+        else {
+            game.actionStack.remove(this);
+            game.insertAction(this.nextAction);
+        }
+        this.timer++;
+    }
+}
+
+
 // TODO: shader method
 class EnterBuilding extends Action {
     Sprite sprite;
@@ -1090,7 +1183,7 @@ class MoveWater extends Action {
                     }
                 }
             }
-            else if (tile.isTorch || tile.items.containsKey("torch")) {
+            else if (tile.isTorch || tile.items().containsKey("torch")) {
                 tile.isTorch = true;
                 Sprite newSprite;
                 if (this.campfireTimer < 40) {
@@ -1760,6 +1853,8 @@ public class PkmnMap {
         float timeDelta = 60;
 //        float saveInterval = 10; // TODO: debug, was 60  // Every minute for now
         float saveInterval = 60; // TODO: debug, was 60  // Every minute for now
+        
+        public static int timeSinceLastSave = 0;
 
         // TODO: map id's?
         OutputStream outputStream;
@@ -1775,6 +1870,7 @@ public class PkmnMap {
 
         @Override
         public void step(Game game) {
+            PeriodicSave.timeSinceLastSave = 0;
             // TODO: this only works for server atm, because I'm using game.server.getKryo() below.
             // Could change to also use game.server.getKryo() if I need for client.
             if (game.type == Game.Type.CLIENT) {
@@ -1911,7 +2007,7 @@ class Route {
     Music music;
     ArrayList<String> musics = new ArrayList<String>();
     int musicsIndex = 0;
-    
+
     boolean isDungeon = false;  // some routes require music transition. ie, cave, pokemon mansion
 
     // TODO: remove
@@ -1944,7 +2040,7 @@ class Route {
 
         this.pokemon = new ArrayList<Pokemon>();
         this.allowedPokemon = new ArrayList<String>();
-        
+
         // TODO: possibly different per-route
 //        this.musics.add("nature1_render");  // TODO: this is being removed or replaced by something
         this.musics.add("pokemon_tcg_gym1");
@@ -2590,7 +2686,7 @@ class Tile {
     public HashMap<String, Integer> items() {
         if (this.items == null) {
             this.items = new HashMap<String, Integer>();
-            
+
             // Init items here based on tile name and nameUpper
             if (this.name.equals("grass2")) {
                 this.items.put("grass", 1);
@@ -3195,7 +3291,7 @@ class Tile {
             playerText = TextureCache.get(Gdx.files.internal("tiles/tree2.png"));
             this.overSprite = new Sprite(playerText, 0, 0, 16, 32);
             this.name = "green1";
-//            this.nameUpper = "tree2";
+            this.nameUpper = "tree2";
 //            this.items.put("log", 2);
 //            String[] items = {"black apricorn", "blue apricorn", "green apricorn", "pink apricorn",
 //                              "red apricorn", "white apricorn", "yellow apricorn"};
@@ -3730,7 +3826,7 @@ class Tile {
             nextAction.append(new DisplayText(game, text, null, true, false,
                               new DrawYesNoMenu(null,
                                   new DisplayText.Clear(game,
-                                  new WaitFrames(game, 3,
+                                  new WaitFrames(game, 6,
                                   pokemon.new AddToInventory(
                                   new SetField(game, "playerCanMove", true,
                                   new SetField(pokemon, "canMove", true,
@@ -3755,7 +3851,7 @@ class Tile {
         else if (this.name.equals("cave1_regi2")) {
             game.playerCanMove = false;
             Action nextAction;
-            nextAction = new DisplayText(game, "It stands silently in place...", null, false, true,
+            nextAction = new DisplayText(game, "...", null, false, true,  //was - It stands silently in place
                          new WaitFrames(game, 6,
                          new SetField(game, "playerCanMove", true,
                          null)));
@@ -3834,32 +3930,32 @@ class Tile {
             game.player.isCrafting = true;
             // Fill regicrafts with whatever is available
             game.player.regiCrafts.clear();
-            if (this.items.containsKey("REGISTEEL")) {
+            if (this.items().containsKey("REGISTEEL")) {
                 Craft craft = new Craft("REGISTEEL", 1);
                 craft.requirements.add(new Craft("metal coat", 70));
                 craft.requirements.add(new Craft("spell tag", 1));
                 game.player.regiCrafts.add(craft);
             }
-            if (this.items.containsKey("REGIROCK")) {
+            if (this.items().containsKey("REGIROCK")) {
                 Craft craft = new Craft("REGIROCK", 1);
                 craft.requirements.add(new Craft("hard stone", 70));
                 craft.requirements.add(new Craft("spell tag", 1));
                 game.player.regiCrafts.add(craft);
             }
-            if (this.items.containsKey("REGICE")) {
+            if (this.items().containsKey("REGICE")) {
                 Craft craft = new Craft("REGICE", 1);
                 craft.requirements.add(new Craft("nevermeltice", 70));
                 craft.requirements.add(new Craft("spell tag", 1));
                 game.player.regiCrafts.add(craft);
             }
-            if (this.items.containsKey("REGIDRAGO")) {
+            if (this.items().containsKey("REGIDRAGO")) {
                 Craft craft = new Craft("REGIDRAGO", 1);
                 craft.requirements.add(new Craft("dragon scale", 70));
                 craft.requirements.add(new Craft("dragon fang", 2));
                 craft.requirements.add(new Craft("spell tag", 1));
                 game.player.regiCrafts.add(craft);
             }
-            if (this.items.containsKey("REGIELEKI")) {
+            if (this.items().containsKey("REGIELEKI")) {
                 Craft craft = new Craft("REGIELEKI", 1);
                 craft.requirements.add(new Craft("magnet", 70));
                 craft.requirements.add(new Craft("binding band", 2));
@@ -3981,13 +4077,13 @@ class Tile {
 //                              new SetField(game, "playerCanMove", true,
 //                              null))));
 //        }
-        else if (this.items.containsKey("torch")) {
+        else if (this.items().containsKey("torch")) {
             game.playerCanMove = false;
             game.insertAction(new DisplayText(game, "Remove torch?", null, true, false,
                               new DrawYesNoMenu(null,
                                   new DisplayText.Clear(game,
                                   new WaitFrames(game, 3,
-                                  new PickupItem(this.items, "torch",
+                                  new PickupItem(this.items(), "torch",
                                   new SetField(this, "isTorch", false,  // this caches whether tile is torch or not
                                   new SetField(game, "playerCanMove", true,
                                   null))))),

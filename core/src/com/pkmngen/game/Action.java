@@ -426,7 +426,9 @@ class DisplayText extends Action {
             }
 
             // if we need to wait on a trigger
-            if (this.triggerAction != null || (DisplayText.textPersist && !this.waitInput)) {
+            if (this.triggerAction != null || (spritesNotDrawn.isEmpty() &&
+                                               DisplayText.textPersist &&
+                                               !this.waitInput)) {
                 game.insertAction(this.nextAction);
                 this.checkTrigger = true;
                 return;
@@ -1796,9 +1798,15 @@ class DrawSetupMenu extends Action {
                                 
                                 // TODO: remove somethign and make 100 always.
                                 // Largest worlds were causing issues.
+                                // TODO: took too long to load XXL and peoples laptops were having issues
+                                // TODO: map sometimes lags (likely due to large num overworld pokemon)
+                                // TODO: saving game (maybe) takes too long
                                 int something = 100;
-                                if (this.sizeIndex > 3) {
-                                    something = 80;  //  attempt to shrink larger worlds.
+                                if (this.sizeIndex > 4) {
+                                    something = 80;
+                                }
+                                else if (this.sizeIndex > 3) {
+                                    something = 90;  //  attempt to shrink larger worlds.
                                 }
                                 // TODO: would ideally be bigger, like 100*200*this.sizeIndex
                                 final int size = 100*something*(this.sizeIndex+2);
@@ -2443,9 +2451,9 @@ class MusicController extends Action {
                     game.currMusic = game.loadedMusic.get(this.startBattle);
                     game.currMusic.stop();
                     game.currMusic.setVolume(0.4f);
-//                    if (this.startBattle.contains("regi")) {
-//                        game.currMusic.setVolume(0.4f);
-//                    }
+                    if (this.startBattle.contains("regi")) {
+                        game.currMusic.setVolume(0.3f);
+                    }
                 }
                 game.currMusic.play();
             }

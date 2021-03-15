@@ -417,7 +417,12 @@ public class Pokemon {
         this.attacks[3] = pokemonData.attacks[3];
         this.position = pokemonData.position;
         if (pokemonData.isInterior) {
-            this.mapTiles = Game.staticGame.map.interiorTiles.get(Game.staticGame.map.interiorTilesIndex);
+            // TODO: ideally store pokemon layer, similar to player
+//            this.mapTiles = Game.staticGame.map.interiorTiles.get(Game.staticGame.map.interiorTilesIndex);
+            // TODO: will need this when adding different floors to buildings
+            System.out.println("Game.staticGame.map.interiorTilesIndex");
+            System.out.println(Game.staticGame.map.interiorTilesIndex);
+            this.mapTiles = Game.staticGame.map.interiorTiles.get(100);
         }
         else {
             this.mapTiles = Game.staticGame.map.overworldTiles;
@@ -545,6 +550,7 @@ public class Pokemon {
                     // TODO: pokemon that can light
                     name.equals("chinchou") ||
                     name.equals("lanturn") ||
+                    name.equals("mareep") ||
                     name.equals("flaaffy") ||
                     name.equals("ampharos")) {
                     // Calling it FLASH for now, since that's what most people
@@ -1252,8 +1258,8 @@ public class Pokemon {
             if (game.map.pokemon.containsKey(currPos)) {
                 Pokemon pokemon = game.map.pokemon.get(currPos);
                 if (pokemon != this &&
-                    pokemon.mapTiles == this.mapTiles &&
-                    pokemon.name.equals("egg")) {
+                    pokemon.mapTiles == this.mapTiles) {
+//                    pokemon.name.equals("egg")) {  // TODO: just counting any pokemon in general
                     this.nearbyEggs++;
                 }
             }
@@ -1444,6 +1450,7 @@ public class Pokemon {
         if (this.types.contains("FIRE") ||
             name.equals("chinchou") ||
             name.equals("lanturn") ||
+            name.equals("mareep") ||
             name.equals("flaaffy") ||
             name.equals("ampharos")) {
             // Calling it FLASH for now, since that's what most people
@@ -2249,6 +2256,7 @@ public class Pokemon {
                 else if (name.equals("regice")) {
                     i = 330;
                     found = true;
+                    flip = false;
                 }
                 else if (name.equals("regirock")) {
                     i = 331;
@@ -2258,6 +2266,7 @@ public class Pokemon {
                 else if (name.equals("registeel")) {
                     i = 332;
                     found = true;
+                    flip = false;
                 }
                 else if (name.equals("regigigas")) {
                     i = 333;

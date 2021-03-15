@@ -8,6 +8,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 
+import javax.swing.JFrame;
+import javax.swing.JOptionPane;
+
 import com.badlogic.gdx.Application.ApplicationType;
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
@@ -37,11 +40,12 @@ import com.badlogic.gdx.utils.GdxRuntimeException;
 import com.esotericsoftware.kryonet.Client;
 import com.esotericsoftware.kryonet.Server;
 import com.esotericsoftware.minlog.Log;
+import com.pkmngen.game.PkmnMap.PeriodicSave;
 import com.pkmngen.game.util.ProxyBatch;
 import com.pkmngen.game.util.SpriteProxy;
 
 /**
- * Standard libGDX Game biolerplate extended for Pokemon Wilds.
+ * Standard libGDX Game boilerplate extended for Pokemon Wilds.
  * 
  * @author  SheerSt on github
  * @version 0.1
@@ -71,6 +75,7 @@ public class Game extends ApplicationAdapter {
     HashMap<String, Music> loadedMusic =  new HashMap<String, Music>();
     // Char-to-Sprite text dictionary
     Map<Character, SpriteProxy> textDict;
+    HashMap<Character, SpriteProxy> transparentDict = new HashMap<Character, SpriteProxy>();
     // Server uses this to keep track of all players currently in the game.
     // playerId->Player
     HashMap<String, Player> players = new HashMap<String, Player>();
@@ -88,7 +93,12 @@ public class Game extends ApplicationAdapter {
     DrawCampfireAuras drawCampfireAuras;
     Texture shadow;
     public SpriteBatch lightingBatch;
-    public FrameBuffer frameBuffer;
+    public FrameBuffer frameBuffer;  // TODO: I don't think this is used.
+    // TODO: in the future, advanced option to toggle this (?) idk.
+    //       would have to be saved with the map I think
+    public boolean levelScalingEnabled = true; 
+
+    HashMap<Character, SpriteProxy> brailleDict = new HashMap<Character, SpriteProxy>();
 
     public Game() {
         super();
@@ -144,6 +154,8 @@ public class Game extends ApplicationAdapter {
         // TODO: remove
 //        this.map = new PkmnMap("default");
         this.textDict = initTextDict();
+        this.initTransparentDict();
+        this.initBrailleDict();
 
         this.insertAction(new InputProcessor());  // Mux keyboard/mobile input to common button presses
         if (Gdx.app.getType() == ApplicationType.Android) {
@@ -173,7 +185,19 @@ public class Game extends ApplicationAdapter {
         }
         // Save game
         if (this.map != null) {
-            new PkmnMap.PeriodicSave(this).step(this);
+            // TODO: maybe remove, not sure
+//            new PkmnMap.PeriodicSave(this).step(this);
+
+            // Display option to save if it's been 20 seconds or more
+            // Trying to allow shiny hunters to reset and not be badgered
+            if (PeriodicSave.timeSinceLastSave >= 60*20) {
+//                JFrame frame = new JFrame("Save");
+//                JOptionPane.showMessageDialog(frame, "There was an error loading this file - it may be too old for this build.\nPlease create a bug at github.com/SheerSt/pokemon-wilds.");
+                if (JOptionPane.showConfirmDialog(null, "Save your progress?", "WARNING",
+                                                  JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
+                    new PkmnMap.PeriodicSave(this).step(this);
+                }
+            }
         }
         if (this.server != null) {
             this.server.close();
@@ -301,7 +325,6 @@ public class Game extends ApplicationAdapter {
             this.map.interiorTilesIndex -= 1;
             this.map.tiles = this.map.interiorTiles.get(this.map.interiorTilesIndex);
         }
-        
         // Check network type (reset when pressed)
         if (Gdx.input.isKeyJustPressed(Input.Keys.M)) {
             for (Action action : new ArrayList<Action>(this.actionStack)) {
@@ -333,9 +356,25 @@ public class Game extends ApplicationAdapter {
                 e.printStackTrace();
             }
         }
-        if (Gdx.input.isKeyJustPressed(Input.Keys.O)) {
+        if (Gdx.input.isKeyJustPressed(Input.Keys.I)) {
             for (Tile tile : this.map.overworldTiles.values()) {
                 if (tile.nameUpper.equals("pokemon_mansion_key")) {
+                    System.out.println(this.cam.position);
+                    System.out.println(tile.position);
+                    this.cam.position.set(tile.position.x, tile.position.y, 1.0f);
+                    break;
+                }
+            }
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.O)) {
+            for (Tile tile : this.map.overworldTiles.values()) {
+//                if (tile.nameUpper.equals("pokemon_mansion_key")) {
+//                    System.out.println(this.cam.position);
+//                    System.out.println(tile.position);
+//                    this.cam.position.set(tile.position.x, tile.position.y, 1.0f);
+//                    break;
+//                }
+                if (tile.name.equals("cave1_door1")) {
                     System.out.println(this.cam.position);
                     System.out.println(tile.position);
                     this.cam.position.set(tile.position.x, tile.position.y, 1.0f);
@@ -464,6 +503,70 @@ public class Game extends ApplicationAdapter {
 //        this.map.loadFromFile(this);  // load map if it exists already
 //        this.insertAction(new ServerBroadcast(this));
 //        this.insertAction(new PkmnMap.PeriodicSave(this));
+    }
+
+    public void initTransparentDict() {
+        // This sheet starts with an offset of x=5, y=1
+        Texture text = new Texture(Gdx.files.internal("text_sheet1_transparent.png"));
+        char[] alphabet_upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".toCharArray();
+        char[] alphabet_lower = "abcdefghijklmnopqrstuvwxyz".toCharArray();
+        // Uppercase letters
+        for (int i = 0; i < 26; i++) {
+            this.transparentDict.put(alphabet_upper[i], new SpriteProxy(text, 10+16*i, 5, 8, 8));
+        }
+        // Lowercase letters
+        for (int i = 0; i < 26; i++) {
+            this.transparentDict.put(alphabet_lower[i], new SpriteProxy(text, 10+16*i, 5+12, 8, 8));
+        }
+        // Numbers
+        for (int i = 0; i < 10; i++) {
+            this.transparentDict.put(Character.forDigit(i, 10), new SpriteProxy(text, 10+16*i, 5+12+12, 8, 8));
+        }
+        // Special chars
+        this.transparentDict.put(' ', new SpriteProxy(text, 10+16*10, 5+12+12, 8, 8));
+        this.transparentDict.put('_', new SpriteProxy(text, 10+16*2, 5+12+12+12, 8, 8));
+        this.transparentDict.put('?', new SpriteProxy(text, 10+16*3, 5+12+12+12, 8, 8));
+        this.transparentDict.put('!', new SpriteProxy(text, 10+16*4, 5+12+12+12, 8, 8));
+        this.transparentDict.put('.', new SpriteProxy(text, 10+16*7, 5+12+12+12, 8, 8));
+        this.transparentDict.put(',', new SpriteProxy(text, 10+16*8, 5+12+12+12, 8, 8));
+        this.transparentDict.put('é', new SpriteProxy(text, 10+16*9, 5+12+12+12, 8, 8));
+        this.transparentDict.put('É', new SpriteProxy(text, 10+16*9, 5+12+12+12, 8, 8));  // same as lower case é, used in menus (ie POKéBALL, etc)
+        this.transparentDict.put('-', new SpriteProxy(text, 10+16*10, 5+12+12+12, 8, 8));
+        this.transparentDict.put('\'', new SpriteProxy(text, 10+16*11, 5+12+12+12, 8, 8));
+        this.transparentDict.put('ì', new SpriteProxy(text, 10+16*12, 5+12+12+12, 8, 8));
+        this.transparentDict.put(null, new SpriteProxy(text, 10+16*0, 5+12+12+12+12, 8, 8));  // use when no char found
+    }
+
+    public void initBrailleDict() {
+            Texture text = new Texture(Gdx.files.internal("braille_sheet1.png"));
+            char[] alphabet_upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".toCharArray();
+            char[] alphabet_lower = "abcdefghijklmnopqrstuvwxyz".toCharArray();
+            // Uppercase letters
+            for (int i = 0; i < 26; i++) {
+                brailleDict.put(alphabet_upper[i], new SpriteProxy(text, 10+16*i, 5, 8, 8));
+            }
+            // Lowercase letters
+            for (int i = 0; i < 26; i++) {
+                brailleDict.put(alphabet_lower[i], new SpriteProxy(text, 10+16*i, 5, 8, 8));
+            }
+            // TODO: probably remove
+//            // Numbers
+//            for (int i = 0; i < 10; i++) {
+//                brailleDict.put(Character.forDigit(i, 10), new SpriteProxy(text, 10+16*i, 5+12+12, 8, 8));
+//            }
+//            // Special chars
+//            brailleDict.put(' ', new SpriteProxy(text, 10+16*10, 5+12+12, 8, 8));
+//            brailleDict.put('_', new SpriteProxy(text, 10+16*2, 5+12+12+12, 8, 8));
+//            brailleDict.put('?', new SpriteProxy(text, 10+16*3, 5+12+12+12, 8, 8));
+//            brailleDict.put('!', new SpriteProxy(text, 10+16*4, 5+12+12+12, 8, 8));
+//            brailleDict.put('.', new SpriteProxy(text, 10+16*7, 5+12+12+12, 8, 8));
+//            brailleDict.put(',', new SpriteProxy(text, 10+16*8, 5+12+12+12, 8, 8));
+//            brailleDict.put('é', new SpriteProxy(text, 10+16*9, 5+12+12+12, 8, 8));
+//            brailleDict.put('É', new SpriteProxy(text, 10+16*9, 5+12+12+12, 8, 8));  // same as lower case é, used in menus (ie POKéBALL, etc)
+//            brailleDict.put('-', new SpriteProxy(text, 10+16*10, 5+12+12+12, 8, 8));
+//            brailleDict.put('\'', new SpriteProxy(text, 10+16*11, 5+12+12+12, 8, 8));
+//            brailleDict.put('ì', new SpriteProxy(text, 10+16*12, 5+12+12+12, 8, 8));
+//            brailleDict.put(null, new SpriteProxy(text, 10+16*0, 5+12+12+12+12, 8, 8));  // use when no char found
     }
 
     /**
@@ -608,6 +711,11 @@ public class Game extends ApplicationAdapter {
 //        font.draw(this.uiBatch, "touchLoc: " + InputProcessor.touchLoc, 0, 10);
 
         this.uiBatch.end();
+
+        // Just do this manually after the frame
+        if (PeriodicSave.timeSinceLastSave <= 20*60) {
+            PeriodicSave.timeSinceLastSave++;
+        }
     }
 
     @Override
@@ -704,13 +812,15 @@ public class Game extends ApplicationAdapter {
 //            this.player.pokemon.get(0).attacks[2] = "recover";
 //            this.player.pokemon.get(0).attacks[3] = "slash";
             this.player.pokemon.add(new Pokemon("rapidash", 60, Pokemon.Generation.CRYSTAL));
-            this.player.pokemon.get(1).attacks[0] = "earthquake";
+//            this.player.pokemon.get(1).attacks[0] = "crush grip";
+//            this.player.pokemon.get(1).attacks[1] = "dragon energy";
+//            this.player.pokemon.get(1).attacks[2] = "thunder cage";
 //            this.player.pokemon.get(1).attacks[1] = "confuse ray";
 //            this.player.pokemon.get(1).attacks[2] = "toxic";
 //            this.player.pokemon.get(1).attacks[3] = "sweet scent";
-            this.player.pokemon.add(new Pokemon("pidgeot", 60, Pokemon.Generation.CRYSTAL));
-            this.player.pokemon.add(new Pokemon("meganium", 60, Pokemon.Generation.CRYSTAL));
-            this.player.pokemon.add(new Pokemon("ursaring", 60, Pokemon.Generation.CRYSTAL));
+//            this.player.pokemon.add(new Pokemon("pidgeot", 60, Pokemon.Generation.CRYSTAL));
+//            this.player.pokemon.add(new Pokemon("meganium", 60, Pokemon.Generation.CRYSTAL));
+//            this.player.pokemon.add(new Pokemon("ursaring", 60, Pokemon.Generation.CRYSTAL));
 //            this.player.pokemon.add(new Pokemon("golem", 60, Pokemon.Generation.CRYSTAL));
 //            this.player.pokemon.get(1).currentStats.put("hp", 0);
 //            this.player.pokemon.get(2).currentStats.put("hp", 0);
@@ -720,15 +830,22 @@ public class Game extends ApplicationAdapter {
 //            this.player.pokemon.add(new Pokemon("loudred", 60, Pokemon.Generation.CRYSTAL));
 //            this.player.pokemon.get(3).gender = "male";
 //            this.player.pokemon.get(4).gender = "female";
-            this.player.pokemon.add(new Pokemon("magcargo", 60, Pokemon.Generation.CRYSTAL));
+//            this.player.pokemon.add(new Pokemon("houndoom", 66, Pokemon.Generation.CRYSTAL));
+//            this.player.pokemon.add(new Pokemon("registeel", 40, Pokemon.Generation.CRYSTAL));
+//            this.player.pokemon.add(new Pokemon("egg", 1, Pokemon.Generation.CRYSTAL, false, "skarmory"));
+//            this.player.pokemon.add(new Pokemon("registeel", 40, Pokemon.Generation.CRYSTAL, true));
 //            this.player.pokemon.add(new Pokemon("masquerain", 60, Pokemon.Generation.CRYSTAL));
+            this.player.pokemon.add(new Pokemon("regice", 70, Pokemon.Generation.CRYSTAL));
+            this.player.pokemon.add(new Pokemon("parasect", 46, Pokemon.Generation.CRYSTAL));
+            this.player.pokemon.add(new Pokemon("ampharos", 46, Pokemon.Generation.CRYSTAL));
+            this.player.pokemon.get(2).attacks[0] = "false swipe";
 
             // TODO: remove
 //            this.player.pokemon.add(new Pokemon("charizard", 60, Pokemon.Generation.CRYSTAL));
 //            this.player.pokemon.add(new Pokemon("charizard", 60, Pokemon.Generation.CRYSTAL));
 //            this.player.pokemon.add(new Pokemon("unown", 60, Pokemon.Generation.CRYSTAL));
-//            this.player.pokemon.get(3).gender = "male";
-//            this.player.pokemon.get(4).gender = "female";
+//            this.player.pokemon.get(4).gender = "male";
+//            this.player.pokemon.get(5).gender = "female";
 
 //            this.player.pokemon.add(new Pokemon("egg", 1, Pokemon.Generation.CRYSTAL, false, "skarmory"));
 //            this.player.pokemon.add(new Pokemon("egg", 1, Pokemon.Generation.CRYSTAL, true, "skarmory"));

@@ -69,12 +69,28 @@ class AfterFriendlyFaint extends Action {
         BattleFadeOut.whiteScreen = true;
         game.musicController.playerFainted = true;
         int interiorTilesIndex = 100;
+        game.battle.oppPokemon.aggroPlayer = false;  // stop aggro-ing if was aggroing
         Map<Vector2, Tile> tiles = game.map.overworldTiles;
         if (game.player.spawnIndex != -1) {
             tiles = game.map.interiorTiles.get(game.player.spawnIndex);
             interiorTilesIndex = game.player.spawnIndex;
         }
         Tile playerTile = tiles.get(game.player.spawnLoc);
+        
+        // reset batch colors
+        Route newRoute = playerTile.routeBelongsTo;
+        if (newRoute != null && newRoute.name.contains("pkmnmansion")) {
+            game.mapBatch.setColor(new Color(0.8f, 0.8f, 0.8f, 1f));
+        }
+        else if (newRoute != null && newRoute.name.equals("regi_cave1")) {
+        }
+        else if (!game.map.timeOfDay.equals("night")) {
+            game.mapBatch.setColor(new Color(1f, 1f, 1f, 1f));
+        }
+        else {
+            game.mapBatch.setColor(new Color(0.08f, 0.08f, 0.3f, 1.0f));
+        }
+
         game.insertAction(new DisplayText.Clear(game,
                           new WaitFrames(game, 3,new DisplayText(game, ""+game.player.name.toUpperCase()+" is out of useable POKéMON!", null, null,
                           new DisplayText(game, ""+game.player.name.toUpperCase()+" whited out!", null, null,
@@ -2293,6 +2309,7 @@ public class Battle {
         }
         else if (ballUsed.equals("fast ball") && (pokemon.name.equals("tangela") || 
                                                   pokemon.name.equals("grimer")  || 
+                                                  pokemon.name.equals("regieleki")  ||  // TODO: not sure if approp
                                                   pokemon.name.equals("magnemite"))) {
             rateModified *= 4;
         }
@@ -2591,7 +2608,7 @@ public class Battle {
                        new WaitFrames(game, 10,
                        nextAction))));
             }
-            
+
             // Status check - display appropriate text if asleep, confused, etc
             // If snap out of status (confusion, sleep), then proceed normally.
             if (friendlyPokemon.status != null) {
@@ -2788,6 +2805,15 @@ public class Battle {
                     return attackAction;
                 }
                 
+                // If the attack is false swipe, leave the enemy with at least 1 hp.
+                if (attack.effect.equals("EFFECT_FALSE_SWIPE") &&
+                    attack.damage >= enemyPokemon.currentStats.get("hp")) {
+                    attack.damage = enemyPokemon.currentStats.get("hp")-1;
+                    if (attack.damage < 1) {
+                        attack.damage = 1;
+                    }
+                }
+
                 attackAction.append(new LoadAndPlayAnimation(game, attack.name, enemyPokemon, null));
                 attackAction.append(new LoadAndPlayAnimation(game, effectiveness, enemyPokemon,
                                     Battle.depleteHealth(game, isFriendly, attack.damage,  // TODO: generic DepleteHealth class
@@ -2881,6 +2907,7 @@ public class Battle {
                         attack.name.equals("sand attack") || attack.name.equals("smokescreen") ||
                         attack.name.equals("kinesis") || attack.name.equals("flash") ||
                         attack.name.equals("mud slap") || attack.name.equals("octazooka") ||
+                        attack.name.equals("cotton spore") ||
                         attack.name.equals("sweet scent") || attack.name.equals("scary face")) {
                         target = enemyPokemon;
                     }
@@ -2936,6 +2963,7 @@ public class Battle {
             // TODO: confuse actually stacks with all other statuses, just handle it differently
             // - ie pokemon.confuseStatus or something (also needs to denote attract? can pokemon be confused and attracted at same time?)
             String status = null;
+            enemy = isFriendly ? "Enemy " : "";
             if (attack.effect.contains("EFFECT_PARALYZE")) {
                 status = "paralyze";
             }
@@ -2973,6 +3001,11 @@ public class Battle {
                 if (attack.type.equals("electric") && enemyPokemon.types.contains("ELECTRIC") && status.equals("paralyze")) {
                     attackMisses = true;
                 }
+                // Ground types not affected by electric moves
+                if (attack.type.equals("electric") && enemyPokemon.types.contains("ELECTRIC")) {
+                    attackMisses = true;
+                }
+
                 // Poison types cannot be poisoned
                 if (attack.type.equals("poison") && enemyPokemon.types.contains("POISON") && (status.equals("poison") || status.equals("toxic"))) {
                     attackMisses = true;
@@ -3018,6 +3051,9 @@ public class Battle {
 //                    target.status = status;  // TODO: remove if unused
                     attackAction.append(new WaitFrames(game, 30, null));
                     String text = null;
+
+                    
+                    // TODO: enemy+ isn't working
                     if (status.equals("paralyze")) {
                         // Reduce speed to 1/4
                         target.currentStats.put("speed", target.currentStats.get("speed")/4);
@@ -3117,6 +3153,7 @@ public class Battle {
                         amount = 1;
                     }
                 }
+                enemy = isFriendly ? "" : "Enemy ";
                 
                 if (friendlyPokemon.currentStats.get("hp") >= friendlyPokemon.maxStats.get("hp")) {
                     attackAction.append(new DisplayText.Clear(game,
@@ -3141,20 +3178,38 @@ public class Battle {
             if (attack.effect.equals("EFFECT_SELFDESTRUCT")) {
                 friendlyPokemon.currentStats.put("hp", 0);
             }
+            
+//            System.out.println(attack.effect);
+//            System.out.println(attackMisses);
+//            System.out.println(enemyPokemon.trappedBy);
 
             // Check if attack traps target pokemon
-            if (enemyPokemon.trappedBy != null &&
-                (attack.name.equals("whirlpool") ||
-                 attack.name.equals("fire spin") ||
-                 attack.name.equals("wrap") ||
-                 attack.name.equals("thunder cage") ||
-                 attack.name.equals("clamp"))) {
+            if (enemyPokemon.trappedBy == null &&
+                !attackMisses &&
+                (attack.effect.equals("EFFECT_TRAP_TARGET") ||
+                 attack.effect.equals("EFFECT_BIND"))) {
+                    // TODO: don't need this anymore
+//                (attack.name.equals("whirlpool") ||
+//                 attack.name.equals("fire spin") ||
+//                 attack.name.equals("wrap") ||
+//                 attack.name.equals("thunder cage") ||
+//                 attack.name.equals("clamp"))) {
+                enemy = isFriendly ? "Enemy " : "";  // TODO: probably could just base this on target
                 attackAction.append(new DisplayText.Clear(game,
                                     new WaitFrames(game, 3,
-                                    new DisplayText(game, enemyPokemon.name.toUpperCase()+" was trapped!",
+                                    new DisplayText(game, enemy+enemyPokemon.name.toUpperCase()+" was trapped!",
                                                     null, true, true,
                                     null))));
+//                System.out.println(enemyPokemon.name);
+                // 2-5 turns for trap
+                enemyPokemon.trappedBy = attack.name.toLowerCase();
+                enemyPokemon.trapCounter = game.map.rand.nextInt(4) + 2;
+                if (attack.name.toLowerCase().equals("thunder cage")) {
+                    enemyPokemon.trapCounter = game.map.rand.nextInt(2) + 4; // 4-5 for thunder cage
+                }
             }
+
+
 //            }
 //            else {
 //                String attackType = game.battle.attacks.get(attack.name.toLowerCase()).type;
@@ -3893,62 +3948,100 @@ public class Battle {
         return new DepleteEnemyHealth(game, damage, nextAction);
     }
 
-    /*
-     * TODO: remove if unused
-     */
     class CheckTrapped extends Action {
-        public int layer = 500;
 
         public CheckTrapped(Game game, Action nextAction) {
             this.nextAction = nextAction;
         }
 
-        public int getLayer(){return this.layer;}
-
-        public void step() {
+        @Override
+        public void step(Game game) {
+            Action action = new Action() {
+                public String getCamera() {
+                    return "gui";
+                }
+            };
+            if (game.player.currPokemon.trappedBy != null) {
+                Attack trap = game.battle.attacks.get(game.player.currPokemon.trappedBy);
+                trap.damage = Battle.gen2CalcDamage(game.battle.oppPokemon, trap, game.player.currPokemon);  // TODO: does STAB apply to traps?
+                if (trap.name.equals("thunder cage")) {
+                    trap.damage = game.player.currPokemon.maxStats.get("hp")/8;
+                }
+                action.append(new Battle.LoadAndPlayAnimation(game, game.player.currPokemon.trappedBy, game.player.currPokemon,
+                              new DisplayText.Clear(game,
+                              new WaitFrames(game, 3,
+                              new DisplayText(game, game.player.currPokemon.name.toUpperCase()+"' hurt by "+game.player.currPokemon.trappedBy.toUpperCase()+"!",
+                                              null, true,
+                              new DepleteFriendlyHealth(game.player.currPokemon, trap.damage,
+                              new WaitFrames(game, 13,
+                              null)))))));
+                game.player.currPokemon.trapCounter -= 1;
+                if (game.player.currPokemon.trapCounter <= 0) {
+                    game.player.currPokemon.trappedBy = null;
+                }
+            }
+            if (game.battle.oppPokemon.trappedBy != null) {
+                Attack trap = game.battle.attacks.get(game.battle.oppPokemon.trappedBy);
+                trap.damage = Battle.gen2CalcDamage(game.battle.oppPokemon, trap, game.player.currPokemon);  // TODO: does STAB apply to traps?
+                if (trap.name.equals("thunder cage")) {
+                    trap.damage = game.battle.oppPokemon.maxStats.get("hp")/8;
+                }
+                action.append(new Battle.LoadAndPlayAnimation(game, game.battle.oppPokemon.trappedBy, game.battle.oppPokemon,
+                              new DisplayText.Clear(game,
+                              new WaitFrames(game, 3,
+                              new DisplayText(game, game.battle.oppPokemon.name.toUpperCase()+"' hurt by "+game.battle.oppPokemon.trappedBy.toUpperCase()+"!",
+                                              null, true,
+                              new DepleteEnemyHealth(game, trap.damage,
+                              new WaitFrames(game, 13,
+                              null)))))));
+                game.battle.oppPokemon.trapCounter -= 1;
+                if (game.battle.oppPokemon.trapCounter <= 0) {
+                    game.battle.oppPokemon.trappedBy = null;
+                }
+            }
+            action.append(this.nextAction);
+            game.actionStack.remove(this);
+            game.insertAction(action);
+            
+            
             // TODO: trying out method where can only reference parent battle object, using Battle.this
             // probably revert at some point
             // TODO: if keeping, refactor to remove references to Game.staticGame
             //  likely need global actionStack or something
 
-            // Always goes you, then opponent
-            Game.staticGame.actionStack.remove(this);
-            if (Battle.this.oppPokemon.trappedBy != null) {
-                this.nextAction = new Battle.LoadAndPlayAnimation(Game.staticGame, Battle.this.oppPokemon.trappedBy, Battle.this.oppPokemon,
-                                  new DisplayText.Clear(Game.staticGame,
-                                  new WaitFrames(Game.staticGame, 3,
-                                  new DisplayText(Game.staticGame,
-                                                  Battle.this.oppPokemon.name.toUpperCase()+"' hurt by "+Battle.this.oppPokemon.trappedBy.toUpperCase()+"!",
-                                                  null, true,
-                                  new DepleteEnemyHealth(Game.staticGame,
-                                  new WaitFrames(Game.staticGame, 13,
-                                  this.nextAction))))));
-                Battle.this.oppPokemon.trapCounter -= 1;
-                if (Battle.this.oppPokemon.trapCounter <= 0) {
-                    Battle.this.oppPokemon.trappedBy = null;
-                }
-            }
-            if (Game.staticGame.player.currPokemon.trappedBy != null) {
-                this.nextAction = new Battle.LoadAndPlayAnimation(Game.staticGame, Game.staticGame.player.currPokemon.trappedBy, Game.staticGame.player.currPokemon,
-                                  new DisplayText.Clear(Game.staticGame,
-                                  new WaitFrames(Game.staticGame, 3,
-                                  new DisplayText(Game.staticGame,
-                                                  Game.staticGame.player.currPokemon.name.toUpperCase()+"' hurt by "+Game.staticGame.player.currPokemon.trappedBy.toUpperCase()+"!",
-                                                  null, true,
-                                  new DepleteFriendlyHealth(Game.staticGame.player.currPokemon,
-                                  new WaitFrames(Game.staticGame, 13,
-                                  this.nextAction))))));
-                Game.staticGame.player.currPokemon.trapCounter -= 1;
-                if (Battle.this.oppPokemon.trapCounter <= 0) {
-                    Battle.this.oppPokemon.trappedBy = null;
-                }
-            }
-            Game.staticGame.insertAction(this.nextAction);
-        }
-
-        @Override
-        public void step(Game game) {
-            this.step();
+//            // Always goes you, then opponent
+//            Game.staticGame.actionStack.remove(this);
+//            if (Battle.this.oppPokemon.trappedBy != null) {
+//                this.nextAction = new Battle.LoadAndPlayAnimation(Game.staticGame, Battle.this.oppPokemon.trappedBy, Battle.this.oppPokemon,
+//                                  new DisplayText.Clear(Game.staticGame,
+//                                  new WaitFrames(Game.staticGame, 3,
+//                                  new DisplayText(Game.staticGame,
+//                                                  Battle.this.oppPokemon.name.toUpperCase()+"' hurt by "+Battle.this.oppPokemon.trappedBy.toUpperCase()+"!",
+//                                                  null, true,
+//                                  new DepleteEnemyHealth(Game.staticGame,
+//                                  new WaitFrames(Game.staticGame, 13,
+//                                  this.nextAction))))));
+//                Battle.this.oppPokemon.trapCounter -= 1;
+//                if (Battle.this.oppPokemon.trapCounter <= 0) {
+//                    Battle.this.oppPokemon.trappedBy = null;
+//                }
+//            }
+//            if (Game.staticGame.player.currPokemon.trappedBy != null) {
+//                this.nextAction = new Battle.LoadAndPlayAnimation(Game.staticGame, Game.staticGame.player.currPokemon.trappedBy, Game.staticGame.player.currPokemon,
+//                                  new DisplayText.Clear(Game.staticGame,
+//                                  new WaitFrames(Game.staticGame, 3,
+//                                  new DisplayText(Game.staticGame,
+//                                                  Game.staticGame.player.currPokemon.name.toUpperCase()+"' hurt by "+Game.staticGame.player.currPokemon.trappedBy.toUpperCase()+"!",
+//                                                  null, true,
+//                                  new DepleteFriendlyHealth(Game.staticGame.player.currPokemon,
+//                                  new WaitFrames(Game.staticGame, 13,
+//                                  this.nextAction))))));
+//                Game.staticGame.player.currPokemon.trapCounter -= 1;
+//                if (Battle.this.oppPokemon.trapCounter <= 0) {
+//                    Battle.this.oppPokemon.trappedBy = null;
+//                }
+//            }
+//            Game.staticGame.insertAction(this.nextAction);
         }
     }
 
@@ -4162,7 +4255,6 @@ public class Battle {
                             oppFirst = true;
                         }
                     }
-                    // TODO: determine if hit/miss, crit, effect hit, etc
                     String attackName = game.player.currPokemon.attacks[DrawAttacksMenu.curr];
                     if (attackName == null) {
                         attackName = "struggle";
@@ -4171,20 +4263,21 @@ public class Battle {
                     playerAttack.isCrit = Battle.gen2DetermineCrit(game.player.currPokemon, playerAttack);
                     playerAttack.damage = Battle.gen2CalcDamage(game.player.currPokemon, playerAttack, game.battle.oppPokemon);
 
-                    if (game.battle.oppPokemon.trappedBy == null &&
-                        playerAttack.name.toLowerCase().equals("whirlpool") ||
-                        playerAttack.name.toLowerCase().equals("fire spin") ||
-                        playerAttack.name.toLowerCase().equals("wrap") ||
-                        playerAttack.name.toLowerCase().equals("thunder cage") ||
-                        playerAttack.name.toLowerCase().equals("clamp")) {
-                        // 2-5 turns for trap
-                        game.battle.oppPokemon.trappedBy = playerAttack.name.toLowerCase();
-                        game.battle.oppPokemon.trapCounter = game.map.rand.nextInt(4) + 2;
-                        if (playerAttack.name.toLowerCase().equals("thunder cage")) {
-                            game.battle.oppPokemon.trapCounter = game.map.rand.nextInt(2) + 4;
-                        }
-                        //
-                    }
+                    // TODO: remove
+//                    if (game.battle.oppPokemon.trappedBy == null &&
+//                        playerAttack.name.toLowerCase().equals("whirlpool") ||
+//                        playerAttack.name.toLowerCase().equals("fire spin") ||
+//                        playerAttack.name.toLowerCase().equals("wrap") ||
+//                        playerAttack.name.toLowerCase().equals("thunder cage") ||
+//                        playerAttack.name.toLowerCase().equals("clamp")) {
+//                        // 2-5 turns for trap
+//                        game.battle.oppPokemon.trappedBy = playerAttack.name.toLowerCase();
+//                        game.battle.oppPokemon.trapCounter = game.map.rand.nextInt(4) + 2;
+//                        if (playerAttack.name.toLowerCase().equals("thunder cage")) {
+//                            game.battle.oppPokemon.trapCounter = game.map.rand.nextInt(2) + 4;
+//                        }
+//                        //
+//                    }
                 }
                 // if this is a CLIENT, get all outcomes of attacks etc from the server.
                 else {
@@ -4247,21 +4340,22 @@ public class Battle {
                 enemyAttack.isCrit = Battle.gen2DetermineCrit(game.battle.oppPokemon, enemyAttack);
                 enemyAttack.damage = Battle.gen2CalcDamage(game.battle.oppPokemon, enemyAttack, game.player.currPokemon);
 
-                // check if attack traps player pokemon
-                if (game.player.currPokemon.trappedBy == null &&
-                    enemyAttack.name.toLowerCase().equals("whirlpool") ||
-                    enemyAttack.name.toLowerCase().equals("fire spin") ||
-                    enemyAttack.name.toLowerCase().equals("wrap") ||
-                    enemyAttack.name.toLowerCase().equals("thunder cage") ||
-                    enemyAttack.name.toLowerCase().equals("clamp")) {
-                    // 2-5 turns for trap
-                    game.player.currPokemon.trappedBy = enemyAttack.name.toLowerCase();
-                    game.player.currPokemon.trapCounter = game.map.rand.nextInt(4) + 2;
-                    // 4-5 turns for thunder cage
-                    if (enemyAttack.name.toLowerCase().equals("thunder cage")) {
-                        game.player.currPokemon.trapCounter = game.map.rand.nextInt(2) + 4;
-                    }
-                }
+                // TODO: remove
+//                // check if attack traps player pokemon
+//                if (game.player.currPokemon.trappedBy == null &&
+//                    enemyAttack.name.toLowerCase().equals("whirlpool") ||
+//                    enemyAttack.name.toLowerCase().equals("fire spin") ||
+//                    enemyAttack.name.toLowerCase().equals("wrap") ||
+//                    enemyAttack.name.toLowerCase().equals("thunder cage") ||
+//                    enemyAttack.name.toLowerCase().equals("clamp")) {
+//                    // 2-5 turns for trap
+//                    game.player.currPokemon.trappedBy = enemyAttack.name.toLowerCase();
+//                    game.player.currPokemon.trapCounter = game.map.rand.nextInt(4) + 2;
+//                    // 4-5 turns for thunder cage
+//                    if (enemyAttack.name.toLowerCase().equals("thunder cage")) {
+//                        game.player.currPokemon.trapCounter = game.map.rand.nextInt(2) + 4;
+//                    }
+//                }
             }
             // If Client, get enemy attack that was sent from server.
             else {
@@ -4290,46 +4384,13 @@ public class Battle {
                               new WaitFrames(game, 3,
                               playerAction)));
             }
-            // Always goes you, then opponent for trap check
-            if (game.player.currPokemon.trappedBy != null) {
-                Attack trap = game.battle.attacks.get(game.player.currPokemon.trappedBy);
-                trap.damage = Battle.gen2CalcDamage(game.battle.oppPokemon, trap, game.player.currPokemon);  // TODO: does STAB apply to traps?
-                if (trap.name.equals("thunder cage")) {
-                    trap.damage = game.player.currPokemon.maxStats.get("hp")/8;
-                }
-                doTurn.append(new Battle.LoadAndPlayAnimation(game, game.player.currPokemon.trappedBy, game.player.currPokemon,
-                              new DisplayText.Clear(game,
-                              new WaitFrames(game, 3,
-                              new DisplayText(game, game.player.currPokemon.name.toUpperCase()+"' hurt by "+game.player.currPokemon.trappedBy.toUpperCase()+"!",
-                                              null, true,
-                              new DepleteFriendlyHealth(game.player.currPokemon, trap.damage,
-                              new WaitFrames(game, 13,
-                              null)))))));
-                game.player.currPokemon.trapCounter -= 1;
-                if (game.player.currPokemon.trapCounter <= 0) {
-                    game.player.currPokemon.trappedBy = null;
-                }
-            }
-            if (game.battle.oppPokemon.trappedBy != null) {
-                Attack trap = game.battle.attacks.get(game.battle.oppPokemon.trappedBy);
-                trap.damage = Battle.gen2CalcDamage(game.battle.oppPokemon, trap, game.player.currPokemon);  // TODO: does STAB apply to traps?
-                if (trap.name.equals("thunder cage")) {
-                    trap.damage = game.battle.oppPokemon.maxStats.get("hp")/8;
-                }
-                doTurn.append(new Battle.LoadAndPlayAnimation(game, game.battle.oppPokemon.trappedBy, game.battle.oppPokemon,
-                              new DisplayText.Clear(game,
-                              new WaitFrames(game, 3,
-                              new DisplayText(game, game.battle.oppPokemon.name.toUpperCase()+"' hurt by "+game.battle.oppPokemon.trappedBy.toUpperCase()+"!",
-                                              null, true,
-                              new DepleteEnemyHealth(game, trap.damage,
-                              new WaitFrames(game, 13,
-                              null)))))));
-                game.battle.oppPokemon.trapCounter -= 1;
-                if (game.battle.oppPokemon.trapCounter <= 0) {
-                    game.battle.oppPokemon.trappedBy = null;
-                }
-            }
             
+            // TODO: probably move this to checktrapped or something
+            
+            // Always goes you, then opponent for trap check
+            // This has to be checked after hit/miss has been determined
+            doTurn.append(game.battle.new CheckTrapped(game, null));
+
             doTurn.append(new DisplayText.Clear(game,
                           new WaitFrames(game, 3,
                           this.nextAction)));
@@ -4845,7 +4906,7 @@ class BattleFadeOut extends Action {
 
     @Override
     public void step(Game game) {
-        // should only happen once. not sure that repeat matters
+        // Should only happen once. not sure that repeat matters
         game.actionStack.remove(game.battle.drawAction); // stop drawing the battle
         game.battle.drawAction = null;
 
@@ -6007,20 +6068,20 @@ class CatchPokemonWobblesThenCatch extends Action {
                     text = "Metals ... from underground ... so tough ... so flexible ... yet it' so old ... it has an unearthly presence ... ";
                 }
                 else if (this.pedistalTile.nameUpper.equals("REGIDRAGO")) {
-                    text = "Such a sad sight ... my child ... its my fault ... incomplete ... just a dragon' head ... but you're still ... so strong ... ";
+                    text = "Such a sad sight ... my child ... its my fault ... incomplete ... just a dragon' head ... but you are still ... so strong ... ";
                 }
                 else if (this.pedistalTile.nameUpper.equals("REGIELEKI")) {
                     text = "Such a sad sight ... my child ... your electricity ... restrained ... but ... you are still ... so strong ... ";
                 }
                 this.pedistalTile.nameUpper = "";
                 this.pedistalTile.overSprite = null;
-                this.pedistalTile.items.remove(game.battle.oppPokemon.name.toUpperCase());
+                this.pedistalTile.items().remove(game.battle.oppPokemon.name.toUpperCase());
                 
                 // TODO: remove
 //                newAction.append(new SetField(game, "playerCanMove", false,  // TODO: refactor this, i think it's in battlefadeout
 //                                 null));
 
-                if (this.pedistalTile.items.isEmpty()) {
+                if (this.pedistalTile.items().isEmpty()) {
                     Tile regiTile = null;
                     for (Tile tile : game.map.tiles.values()) {
                         if (tile.name.contains("cave1_regi2")) {
@@ -6055,7 +6116,8 @@ class CatchPokemonWobblesThenCatch extends Action {
                 newAction.append(new SetField(game.musicController, "resumeOverworldMusic", true, null));
 //                newAction.append(new SetField(game, "playerCanMove", true, null));  // TODO: remove
             }
-            newAction.append(new SetField(game, "playerCanMove", true, null));
+            newAction.append(new WaitFrames(game, 6,
+                             new SetField(game, "playerCanMove", true, null)));
             game.insertAction(newAction);
             newAction.step(game);  // need to draw the pokeball
             game.actionStack.remove(this);
@@ -6226,7 +6288,7 @@ class DepleteEnemyHealth extends Action {
                 game.battle.oppPokemon.currentStats.put("hp", finalHealth);
             }
             // TODO: remove if unused
-            this.targetSize = (int)Math.ceil( (game.battle.oppPokemon.currentStats.get("hp")*48) / game.battle.oppPokemon.maxStats.get("hp"));
+            this.targetSize = (int)Math.ceil( ((float)game.battle.oppPokemon.currentStats.get("hp")*48f) / (float)game.battle.oppPokemon.maxStats.get("hp"));
             this.firstStep = false;
         }
 
@@ -6449,7 +6511,7 @@ class DepleteFriendlyHealth extends Action {
 
     @Override
     public void step(Game game) {
-        if (this.firstStep == true) {
+        if (this.firstStep) {
             // Apply damage if there is any (otherwise assume it's already applied)
             if (this.damage > 0) {
                 int currHealth = game.player.currPokemon.currentStats.get("hp");
@@ -6457,7 +6519,7 @@ class DepleteFriendlyHealth extends Action {
                 game.player.currPokemon.currentStats.put("hp", finalHealth);
             }
             // TODO: remove if unused
-            this.targetSize = (int)Math.ceil( (this.pokemon.currentStats.get("hp")*48) / this.pokemon.maxStats.get("hp"));
+            this.targetSize = (int)Math.ceil( ((float)this.pokemon.currentStats.get("hp")*48f) / (float)this.pokemon.maxStats.get("hp"));
             this.firstStep = false;
         }
         this.timer++;
@@ -7419,7 +7481,7 @@ class DrawEnemyHealth extends Action {
          // healthbar is 48 pixels long
          // round up when counting
 //        this.healthBar = new ArrayList<Sprite>();
-        this.currHealth = (int)Math.ceil( (game.battle.oppPokemon.currentStats.get("hp")*48f) / game.battle.oppPokemon.maxStats.get("hp") );
+        this.currHealth = (int)Math.ceil( ((float)game.battle.oppPokemon.currentStats.get("hp")*48f) / (float)game.battle.oppPokemon.maxStats.get("hp") );
 
         // System.out.println("numElements: "+String.valueOf(numElements)); // debug
 
@@ -7558,7 +7620,7 @@ class DrawFriendlyHealth extends Action {
          // healthbar is 48 pixels long
          // round up when counting
 //        this.healthBar = new ArrayList<Sprite>();
-        this.currHealth = (int)Math.ceil( (game.player.currPokemon.currentStats.get("hp")*48f) / game.player.currPokemon.maxStats.get("hp") );
+        this.currHealth = (int)Math.ceil( ((float)game.player.currPokemon.currentStats.get("hp")*48f) / (float)game.player.currPokemon.maxStats.get("hp") );
 
         // System.out.println("numElements: "+String.valueOf(numElements)); // debug
 
@@ -8101,11 +8163,12 @@ class DrawPlayerMenu extends MenuAction {
                 Action saveAction = new PkmnMap.PeriodicSave(game);
                 saveAction.step(game);
                 game.insertAction(new DisplayText(game, game.player.name+" saved the game!", "save1.ogg", null,
+                                  new WaitFrames(game, 6,
                                   new SetField(game, "playerCanMove", true,
                                   // TODO: migrate to just use this
                                   // Required if player is flying
                                   new SetField(game.player, "canMove", true,
-                                  null))));
+                                  null)))));
             }
 
             game.actionStack.remove(this);
@@ -8746,6 +8809,15 @@ class DrawPokemonMenu extends MenuAction {
                     // Player isn't in battle so swap pokemon ordering
                     return new SelectedMenu.Switch(prevMenu);
                 }
+                // Don't allow switch if currPokemon is trapped
+                else if (game.player.currPokemon.currentStats.get("hp") > 0 && game.player.currPokemon.trappedBy != null) {
+                    this.disabled = true;
+                    game.insertAction(this.prevMenu);
+                    return new PlaySound("error1",
+                           new DisplayText(game, game.player.currPokemon.name.toUpperCase()+" is trapped!", null, null,
+                           new SetField(this.prevMenu, "disabled", false,
+                           null)));
+                }
                 // Don't allow switch to fainted pokemon or egg
                 else if (currPokemon.currentStats.get("hp") <= 0 || currPokemon.name.equals("egg")) {
                     this.disabled = true;
@@ -8784,8 +8856,10 @@ class DrawPokemonMenu extends MenuAction {
             
             if (word.equals("DROP")) {
                 Vector2 pos = game.player.facingPos();
-                if (game.map.tiles.get(pos).attrs.get("solid") ||
-                    game.map.tiles.get(pos).attrs.get("ledge") ||
+                Tile currTile = game.map.tiles.get(pos);
+                if (currTile == null ||
+                    currTile.attrs.get("solid") ||
+                    currTile.attrs.get("ledge") ||
                     game.map.pokemon.containsKey(pos)) {  // Can't place Pokemon on top of each other
                     this.disabled = true;
                     return new DisplayText(game, "Canì place here - something is in the way.", null, null,
@@ -8799,6 +8873,12 @@ class DrawPokemonMenu extends MenuAction {
                            new DisplayText(game, "You need at least 1 POKéMON in your party.", null, null,
                            new SetField(this.prevMenu, "disabled", false,
                            null)));
+                }
+                if (currTile.routeBelongsTo != null && currTile.routeBelongsTo.isDungeon) {
+                    this.disabled = true;
+                    return new DisplayText(game, "Canì leave Pokemon in a dangerous area.", null, null,
+                               new SetField(this.prevMenu, "disabled", false,
+                               this.prevMenu));
                 }
                 Pokemon pokemon = game.player.pokemon.get(DrawPokemonMenu.currIndex);
                 boolean hasOneHealthyPokemon = false;
@@ -9345,11 +9425,11 @@ class DrawPokemonMenu extends MenuAction {
                     prevMenu.step(game);
                 }
 
-                // draw arrow sprite
+                // Draw arrow sprite
                 this.arrow.setPosition(newPos.x, newPos.y);
-                this.arrow.draw(game.uiBatch);
+                game.uiBatch.draw(this.arrow, this.arrow.getX(), this.arrow.getY());
 
-                if (this.disabled == true) {
+                if (this.disabled) {
                     return;
                 }
 
@@ -9682,7 +9762,16 @@ class DrawUseTossMenu extends MenuAction {
                     return;
                 }
                 Tile currTile = game.map.tiles.get(game.player.position.cpy().add(0,0));
-                if (currTile.name.contains("mountain") || currTile.name.contains("snow")) {
+                // Don't allow sleeping bag in dungeons
+                if (currTile.routeBelongsTo != null && currTile.routeBelongsTo.isDungeon) {
+                    this.disabled = true;
+                    game.actionStack.remove(this);
+                    game.insertAction(new DisplayText(game, "Canì use this in a dangerous area!", null, false, true,
+                                      new SetField(this.prevMenu, "disabled", false,
+                                      this.prevMenu)));
+                    return;
+                }
+                if (currTile.name.contains("stairs") || currTile.name.contains("mountain") || currTile.name.contains("snow")) {
                     this.disabled = true;
                     game.actionStack.remove(this);
                     game.insertAction(new DisplayText(game, "Canì sleep on harsh terrain!", null, false, true,
@@ -9744,13 +9833,34 @@ class DrawUseTossMenu extends MenuAction {
                 // Find nearest edge tile
                 Vector2 nearest = null;
                 int dst2 = 0;
+                Vector2[] positions = new Vector2[]{new Vector2(-16, 0), new Vector2(0, 16),
+                                                    new Vector2(16, 0), new Vector2(0, -16)};
                 for (Vector2 pos : game.map.edges) {
+//                for (Tile tile : game.map.overworldTiles) {
                     Tile tile = game.map.overworldTiles.get(pos);
-                    if (tile.name.contains("mansion")) {
+                    // For some reason there are a bunch of non-sand2 tiles in this.
+                    if (!tile.name.equals("sand3")) {
+                        continue;
+                    }
+                    if (tile.attrs.get("solid")) {
+                        continue;
+                    }
+                    boolean found = false;
+                    for (Vector2 position : positions) {
+                        Tile otherTile = game.map.overworldTiles.get(pos.cpy().add(position));
+                        if (otherTile == null) {
+                            continue;
+                        }
+                        if (otherTile.name.equals("water2")) {
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found) {
                         continue;
                     }
                     int dist = (int)game.player.position.dst2(pos);
-                    if (nearest == null || dist < dst2) {
+                    if (nearest == null || (dist > 1024 && dist < dst2)) {
                         dst2 = dist;
                         nearest = pos;
                     }
@@ -9771,11 +9881,12 @@ class DrawUseTossMenu extends MenuAction {
                                       new FadeMusic(game.currMusic, -0.0125f,
                                       new WaitFrames(game, 60,
                                       new SplitAction(
-                                          new WaitFrames(game, 6,
+                                          new WaitFrames(game, 6*3,
                                           new Game.SetCamPos(nearest.cpy().add(16, 0),
                                           new SetField(game.player, "position", nearest,
                                           null))),
-                                      new EnterBuilding(game, "exit", //game.map.overworldTiles,
+//                                      new EnterBuilding(game, "exit", //game.map.overworldTiles,
+                                      new EscapeRope(
                                       new SetField(game.map, "currRoute", new Route("", 2),
                                       new SetField(game.map, "interiorTilesIndex", 100,
                                       new WaitFrames(game, 60,
@@ -10236,7 +10347,8 @@ class DrawYesNoMenu extends MenuAction {
             prevMenu.step(game);
         }
         // draw text box
-        this.textBox.draw(game.uiBatch);
+//        this.textBox.draw(game.uiBatch);
+        game.uiBatch.draw(this.textBox, this.textBox.getX(), this.textBox.getY());
 
         // Draw use/drop
         for (int i=0; i < this.words.size(); i++) {
@@ -10272,7 +10384,8 @@ class DrawYesNoMenu extends MenuAction {
         // draw arrow
         if (this.cursorDelay >= 2) {
             this.arrow.setPosition(newPos.x, newPos.y);
-            this.arrow.draw(game.uiBatch);
+//            this.arrow.draw(game.uiBatch);
+            game.uiBatch.draw(this.arrow, this.arrow.getX(), this.arrow.getY());
         }
         else {
             this.cursorDelay+=1;
@@ -13753,12 +13866,14 @@ class ThrowOutPokemonCrystal extends Action {
   @Override
   public void step(Game game) {
       if (this.firstStep) {
+          // TODO: game.battle.drawAction has been null after battle beings
+          //       somehow.
           game.battle.drawAction.drawFriendlyPokemonAction = this;
           this.firstStep = false;
 
           // Reset stat stages of Pokemon sending out.
           game.player.currPokemon.resetStatStages();
-          
+
           // This pokemon participated in battle
           game.player.currPokemon.participatedInBattle = true;
 

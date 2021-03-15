@@ -1414,6 +1414,7 @@ class GenIsland1 extends Action {
     // used to know if this has spawned the pokemon mansion yet or not (only spawn one)
     public static boolean donePkmnMansion = false;
     public static boolean donePkmnMansionKey = false;
+    public static boolean doneRegiDungeon = false;
     public static int unownCounter = 0;
 
     public GenIsland1(Game game, Vector2 origin, int radius) {
@@ -1527,6 +1528,7 @@ class GenIsland1 extends Action {
         // Timed this part, took 42 milliseconds for large map.
 //        for (int i=0; i < 1; i++) {
         boolean complete = false;
+        Vector2 keyLoc = null;
         while (!complete) {
             complete = true;
             Vector2 tl;
@@ -1646,13 +1648,70 @@ class GenIsland1 extends Action {
                 if (tile.biome.equals("deep_forest") && tile.name.contains("green") && !GenIsland1.donePkmnMansionKey) {
                     // make sure that it's not trying to spawn the secret key above a tree (makes it really hard to find)
                     down = tile.position.cpy().add(0f, -16f);
-                    if (tilesToAdd.containsKey(down) && !tilesToAdd.get(down).attrs.get("tree")) {
+                    if (tilesToAdd.containsKey(down) &&
+//                        !tilesToAdd.get(down).name.contains("tree") &&  // TODO: test, possible remove
+                        !tilesToAdd.get(down).nameUpper.contains("tree")) {
                         GenIsland1.donePkmnMansionKey = true;
 //                        i = -1;  // start over. it's iterating on a copy of tilesToAdd right now.
                         complete = false;
                         tilesToAdd.put(tile.position, new Tile(tile.name, "pokemon_mansion_key", tile.position.cpy(), true, null));
+                        keyLoc = tile.position;
                         break;
                     }
+                }
+
+                // Generate the regi dungeon dungeon
+                // TODO: ideally nestled somewhere. not sure.
+                if (tile.biome.equals("deep_forest") && !GenIsland1.doneRegiDungeon
+                     // TODO: test
+                     // might have been fine if cave is just on lower layer
+//                    && (keyLoc == null || !keyLoc.equals(tile.position))  
+                    && !mtnTiles.containsKey(tile.position.cpy().add(0, -16*23))
+                    && !mtnTiles.containsKey(tile.position.cpy().add(-16*14, 0))
+                    && !mtnTiles.containsKey(tile.position.cpy().add(16*9, -16*15))
+                    && !mtnTiles.containsKey(tile.position.cpy().add(32, 32))
+                    && !mtnTiles.containsKey(tile.position.cpy().add(-32, 32))
+                    && !mtnTiles.containsKey(tile.position.cpy().add(32, -32))
+                    && !mtnTiles.containsKey(tile.position.cpy().add(-32, -32))
+                    && this.rand.nextInt(3) == 2) {
+                    GenIsland1.doneRegiDungeon = true;
+                    complete = false;
+                    HashMap<Vector2, Tile> regiExteriorTiles = new HashMap<Vector2, Tile>();
+                    ArrayList<HashMap<Vector2, Tile>> regiInteriorTiles = new ArrayList<HashMap<Vector2, Tile>>();
+                    Vector2 regiPos = tile.position.cpy();
+                    this.generateRegiDungeon(game, regiExteriorTiles, regiInteriorTiles, regiPos);
+                    //
+                    for (Tile tile2 : regiExteriorTiles.values()) {
+                        Tile currTile = tilesToAdd.get(tile2.position);
+                        // TODO: not sure if using
+//                        if (currTile != null &&
+//                            (currTile.name.contains("mountain") || currTile.nameUpper.contains("mountain")) &&
+//                            (tile2.name.contains("alternate") || tile2.name.equals("cave2_br") || tile2.name.equals("cave2_bl"))) {
+//                            continue;
+//                        }
+                                
+                        if (currTile != null && currTile.nameUpper.equals("pokemon_mansion_key")) {
+                            tilesToAdd.put(tile2.position.cpy(), new Tile(tile2.name, currTile.nameUpper, currTile.position, true, currTile.routeBelongsTo));
+                            continue;
+                        }
+                        tilesToAdd.put(tile2.position.cpy(), tile2);
+                    }
+//                    tilesToAdd.putAll(regiExteriorTiles);  // TODO: remove
+                    for (int i=0; i < regiInteriorTiles.size(); i++) {
+                        HashMap<Vector2, Tile> currLayer = regiInteriorTiles.get(i);
+                        if (currLayer == null) {
+                            continue;
+                        }
+                        if (this.interiorTilesToAdd.get(i) == null) {
+                            this.interiorTilesToAdd.remove(i);
+                            this.interiorTilesToAdd.add(i, currLayer);
+                            continue;
+                        }
+                        for (Vector2 key : currLayer.keySet()) {
+                            this.interiorTilesToAdd.get(i).put(key, currLayer.get(key));
+                        }
+                    }
+                    break;  // if you don't do this, then dungeon gets replaced by trees.
                 }
             }
         }
@@ -1736,6 +1795,7 @@ class GenIsland1 extends Action {
                                             new Vector2(16, -16), new Vector2(-16, 16),
                                             new Vector2(0, -16), new Vector2(0, 16)};
         Tile nextTile;
+        Route tempRoute = new Route("", 2);
         for (Tile tile : new ArrayList<Tile>(this.tilesToAdd.values())) {
 //            if (tile.attrs.get("solid")) {  // 
 //            if (!tile.name.equals("sand1")) {
@@ -1753,7 +1813,7 @@ class GenIsland1 extends Action {
 //                    this.edges.add(tile);
                     // Add a 'ring' of sand around the island
                     // This will unfortunately delete some water tiles near middle of island
-                    Tile newTile = new Tile("sand3", nextTile.position.cpy(), true);
+                    Tile newTile = new Tile("sand3", nextTile.position.cpy(), true, tempRoute);
                     this.tilesToAdd.put(newTile.position.cpy(), newTile);
                     this.edges.add(newTile);
 //                    break;
@@ -1954,7 +2014,6 @@ class GenIsland1 extends Action {
 //                                    Vector2 up = edge.cpy().add(0f, 16f);
 //                                    Vector2 down = edge.cpy().add(0f, -16f);
 //                                    
-//                                    !!!
 //                                    boolean touchLeft = (tilesToAdd.containsKey(left) && tilesToAdd.get(left).attrs.get("solid")) ||
 //                                                        (tilesToAdd.containsKey(tl) && tilesToAdd.get(tl).attrs.get("solid")) ||
 //                                                        (tilesToAdd.containsKey(bl) && tilesToAdd.get(bl).attrs.get("solid"));
@@ -1970,7 +2029,20 @@ class GenIsland1 extends Action {
 //                                    if (!(touchLeft && touchRight) && !(touchUp && touchDown)) {
 //                                        newTile = new Tile("rock1", edge);
 //                                    }
-                                    newTile = new Tile("rock1", edge);
+                                    Route tempRoute = null;
+                                    int randInt = this.rand.nextInt(3);
+                                    if (randInt == 2) {
+                                        tempRoute = new Route("", 11);
+                                        tempRoute.allowedPokemon.clear();
+                                        tempRoute.pokemon.clear();
+                                        String[] pokemon = new String[]{"shellder", "krabby", "staryu", "dwebble"};
+                                        randInt = this.rand.nextInt(pokemon.length);
+                                        tempRoute.allowedPokemon.add(pokemon[randInt]);
+                                        tempRoute.genPokemon(256);
+                                        // TODO: remove
+//                                        tempRoute.pokemon.add(new Pokemon(pokemon[randInt], 20+this.rand.nextInt(4), Pokemon.Generation.CRYSTAL));
+                                    }
+                                    newTile = new Tile("rock1", edge, true, tempRoute);
                                 }
                                 // grass isn't as solid as i want
                                 int isGrass = this.rand.nextInt(maxDist/8) + (int)distance;
@@ -2013,7 +2085,8 @@ class GenIsland1 extends Action {
                                     }
                                     // TODO: probably will just make puddles spawn pokemon, not sure
                                     if (this.rand.nextInt(2) == 0) {
-                                        ApplyBlotch(game, "grass_sand", newTile, 35, grassTiles, 0, false, new Route("beach1", 5));
+                                        // TODO: remove this comment. was 5 ; changed to 3 as per feedback
+                                        ApplyBlotch(game, "grass_sand", newTile, 35, grassTiles, 0, false, new Route("beach1", 3));
                                     }
                                     // small chance this becomes a trainer-tips sign
                                     // TODO: they are a little too prolific on large maps
@@ -2211,8 +2284,10 @@ class GenIsland1 extends Action {
                                             tempRoute = new Route("", 22);
                                             tempRoute.allowedPokemon.clear();
                                             tempRoute.pokemon.clear();
-                                            String[] pokemon = new String[]{"pineco", "aipom", "kakuna", "metapod", "spinarak", "heracross",
-                                                                            "ledyba", "hoothoot", "zubat", "pidgey", "spearow", "forretress"};
+                                            String[] pokemon = new String[]{
+//                                                                            "pineco", "aipom", "kakuna", "metapod", "spinarak", "heracross",
+//                                                                            "ledyba", "hoothoot", "zubat", "pidgey", "spearow", "forretress",
+                                                                            "snover"};
                                             randInt = this.rand.nextInt(pokemon.length);
                                             tempRoute.pokemon.add(new Pokemon(pokemon[randInt], 20+this.rand.nextInt(4), Pokemon.Generation.CRYSTAL));
                                         }
@@ -2243,21 +2318,24 @@ class GenIsland1 extends Action {
 
                                 }
                                 else if (this.rand.nextInt(10) == 0) {
-                                    Route tempRoute = new Route("rock_smash1", currRoute.level);
+//                                    Route tempRoute = new Route("rock_smash1", currRoute.level);  // TODO: remove
+                                    Route tempRoute = null;
+                                    int randInt = this.rand.nextInt(2);
+                                    if (randInt == 0) {
+                                        tempRoute = new Route("", 22);
+                                        tempRoute.allowedPokemon.clear();
+                                        tempRoute.pokemon.clear();
+                                        String[] pokemon = new String[]{"slugma", "geodude", "shuckle"};
+                                        randInt = this.rand.nextInt(pokemon.length);
+                                        tempRoute.allowedPokemon.add(pokemon[randInt]);
+                                        tempRoute.genPokemon(256);
+                                        // TODO: remove
+//                                        tempRoute.pokemon.add(new Pokemon(pokemon[randInt], currRoute.level+this.rand.nextInt(4), Pokemon.Generation.CRYSTAL));
+                                    }
                                     if (type.equals("mtn_snow1")) {
-//                                        newTile = new Tile("snow1", edge);
-//                                        Texture text = new Texture(Gdx.files.internal("tiles/rock1_color.png"));
-//                                        newTile.overSprite = new Sprite(text, 0, 0, 16, 16);
-//                                        newTile.overSprite.setPosition(newTile.position.x, newTile.position.y+4);
-//                                        newTile.attrs.put("solid", true);
                                         newTile = new Tile("snow1", "rock1_color", edge.cpy(), true, tempRoute);
                                     }
                                     else {
-//                                        newTile = new Tile("green1", edge);
-//                                        Texture text = new Texture(Gdx.files.internal("tiles/rock1_color.png"));
-//                                        newTile.overSprite = new Sprite(text, 0, 0, 16, 16);
-//                                        newTile.overSprite.setPosition(newTile.position.x, newTile.position.y+4);
-//                                        newTile.attrs.put("solid", true);
                                         newTile = new Tile("green1", "rock1_color", edge.cpy(), true, tempRoute);
                                     }
                                 }
@@ -2862,14 +2940,22 @@ class GenIsland1 extends Action {
             }
         }
         for (Tile tile : new ArrayList<Tile>(mtnTiles.values())) {
-            // randomly place rocks
+            // Randomly place rocks
             if (this.rand.nextInt((int)Math.ceil(1f/(1f/((maxDist)/500f)))) == 1 && !mtnTiles2.containsKey(tile.position)) {
-//                Tile newTile = new Tile(tile.name, tile.position.cpy());
-//                Texture text = new Texture(Gdx.files.internal("tiles/rock1_color.png"));
-//                newTile.overSprite = new Sprite(text, 0, 0, 16, 16);
-//                newTile.overSprite.setPosition(newTile.position.x, newTile.position.y+4);
-//                newTile.attrs.put("solid", true);
-                Route tempRoute = new Route("rock_smash1", tile.routeBelongsTo.level);
+//                Route tempRoute = new Route("rock_smash1", tile.routeBelongsTo.level);  // TODO: remove
+                Route tempRoute = null;
+                int randInt = this.rand.nextInt(2);
+                if (randInt == 0) {
+                    tempRoute = new Route("", 22);
+                    tempRoute.allowedPokemon.clear();
+                    tempRoute.pokemon.clear();
+                    String[] pokemon = new String[]{"slugma", "geodude", "shuckle"};
+                    randInt = this.rand.nextInt(pokemon.length);
+                    tempRoute.allowedPokemon.add(pokemon[randInt]);
+                    tempRoute.genPokemon(256);
+                    // TODO: remove
+//                    tempRoute.pokemon.add(new Pokemon(pokemon[randInt], tile.routeBelongsTo.level+this.rand.nextInt(4), Pokemon.Generation.CRYSTAL));
+                }
                 Tile newTile = new Tile(tile.name, "rock1_color", tile.position.cpy(), true, tempRoute);
                 mtnTiles2.put(tile.position.cpy(), newTile);
             }
@@ -2879,6 +2965,104 @@ class GenIsland1 extends Action {
         tilesToAdd.putAll(mtnTiles2);
 
         return endPoints;
+    }
+
+    /**
+     * Generate regi dungeon.
+     */
+    public void generateRegiDungeon(Game game, HashMap<Vector2, Tile> exteriorTiles,
+                                    ArrayList<HashMap<Vector2, Tile>> interiorTiles, Vector2 tl) {
+//        exteriorTiles.put(tl.cpy(), new Tile("cave1_door1", tl.cpy()));  // TODO: remove
+        String[][] names = new String[][]{{null, null, null, "cave2_tl_alternate", "cave2_tr_alternate", null, null, null, "cave2_tl_alternate", "cave2_tr_alternate", null, null, null},
+                                          {null, null, null, "cave2_bl", "cave2_br", null, null, null, "cave2_bl", "cave2_br", null, null, null},
+                                          {null, null, null, null, null, "cave2_tl", "cave2_up", "cave2_tr", null, null, null, null, null},
+                                          {null, null, null, null, "cave2_tl", "cave2_left", "cave2_floor", "cave2_right", "cave2_tr", null, null, null, null},
+                                          {"cave2_tl_alternate", "cave2_tr_alternate", null, "sand1", "cave2_left", "cave2_bl", "cave2_down", "cave2_br", "cave2_right", "sand1", null, "cave2_tl_alternate", "cave2_tr_alternate"},
+                                          {"cave2_bl", "cave2_br", null, "sand1", "cave2_bl", "cave2_down", "cave1_door1", "cave2_down", "cave2_br", "sand1", null, "cave2_bl", "cave2_br"},
+                                          {null, null, null, null, "sand1", "sand2", "sand2", "sand2", "sand1", null, null, null, null},
+                                          {null, null, null, null, null, "sand1", "sand1", "sand1", null, null, null, null, null},
+                                          {null, null, null, "cave2_tl_alternate", "cave2_tr_alternate", null, null, null, "cave2_tl_alternate", "cave2_tr_alternate", null, null, null},
+                                          {null, null, null, "cave2_bl", "cave2_br", null, null, null, "cave2_bl", "cave2_br", null, null, null}
+                                          };
+        Vector2 pos;
+        Route currRoute = new Route("", 2);
+        for (int i=0; i < names.length; i++) {
+            for (int j=0; j < names[i].length; j++) {
+                if (names[i][j] == null) {
+                    continue;
+                }
+                pos = new Vector2(tl.x -6*16 +j*16, tl.y +5*16 -i*16);
+                exteriorTiles.put(pos, new Tile(names[i][j], pos, true, currRoute));
+            }
+        }
+        tl.add(-19*16 +16, +11*16 +6*16 );
+//        for (int i=0; i < 99; i++) {
+        // 
+        for (int i=0; i < 99-9; i++) {
+            interiorTiles.add(null);
+        }
+        HashMap<Vector2, Tile> currLayer = new HashMap<Vector2, Tile>();
+        names = new String[][]{//Padding
+                              {"cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2"},
+                              {"cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2"},
+                              {"cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2"},
+                              {"cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2"},
+                              {"cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2"},
+                              {"cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2"},
+                              {"cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2"},
+                              //1
+                              {"cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_floor2", "cave1_br_inner", "cave1_down1", "cave1_down1", "cave1_down1", "cave1_down1", "cave1_down1", "cave1_down1", "cave1_down1", "cave1_down1", "cave1_down1", "cave1_down1", "cave1_bl_inner", "cave1_floor2", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2"},
+                              //2
+                              {"cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_floor2", "cave1_right1", "cave1_br_inner", "cave1_down1", "cave1_down1", "cave1_down1", "cave1_down1", "cave1_down1", "cave1_down1", "cave1_down1", "cave1_down1", "cave1_bl_inner", "cave1_left1", "cave1_floor2", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2"},
+                              //3
+                              {"cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_br_inner", "cave1_br1", "cave1_right1", "cave1_floor1", "cave1_floor1", "cave1_floor1", "cave1_down1_dark", "cave1_down1_dark", "cave1_floor1", "cave1_floor1", "cave1_floor1", "cave1_left1", "cave1_bl1", "cave1_bl_inner", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2"},
+                              //4
+                              {"cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_br_inner", "cave1_br1", "cave1_floor1", "cave1_floor1", "cave1_stone1", null, null, "cave1_stone1", "cave1_floor1", "cave1_floor1", "cave1_bl1", "cave1_bl_inner", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2"},
+                              //5
+                              {"cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_right1", "cave1_floor1", "cave1_floor1", "cave1_floor1", "cave1_floor1", "cave1_regi1", "cave1_regi5", "cave1_floor1", "cave1_floor1", "cave1_floor1", "cave1_floor1", "cave1_left1", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2"},
+                              //6
+                              {"cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_right1", "cave1_floor1", "cave1_floor1", "cave1_floor1", "cave1_tl1", "cave1_up1", "cave1_regipedistal1", "cave1_tr1", "cave1_floor1", "cave1_floor1", "cave1_floor1", "cave1_left1", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2"},
+                              //7
+                              {"cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_right1", "cave1_floor1", "cave1_stone1", "cave1_floor1", "cave1_left1", "cave1_floor2", "cave1_floor2", "cave1_right1", "cave1_floor1", "cave1_stone1", "cave1_floor1", "cave1_left1", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2"},
+                              //8
+                              {"cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_right1", "cave1_floor1", "cave1_floor1", "cave1_floor1", "cave1_bl1", "cave1_ramp1", "cave1_ramp1", "cave1_br1", "cave1_floor1", "cave1_floor1", "cave1_floor1", "cave1_left1", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2"},
+                              //9
+                              {"cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_right1", "cave1_floor1", "cave1_floor1", "cave1_floor1", "cave1_floor1", "cave1_floor1", "cave1_floor1", "cave1_floor1", "cave1_floor1", "cave1_floor1", "cave1_floor1", "cave1_left1", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2"},
+                              //10
+                              {"cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_tr1", "cave1_floor1", "cave1_floor1", "cave1_stone1", "cave1_floor1", "cave1_floor1", "cave1_stone1", "cave1_floor1", "cave1_floor1", "cave1_tl1", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2"},
+                              //11
+                              {"cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_right1", "cave1_floor1", "cave1_floor1", "cave1_floor1", "cave1_floor1", "cave1_floor1", "cave1_floor1", "cave1_floor1", "cave1_floor1", "cave1_left1", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2"},
+                              //12
+                              {"cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_up1", "cave1_up1", "cave1_up1", "cave1_up1", "cave1_entrance1", "cave1_up1", "cave1_up1", "cave1_up1", "cave1_up1", "cave1_up1", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2"},
+                              //Padding
+                              {"cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2"},
+                              {"cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2"},
+                              {"cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2"},
+                              {"cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2"},
+                              {"cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2"},
+                              {"cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2"},
+                              {"cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_right1", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2", "cave1_left1", "cave1_floor2"},
+                          };
+        currRoute = new Route("regi_cave1", 44);
+        for (int i=0; i < names.length; i++) {
+            for (int j=0; j < names[i].length; j++) {
+                if (names[i][j] == null) {
+                    continue;
+                }
+                pos = new Vector2(tl.x +j*16, tl.y -i*16);
+                Tile tile = new Tile(names[i][j], pos, true, currRoute);
+                // These are the regis that haven't been crafted yet.
+                if (names[i][j].equals("cave1_regipedistal1")) {
+                    tile.items().put("REGISTEEL", 1);
+                    tile.items().put("REGICE", 1);
+                    tile.items().put("REGIROCK", 1);
+                    tile.items().put("REGIELEKI", 1);
+                    tile.items().put("REGIDRAGO", 1);
+                }
+                currLayer.put(pos, tile);
+            }
+        }
+        interiorTiles.add(currLayer);
     }
 
     /**
@@ -4221,14 +4405,20 @@ class GenIsland1 extends Action {
                     mansionInteriorTiles.add(94+levelNum, new HashMap<Vector2, Tile>());
                     layerBelow = mansionInteriorTiles.get(94+levelNum); // TODO: init this beginning
                     Tile currTile = null;
-                    for (int x = 0; x < 11; x++) {  //  x pos
+                    for (int x = 0; x < 10; x++) {  //  x pos
                         for (int y = 0; y < 11; y++) {  //  y pos  
                             Vector2 pos = bl.cpy().add(x*16, y*16);
-                            if ((y == 2 || y == 6) && (x == 2 || x == 3 || x == 7 || x == 8)) {
+                            if ((y == 2 || y == 6) && (x == 2 || x == 3 || x == 6 || x == 7)) {
                                 currTile = new Tile("tree_plant1", pos.cpy(), true, null);
                             }
-                            else if (x == 0|| y == 0 || y == 10 || x == 10) {
+                            else if (x == 0|| y == 0 || y == 10 || x == 9) {
                                 currTile = new Tile("pkmnmansion_wall", pos.cpy(), true, null);
+                            }
+                            else if (x == 4 && y == 9) {
+                                currTile = new Tile("pkmnmansion_struct1", pos.cpy(), true, null);
+                            }
+                            else if (x == 5 && y == 9) {
+                                // place nothing here. test if causes issues or not.
                             }
                             else if (x == 5 && y == 8) {
 //                                currTile = new SpecialMewtwoTile(pos.cpy());
@@ -4392,6 +4582,7 @@ class GenIsland1 extends Action {
                 for (Tile edgeTile : this.edges) {
                     game.map.edges.add(edgeTile.position.cpy());
                 }
+
                 Vector2 startLoc = this.edges.get(game.map.rand.nextInt(this.edges.size())).position;
 //                System.out.println("startLoc");
 //                System.out.println(startLoc);

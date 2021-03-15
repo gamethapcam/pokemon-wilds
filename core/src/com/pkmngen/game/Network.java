@@ -1693,17 +1693,17 @@ class ServerBroadcast extends Action {
                                         Action action = new CutTreeAnim(game, game.map.overworldTiles.get(pos), null);
                                         game.map.interiorTiles.get(game.map.interiorTilesIndex).remove(currTile.position.cpy());
                                         // Get items from tile
-                                        if (!currTile.items.isEmpty()) {
-                                            for (String item : currTile.items.keySet()) {
+                                        if (!currTile.items().isEmpty()) {
+                                            for (String item : currTile.items().keySet()) {
                                                 if (player.itemsDict.containsKey(item)) {
                                                     int currQuantity = player.itemsDict.get(item);
-                                                    player.itemsDict.put(item, currQuantity+currTile.items.get(item));
+                                                    player.itemsDict.put(item, currQuantity+currTile.items().get(item));
                                                 }
                                                 else {
-                                                    player.itemsDict.put(item, currTile.items.get(item));
+                                                    player.itemsDict.put(item, currTile.items().get(item));
                                                 }
                                             }
-                                            currTile.items.clear();
+                                            currTile.items().clear();
                                         }
                                         game.insertAction(action);
                                     }

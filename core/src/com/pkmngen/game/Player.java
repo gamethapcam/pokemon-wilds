@@ -339,14 +339,14 @@ class CycleDayNight extends Action {
                                               "red apricorn", "white apricorn", "yellow apricorn"};
                             boolean found = false;
                             for (String item : items) {
-                                if (tree.items.containsKey(item)) {
-                                    tree.items.put(item, tree.items.get(item)+amt);
+                                if (tree.items().containsKey(item)) {
+                                    tree.items().put(item, tree.items().get(item)+amt);
                                     found = true;
                                     break;
                                 }
                             }
                             if (!found) {
-                                tree.items.put(items[game.map.rand.nextInt(items.length)], 2);
+                                tree.items().put(items[game.map.rand.nextInt(items.length)], 2);
                             }
                         }
                         else if (tile.name.equals("grass_planted")) {
@@ -364,7 +364,7 @@ class CycleDayNight extends Action {
                                  !tile.attrs.get("ledge") &&
                                  !tile.attrs.get("solid") &&
                                  tile.nameUpper.equals("") &&
-                                 tile.items.isEmpty()) {
+                                 tile.items().isEmpty()) {
                             int level = 22;
                             if (tile.routeBelongsTo != null) {
                                 level = tile.routeBelongsTo.level;
@@ -624,20 +624,30 @@ class DrawBuildRequirements extends Action {
             this.words.add("Need");
             this.wordColors.add(new Color(1,1,1,1));
             for (String req : game.player.buildTileRequirements.get(curr).keySet()) {
-                String text = req.toUpperCase();
+//                String text = req.toUpperCase();
                 int numNeeded = game.player.buildTileRequirements.get(curr).get(req);
-                for (int i=0; i < 5-req.length(); i++) {
-                    text += " ";
+                String[] texts = req.toUpperCase().split(" ");
+                for (int j=0; j < texts.length; j++) {
+                    String text = texts[j];
+                    if (text.equals("BEDDING")) {
+                        text = "BED";
+                    }
+                    if (j >= texts.length-1) {
+                        int length = text.length();
+                        for (int i=0; i < 5-length; i++) {
+                            text += " ";
+                        }
+                        text += "x";
+                        text += String.valueOf(numNeeded);
+                    }
+                    if (game.player.itemsDict.get(req) == null || game.player.itemsDict.get(req) < numNeeded) {
+                        this.wordColors.add(new Color(1, 1, 1, 0.5f));
+                    }
+                    else {
+                        this.wordColors.add(new Color(1,1,1,1));
+                    }
+                    this.words.add(text);
                 }
-                text += "x";
-                text += String.valueOf(numNeeded);
-                if (game.player.itemsDict.get(req) == null || game.player.itemsDict.get(req) < numNeeded) {
-                    this.wordColors.add(new Color(1, 1, 1, 0.5f));
-                }
-                else {
-                    this.wordColors.add(new Color(1,1,1,1));
-                }
-                this.words.add(text);
             }
         }
         // TODO: remove if unused
@@ -670,36 +680,61 @@ class DrawBuildRequirements extends Action {
         Sprite letterSprite;
         Color prevColor;
         for (int i=0; i < this.words.size(); i++) {
+
             // Draw appropriate part of textBox
             if (i == 0) {
                 game.uiBatch.draw(this.textBoxTop, this.topLeft.x, this.topLeft.y-19);
             }
             else if (i == this.words.size()-1) {
-                game.uiBatch.draw(this.textBoxBottom, this.topLeft.x, this.topLeft.y-38 -16*(this.words.size()-2));
+                game.uiBatch.draw(this.textBoxBottom, this.topLeft.x, this.topLeft.y-19 -16*(i));
             }
             else {
-                game.uiBatch.draw(this.textBoxMiddle, this.topLeft.x, this.topLeft.y-19 -16*(this.words.size()-3+i));
+                game.uiBatch.draw(this.textBoxMiddle, this.topLeft.x, this.topLeft.y-19 -16*(i));
             }
-            String word = this.words.get(i);
-            for (int j=0; j < word.length(); j++) {
-                int offsetY = 0;
-                // TODO: not sure what is the issue here
-                if (this.words.size() <= 2) {
-                    offsetY = 1;
+            Color color = game.uiBatch.getColor();
+            if (i < this.words.size()) {
+                String word = this.words.get(i);
+                for (int j=0; j < word.length(); j++) {
+                    char letter = word.charAt(j);
+                    letterSprite = new Sprite(game.textDict.get(letter));
+                    letterSprite.setPosition(this.topLeft.x +8 +8*j, this.topLeft.y -14 -16*(i));
+                    game.uiBatch.setColor(color.r, color.g, color.b, this.wordColors.get(i).a);
+                    game.uiBatch.draw(letterSprite, letterSprite.getX(), letterSprite.getY());
                 }
-                char letter = word.charAt(j);
-                // convert string to text
-                letterSprite = new Sprite(game.textDict.get(letter));
-//                game.uiBatch.draw(letterSprite, this.topLeft.x +8 +8*j, this.topLeft.y -16*(this.words.size()-2+i));
-                letterSprite.setPosition(this.topLeft.x +8 +8*j, this.topLeft.y -16*(this.words.size()-2+i+offsetY));
-//                letterSprite.setColor(this.wordColors.get(i));
-
-                prevColor = game.uiBatch.getColor();
-                game.uiBatch.setColor(prevColor.r, prevColor.g, prevColor.b, this.wordColors.get(i).a);
-                game.uiBatch.draw(letterSprite, letterSprite.getX(), letterSprite.getY());
-                game.uiBatch.setColor(prevColor);
-//                game.uiBatch.draw(letterSprite, letterSprite.getX(), letterSprite.getY());  // TODO: remove, not sure why this was here.
             }
+            game.uiBatch.setColor(color);
+
+            /// TODO: remove if unused
+//            // Draw appropriate part of textBox
+//            if (i == 0) {
+//                game.uiBatch.draw(this.textBoxTop, this.topLeft.x, this.topLeft.y-19);
+//            }
+//            else if (i == this.words.size()-1) {
+//                game.uiBatch.draw(this.textBoxBottom, this.topLeft.x, this.topLeft.y-38 -16*(this.words.size()-2));
+//            }
+//            else {
+//                game.uiBatch.draw(this.textBoxMiddle, this.topLeft.x, this.topLeft.y-19 -16*(this.words.size()-3+i));
+//            }
+//            String word = this.words.get(i);
+//            for (int j=0; j < word.length(); j++) {
+//                int offsetY = 0;
+//                // TODO: not sure what is the issue here
+//                if (this.words.size() <= 2) {
+//                    offsetY = 1;
+//                }
+//                char letter = word.charAt(j);
+//                // convert string to text
+//                letterSprite = new Sprite(game.textDict.get(letter));
+////                game.uiBatch.draw(letterSprite, this.topLeft.x +8 +8*j, this.topLeft.y -16*(this.words.size()-2+i));
+//                letterSprite.setPosition(this.topLeft.x +8 +8*j, this.topLeft.y -16*(this.words.size()-2+i+offsetY));
+////                letterSprite.setColor(this.wordColors.get(i));
+//
+//                prevColor = game.uiBatch.getColor();
+//                game.uiBatch.setColor(prevColor.r, prevColor.g, prevColor.b, this.wordColors.get(i).a);
+//                game.uiBatch.draw(letterSprite, letterSprite.getX(), letterSprite.getY());
+//                game.uiBatch.setColor(prevColor);
+////                game.uiBatch.draw(letterSprite, letterSprite.getX(), letterSprite.getY());  // TODO: remove, not sure why this was here.
+//            }
         }
         // Draw the name of what is being built top-left
         game.uiBatch.draw(this.textBoxTop, 0, 144-19);
@@ -750,18 +785,29 @@ class DrawItemPickup extends Action {
         this.words.add("GOT");
         this.wordColors.add(new Color(1,1,1,1));
         for (String item : this.items.keySet()) {
-            String text = item.toUpperCase();
-            if (text.contains("APRICORN")) {
-                text = "APRCN";
+//            String text = item.toUpperCase();
+            String[] texts = item.toUpperCase().split(" ");
+            for (int i=0; i < texts.length; i++) {
+                String text = texts[i];
+                if (text.contains("APRICORN")) {
+                    text = "APRCN";
+                }
+                else if (text.equals("BEDDING")) {
+                    text = "BED";
+                }
+                // This will split long words into two lines
+                if (i >= texts.length-1) {
+                    int numGot = this.items.get(item);
+                    int length = text.length();
+                    for (int j=0; j < 5-length; j++) {
+                        text += " ";
+                    }
+                    text += "x";
+                    text += String.valueOf(numGot);
+                }
+                this.wordColors.add(new Color(1,1,1,1));
+                this.words.add(text);
             }
-            int numGot = this.items.get(item);
-            for (int i=0; i < 5-item.length(); i++) {
-                text += " ";
-            }
-            text += "x";
-            text += String.valueOf(numGot);
-            this.wordColors.add(new Color(1,1,1,1));
-            this.words.add(text);
         }
     }
 
@@ -795,16 +841,20 @@ class DrawItemPickup extends Action {
             else {
                 game.uiBatch.draw(this.textBoxMiddle, this.topLeft.x, this.topLeft.y-19 -16*(i));
             }
+            Color color = game.uiBatch.getColor();
             if (i < this.words.size()) {
                 String word = this.words.get(i);
                 for (int j=0; j < word.length(); j++) {
                     char letter = word.charAt(j);
                     letterSprite = new Sprite(game.textDict.get(letter));
                     letterSprite.setPosition(this.topLeft.x +8 +8*j, this.topLeft.y -14 -16*(i));
-                    letterSprite.setColor(this.wordColors.get(i));
-                    letterSprite.draw(game.uiBatch);
+//                    letterSprite.setColor(this.wordColors.get(i));
+//                    letterSprite.draw(game.uiBatch);
+                    game.uiBatch.setColor(color.r, color.g, color.b, this.wordColors.get(i).a);
+                    game.uiBatch.draw(letterSprite, letterSprite.getX(), letterSprite.getY());
                 }
             }
+            game.uiBatch.setColor(color);
         }
     }
 }
@@ -1008,8 +1058,8 @@ class DrawCraftsMenu extends MenuAction {
                 break;
             }
         }
-//        DrawCraftsMenu.lastCurrIndex = this.currIndex;
-//        DrawCraftsMenu.lastCursorPos = this.cursorPos;
+        DrawCraftsMenu.lastCurrIndex = this.currIndex;
+        DrawCraftsMenu.lastCursorPos = this.cursorPos;
         newPos = arrowCoords.get(cursorPos);
         this.arrow.setPosition(newPos.x, newPos.y);
     }
@@ -1472,6 +1522,17 @@ class DrawCraftsMenu extends MenuAction {
                     if (game.player.hasCraftRequirements(this.crafts, index, SelectAmount.amount)) {
 
                         if (this.crafts == game.player.regiCrafts) {
+                            // Remove required items from player inventory
+                            // TODO: test
+                            Player.Craft craft = this.crafts.get(index);
+                            for (Player.Craft req : craft.requirements) {
+                                int newAmt = game.player.itemsDict.get(req.name)-(req.amount*SelectAmount.amount);
+                                game.player.itemsDict.put(req.name, newAmt);
+                                if (newAmt <= 0) {
+                                    game.player.itemsDict.remove(req.name);
+                                }
+                            }
+                            
                             // Remove that regicraft from the player (can only ever craft once)
                             Player.Craft regiCraft = this.crafts.remove(index);  // TODO: test
                             game.actionStack.remove(this);
@@ -1697,7 +1758,7 @@ class DrawGhost extends Action {
                 foundCampfire = true;
                 break;
             }
-            else if (tile.items.containsKey("torch") &&
+            else if (tile.items().containsKey("torch") &&
                      this.basePos.dst2(tile.position) < 1024) {
                 foundCampfire = true;
                 break;
@@ -1921,7 +1982,7 @@ class DrawPlayerUpper extends Action {
             }
             if (isTorch) {
                 requirementsMet = requirementsMet &&
-                                  !nextTile.items.containsKey("torch") &&
+                                  !nextTile.items().containsKey("torch") &&
                                   nextTile.attrs.get("solid") &&
                                   !nextTile.nameUpper.contains("roof");
                 // Bunch of tiles that aren't allowed
@@ -2774,13 +2835,14 @@ public class Player {
             this.itemsDict.put("dragon fang", 99);
             this.itemsDict.put("magnet", 99);
             this.itemsDict.put("binding band", 2);
-            this.itemsDict.put("spell tag", 2);
+            this.itemsDict.put("spell tag", 88);
             this.itemsDict.put("moon ball", 99);
             this.itemsDict.put("love ball", 99);
             this.itemsDict.put("heavy ball", 99);
             this.itemsDict.put("level ball", 99);
             this.itemsDict.put("soft bedding", 99);;
             this.itemsDict.put("miracle seed", 99);
+            this.itemsDict.put("great ball", 99);
         }
 
         this.network = new Network(this.position);
@@ -2873,7 +2935,7 @@ public class Player {
             if (tile.nameUpper.contains("campfire")) {
                 foundCampfire = true;
             }
-            else if (tile.items.containsKey("torch")) {
+            else if (tile.items().containsKey("torch")) {
                 // TODO: probably only check if within small radius
                 foundCampfire = true;
             }
@@ -5812,7 +5874,7 @@ class PlayerStanding extends Action {
                 boolean isTorch = game.player.currBuildTile.name.contains("torch");
                 if (isTorch) {
                     requirementsMet = requirementsMet &&
-                                      !currTile.items.containsKey("torch") &&
+                                      !currTile.items().containsKey("torch") &&
                                       currTile.attrs.get("solid") &&
                                       !currTile.nameUpper.contains("roof");
                     String[] notAllowedTiles = new String[]{"regi", "tree", "bush", "table",
@@ -5833,20 +5895,20 @@ class PlayerStanding extends Action {
                     Tile newTile = currTile;
                     if (game.player.currBuildTile.name.contains("torch")) {
                         // Just add 'torch' to items
-                        currTile.items.put("torch", 1);
+                        currTile.items().put("torch", 1);
                         
 //                        // TODO: Remove?
 //                        // Add 1 grass 1 log so player gets that back later.
 //                        int numGrass = 1;
-//                        if (currTile.items.containsKey("grass")) {
-//                            numGrass += currTile.items.get("grass");
+//                        if (currTile.items().containsKey("grass")) {
+//                            numGrass += currTile.items().get("grass");
 //                        }
-//                        currTile.items.put("grass", numGrass);
+//                        currTile.items().put("grass", numGrass);
 //                        int numLogs = 1;
-//                        if (currTile.items.containsKey("log")) {
-//                            numLogs += currTile.items.get("log");
+//                        if (currTile.items().containsKey("log")) {
+//                            numLogs += currTile.items().get("log");
 //                        }
-//                        currTile.items.put("log", numLogs);
+//                        currTile.items().put("log", numLogs);
                     }
                     else {
                         newTile = new Tile(currTile.name, game.player.currBuildTile.name,
@@ -5856,6 +5918,8 @@ class PlayerStanding extends Action {
                             newTile = new Tile(game.player.currBuildTile.name, currTile.nameUpper,
                                                currTile.position.cpy(), true, currTile.routeBelongsTo);
                         }
+                        // Transfer items over
+                        newTile.items = currTile.items;
                         // Tile may change orientation depending on surrounding tiles
                         // ie, fence will rotate, house piece might be corner, etc
                         if (game.type != Game.Type.CLIENT) {
@@ -5901,10 +5965,10 @@ class PlayerStanding extends Action {
                             game.player.itemsDict.remove(name);
                         }
                         // Put materials into the tile that was built.
-                        if (newTile.items.containsKey(name)) {
-                            value += newTile.items.get(name);
+                        if (newTile.items().containsKey(name)) {
+                            value += newTile.items().get(name);
                         }
-                        newTile.items.put(name, value);
+                        newTile.items().put(name, value);
                     }
                 }
             }
@@ -5958,44 +6022,48 @@ class PlayerStanding extends Action {
                             }
                             // Gain all of the items contained in the tile.
                             // Just move them all to the overworld tile
-                            for (String name : interiorTile.items.keySet()) {
-                                int value = interiorTile.items.get(name);
-                                if (currTile.items.containsKey(name)) {
-                                    value += currTile.items.get(name);
+                            for (String name : interiorTile.items().keySet()) {
+                                int value = interiorTile.items().get(name);
+                                if (currTile.items().containsKey(name)) {
+                                    value += currTile.items().get(name);
                                 }
-                                currTile.items.put(name, value);
+                                currTile.items().put(name, value);
                             }
                         }
                     }
                     game.playerCanMove = false;
                     // Get items from tile
-                    if (!currTile.items.isEmpty()) {
+                    if (!currTile.items().isEmpty()) {
                         // Torches are just there to denote to draw a torch
                         // on top of the tile.
-                        currTile.items.remove("torch");
+                        currTile.items().remove("torch");
                         action.append(new SplitAction(
-                                          new DrawItemPickup(currTile.items, null),
+                                          new DrawItemPickup(currTile.items(), null),
                                       null));
-                        for (String item : currTile.items.keySet()) {
+                        for (String item : currTile.items().keySet()) {
+
+                            // TODO: debug, remove
+                            System.out.println(item);
+                            
                             // TODO: this was a text box popup for each item recieved
                             // Still functional but deprecated for now.
 ////                            System.out.println(item);
-////                            game.insertAction(new ItemPickupNotify(game, item, currTile.items.get(item)));
+////                            game.insertAction(new ItemPickupNotify(game, item, currTile.items().get(item)));
 //                            String plural = "";
-//                            if (currTile.items.get(item) > 1) {
+//                            if (currTile.items().get(item) > 1) {
 //                                plural = "s";
 //                            }
-//                            action.append(new DisplayText(game, "Picked up "+currTile.items.get(item)+" "+item.toUpperCase()+plural+".", null, null,
+//                            action.append(new DisplayText(game, "Picked up "+currTile.items().get(item)+" "+item.toUpperCase()+plural+".", null, null,
 //                                          null));
                             if (game.player.itemsDict.containsKey(item)) {
                                 int currQuantity = game.player.itemsDict.get(item);
-                                game.player.itemsDict.put(item, currQuantity+currTile.items.get(item));
+                                game.player.itemsDict.put(item, currQuantity+currTile.items().get(item));
                             }
                             else {
-                                game.player.itemsDict.put(item, currTile.items.get(item));
+                                game.player.itemsDict.put(item, currTile.items().get(item));
                             }
                         }
-                        currTile.items.clear();
+                        currTile.items().clear();
                     }
                     action.append(new SetField(game, "playerCanMove", true, null));
                     game.insertAction(action);
@@ -6010,27 +6078,27 @@ class PlayerStanding extends Action {
                     Action action = new CutTreeAnim(game, game.map.tiles.get(pos), null);
                     game.playerCanMove = false;
                     // Get items from tile
-                    currTile.items.remove("torch");  // if torch is on it, don't pick it up.
-                    if (!currTile.items.isEmpty()) {
-                        action.append(new SplitAction(new DrawItemPickup(currTile.items, null),
+                    currTile.items().remove("torch");  // if torch is on it, don't pick it up.
+                    if (!currTile.items().isEmpty()) {
+                        action.append(new SplitAction(new DrawItemPickup(currTile.items(), null),
                                       null));
-                        for (String item : currTile.items.keySet()) {
+                        for (String item : currTile.items().keySet()) {
                             // TODO: remove
 //                            String plural = "";
-//                            if (currTile.items.get(item) > 1) {
+//                            if (currTile.items().get(item) > 1) {
 //                                plural = "s";
 //                            }
-//                            action.append(new DisplayText(game, "Picked up "+currTile.items.get(item)+" "+item.toUpperCase()+plural+".", null, null,
+//                            action.append(new DisplayText(game, "Picked up "+currTile.items().get(item)+" "+item.toUpperCase()+plural+".", null, null,
 //                                          null));
                             if (game.player.itemsDict.containsKey(item)) {
                                 int currQuantity = game.player.itemsDict.get(item);
-                                game.player.itemsDict.put(item, currQuantity+currTile.items.get(item));
+                                game.player.itemsDict.put(item, currQuantity+currTile.items().get(item));
                             }
                             else {
-                                game.player.itemsDict.put(item, currTile.items.get(item));
+                                game.player.itemsDict.put(item, currTile.items().get(item));
                             }
                         }
-                        currTile.items.clear();
+                        currTile.items().clear();
                     }
                     // TODO: why the rand check? should just make the route empty, or null
                     if (currTile.routeBelongsTo != null &&
