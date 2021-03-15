@@ -92,7 +92,7 @@ This project is still in the early stages. If you are interested in joining the 
  - Regieleki overworld sprites and 'alternate' Regi sprites - Mr Dustman on discord.
  - Regigigas 'standing' sprite in dungeon - Mr Dustman on discord.
  - Crush Grip attack sprites - Mr Dustman on discord.
- - Regidrago and Regirock overworld sprites - sir feralipogchamp on discord.
+ - Regidrago, Regirock, Regice and Registeel overworld sprites - sir feralipogchamp on discord.
  - Campfire sprite coloration and torch sprites - boomtox-the-boombox on discord.
  - Scorbunny and Raboot front and overworld sprites - Internet_Goblin on discord.
  - Cinderace overworld sprites - Internet_Goblin on discord.
@@ -113,3 +113,5 @@ This project is still in the early stages. If you are interested in joining the 
  - Megaman-Omega on Deviantart for the overworld pokemon sprites.
  - Manik-Needlemouse on Deviantart for the ghost overworld sprite.
  - GlitchxCity on Youtube for the Pokemon Mansion Remix music.
+ - Various overworld sprites - Chamber, SOLO0993, Blue Emerald, Lake, Neslug, Pikachu25, and Ryta.
+
