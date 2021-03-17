@@ -41,6 +41,7 @@ public class SpriteProxy extends com.badlogic.gdx.graphics.g2d.Sprite {
     // This is basically the palette
     public Color color1 = null;
     public Color color2 = new Color();
+    public Color black = Color.BLACK;
 
     Texture originalTexture;
     Texture inverseTexture;
@@ -153,10 +154,20 @@ public class SpriteProxy extends com.badlogic.gdx.graphics.g2d.Sprite {
     public SpriteProxy(Texture texture, int srcX, int srcY, int srcWidth, int srcHeight) {
         this(null, texture, srcX, srcY, srcWidth, srcHeight);
     }
-
+    
     public SpriteProxy(Color color1, Texture texture, int srcX, int srcY, int srcWidth, int srcHeight) {
+        this(color1, new Color(), texture, srcX, srcY, srcWidth, srcHeight);
+    }
+
+    public SpriteProxy(Color color1, Color color2, Texture texture, int srcX, int srcY, int srcWidth, int srcHeight) {
+        this(Color.BLACK, color1, new Color(), texture, srcX, srcY, srcWidth, srcHeight);
+    }
+
+    public SpriteProxy(Color black, Color color1, Color color2, Texture texture, int srcX, int srcY, int srcWidth, int srcHeight) {
         super(texture, srcX, srcY, srcWidth, srcHeight);
         this.color1 = color1;
+        this.color2 = color2;  // TODO: doesn't work.
+        this.black = black;
         this.originalTexture = texture;
         // TODO: can't set color1/color2 before here.
 
@@ -223,11 +234,11 @@ public class SpriteProxy extends com.badlogic.gdx.graphics.g2d.Sprite {
                     color = Color.WHITE;
                 }
                 else if ((color.r == 1f && color.g == 1f && color.b == 1f)) {
-                    color = Color.BLACK;
+                    color = this.black;
                 }
                 // Some backgrounds aren't 'true' white.
                 else if ((color.r == 1f && color.g == 251.0f/255f && color.b == 1f)) {
-                    color = Color.BLACK;
+                    color = this.black;
                 }
                 else if (color.r == this.color1.r && color.g == this.color1.g && color.b == this.color1.b) {
                     color = this.color2;
@@ -268,7 +279,7 @@ public class SpriteProxy extends com.badlogic.gdx.graphics.g2d.Sprite {
                 else if ((color.r == 1f && color.g == 251.0f/255f && color.b == 1f)) {
                 }
                 else if (this.color1 != null && color.r == this.color2.r && color.g == this.color2.g && color.b == this.color2.b) {
-                    color = Color.BLACK;
+                    color = this.black;
                 }
                 if (color.a != 0f) {
                     newPixmap.drawPixel(i, j, Color.rgba8888(color.r, color.g, color.b, 1f));
@@ -300,7 +311,7 @@ public class SpriteProxy extends com.badlogic.gdx.graphics.g2d.Sprite {
                 else if ((color.r == 1f && color.g == 251.0f/255f && color.b == 1f)) {
                 }
                 else if (this.color1 != null && color.r == this.color2.r && color.g == this.color2.g && color.b == this.color2.b) {
-                    color = Color.BLACK;
+                    color = this.black;
                 }
                 else if (this.color1 != null && color.r == this.color1.r && color.g == this.color1.g && color.b == this.color1.b) {
                     color = this.color2;
@@ -404,11 +415,11 @@ public class SpriteProxy extends com.badlogic.gdx.graphics.g2d.Sprite {
                     color = this.color1;
                 }
                 else if ((color.r == 1f && color.g == 1f && color.b == 1f)) {
-                    color = Color.BLACK;
+                    color = this.black;
                 }
                 // Some backgrounds aren't 'true' white.
                 else if ((color.r == 1f && color.g == 251.0f/255f && color.b == 1f)) {
-                    color = Color.BLACK;
+                    color = this.black;
                 }
                 else if (this.color1 != null && color.r == this.color2.r && color.g == this.color2.g && color.b == this.color2.b) {
                 }
@@ -440,11 +451,11 @@ public class SpriteProxy extends com.badlogic.gdx.graphics.g2d.Sprite {
                     color = this.color2;
                 }
                 else if ((color.r == 1f && color.g == 1f && color.b == 1f)) {
-                    color = Color.BLACK;
+                    color = this.black;
                 }
                 // Some backgrounds aren't 'true' white.
                 else if ((color.r == 1f && color.g == 251.0f/255f && color.b == 1f)) {
-                    color = Color.BLACK;
+                    color = this.black;
                 }
                 else if (this.color1 != null && color.r == this.color2.r && color.g == this.color2.g && color.b == this.color2.b) {
                     color = Color.WHITE;
@@ -480,10 +491,10 @@ public class SpriteProxy extends com.badlogic.gdx.graphics.g2d.Sprite {
                 else if ((color.r == 1f && color.g == 251.0f/255f && color.b == 1f)) {
                 }
                 else if (this.color1 != null && color.r == this.color2.r && color.g == this.color2.g && color.b == this.color2.b) {
-                    color = Color.BLACK;
+                    color = this.black;
                 }
                 else if (this.color1 != null && color.r == this.color1.r && color.g == this.color1.g && color.b == this.color1.b) {
-                    color = Color.BLACK;
+                    color = this.black;
                 }
                 if (color.a != 0f) {
                     newPixmap.drawPixel(i, j, Color.rgba8888(color.r, color.g, color.b, 1f));

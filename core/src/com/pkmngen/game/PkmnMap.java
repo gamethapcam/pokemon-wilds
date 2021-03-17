@@ -978,7 +978,7 @@ class MoveWater extends Action {
     ArrayList<Vector2> positions;
     Vector2 position;
     ArrayList<Integer> repeats;
-    Texture texture;
+//    Texture texture;
     Vector3 startPos;
     Vector3 endPos;
     Vector3 worldCoordsTL;
@@ -996,6 +996,7 @@ class MoveWater extends Action {
     // Sep pixmap for roaming and riding mons,
     // Needed for optimization
     Pixmap roamingPixmap;  
+    Texture roamingTexture;
     Pixmap firePixmap1;
     Pixmap firePixmap2;
     Pixmap torchPixmap1;
@@ -1058,6 +1059,7 @@ class MoveWater extends Action {
         
         this.roamingPixmap = new Pixmap(160*3, 144*3, Pixmap.Format.RGBA8888);
         this.roamingPixmap.setColor(new Color(0f, 0f, 0f, 1f));
+        this.roamingTexture = new Texture(this.roamingPixmap);
     }
 
     public int getLayer() {
@@ -1150,7 +1152,7 @@ class MoveWater extends Action {
                 tile.sprite.setRegionX((int)this.position.x);
                 tile.sprite.setRegionWidth((int)tile.sprite.getWidth());
             }
-            if (tile.name.contains("flower")) {
+            else if (tile.name.contains("flower")) {
                 if (this.timer == 0) {
                     tile.sprite.setRegionX(0);
                 }
@@ -1328,21 +1330,22 @@ class MoveWater extends Action {
             this.roamingPixmap.drawPixmap(this.pixmap, (int)(this.prevPos.x - game.player.position.x), (int)(game.player.position.y-this.prevPos.y));
             
 //            Texture texture = new Texture(this.pixmap);
-            Texture texture = new Texture(this.roamingPixmap);
+//            Texture texture = new Texture(this.roamingPixmap);
+            this.roamingTexture.draw(this.roamingPixmap, 0, 0);
             // TODO: diff levels of exposure depending on batch color
-            game.mapBatch.draw(texture, game.player.position.x +8 -240, game.player.position.y +8 -216);
+            game.mapBatch.draw(this.roamingTexture, game.player.position.x +8 -240, game.player.position.y +8 -216);
 //            game.mapBatch.draw(texture, this.prevPos.x, this.prevPos.y);
             if (tempColor.r < 0.5f) {
-                game.mapBatch.draw(texture, game.player.position.x +8 -240, game.player.position.y +8 -216);
+                game.mapBatch.draw(this.roamingTexture, game.player.position.x +8 -240, game.player.position.y +8 -216);
 //                game.mapBatch.draw(texture, this.prevPos.x, this.prevPos.y);
             }
             if (tempColor.r < 0.1f) {
-                game.mapBatch.draw(texture, game.player.position.x +8 -240, game.player.position.y +8 -216);
+                game.mapBatch.draw(this.roamingTexture, game.player.position.x +8 -240, game.player.position.y +8 -216);
 //                game.mapBatch.draw(texture, this.prevPos.x, this.prevPos.y);
             }
             game.mapBatch.setBlendFunction(temp1, temp2);
             game.mapBatch.setColor(tempColor);
-            texture.dispose();
+//            texture.dispose();
         }
         if (this.campfireTimer < 79) {
             this.campfireTimer++;
@@ -4601,6 +4604,7 @@ class RegigigasIntroAnim extends Action {
                 this.timer = 0;
             }
         }
+        // TODO: unused
         else if (this.phase == 2 || this.phase == 3) {
             if (this.timer == 2) {
                 this.soundEffect.stop();
@@ -4676,6 +4680,8 @@ class RegigigasIntroAnim extends Action {
 
             if (this.timer == 1) {
                 this.lightningSprite.setRegion(160*4, 0, 160, 144);
+                this.soundEffect.stop();
+                this.soundEffect.dispose();
                 this.soundEffect2.stop();
                 this.soundEffect2.dispose();
                 if (this.regiName.equals("REGIDRAGO")) {
@@ -4747,6 +4753,10 @@ class RegigigasIntroAnim extends Action {
                 game.playerCanMove = true;
             }
             else if (this.timer == 230) {
+                this.soundEffect.stop();
+                this.soundEffect.dispose();
+                this.soundEffect2.stop();
+                this.soundEffect2.dispose();
                 game.actionStack.remove(this);
             }
             game.mapBatch.draw(this.lightningSprite, this.regiTile.position.x -110, this.regiTile.position.y -94);

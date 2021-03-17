@@ -427,7 +427,7 @@ public class Pokemon {
         else {
             this.mapTiles = Game.staticGame.map.overworldTiles;
         }
-        this.initHabitatValues();
+        this.initHabitatValues();  // TODO: done in init(), shouldn't need this (although harmless probably)
         this.status = pokemonData.status;
         this.harvestTimer = pokemonData.harvestTimer;
         if (pokemonData.previousOwnerName != null) {
@@ -1226,7 +1226,8 @@ public class Pokemon {
 //        int habitatCount = 0;
         ArrayList<String> notFoundHabitats = new ArrayList<String>(Pokemon.this.habitats);
         for (Vector2 currPos = new Vector2(startPos.x, startPos.y); currPos.y < endPos.y;) {
-            Tile tile = game.map.tiles.get(currPos);
+//            Tile tile = game.map.tiles.get(currPos);  // TODO: remove
+            Tile tile = Pokemon.this.mapTiles.get(currPos);
             currPos.x += 16;
             if (currPos.x > endPos.x) {
                 currPos.x = startPos.x;
@@ -1236,7 +1237,9 @@ public class Pokemon {
                 continue;
             }
             // If found the player and aggro-ing, then set player.nearAggroPokemon = true
-            if (game.player.position.equals(currPos) && this.aggroPlayer) {
+            if (game.map.tiles == Pokemon.this.mapTiles &&
+                game.player.position.equals(currPos) &&
+                this.aggroPlayer) {
                 game.player.nearAggroPokemon = true;
             }
             if (tile.nameUpper.contains("fence")) {
@@ -1248,7 +1251,7 @@ public class Pokemon {
             // Dual-types require multiple habitats.
             for (String habitat : Pokemon.this.habitats) {
                 // | is used to basically say either-or
-                for (String name : habitat.split("|")) {
+                for (String name : habitat.split("\\|")) {
                     if (tile.name.contains(name) || tile.nameUpper.contains(name)) {
                         notFoundHabitats.remove(habitat);
                         break;
@@ -1316,14 +1319,11 @@ public class Pokemon {
 //            habitatCount = 0;  // TODO: remove
             notFoundHabitats.add("night");
         }
-//        if (satisfiedCount > ) {
-//            habitatCount++;
-//        }
 //        Pokemon.this.inHabitat = habitatCount >= Pokemon.this.habitats.size();  // TODO: remove
         Pokemon.this.inHabitat = notFoundHabitats.size() <= 0;
         Pokemon.this.inShelter = roofCount >= 3 && fenceCount >= 2;
     }
-    
+
     /**
      * Compute changes required by leveling up.
      */
@@ -1521,7 +1521,7 @@ public class Pokemon {
             this.harvestables.add("spell tag");
         }
         if (this.types.contains("DRAGON")) {
-            this.habitats.clear();  
+            this.habitats.clear();
             this.habitats.add("water");  // TODO: potentially change for other dragon types
             this.harvestables.clear();  // TODO: disable this line once it's easier to get dragon types.
             this.harvestables.add("dragon fang");
@@ -3154,7 +3154,7 @@ public class Pokemon {
                 if (baseSpecies.equals("nidoran_f") && Game.rand.nextInt(256) < 128) {
                     baseSpecies = "nidoran_m";
                 }
-                Pokemon pokemonEgg = new Pokemon("egg", 2, Pokemon.Generation.CRYSTAL, Game.rand.nextInt(256) == 0, baseSpecies);
+                Pokemon pokemonEgg = new Pokemon("egg", 5, Pokemon.Generation.CRYSTAL, Game.rand.nextInt(256) == 0, baseSpecies);
                 // Find first empty attack slot in pokemon egg (first egg move is put here)
                 int currIndex = 0;
                 for (int i=0; i < pokemonEgg.attacks.length; i++) {

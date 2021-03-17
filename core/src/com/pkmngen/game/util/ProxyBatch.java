@@ -30,6 +30,35 @@ public class ProxyBatch extends SpriteBatch {
             sprite.setTexture(sprite.originalTexture);
             texture = sprite.originalTexture;
         }
+
+        // Check for darken colors effect (1)
+        if (SpriteProxy.darkenColors1 && texture == sprite.originalTexture) {
+            sprite.setTexture(sprite.darkenTexture1);
+            texture = sprite.darkenTexture1;
+        }
+        else if (!SpriteProxy.darkenColors1 && texture == sprite.darkenTexture1) {
+            sprite.setTexture(sprite.originalTexture);
+            texture = sprite.originalTexture;
+        }
+        // Check for darken colors effect (2)
+        if (SpriteProxy.darkenColors2 && texture == sprite.originalTexture) {
+            sprite.setTexture(sprite.darkenTexture2);
+            texture = sprite.darkenTexture2;
+        }
+        else if (!SpriteProxy.darkenColors2 && texture == sprite.darkenTexture2) {
+            sprite.setTexture(sprite.originalTexture);
+            texture = sprite.originalTexture;
+        }
+        // Check for darken colors effect (3)
+        if (SpriteProxy.darkenColors3 && texture == sprite.originalTexture) {
+            sprite.setTexture(sprite.darkenTexture3);
+            texture = sprite.darkenTexture3;
+        }
+        else if (!SpriteProxy.darkenColors3 && texture == sprite.darkenTexture3) {
+            sprite.setTexture(sprite.originalTexture);
+            texture = sprite.originalTexture;
+        }
+
         // Check for confuse ray colors effect (1)
         if (SpriteProxy.confuseRayColors1 && texture == sprite.originalTexture) {
             sprite.setTexture(sprite.confuseRayTexture1);

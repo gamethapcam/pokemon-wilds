@@ -4847,10 +4847,21 @@ class PlayerStanding extends Action {
                     if (game.levelScalingEnabled && 
                         !currTile.routeBelongsTo.isDungeon) {
                         int averageLevel = 0;
+                        int numberPokemon = 0;
                         for (Pokemon mon : game.player.pokemon) {
+                            // Eggs don't count towards level scaling
+                            if (mon.name.equals("egg")) {
+                                continue;
+                            }
                             averageLevel += mon.level;
+                            numberPokemon++;
                         }
-                        averageLevel = averageLevel/game.player.pokemon.size();
+                        // This shouldn't happen, but just in case.
+                        if (numberPokemon <= 0) {
+                            System.out.println("WARNING: this should never happen. Might want to look into it.");
+                            numberPokemon = 1;
+                        }
+                        averageLevel = averageLevel/numberPokemon;
                         averageLevel = averageLevel -3 + Game.rand.nextInt(3);
                         if (averageLevel > 50) {
                             averageLevel = 50;
@@ -6775,9 +6786,9 @@ class SpawnGhost extends Action {
 
     @Override
     public void step(Game game) {
-        if (part1 == 80) { // do once
+        if (part1 == 80) {
             game.playerCanMove = false;
-            // set player to face ghost
+            // Set player to face ghost
             float dx = this.position.x - game.player.position.x;
             float dy = this.position.y - game.player.position.y;
             if (dx < dy) {
@@ -6799,14 +6810,6 @@ class SpawnGhost extends Action {
 
             // play alert music
             game.musicController.startNightAlert = "night1_alert1";
-            // TODO: remove
-//            game.currMusic.pause();
-//            Music music = Gdx.audio.newMusic(Gdx.files.internal("night1_alert1.ogg"));
-//            music.setLooping(true);
-//            music.setVolume(.7f);
-//            game.currMusic = music;
-//            game.currMusic.play();
-            
             
 
             // TODO - insert ! mark action
