@@ -1,8 +1,5 @@
-apply plugin: "java"
-apply plugin: "jetty"
-
 gwt {
-    gwtVersion='2.6.0' // Should match the gwt version used for building the gwt backend
+    gwtVersion='2.8.1' // Should match the gwt version used for building the gwt backend
     maxHeapSize="1G" // Default 256m is not enough for gwt compiler. GWT is HUNGRY
     minHeapSize="1G"
 
@@ -13,22 +10,50 @@ gwt {
 
     compiler {
         strict = true;
-        enableClosureCompiler = true;
         disableCastChecking = true;
     }
 }
 
-task draftRun(type: JettyRunWar) {
-    dependsOn draftWar
-    dependsOn.remove('war')
-    webApp=draftWar.archivePath
-    daemon=true
+import org.wisepersist.gradle.plugins.gwt.GwtSuperDev
+import org.akhikhl.gretty.AppBeforeIntegrationTestTask
+
+gretty.httpPort = 8080
+gretty.resourceBase = project.buildDir.path + "/gwt/draftOut"
+gretty.contextPath = "/"
+gretty.portPropertiesFileName = "TEMP_PORTS.properties"
+
+task startHttpServer () {
+    dependsOn draftCompileGwt
+
+    doFirst {
+        copy {
+            from "webapp"
+            into gretty.resourceBase
+        }
+
+        copy {
+            from "war"
+            into gretty.resourceBase
+        }
+    }
 }
 
-task superDev(type: de.richsource.gradle.plugins.gwt.GwtSuperDev) {
-    dependsOn draftRun
+task beforeRun(type: AppBeforeIntegrationTestTask, dependsOn: startHttpServer) {
+    // The next line allows ports to be reused instead of
+    // needing a process to be manually terminated.
+    file("build/TEMP_PORTS.properties").delete()
+    // Somewhat of a hack; uses Gretty's support for wrapping a task in
+    // a start and then stop of a Jetty server that serves files while
+    // also running the SuperDev code server.
+    integrationTestTask 'superDev'
+
+    interactive false
+}
+
+task superDev (type: GwtSuperDev) {
+    dependsOn startHttpServer
     doFirst {
-    	gwt.modules = gwt.devModules
+        gwt.modules = gwt.devModules
     }
 }
 
@@ -50,21 +75,16 @@ task dist(dependsOn: [clean, compileGwt]) {
     }
 }
 
-draftWar {
-   from "war"
-}
-
-task addSource << {
-	sourceSets.main.compileClasspath += files(project(':core').sourceSets.main.allJava.srcDirs)
+task addSource {
+    doLast {
+        sourceSets.main.compileClasspath += files(project(':core').sourceSets.main.allJava.srcDirs)
+    }
 }
 
 tasks.compileGwt.dependsOn(addSource)
 tasks.draftCompileGwt.dependsOn(addSource)
 
-sourceCompatibility = 1.6
+sourceCompatibility = 1.7
 sourceSets.main.java.srcDirs = [ "src/" ]
 
-
-eclipse.project {
-    name = appName + "-html"
-}
+eclipse.project.name = appName + "-html"

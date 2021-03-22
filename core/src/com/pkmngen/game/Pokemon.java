@@ -18,7 +18,6 @@ import com.badlogic.gdx.graphics.TextureData;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.math.Vector2;
 import com.pkmngen.game.Network.PokemonData;
-import com.pkmngen.game.util.Direction;
 import com.pkmngen.game.util.SpriteProxy;
 import com.pkmngen.game.util.TextureCache;
 

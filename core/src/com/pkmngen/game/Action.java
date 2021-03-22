@@ -26,7 +26,6 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.esotericsoftware.kryonet.Server;
 import com.esotericsoftware.minlog.Log;
-import com.pkmngen.game.util.Direction;
 import com.pkmngen.game.util.LinkedMusic;
 
 // TODO: enums

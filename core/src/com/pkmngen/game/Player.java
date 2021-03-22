@@ -24,8 +24,6 @@ import com.pkmngen.game.Pokemon.Standing;
 import com.pkmngen.game.util.LoadingZone;
 import com.pkmngen.game.util.SpriteProxy;
 import com.pkmngen.game.util.TextureCache;
-import com.pkmngen.game.util.Direction;
-import com.sun.xml.internal.bind.v2.runtime.Name;
 
 /*
  * TODO: remove this, not using.
