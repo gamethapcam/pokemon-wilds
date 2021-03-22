@@ -24,6 +24,8 @@ public class LinkedMusic implements Music {
     public Type type = Type.NORMAL;
 
     public LinkedMusic(String m1, String m2) {
+        // TODO: this was an attempt at using gbs music,
+        //       had various issues.
         // TODO: might need to do more tracks
         if (m1.contains("pkmnmansion1") || m2.contains("pkmnmansion1")) {
             this.type = Type.GME;

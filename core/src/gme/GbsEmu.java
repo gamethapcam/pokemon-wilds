@@ -184,7 +184,7 @@ final class GbsEmu extends GbCpu
 			return apu.read( time + endTime, addr );
 		
 		//Evan - debug
-		System.out.println(ram [mapAddr( addr )]);
+//		System.out.println(ram [mapAddr( addr )]);
 		
 		return ram [mapAddr( addr )] & 0xFF;
 	}

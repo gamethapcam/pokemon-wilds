@@ -90,7 +90,7 @@ ENDM
 	move POISONPOWDER,  EFFECT_POISON,              0, POISON,   STATUS,     75,    35,     0 ;needs grass immunity
 	move STUN_SPORE,    EFFECT_PARALYZE,            0, GRASS,    STATUS,     75,    30,     0
 	move SLEEP_POWDER,  EFFECT_SLEEP,               0, GRASS,    STATUS,     75,    15,     0
-	move HYPER_VOICE,   EFFECT_NORMAL_HIT,         90, SOUND,    SPECIAL,   100,    10,     0
+	move HYPER_VOICE,   EFFECT_NORMAL_HIT,         90, NORMAL,   SPECIAL,   100,    10,     0 ;was SOUND type
 	move STRING_SHOT,   EFFECT_SPEED_DOWN_2,        0, BUG,      STATUS,     95,    40,     0
 	move BULLET_PUNCH,  EFFECT_PRIORITY_HIT,       40, STEEL,    PHYSICAL,  100,    30,     0
 	move FIRE_SPIN,     EFFECT_BIND,               35, FIRE,     SPECIAL,    85,    15,     0 ;is damage per turn gen 6?

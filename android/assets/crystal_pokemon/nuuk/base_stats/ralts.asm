@@ -3,7 +3,7 @@
 	db 28, 25, 25, 40, 45, 35
 
 
-	db PSYCHIC, FAIRY_T
+	db PSYCHIC, PSYCHIC ; FAIRY_T  ; TODO
 	db 235 ; catch rate
 	db 70 ; exp rate
 	db NO_ITEM, NO_ITEM

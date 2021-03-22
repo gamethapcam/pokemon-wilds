@@ -90,9 +90,13 @@ class AfterFriendlyFaint extends Action {
         else {
             game.mapBatch.setColor(new Color(0.08f, 0.08f, 0.3f, 1.0f));
         }
+        // issues where map.currRoute == null causes bad things.
+        if (newRoute == null) {
+            newRoute = new Route("", 2);
+        }
 
         game.insertAction(new DisplayText.Clear(game,
-                          new WaitFrames(game, 3,new DisplayText(game, ""+game.player.name.toUpperCase()+" is out of useable POKÈMON!", null, null,
+                          new WaitFrames(game, 3, new DisplayText(game, ""+game.player.name.toUpperCase()+" is out of useable POKÈMON!", null, null,
                           new DisplayText(game, ""+game.player.name.toUpperCase()+" whited out!", null, null,
                           // TODO: remove
 //                          new SplitAction(
@@ -107,7 +111,7 @@ class AfterFriendlyFaint extends Action {
                           new SetField(game.player, "dirFacing", "down",
                           new SetField(game.player, "currSprite", game.player.standingSprites.get("down"),
                           // Required by musicController to know which song to play.
-                          new SetField(game.map, "currRoute", playerTile.routeBelongsTo,
+                          new SetField(game.map, "currRoute", newRoute,
                           new Game.SetCamPos(game.player.spawnLoc.cpy().add(16, 0),
                           new SplitAction(new BattleFadeOut(game, 4, null),
                           new BattleFadeOutMusic(game,
@@ -117,10 +121,13 @@ class AfterFriendlyFaint extends Action {
 //                                          new WaitFrames(game, 100,
                                           // TODO: test
 //                                          new CallMethod(game.loadedMusic.get(game.musicController.currOverworldMusic), "setVolume", new Object[]{0.1f},  // TODO: remove
+                                          new SetField(game.musicController, "playerFainted", false,  // needs to be before resume = true is set.
+                                          new SetField(game.musicController, "nightAlert", false,  // needs to be before resume = true is set.
+//                                          new WaitFrames(game, 600,
                                           new SetField(game.musicController, "resumeOverworldMusic", true,
 //                                          new FadeMusic("currMusic", "in", "", 0.2f, false, 1f,
 //                                          new FadeMusic(game.loadedMusic.get(game.musicController.currOverworldMusic), 0.2f,  // TODO: remove
-                                          null),
+                                          null))),
 //                          new SplitAction(new FadeIn(),
                           new SetField(game, "playerCanMove", true,
                           null))))))))))))))))));
@@ -2138,7 +2145,10 @@ public class Battle {
         int attackStat = attack.isPhysical ? source.currentStats.get("attack") : source.currentStats.get("specialAtk");
         int defenseStat = attack.isPhysical ? target.currentStats.get("defense") : target.currentStats.get("specialDef");
         int damage = (int)Math.floor(Math.floor(Math.floor(2 * source.level / 5 + 2) * attackStat * power / defenseStat) / 50) + 2;
-        if (source.types.contains(attack.type)) {damage = (int)(damage * 1.5f);}  // STAB
+        if (source.types.contains(attack.type.toUpperCase())) {
+            damage = (int)(damage * 1.5f);
+            System.out.println("STAB applied.");  // TODO: debug, remove
+        }  // STAB
         // Factor in type effectiveness
         float multiplier = 1f;
         String prevType = "";
@@ -3905,7 +3915,7 @@ public class Battle {
         int exp = (a*t*b*e*l)/(7*s);
         // TODO: leveling takes too long, doing exp*2 for now. May remove this in the future if way
         // to get more exp is added.
-        return exp*2;
+        return exp*5;  // TODO: was 2
     }
 
     /**
@@ -4912,8 +4922,8 @@ class BattleFadeOut extends Action {
 
         // if done with anim, do nextAction
         if (frames.isEmpty()) {
-            game.insertAction(this.nextAction);
             game.actionStack.remove(this);
+            game.insertAction(this.nextAction);
             
             // TODO: remove
             // TODO: test

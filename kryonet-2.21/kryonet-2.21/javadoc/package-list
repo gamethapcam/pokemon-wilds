@@ -1,0 +1,9 @@
+com.esotericsoftware.kryo
+com.esotericsoftware.kryo.factories
+com.esotericsoftware.kryo.io
+com.esotericsoftware.kryo.serializers
+com.esotericsoftware.kryo.util
+com.esotericsoftware.kryonet
+com.esotericsoftware.kryonet.rmi
+com.esotericsoftware.kryonet.util
+com.esotericsoftware.minlog

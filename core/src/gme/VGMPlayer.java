@@ -165,6 +165,7 @@ public class VGMPlayer extends EmuPlayer
 	// the archive.
 	public void loadFile( String url, String path ) throws Exception
 	{
+	    System.out.println(System.getProperty("user.dir"));
 		stop();
 		
 		if ( !loadedUrl.equals( url ) || !loadedPath.equals( path ) )

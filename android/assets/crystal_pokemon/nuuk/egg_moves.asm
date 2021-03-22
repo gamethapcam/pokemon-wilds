@@ -61,6 +61,58 @@ PoochyenaEggMoves:
 	; db POISON_FANG
 	; db YAWN
 
+SnoverEggMoves:
+	db DOUBLE_EDGE
+	db GROWTH
+	db LEECH_SEED
+	db SKULL_BASH
+	db STOMP
+
+MimikyuEggMoves:
+	db CURSE
+	db DESTINY_BOND
+	; db GRUDGE
+
+CorphishEggMoves:
+	db ANCIENTPOWER
+	; db AQUA_JET
+	db DOUBLE_EDGE
+	db METAL_CLAW
+	db SLASH
+	; db SWITCHEROO
+
+LitwickEggMoves:
+	db ACID_ARMOR
+	;db CLEAR_SMOG
+	db HAZE
+	; db POWER_SPLIT
+
+DwebbleEggMoves:
+	; db BLOCK
+	db COUNTER
+	db CURSE
+	; db KNOCK_OFF
+	db NIGHT_SLASH
+	; db WIDE_GUARD
+
+ScorbunnyEggMoves:
+	db HI_JUMP_KICK
+	db SAND_ATTACK
+	; db SUCKER_PUNCH
+	db SUPER_FANG
+
+RegielekiEggMoves:
+
+RegidragoEggMoves:
+
+RegiRockEggMoves:
+
+RregiceoEggMoves:
+
+RegisteelEggMoves:
+
+RegigigasEggMoves:
+
 SableyeEggMoves:
 
 SurskitEggMoves:

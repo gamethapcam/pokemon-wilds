@@ -1814,6 +1814,14 @@ class DrawSetupMenu extends Action {
                                 // TODO: debug, comment or removee
 //                                size = 100*100;  // 100*300 // 100*500 // 100*180 // 100*100 // 20*30 // 60*100 // 100*120
 
+                                // Fun fact - this probably wouldn't/won't work for html5
+                                // according to libGDX docs multithreading doesn't work
+                                // for html5.
+                                // Possible that I could have the thread run on the gdx thread,
+                                // and just keep stop/starting it after it took slightly less time
+                                // than one frame.
+                                
+                                
                                 // attempt at threaded create - doesn't work b/c 
                                 // needs opengl context when generating tiles
                                 // might be able to make texturecache post runnable to fix this.
@@ -1845,7 +1853,8 @@ class DrawSetupMenu extends Action {
                                         }
                                     }
                                 });
-                                thread.start();
+                                // TODO: uncomment
+//                                thread.start();
                                 
                                 
 //                                System.out.println("Generating map...");
@@ -1862,8 +1871,13 @@ class DrawSetupMenu extends Action {
 //                                System.out.println("Done.");
 //                                System.out.println(java.time.LocalTime.now());
                                 
-                                game.insertAction(new DisplayText(game, "Generating... please wait...", null, true, false, null));
-                                game.insertAction(drawControls);
+                                // TODO: uncomment
+//                                game.insertAction(new DisplayText(game, "Generating... please wait...", null, true, false, null));
+//                                game.insertAction(drawControls);
+
+                                game.map = new PkmnMap("default"); // TODO: ideally shouldn't have to do this.
+                                game.start();
+                                game.insertAction(new TileEditor());
 
                                 // Set player name
                                 String name = "";
@@ -1916,6 +1930,9 @@ class DrawSetupMenu extends Action {
                                 EnterBuilding enterBuilding = new EnterBuilding(game, "", null);
                                 enterBuilding.slow = 8;
                                 game.insertAction(enterBuilding);
+                                
+                                // TODO: remove
+                                game.insertAction(new TileEditor());
                             }
                             // periodically save game in both host/local cases
                             // TODO: this lags too much for large maps, which causes server desync.
@@ -2429,11 +2446,13 @@ class MusicController extends Action {
             return;
         }
 
+        boolean isDungeon = game.map.currRoute != null && game.map.currRoute.isDungeon;
+
         if (this.startBattle != null && !this.inBattle) {
             System.out.println("startBattle");
             // TODO: needs to trigger in regi cave even if it's night
             // probably check currRoute or something
-            if (game.map.currRoute.isDungeon || (!this.currDayTime.equals("night") && !this.unownMusic)) {
+            if (isDungeon || (!this.currDayTime.equals("night") && !this.unownMusic)) {
 
                 game.currMusic.pause();
                 if (this.startBattle.equals("wild")) {
@@ -2471,7 +2490,7 @@ class MusicController extends Action {
         }
         if (this.battleFadeOut && this.inBattle) {
             System.out.println("battleFadeOut");
-            if (game.map.currRoute.isDungeon ||
+            if (isDungeon ||
                 !this.currDayTime.equals("night") ||
                 game.map.timeOfDay.equals("day") ||
                 this.playerFainted ||
@@ -2508,7 +2527,7 @@ class MusicController extends Action {
             System.out.println(this.inBattle);
 //            if (!this.inTransition) {  // TODO: remove once tested
                 game.currMusic.pause();
-                if (game.map.currRoute.isDungeon) {
+                if (isDungeon) {
                     String musicName = game.map.currRoute.getNextMusic(true);
                     if (!game.loadedMusic.containsKey(musicName)) {
                         Music music = Gdx.audio.newMusic(Gdx.files.internal("music/"+musicName+".ogg"));
@@ -2546,7 +2565,7 @@ class MusicController extends Action {
 //            if (!this.currDayTime.equals("night")) {
                 String nextMusicName = this.currOverworldMusic;
                 // If previous overworld music was night, and it's not currently night, need to refresh.
-                if (game.map.currRoute.isDungeon || nextMusicName.contains("night")) {
+                if (isDungeon || nextMusicName.contains("night")) {
                     nextMusicName = game.map.currRoute.getNextMusic(true);  // was false
                 }
                 System.out.println("nextMusicName");
@@ -2607,7 +2626,7 @@ class MusicController extends Action {
             System.out.println("startOverworldMusic");
             System.out.println(this.startOverworldMusic);
             // Was a fade in, just starting music now.
-            if (!game.map.currRoute.isDungeon && !this.currDayTime.equals("night") && !this.unownMusic) {
+            if (!isDungeon && !this.currDayTime.equals("night") && !this.unownMusic) {
                 game.currMusic.pause();
                 if (!game.loadedMusic.containsKey(this.startOverworldMusic)) {
                     game.loadedMusic.put(this.startOverworldMusic, Gdx.audio.newMusic(Gdx.files.internal("music/"+this.startOverworldMusic+".ogg")));
@@ -2632,88 +2651,109 @@ class MusicController extends Action {
             this.startOverworldMusic = null;
         }
         if (this.startTimeOfDay != null && !this.inBattle &&
-                !this.playerFainted && !this.unownMusic &&
-                !this.evolving && !game.map.currRoute.isDungeon) {
+            !this.playerFainted && !this.unownMusic &&
+            !this.evolving && !isDungeon) {
             this.currDayTime = this.startTimeOfDay;
-            if (game.battle.oppPokemon == null || !SpecialMewtwo1.class.isInstance(game.battle.oppPokemon)) {
-                if (this.startTimeOfDay.equals("day")) {
-                    this.musicCompletionListener = new Music.OnCompletionListener() {
-                        @Override
-                        public void onCompletion(Music aMusic) {
-                            String nextMusicName = Game.staticGame.map.currRoute.getNextMusic(true);
+            System.out.println("startTimeOfDay");
+            System.out.println(this.startTimeOfDay);
+            // TODO: test
+//            if (game.battle.oppPokemon == null || !SpecialMewtwo1.class.isInstance(game.battle.oppPokemon)) {
+            if (this.startTimeOfDay.equals("day")) {
+                this.musicCompletionListener = new Music.OnCompletionListener() {
+                    @Override
+                    public void onCompletion(Music aMusic) {
+                        String nextMusicName = Game.staticGame.map.currRoute.getNextMusic(true);
 //                            System.out.println(nextMusicName);  // debug
 //                            String nextMusicName = Game.staticGame.musicController.currOverworldMusic;  // debug
-                            
+                        
 //                            Action nextMusic = new FadeMusic("currMusic", "out", "", 0.025f,
 //                                               new WaitFrames(Game.staticGame, 360,
 //                                               new FadeMusic(nextMusicName, "in", "", 0.2f, true, 1f, this,
 //                                               null)));
-                            Action nextMusic = new FadeMusic(Game.staticGame.currMusic, -0.0125f,  // used for fading night music out
-                                               new WaitFrames(Game.staticGame, 360,
-                                               new SetField(Game.staticGame.musicController,
-                                                            "startOverworldMusic", nextMusicName,
-                                               null)));
-                            Game.staticGame.insertAction(nextMusic);
+
+                        Game.staticGame.loadedMusic.remove(MusicController.this.currOverworldMusic);  // TODO: test
+                        Action nextMusic = new FadeMusic(aMusic, -0.0125f,  // used for fading night music out
+                                           new WaitFrames(Game.staticGame, 360,
+                                           new SetField(Game.staticGame.musicController,
+                                                        "startOverworldMusic", nextMusicName,
+                                           new CallMethod(aMusic, "dispose", new Object[]{},
+                                           null))));
+                        Game.staticGame.insertAction(nextMusic);
+
+                        // TODO: remove
+                        System.out.println("loaded musics");
+                        for (String name : Game.staticGame.loadedMusic.keySet()) {
+                            System.out.println(name);
+                        }
+                        
 //                            nextMusic.step(Game.staticGame);  // messes up firstStep if done
 //                            Game.staticGame.fadeMusicAction = nextMusic;  // TODO: remove
 //                            MusicController.currOverworldMusic = nextMusicName;  // TODO remove
-                        }
-                    };
-                    if (!this.firstStep) {
-                        String nextMusicName = game.map.currRoute.getNextMusic(true);
+                    }
+                };
+                if (!this.firstStep) {
+                    // TODO: maybe move this elsewhere.
+                    // Felt like this was a safe ish place to do it.
+                    // TODO: this feels too dangerous
+//                    for (String name : new ArrayList<String>(game.loadedMusic.keySet())) {
+//                        Music music = game.loadedMusic.get(name);
+//                        if (!music.isPlaying()) {
+//                            game.loadedMusic.remove(name);
+//                            music.dispose();
+//                        }
+//                    }
+
+                    String nextMusicName = game.map.currRoute.getNextMusic(true);
 //                        BattleFadeOutMusic.playerFainted = true;  // TODO: this is just a hack around issues with FadeMusic
 //                        Action nextMusic = new BattleFadeOutMusic(game,
 //                                           new WaitFrames(game, 360,
 //                                           new FadeMusic(nextMusicName, "in", "", 0.2f, true, 1f, musicCompletionListener,
 //                                           null)));
-                        // TODO: this could cause problems if resumeoverworldmusic is set true
-                        // but inTransition is somehow also still true.
+                    // TODO: this could cause problems if resumeoverworldmusic is set true
+                    // but inTransition is somehow also still true.
 //                        this.inTransition = true;  // TODO: test without
-                        Action nextMusic = new FadeMusic(game.currMusic, -0.025f,  // used for fading night music out
-                                           new WaitFrames(game, 360,
-                                           new SetField(game.musicController, "startOverworldMusic", nextMusicName,
-                                           new SetField(game.musicController, "inTransition", false,
-                                           null))));
+                    Action nextMusic = new FadeMusic(game.currMusic, -0.025f,  // used for fading night music out
+                                       new WaitFrames(game, 360,
+                                       new SetField(game.musicController, "startOverworldMusic", nextMusicName,
+                                       new SetField(game.musicController, "inTransition", false,
+                                       null))));
 //                        game.fadeMusicAction = nextMusic; // TODO: is this being used?
 //                        MusicController.currOverworldMusic = nextMusicName;
-                        game.insertAction(nextMusic);
-                        this.currOverworldMusic = nextMusicName;
-                    }
-                    else {
-                        game.currMusic = Gdx.audio.newMusic(Gdx.files.internal("music/nature1_render.ogg"));
-                        if (!game.loadedMusic.containsKey("nature1_render")) {
-                            game.loadedMusic.put("nature1_render", game.currMusic);
-                        }
-                        game.currMusic.setLooping(false);
-                        game.currMusic.setVolume(1f);
-                        game.currMusic.play();
-                        game.currMusic.pause();
-                        game.currMusic.setPosition(130f);  
-                        game.currMusic.play();
-                        game.currMusic.setOnCompletionListener(this.musicCompletionListener);
-                        this.currOverworldMusic = "nature1_render";
-                    }
+                    game.insertAction(nextMusic);
+                    this.currOverworldMusic = nextMusicName;
                 }
                 else {
-                    System.out.println("start night music");
-                    game.currMusic.stop();
-//                    game.actionStack.remove(game.fadeMusicAction);
-                    if (!game.loadedMusic.containsKey("night1")) {
-                        game.loadedMusic.put("night1", Gdx.audio.newMusic(Gdx.files.internal("night1.ogg")));
+                    game.currMusic = Gdx.audio.newMusic(Gdx.files.internal("music/nature1_render.ogg"));
+                    if (!game.loadedMusic.containsKey("nature1_render")) {
+                        game.loadedMusic.put("nature1_render", game.currMusic);
                     }
-                    Music music = game.loadedMusic.get("night1");
-                    music.setLooping(true);
-                    music.setVolume(.4f);  // TODO: adjust
-                    game.currMusic = music;
-//                    game.map.currRoute.music = music;  // TODO: remove
-                    this.currOverworldMusic = "night1";
+                    game.currMusic.setLooping(false);
+                    game.currMusic.setVolume(1f);
                     game.currMusic.play();
+                    game.currMusic.pause();
+                    game.currMusic.setPosition(130f);  
+                    game.currMusic.play();
+                    game.currMusic.setOnCompletionListener(this.musicCompletionListener);
+                    this.currOverworldMusic = "nature1_render";
                 }
             }
+            else {
+                System.out.println("start night music");
+                game.currMusic.stop();
+//                    game.actionStack.remove(game.fadeMusicAction);
+                if (!game.loadedMusic.containsKey("night1")) {
+                    game.loadedMusic.put("night1", Gdx.audio.newMusic(Gdx.files.internal("night1.ogg")));
+                }
+                Music music = game.loadedMusic.get("night1");
+                music.setLooping(true);
+                music.setVolume(.4f);  // TODO: adjust
+                game.currMusic = music;
+//                    game.map.currRoute.music = music;  // TODO: remove
+                this.currOverworldMusic = "night1";
+                game.currMusic.play();
+            }
             this.startTimeOfDay = null;
-//            this.resumeOverworldMusic = false;
         }
-
         this.firstStep = false;
     }
 }
@@ -3210,6 +3250,188 @@ class ChangePlayerColor extends Action {
         
     }
 }
+
+/**
+ * Just an experiment for drawing tiles.
+ */
+class TileEditor extends Action {
+    
+    Vector3 touchPos = new Vector3();
+    boolean justTouched = false;
+    public int timer = 0;
+    public int brushSize = 1;
+    
+    // List of pokemon, list of overtiles, list of undertiles
+    ArrayList<String> overTiles = new ArrayList<String>();
+    {
+        overTiles.add("rock1_color");
+        overTiles.add("tree7");
+        overTiles.add("aloe_large1");
+    }
+    
+    ArrayList<String> underTiles = new ArrayList<String>();
+    {
+        underTiles.add("green1");
+        underTiles.add("sand1");
+        underTiles.add("sand2");
+        underTiles.add("sand3");
+        underTiles.add("flower2");
+        underTiles.add("flower3");
+        underTiles.add("flower4");
+        underTiles.add("grass2");
+        underTiles.add("grass3");
+        underTiles.add("grass4");
+        underTiles.add("water2");
+
+        underTiles.add("grass_sand2");
+        underTiles.add("grass_sand3");
+        underTiles.add("desert1");
+        underTiles.add("desert2");
+        underTiles.add("desert3");
+        underTiles.add("desert4");
+        
+        // Trees
+        overTiles.add("bush1");
+        overTiles.add("tree2");
+        overTiles.add("tree4");
+        overTiles.add("cactus1");
+        overTiles.add("cactus2");
+        
+        underTiles.addAll(this.overTiles);
+    }
+    
+    Tile currTile;
+    int currIndex = 0;
+    
+    public TileEditor() {
+        
+    }
+
+    @Override
+    public void firstStep(Game game) {
+        this.currTile = new Tile(this.underTiles.get(0), new Vector2(0, 0), true, null);
+        this.currTile.sprite.setAlpha(0.7f);
+        if (this.currTile.overSprite != null) {
+            this.currTile.overSprite.setAlpha(0.7f);
+        }
+    }
+
+    @Override
+    public void step(Game game) {
+        if (this.timer < 60) {
+            this.timer++;
+        }
+        else if (this.timer == 60) {
+            Gdx.gl.glClearColor(1, 1, 1, 1);
+        }
+        
+
+//        newTile = new Tile(currTile.name, game.player.currBuildTile.name,
+//                           currTile.position.cpy(), true, currTile.routeBelongsTo);
+//        // Carpet replaces the lower tile
+//        if (game.player.currBuildTile.name.contains("carpet")) {
+//            newTile = new Tile(game.player.currBuildTile.name, currTile.nameUpper,
+//                               currTile.position.cpy(), true, currTile.routeBelongsTo);
+//        }
+
+        // Draw currently selected tile or pokemon at mouse cursor.
+        
+        if (this.currTile != null) {
+
+            this.touchPos.x = Gdx.input.getX();
+            this.touchPos.y = Gdx.input.getY();
+            game.cam.unproject(this.touchPos);
+            
+            int offsetX = 0;
+            int offsetY = 0;
+            if (this.touchPos.x < 0) {
+                offsetX = -16;
+            }
+            if (this.touchPos.y < 0) {
+                offsetY = -16;
+            }
+            for (int i = 0; i < this.brushSize; i++) {
+                for (int j = 0; j < this.brushSize; j++) {
+                    this.currTile.sprite.setPosition(this.touchPos.x - (this.touchPos.x % 16) +offsetX +16*i,
+                                                     this.touchPos.y - (this.touchPos.y % 16) +offsetY +16*j);
+                    this.currTile.sprite.draw(game.mapBatch);
+                    
+                    if (this.currTile.overSprite != null) {
+                        this.currTile.overSprite.setPosition(this.touchPos.x - (this.touchPos.x % 16) +offsetX +16*i,
+                                                             this.touchPos.y - (this.touchPos.y % 16) +offsetY +16*j);
+                        this.currTile.overSprite.draw(game.mapBatch);
+                    }
+                }
+            }
+            
+            
+        }
+        
+
+        if (Gdx.input.isTouched()) {
+//            this.justTouched = true;
+            Vector2 position = new Vector2();
+            for (int i = 0; i < this.brushSize; i++) {
+                for (int j = 0; j < this.brushSize; j++) {
+                    position.set(this.currTile.sprite.getX() -16*i, this.currTile.sprite.getY() -16*j);
+                    Tile currTile = game.map.tiles.remove(position);
+                    Tile newTile = new Tile(this.underTiles.get(this.currIndex), position.cpy(), true, null);
+                    if (this.overTiles.contains(this.currTile.name)) {
+                        newTile = new Tile(currTile.name, this.underTiles.get(this.currIndex), position.cpy(), true, null);
+                    }
+                    
+                    game.map.tiles.put(newTile.position.cpy(), newTile);
+                }
+            }
+        }
+        else {
+//            if (this.justTouched) {
+//                PlayerStanding.adjustSurroundingTiles(newTile);
+//            }
+            this.justTouched = false;
+        }
+        
+
+
+        if (Gdx.input.isKeyJustPressed(Input.Keys.C)) {
+            this.currIndex--;
+            if (this.currIndex < 0) {
+                this.currIndex = this.underTiles.size()-1;
+            }
+            this.currTile = new Tile(this.underTiles.get(this.currIndex), new Vector2(0, 0), true, null);
+            this.currTile.sprite.setAlpha(0.7f);
+            if (this.currTile.overSprite != null) {
+                this.currTile.overSprite.setAlpha(0.7f);
+            }
+        }
+        else if (Gdx.input.isKeyJustPressed(Input.Keys.V)) {
+            this.currIndex++;
+            if (this.currIndex >= this.underTiles.size()) {
+                this.currIndex = 0;
+            }
+            this.currTile = new Tile(this.underTiles.get(this.currIndex), new Vector2(0, 0), true, null);
+            this.currTile.sprite.setAlpha(0.7f);
+            if (this.currTile.overSprite != null) {
+                this.currTile.overSprite.setAlpha(0.7f);
+            }
+        }
+        
+
+        if (Gdx.input.isKeyJustPressed(Input.Keys.CONTROL_LEFT)) {
+            if (this.brushSize > 0) {
+                this.brushSize--;
+            }
+        }
+        else if (Gdx.input.isKeyJustPressed(Input.Keys.ALT_LEFT)) {
+            if (this.brushSize < 10) {
+                this.brushSize++;
+            }
+        }
+        
+    }
+    
+}
+
 
 /**
  * Ideally don't do this.

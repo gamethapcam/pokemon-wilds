@@ -2137,6 +2137,8 @@ class Route {
             this.allowedPokemon.add("cubone");
             this.allowedPokemon.add("phanpy");
             this.allowedPokemon.add("skarmory");  // <- fly animation doesn't look great for now.
+            this.allowedPokemon.add("whismur");   // nuuk
+            this.allowedPokemon.add("makuhita");  // nuuk
             // TODO: remove
 //            this.music = Gdx.audio.newMusic(Gdx.files.internal("route1_1.ogg"));
 //            this.music.setLooping(true);
@@ -2159,7 +2161,8 @@ class Route {
           this.allowedPokemon.add("vulpix");
           this.allowedPokemon.add("breloom");  // nuuk
           this.allowedPokemon.add("sableye");  // nuuk
-          this.allowedPokemon.add("litwick");  // Goose
+//          this.allowedPokemon.add("litwick");  // Goose // nuuk  TODO: remove, silph scope now
+          this.allowedPokemon.add("ralts");
         }
         else if (name.equals("forest1")) {
             this.allowedPokemon.add("oddish");
@@ -2182,7 +2185,7 @@ class Route {
             this.allowedPokemon.add("ledyba");
             this.allowedPokemon.add("hoothoot");
             this.allowedPokemon.add("mankey");
-            this.allowedPokemon.add("shroomish");  // nuuk  
+            this.allowedPokemon.add("shroomish");  // nuuk
 //            this.allowedPokemon.add("girafarig");  // TODO: enable when decent overworld sprite
             for (int i = 0; i < 2; i++) {
                 this.allowedPokemon.add("bulbasaur");
@@ -2244,6 +2247,7 @@ class Route {
             //
             this.allowedPokemon.add("wingull");  // nuuk
             this.allowedPokemon.add("surskit");  // nuuk
+            this.allowedPokemon.add("lotad");  // nuuk
             //
             this.allowedPokemon.add("corphish");  // sir-feralipogchamp discord
             //
@@ -3336,6 +3340,32 @@ class Tile {
             this.attrs.put("solid", true);
             this.attrs.put("tree", true);
             this.attrs.put("headbuttable", true);
+
+        } else if (tileName.equals("tree7")) {
+            // TODO: this is just for tileEditor
+            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/tree7.png"));
+            this.sprite = new Sprite(playerText, 0, 0, 16, 32);
+            this.attrs.put("solid", true);
+            this.attrs.put("tree", true);
+            this.attrs.put("headbuttable", true);
+        } else if (tileName.equals("aloe_large1")) { //
+            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/aloe_large1.png"));
+            this.sprite = new Sprite(playerText, 0, 0, 32, 32);
+            this.attrs.put("solid", true);
+            
+        } else if (tileName.contains("cactus")) {
+            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/sand1.png"));   // TODO: which sand idk
+            this.sprite = new Sprite(playerText, 0, 0, 16, 16);
+            playerText = TextureCache.get(Gdx.files.internal("tiles/"+tileName+".png"));
+            this.overSprite = new Sprite(playerText, 0, 0, 16, 16);
+            if (tileName.equals("cactus2")) {
+                this.overSprite = new Sprite(playerText, 0, 0, 16, 32);
+            }
+            this.name = "sand1";
+            this.nameUpper = tileName;
+            this.attrs.put("solid", true);
+            this.attrs.put("headbuttable", true);
+
         } else if (tileName.equals("tree_plant1")) {
             Texture playerText = TextureCache.get(Gdx.files.internal("tiles/green1.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
@@ -3437,6 +3467,26 @@ class Tile {
             Texture playerText = TextureCache.get(Gdx.files.internal("tiles/torch_sheet1.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 20);
         }
+        else if (tileName.contains("desert")) {
+            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/"+tileName+".png"));
+            this.sprite = new Sprite(playerText, 0, 0, 16, 16);
+        }
+        else if (tileName.equals("grass_sand2")) {
+            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/desert1.png"));
+            this.sprite = new Sprite(playerText, 0, 0, 16, 16);
+            playerText = TextureCache.get(Gdx.files.internal("tiles/grass2_over.png"));
+            this.overSprite = new Sprite(playerText, 0, 0, 16, 16);
+            this.attrs.put("grass", true);
+            this.attrs.put("cuttable", true);
+        }
+        else if (tileName.equals("grass_sand3")) {
+            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/desert1.png"));
+            this.sprite = new Sprite(playerText, 0, 0, 16, 16);
+            playerText = TextureCache.get(Gdx.files.internal("tiles/grass5_over.png"));
+            this.overSprite = new Sprite(playerText, 0, 0, 16, 16);
+            this.attrs.put("grass", true);
+            this.attrs.put("cuttable", true);
+        } 
         else {
             // just load from image file
             Texture playerText = TextureCache.get(Gdx.files.internal("tiles/buildings/"+tileName+".png"));
@@ -3495,12 +3545,17 @@ class Tile {
             if (this.nameUpper.equals("house_bed1") ||
                 this.nameUpper.contains("tree2") ||
                 this.nameUpper.contains("tree4") ||
+                this.nameUpper.contains("tree7") ||
                 this.nameUpper.contains("house_plant1") ||
                 this.nameUpper.contains("house_plant2") ||
                 this.nameUpper.contains("house_gym1") ||
                 this.nameUpper.contains("house_wardrobe1") ||
+                this.nameUpper.contains("cactus2") ||
                 this.nameUpper.contains("house_shelf1")) {
                 this.overSprite = new Sprite(text, 0, 0, 16, 32);
+            }
+            if (this.nameUpper.equals("aloe_large1")) {
+                this.overSprite = new Sprite(text, 0, 0, 32, 32);
             }
             if (!this.nameUpper.contains("door") &&
                 !this.nameUpper.contains("floor") &&
