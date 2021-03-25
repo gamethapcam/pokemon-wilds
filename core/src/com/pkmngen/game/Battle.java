@@ -6823,7 +6823,7 @@ class DrawAttacksMenu extends Action {
         Sprite letterSprite;
         for (int m=0; m < textArray.length; m++) {
             letterSprite = game.textDict.get(textArray[m]);
-            game.uiBatch.draw(letterSprite, 16 +8*m, 56);
+            game.uiBatch.draw(letterSprite, this.offset.x+16 +8*m, this.offset.y+56);
         }
         // Draw arrow
         if (this.cursorDelay >= 2) {
