@@ -22,11 +22,17 @@ import com.pkmngen.game.util.Direction;
 import com.pkmngen.game.util.SpriteProxy;
 import com.pkmngen.game.util.TextureCache;
 
+
+
+
 public class Pokemon {
+	
+	
 
     // TODO: eventually remove
     public static ArrayList<String> attacksNotImplemented = new ArrayList<String>();
     static {
+    	
 //        attacksNotImplemented.add("absorb");  // TODO: remove
         attacksNotImplemented.add("barrage");
         attacksNotImplemented.add("baton pass");
@@ -120,33 +126,12 @@ public class Pokemon {
         attacksNotImplemented.add("whirlwind");
     }
 
-    // TODO: don't do it this way
-    public static ArrayList<String> nuukPokemon = new ArrayList<String>();
-    static {
-        String[] temp = new String[]{"aggron", "aron", "exploud", "gardevoir", "hariyama", "kirlia",
-                                     "lairon", "lombre", "lotad", "loudred", "ludicolo", "makuhita",
-                                     "ralts", "taillow", "swellow", "whismur", "poochyena", "mightyena",
-                                     "wingull", "pelipper", "shroomish", "breloom", "surskit", "masquerain",
-                                     "sableye",
-                                     "dwebble",  // overworld 
-                                     "crustle",  // overworld 
-                                     "litwick", "lampent", "chandelure",  // overworld Goose (discord)
-                                     "corphish",  // sir-feralipogchamp (discord)
-                                     "crawdaunt",  // sir-feralipogchamp, Mr Dustman, Goose (discord)
-                                     "mimikyu",  // boomtox-the-boombox (discord)
-                                     "scorbunny",  // Internet_Goblin on discord
-                                     "raboot",  // Internet_Goblin on discord
-                                     "regieleki", "regidrago", "registeel", "regirock", "regice", "regigigas", // Mr Dustman and Sadfish on discord
-                                     "snover"};  // TODO: sep loading method
-        for (String t : temp) {
-            nuukPokemon.add(t);
-        }
-    }
+    
     // Contains all loaded pkmn textures, so that only one is used for each pkmn. ie don't load duplicate textures.
     public static HashMap<String, Texture> textures = new HashMap<String, Texture>();
     // Add to this when loading pokemon
-    public static HashMap<String, Map<String, String>> gen2Evos = new HashMap<String, Map<String, String>>();
-    public static HashMap<String, Map<Integer, String[]>> gen2Attacks = new HashMap<String, Map<Integer, String[]>>();
+//    public static HashMap<String, Map<String, String>> gen2Evos = new HashMap<String, Map<String, String>>();
+//    public static HashMap<String, Map<Integer, String[]>> gen2Attacks = new HashMap<String, Map<Integer, String[]>>();
     // Name->Base species name. Required by egg-laying.
     public static HashMap<String, String> baseSpecies = new HashMap<String, String>();
     public static HashMap<String, ArrayList<String>> eggMoves = new HashMap<String, ArrayList<String>>();
@@ -243,11 +228,17 @@ public class Pokemon {
         if (name.contains("unown")) {
             name = "unown";
         }
-        if (name.equals("ghost")) {
-            return "000";
+//        if (name.equals("ghost")) {
+//            return "000";
+//        }
+//        if (name.equals("egg")) {
+//            return "999";
+//        }
+        if (name.equals("farfetch_d")){
+        	name = "farfetch’d";
         }
-        if (name.equals("egg")) {
-            return "999";
+        if(name.equals("ho_oh")) {
+        	name = "ho-oh";
         }
         int lineNum = 1;
         try {
@@ -256,7 +247,7 @@ public class Pokemon {
             BufferedReader br = new BufferedReader(reader);
             String line;
             while ((line = br.readLine()) != null)   {
-                if (line.toLowerCase().equals(name)) {
+                if (line.equalsIgnoreCase(name)) {
                     break;
                 }
                 lineNum++;
@@ -271,6 +262,7 @@ public class Pokemon {
     }
 
     String name;
+    Specie specie;
     int level;
     int exp;  // current total exp.
     String dexNumber;
@@ -362,7 +354,9 @@ public class Pokemon {
     // Egg is going to contain ivs, moves, etc of pokemon it evolves to
     // this isn't changed anyway via evolveTo() so should be able to use
     // that (?)
-    String eggHatchInto = null;  // Pokemon that egg hatches into. 
+//    String eggHatchInto = null;  // Pokemon that egg hatches into. 
+    boolean isEgg = false;
+    boolean isGhost = false; //for Silph Scope. Set externally by the caller.
     Pokemon loveInterest = null;  // Which pokemon this pokemon may breed with.
     int layEggTimerMax = 3600*2;  // 3600*1
     int layEggTimer = layEggTimerMax;
@@ -405,10 +399,10 @@ public class Pokemon {
         // TODO: I guess I will have to rename this to Network.PokemonDataV05 when moving to v0.6
         // TODO: if I don't rename this, it will introduce a bug. I can't think of a better way to do it tho.
         if (Network.PokemonData.class.isInstance(pokemonData)) {
-            this.eggHatchInto = ((Network.PokemonData)pokemonData).eggHatchInto;
+            this.isEgg = ((Network.PokemonData)pokemonData).isEgg;
         }
 
-        this.init(pokemonData.name, pokemonData.level, pokemonData.generation, pokemonData.isShiny, this.eggHatchInto);
+        this.init(pokemonData.name, pokemonData.level, pokemonData.isShiny, this.isEgg);
 //        this.isShiny = pokemonData.isShiny;
         this.currentStats.put("hp", pokemonData.hp);
         this.attacks[0] = pokemonData.attacks[0];
@@ -455,52 +449,87 @@ public class Pokemon {
         }
     }
 
-    public Pokemon (String name, int level) {
-        // generation defaults to RED
-        this(name, level, Generation.RED);
-    }
+//    public Pokemon (String name, int level) {
+//        // generation defaults to RED
+//        this(name, level);
+//    }
     
-    public Pokemon (String name, int level, Generation generation) {
-        this(name, level, generation, Pokemon.rand.nextInt(256) == 0);
+    public Pokemon (String name, int level) {
+        this(name, level, Pokemon.rand.nextInt(256) == 0);
 //        System.out.println("here3");
     }
 
-    public Pokemon (String name, int level, Generation generation, boolean isShiny) {
-        this(name, level, generation, isShiny, null);
+    public Pokemon (String name, int level, boolean isShiny) {
+        this(name, level, isShiny, false);
     }
 
-    public Pokemon (String name, int level, Generation generation, boolean isShiny, String eggHatchInto) {
-        this.init(name, level, generation, isShiny, eggHatchInto);
+    public Pokemon (String name, int level, boolean isShiny, boolean isEgg) {
+        this.init(name, level, isShiny, isEgg);
     }
     
+    public void updateSpecieInfo(String name) {
+    	this.name = name.toLowerCase();
+    	this.specie = Specie.species.get(name.toLowerCase());
+    	if(specie == null)
+    	{
+    		System.out.println("No such specie exists: " + name);
+    	}
+    	this.generation = specie.generation;
+    	
+    	//set sprites, backsprites, & intro animations
+    	if(isEgg) {
+    		this.name = "Egg";
+    		this.sprite = Specie.spriteEgg;
+    		this.backSprite = Specie.backSpriteEgg;
+    		this.introAnim = new ArrayList<SpriteProxy>();
+    	}
+    	else if(isShiny)
+        {
+        	this.sprite = specie.spriteShiny;
+        	this.backSprite = specie.backSpriteShiny;
+        	this.introAnim = specie.introAnimShiny;
+        }
+        else {
+        	this.sprite = specie.sprite;
+        	this.backSprite = specie.backSprite;
+        	this.introAnim = specie.introAnim;
+        }
+        
+        this.learnSet = this.specie.learnSet;
+        this.dexNumber = specie.dexNumber;
+        this.baseStats = specie.baseStats;
+        this.types = specie.types;
+        this.growthRateGroup = specie.growthRateGroup;
+        this.eggGroups = specie.eggGroups;
+        this.hms = specie.hms;
+        this.loadOverworldSprites();
+     // stats formulas here
+        calcMaxStats();
+        
+        this.initHabitatValues();
+    }
     /**
      * TODO: remove isShiny and eggHatchInto params, just set before calling init.
      */
-    public void init(String name, int level, Generation generation, boolean isShiny, String eggHatchInto) {
-        this.isShiny = isShiny;  //Pokemon.rand.nextInt(256) == 0;
-        this.eggHatchInto = eggHatchInto;
-
-        name = name.toLowerCase();
-        if (name.equals("unown")) {  // TODO: this was to fix a bug, remove
-            name = "unown_w";
-        }
-        this.name = name;
-        // levels have to be >= 1
-        if (level <= 0) {
-            System.out.println("Bad level: " + String.valueOf(level));
-            level = 1;
-        }
-        this.level = level;
-        this.generation = generation;
-
-        this.types = new ArrayList<String>();
+    public void init(String name, int level, boolean isShiny, boolean isEgg) {
+    	// levels have to be >= 1
+    	if (level <= 0) {
+    		System.out.println("Bad level: " + String.valueOf(level));
+    		level = 1;
+    	}
+    	this.level = level;
+    	this.isEgg = isEgg;
+    	this.isShiny = isShiny;  //Pokemon.rand.nextInt(256) == 0;
+    	updateSpecieInfo(name);
+    	this.currentStats = new HashMap<String, Integer>(this.maxStats); // copy maxStats   
+    	
 
         // init vars
         this.angry = 0;
         this.eating = 0;
 
         this.attacks = new String[]{null, null, null, null};
-        this.learnSet = new HashMap<Integer, String[]>();
+        
 
         // TODO: individual avatars
         // TODO: remove if unused
@@ -508,675 +537,62 @@ public class Pokemon {
 //        this.avatarSprites = new ArrayList<Sprite>();
 //        this.avatarSprites.add(new Sprite(avatarText, 16*0, 16*0, 16, 16));
 //        this.avatarSprites.add(new Sprite(avatarText, 16*1, 16*0, 16, 16));
-
-        // if generation is crystal, load from file
-        if (generation.equals(Generation.CRYSTAL)) {
-            this.dexNumber = Pokemon.nameToIndex(name);
-            // if it is in original 251, load from crystal
-            if (this.name.equals("egg") ||
-                Pokemon.nuukPokemon.contains(this.name.toLowerCase()) ||
-                (Integer.valueOf(this.dexNumber) <= 251 && Integer.valueOf(this.dexNumber) > 0)) {
-                this.loadCrystalPokemon(name);
-            // else try loading from prism
-            } else {
-                this.loadPrismPokemon(name);
-            }
-            this.loadOverworldSprites(name);
-
-            // Custom attributes - better way to handle this?
-//            if (name.equals("machop")) {
-//                this.hms.add("CUT");  // TODO: debug, remove
-////                this.hms.add("BUILD");
-//            }
-
-            // Custom attributes - better way to handle this?
-            if (!this.name.equals("egg")) {
-                if (name.equals("sneasel") || 
-                    name.equals("scyther") ||
-                    name.equals("pinsir")) {
-                    this.hms.add("CUT");
-                }
-                // TODO: for now, all grass types can cut
-                if (this.types.contains("GRASS")) {
-                    this.hms.add("CUT");
-                }
-                if (this.types.contains("ROCK")) {
-                    this.hms.add("SMASH");
-                }
-                if (this.types.contains("FIGHTING")) {
-                    this.hms.add("BUILD");
-                }
-                if (this.types.contains("FIRE") ||
-                    // TODO: pokemon that can light
-                    name.equals("chinchou") ||
-                    name.equals("lanturn") ||
-                    name.equals("mareep") ||
-                    name.equals("flaaffy") ||
-                    name.equals("ampharos")) {
-                    // Calling it FLASH for now, since that's what most people
-                    // are familiar with.
-                    this.hms.add("FLASH");  
-                }
-
-                // TODO: different pokemon than machop
-                // Custom attributes - better way to handle this?
-//                if (name.equals("machop")) {
-//                    this.hms.add("HEADBUTT");
-//                }
-                if (name.equals("hypno") ||
-                    name.equals("nidorina") ||
-                    name.equals("nidoqueen") ||
-                    name.equals("nidorino") ||
-                    name.equals("nidoking") ||
-                    name.equals("granbull") ||
-                    name.equals("jynx") ||
-                    name.equals("snorlax") ||
-                    name.equals("ursaring")) {
-                    this.hms.add("HEADBUTT");
-                }
-
-                // Custom attributes - better way to handle this?
-                if (name.equals("stantler") ||
-                    name.equals("ponyta") ||
-                    name.equals("arcanine") ||
-                    name.equals("donphan") ||
-                    name.equals("girafarig") ||
-                    name.equals("houndoom") ||
-                    name.equals("rapidash") ||
-                    name.equals("tauros") ||
-                    name.equals("ninetales") ||
-                    name.equals("mamoswine") ||
-                    name.equals("dodrio") ||
-                    name.equals("mightyena") ||
-                    //
-                    name.equals("persian") ||
-                    name.equals("onix") ||
-                    name.equals("steelix") ||
-                    name.equals("haunter") ||
-                    name.equals("rhyhorn") ||
-                    name.equals("rhydon") ||
-                    //
-                    name.equals("luxray")) {
-                    // TODO: change to 'RIDE' later. Making it 'JUMP' for now so that it's not confusing.
-                    // Later, once there (hopefully) are riding sprites, this can be changed to ride.
-                    // My current idea is that RIDE increases movement speed and can perform jumps up ledges.
-                    this.hms.add("RIDE");
-                }
-
-                if (name.equals("pidgeot") ||
-                    name.equals("aerodactyl") ||
-                    name.equals("charizard") ||
-                    name.equals("dragonair") ||
-                    name.equals("dragonite") ||
-                    name.equals("salamence") ||
-                    name.equals("ho_oh") ||
-                    name.equals("lugia") ||
-                    name.equals("skarmory") ||
-                    name.equals("articuno") ||
-                    name.equals("zapdos") ||
-                    name.equals("moltres") ||
-                    name.equals("crobat") ||
-                    name.equals("noctowl") ||
-                    name.equals("xatu") ||
-                    // the animations starting here fit pretty well
-                    name.equals("flygon") ||
-                    name.equals("togekiss") ||
-                    name.equals("swellow") ||
-                    name.equals("pelipper") ||
-                    name.equals("altaria") ||
-                    name.equals("rayquaza") ||
-//                    name.equals("farfetch_d") ||  // TODO: removed
-                    name.equals("drifblim") ||
-                    name.equals("honchkrow") ||
-                    name.equals("yanmega") ||
-                    name.equals("fearow")) {
-                    //
-                    this.hms.add("FLY");
-                }
-                // Ability to aggro any mon
-                if (this.types.contains("DARK") && !this.hms.contains("RIDE")) {
-                    this.hms.add("ATTACK");
-                }
-            }
+      
+        //set gender of this pokemon based on GenderRatio of the specie
+        // source: https://github.com/pret/pokecrystal/wiki/Add-a-new-Pok%C3%A9mon
+        // GENDER_F0: 100% male
+        // GENDER_F12_5: 7/8 male, 1/8 female
+        // GENDER_F25: 3/4 male, 1/4 female
+        // GENDER_F50: 1/2 male, 1/2 female
+        // GENDER_F75: 1/4 male, 3/4 female
+        // GENDER_F100: 100% female
+        // GENDER_UNKNOWN: genderless
+        if (specie.genderRatio.equals("GENDER_UNKNOWN")) {
+            this.gender = "unknown";
         }
-
-        else if (name == "Zubat") { // gen I properties
-            this.baseStats.put("hp",40);
-            this.baseStats.put("attack",45);
-            this.baseStats.put("defense",35);
-            this.baseStats.put("specialAtk",30);
-            this.baseStats.put("specialDef",40);
-            this.baseStats.put("speed",55);
-            this.baseStats.put("catchRate", 255);
-            // sprite
-            Texture pokemonText = new Texture(Gdx.files.internal("pokemon/zubat.png"));
-            this.sprite = new SpriteProxy(pokemonText, 0, 0, 56, 56);
-            this.sprite.flip(true, false); // my sprites are backwards
-
-            this.types.add("Poison");
-            this.types.add("Flying");
-        }
-        else if (name.equals("Rattata")) { // gen I properties
-            this.baseStats.put("hp",30);
-            this.baseStats.put("attack",56);
-            this.baseStats.put("defense",35);
-            this.baseStats.put("specialAtk",25);
-            this.baseStats.put("specialDef",25);
-            this.baseStats.put("speed",72);
-            this.baseStats.put("catchRate", 255);
-            // sprite
-            Texture pokemonText = new Texture(Gdx.files.internal("pokemon/rattata.png"));
-            this.sprite = new SpriteProxy(pokemonText, 0, 0, 56, 56);
-//            this.sprite.flip(true, false); // my sprites are backwards
-
-            this.types.add("Normal");
-        }
-        else if (name == "Cloyster") { // gen I properties
-//            this.baseStats.put("hp",50);
-            this.baseStats.put("hp",500);
-            this.baseStats.put("attack",95);
-            this.baseStats.put("defense",180);
-            this.baseStats.put("specialAtk",85);
-            this.baseStats.put("specialDef",85);
-            this.baseStats.put("speed",70);
-            this.baseStats.put("catchRate", 60);
-            // sprite
-            Texture pokemonText = new Texture(Gdx.files.internal("pokemon/pokemon_sheet1.png"));
-            this.sprite = new SpriteProxy(pokemonText, 56*28, 56*2, 56, 56);
-            this.sprite.flip(true, false); // my sprites are backwards
-
-            // back sprite
-            pokemonText = new Texture(Gdx.files.internal("pokemon/back_sheet1.png"));
-            this.backSprite = new SpriteProxy(pokemonText, 30*2+1, 29*8+1, 28, 28); // sheet is a little messed up, hard to change
-            this.backSprite.setScale(2);
-//            pokemonText = new Texture(Gdx.files.internal("pokemon/back_sheet1.png")); // debug - change to charmander sprite
-//            this.backSprite = new SpriteProxy(pokemonText, 30*3+1, 29*0+1, 28, 28); //
-//            this.backSprite.setScale(2);
-
-            // moves that cloyster can learn
-            // TODO: was this, removed for demo
-//            learnSet.put(1, new String[]{"Aurora Beam", "Clamp", "Supersonic", "Withdraw"});
-            learnSet.put(1, new String[]{"Clamp"});
-//            learnSet.put(1, new String[]{"Fly", "Growl", "Hyper Beam"});
-            // learnSet.put(20, new String[]{"Harden", "Harden", "Harden", "Harden"}); // debug
-//            learnSet.put(50, new String[]{"Spike Cannon"});  // TODO: re-enable
-
-//            learnSet.put(1, new String[]{"Razor Leaf"});
-//            learnSet.put(1, new String[]{"Fury Cutter"});
-//            learnSet.put(1, new String[]{"Ember"});
-            learnSet.put(1, new String[]{"Ice Beam"});
-//            learnSet.put(2, new String[]{"Earthquake"});
-//            learnSet.put(3, new String[]{"Rock Throw"});
-            learnSet.put(2, new String[]{"Peck"});
-//            learnSet.put(2, new String[]{"Surf"});
-            learnSet.put(3, new String[]{"Whirlpool"});
-            learnSet.put(4, new String[]{"Hydro Pump"});
-            this.types.add("Water");
-            this.types.add("Ice");
-        }
-        else if (name == "Spinarak") { // gen I properties
-            this.baseStats.put("hp",45);
-            this.baseStats.put("attack",50);
-            this.baseStats.put("defense",55);
-            this.baseStats.put("specialAtk",75);
-            this.baseStats.put("specialDef",75);
-            this.baseStats.put("speed",30);
-            this.baseStats.put("catchRate", 255);
-            // sprite
-            Texture pokemonText = new Texture(Gdx.files.internal("pokemon/spinarak.png"));
-            this.sprite = new SpriteProxy(pokemonText, 0, 0, 56, 56);
-            this.sprite.flip(true, false); // my sprites are backwards
-
-            this.types.add("Bug");
-            this.types.add("Poison");
-        }
-        else if (name == "Oddish") { // gen I properties
-            this.baseStats.put("hp",45);
-            this.baseStats.put("attack",50);
-            this.baseStats.put("defense",55);
-            this.baseStats.put("specialAtk",75);
-            this.baseStats.put("specialDef",75);
-            this.baseStats.put("speed",30);
-            this.baseStats.put("catchRate", 255);
-            // sprite
-            Texture pokemonText = new Texture(Gdx.files.internal("pokemon/oddish.png"));
-            this.sprite = new SpriteProxy(pokemonText, 0, 0, 56, 56);
-            this.sprite.flip(true, false); // my sprites are backwards
-
-            this.types.add("Grass");
-            this.types.add("Poison");
-        }
-        else if (name == "Gloom") { // gen I properties
-            this.baseStats.put("hp",60);
-            this.baseStats.put("attack",65);
-            this.baseStats.put("defense",70);
-            this.baseStats.put("specialAtk",85);
-            this.baseStats.put("specialDef",85);
-            this.baseStats.put("speed",40);
-            this.baseStats.put("catchRate", 120);
-            // sprite
-            Texture pokemonText = new Texture(Gdx.files.internal("pokemon/gloom.png"));
-            this.sprite = new SpriteProxy(pokemonText, 0, 0, 56, 56);
-            this.sprite.flip(true, false); // my sprites are backwards
-
-            this.types.add("Grass");
-            this.types.add("Poison");
-        }
-        else if (name == "Electabuzz") { // gen I properties
-            this.baseStats.put("hp",65);
-            this.baseStats.put("attack",83);
-            this.baseStats.put("defense",57);
-            this.baseStats.put("specialAtk",85);
-            this.baseStats.put("specialDef",85);
-            this.baseStats.put("speed",105);
-            this.baseStats.put("catchRate", 45);
-            // sprite
-            Texture pokemonText = new Texture(Gdx.files.internal("pokemon/electabuzz.png"));
-            this.sprite = new SpriteProxy(pokemonText, 0, 0, 56, 56);
-            this.sprite.flip(true, false); // my sprites are backwards
-
-            this.types.add("Electric");
-        }
-
-        else if (name == "Scyther") { // gen I properties
-            this.baseStats.put("hp",70);
-            this.baseStats.put("attack",110);
-            this.baseStats.put("defense",80);
-            this.baseStats.put("specialAtk",55);
-            this.baseStats.put("specialDef",55);
-            this.baseStats.put("speed",105);
-            this.baseStats.put("catchRate", 45);
-            // sprite
-            Texture pokemonText = new Texture(Gdx.files.internal("pokemon/scyther.png"));
-            this.sprite = new SpriteProxy(pokemonText, 0, 0, 56, 56);
-            this.sprite.flip(true, false); // my sprites are backwards
-
-            this.types.add("Bug");
-        }
-
-        else if (name == "Tauros") { // gen I properties
-            this.baseStats.put("hp",75);
-            this.baseStats.put("attack",100);
-            this.baseStats.put("defense",95);
-            this.baseStats.put("specialAtk",70);
-            this.baseStats.put("specialDef",70);
-            this.baseStats.put("speed",110);
-            this.baseStats.put("catchRate", 45);
-            // sprite
-            Texture pokemonText = new Texture(Gdx.files.internal("pokemon/tauros.png"));
-            this.sprite = new SpriteProxy(pokemonText, 0, 0, 56, 56);
-            this.sprite.flip(true, false); // my sprites are backwards
-
-            this.types.add("Normal");
-        }
-
-        else if (name == "Mareep") { // gen I properties
-            this.baseStats.put("hp",55);
-            this.baseStats.put("attack",40);
-            this.baseStats.put("defense",40);
-            this.baseStats.put("specialAtk",65);
-            this.baseStats.put("specialDef",45);
-            this.baseStats.put("speed",35);
-            this.baseStats.put("catchRate", 235);
-            // sprite
-            Texture pokemonText = new Texture(Gdx.files.internal("pokemon/mareep.png"));
-            this.sprite = new SpriteProxy(pokemonText, 0, 0, 56, 56);
-            this.sprite.flip(true, false);
-
-            this.types.add("Electric");
-        }
-        else if (name == "Flaaffy") { // gen I properties
-            this.baseStats.put("hp",70);
-            this.baseStats.put("attack",55);
-            this.baseStats.put("defense",55);
-            this.baseStats.put("specialAtk",80);
-            this.baseStats.put("specialDef",60);
-            this.baseStats.put("speed",45);
-            this.baseStats.put("catchRate", 255);
-            // sprite
-            Texture pokemonText = new Texture(Gdx.files.internal("pokemon/flaaffy.png"));
-            this.sprite = new SpriteProxy(pokemonText, 0, 0, 56, 56);
-            this.sprite.flip(true, false); // my sprites are backwards
-
-            this.types.add("Electric");
-        }
-
-        else if (name == "Steelix") { // gen II properties
-            this.baseStats.put("hp",75);
-            this.baseStats.put("attack",85);
-            this.baseStats.put("defense",200);
-            this.baseStats.put("specialAtk",55);
-            this.baseStats.put("specialDef",65);
-            this.baseStats.put("speed",30);
-            this.baseStats.put("catchRate", 25);
-            // sprite
-            Texture pokemonText = new Texture(Gdx.files.internal("pokemon/steelix.png"));
-            this.sprite = new SpriteProxy(pokemonText, 0, 0, 56, 56);
-            this.sprite.flip(true, false); // my sprites are backwards
-
-            this.types.add("Steel");
-            this.types.add("Ground");
-        }
-        else if (name == "Sneasel") { // gen I properties
-            this.baseStats.put("hp",55);
-            this.baseStats.put("attack",95);
-            this.baseStats.put("defense",55);
-            this.baseStats.put("specialAtk",35);
-            this.baseStats.put("specialDef",75);
-            this.baseStats.put("speed",115);
-            this.baseStats.put("catchRate", 60);
-            // sprite
-            Texture pokemonText = new Texture(Gdx.files.internal("pokemon/sneasel.png"));
-            this.sprite = new SpriteProxy(pokemonText, 0, 0, 56, 56);
-            this.sprite.flip(true, false);
-
-            this.types.add("Dark");
-            this.types.add("Ice");
-        }
-
-        else if (name == "Suicune") { // gen II properties
-            this.baseStats.put("hp",100);
-            this.baseStats.put("attack",75);
-            this.baseStats.put("defense",115);
-            this.baseStats.put("specialAtk",90);
-            this.baseStats.put("specialDef",115);
-            this.baseStats.put("speed",85);
-            this.baseStats.put("catchRate", 3);
-            // sprite
-            Texture pokemonText = new Texture(Gdx.files.internal("pokemon/suicune.png"));
-            this.sprite = new SpriteProxy(pokemonText, 0, 0, 56, 56);
-            this.sprite.flip(true, false); // my sprites are backwards
-
-            this.types.add("Water");
-        }
-        else if (name == "Raikou") { // gen II properties
-            this.baseStats.put("hp",90);
-            this.baseStats.put("attack",85);
-            this.baseStats.put("defense",75);
-            this.baseStats.put("specialAtk",115);
-            this.baseStats.put("specialDef",100);
-            this.baseStats.put("speed",115);
-            this.baseStats.put("catchRate", 3);
-            // sprite
-            Texture pokemonText = new Texture(Gdx.files.internal("pokemon/raikou.png"));
-            this.sprite = new SpriteProxy(pokemonText, 0, 0, 56, 56);
-            this.sprite.flip(true, false); // my sprites are backwards
-
-            this.types.add("Electric");
-        }
-        else if (name == "Entei") { // gen II properties
-            this.baseStats.put("hp",115);
-            this.baseStats.put("attack",115);
-            this.baseStats.put("defense",85);
-            this.baseStats.put("specialAtk",90);
-            this.baseStats.put("specialDef",75);
-            this.baseStats.put("speed",100);
-            this.baseStats.put("catchRate", 3);
-            // sprite
-            Texture pokemonText = new Texture(Gdx.files.internal("pokemon/entei.png"));
-            this.sprite = new SpriteProxy(pokemonText, 0, 0, 56, 56);
-            this.sprite.flip(true, false); // my sprites are backwards
-
-            this.types.add("Electric");
-        }
-        else if (name == "Wurmple") { // gen IV properties
-            this.baseStats.put("hp",45);
-            this.baseStats.put("attack",45);
-            this.baseStats.put("defense",35);
-            this.baseStats.put("specialAtk",20);
-            this.baseStats.put("specialDef",30);
-            this.baseStats.put("speed",20);
-            this.baseStats.put("catchRate", 255);
-            // sprite
-            Texture pokemonText = new Texture(Gdx.files.internal("pokemon/wurmple.png"));
-            this.sprite = new SpriteProxy(pokemonText, 0, 0, 56, 56);
-            this.sprite.flip(true, false);
-
-            this.types.add("Bug");
-        }
-        else if (name == "Makuhita") { // gen I properties
-            this.baseStats.put("hp",72);
-            this.baseStats.put("attack",60);
-            this.baseStats.put("defense",30);
-            this.baseStats.put("specialAtk",20);
-            this.baseStats.put("specialDef",30);
-            this.baseStats.put("speed",25);
-            this.baseStats.put("catchRate", 180);
-            // sprite
-            Texture pokemonText = new Texture(Gdx.files.internal("pokemon/makuhita.png"));
-            this.sprite = new SpriteProxy(pokemonText, 0, 0, 56, 56);
-            this.sprite.flip(true, false); // my sprites are backwards
-
-            this.types.add("Fighting");
-        }
-
-        else if (name == "Hariyama") { // gen I properties
-            this.baseStats.put("hp",144);
-            this.baseStats.put("attack",120);
-            this.baseStats.put("defense",60);
-            this.baseStats.put("specialAtk",40);
-            this.baseStats.put("specialDef",60);
-            this.baseStats.put("speed",50);
-            this.baseStats.put("catchRate", 200);
-            // sprite
-            Texture pokemonText = new Texture(Gdx.files.internal("pokemon/hariyama.png"));
-            this.sprite = new SpriteProxy(pokemonText, 0, 0, 56, 56);
-            // this.sprite.flip(true, false); // this one looks better flipped
-
-            this.types.add("Fighting");
-        }
-        else if (name == "Skitty") { // gen I properties
-            this.baseStats.put("hp",50);
-            this.baseStats.put("attack",45);
-            this.baseStats.put("defense",45);
-            this.baseStats.put("specialAtk",35);
-            this.baseStats.put("specialDef",35);
-            this.baseStats.put("speed",50);
-            this.baseStats.put("catchRate", 255);
-            // sprite
-            Texture pokemonText = new Texture(Gdx.files.internal("pokemon/skitty.png"));
-            this.sprite = new SpriteProxy(pokemonText, 0, 0, 56, 56);
-            this.sprite.flip(true, false); // this one looks better flipped
-
-            this.types.add("Normal");
-        }
-        else if (name == "Sableye") { // gen I properties
-            this.baseStats.put("hp",50);
-            this.baseStats.put("attack",75);
-            this.baseStats.put("defense",75);
-            this.baseStats.put("specialAtk",65);
-            this.baseStats.put("specialDef",65);
-            this.baseStats.put("speed",50);
-            this.baseStats.put("catchRate", 45);
-            // sprite
-            Texture pokemonText = new Texture(Gdx.files.internal("pokemon/sableye.png"));
-            this.sprite = new SpriteProxy(pokemonText, 0, 0, 56, 56);
-            // this.sprite.flip(true, false); // this one looks better flipped
-
-            this.types.add("Dark");
-            this.types.add("Ghost");
-        }
-        else if (name == "Gardevoir") { // gen IV properties
-            this.baseStats.put("hp",68);
-            this.baseStats.put("attack",65);
-            this.baseStats.put("defense",65);
-            this.baseStats.put("specialAtk",125);
-            this.baseStats.put("specialDef",115);
-            this.baseStats.put("speed",80);
-            this.baseStats.put("catchRate", 45);
-            // sprite
-            Texture pokemonText = new Texture(Gdx.files.internal("pokemon/gardevoir.png"));
-            this.sprite = new SpriteProxy(pokemonText, 0, 0, 56, 56);
-            this.sprite.flip(true, false); // this one looks better flipped
-
-            this.types.add("Psychic");
-            // this.types.add("Fairy"); // gen  IV doesn't include
-        }
-        else if (name == "Claydol") { // gen IV properties
-            this.baseStats.put("hp",60);
-            this.baseStats.put("attack",70);
-            this.baseStats.put("defense",105);
-            this.baseStats.put("specialAtk",70);
-            this.baseStats.put("specialDef",120);
-            this.baseStats.put("speed",75);
-            this.baseStats.put("catchRate", 90);
-            // sprite
-            Texture pokemonText = new Texture(Gdx.files.internal("pokemon/claydol.png"));
-            this.sprite = new SpriteProxy(pokemonText, 0, 0, 56, 56);
-            this.sprite.flip(true, false); // this one looks better flipped
-
-            this.types.add("Ground");
-            this.types.add("Psychic");
-            // this.types.add("Fairy"); // gen  IV doesn't include
-        }
-        else if (name == "Lairon") { // gen IV properties
-            this.baseStats.put("hp",60);
-            this.baseStats.put("attack",90);
-            this.baseStats.put("defense",140);
-            this.baseStats.put("specialAtk",50);
-            this.baseStats.put("specialDef",50);
-            this.baseStats.put("speed",40);
-            this.baseStats.put("catchRate", 90);
-            // sprite
-            Texture pokemonText = new Texture(Gdx.files.internal("pokemon/lairon.png"));
-            this.sprite = new SpriteProxy(pokemonText, 0, 0, 56, 56);
-            this.sprite.flip(true, false);
-
-            this.types.add("Steel");
-            this.types.add("Rock");
-        }
-        else if (name == "Cacnea") { // gen IV properties
-            this.baseStats.put("hp",50);
-            this.baseStats.put("attack",85);
-            this.baseStats.put("defense",40);
-            this.baseStats.put("specialAtk",85);
-            this.baseStats.put("specialDef",40);
-            this.baseStats.put("speed",35);
-            this.baseStats.put("catchRate", 190);
-            // sprite
-            Texture pokemonText = new Texture(Gdx.files.internal("pokemon/cacnea.png"));
-            this.sprite = new SpriteProxy(pokemonText, 0, 0, 56, 56);
-            this.sprite.flip(true, false); // my sprites are backwards
-
-            this.types.add("Grass");
-        }
-        else if (name == "Shuppet") { // gen IV properties
-            this.baseStats.put("hp",44);
-            this.baseStats.put("attack",75);
-            this.baseStats.put("defense",35);
-            this.baseStats.put("specialAtk",63);
-            this.baseStats.put("specialDef",33);
-            this.baseStats.put("speed",45);
-            this.baseStats.put("catchRate", 225);
-            // sprite
-            Texture pokemonText = new Texture(Gdx.files.internal("pokemon/shuppet.png"));
-            this.sprite = new SpriteProxy(pokemonText, 0, 0, 56, 56);
-            this.sprite.flip(true, false); // my sprites are backwards
-
-            this.types.add("Grass");
-        }
-        else if (name == "Starly") { // gen IV properties
-            this.baseStats.put("hp",40);
-            this.baseStats.put("attack",55);
-            this.baseStats.put("defense",30);
-            this.baseStats.put("specialAtk",30);
-            this.baseStats.put("specialDef",30);
-            this.baseStats.put("speed",60);
-            this.baseStats.put("catchRate", 255);
-            // sprite
-            Texture pokemonText = new Texture(Gdx.files.internal("pokemon/starly.png"));
-            this.sprite = new SpriteProxy(pokemonText, 0, 0, 56, 56);
-            this.sprite.flip(true, false);
-
-            this.types.add("Normal");
-            this.types.add("Flying");
-        }
-        else if (name == "Shinx") { // gen IV properties
-            this.baseStats.put("hp",45);
-            this.baseStats.put("attack",65);
-            this.baseStats.put("defense",34);
-            this.baseStats.put("specialAtk",40);
-            this.baseStats.put("specialDef",34);
-            this.baseStats.put("speed",45);
-            this.baseStats.put("catchRate", 235);
-            // sprite
-            Texture pokemonText = new Texture(Gdx.files.internal("pokemon/shinx.png"));
-            this.sprite = new SpriteProxy(pokemonText, 0, 0, 56, 56);
-            this.sprite.flip(true, false);
-
-            this.types.add("Electric");
-        }
-        // TODO: remove
-//        else if (name == "Machop") { // todo: stats are wrong
-//            this.baseStats.put("hp",45);
-//            this.baseStats.put("attack",65);
-//            this.baseStats.put("defense",34);
-//            this.baseStats.put("specialAtk",40);
-//            this.baseStats.put("specialDef",34);
-//            this.baseStats.put("speed",45);
-//            this.baseStats.put("catchRate", 235);
-//            // sprite
-//            Texture pokemonText = new Texture(Gdx.files.internal("crystal_pokemon/machop_front2.png"));
-//            this.sprite = new Sprite(pokemonText, 0, 0, 56, 56);
-////            this.sprite.flip(true, false);
-//
-//            this.types.add("Fighting");
-//
-//            this.introAnim = new ArrayList<Sprite>();
-//            // 23 frames do nothing
-//            Sprite sprite = new Sprite(pokemonText, 56*0, 0, 56, 56);
-////            sprite.flip(true, false);
-//            for (int i=0; i < 24; i++) {
-//                this.introAnim.add(sprite);
-//            }
-//            // 22 frames mouth open
-//            sprite = new Sprite(pokemonText, 56*2, 0, 56, 56);
-////            sprite.flip(true, false);
-//            for (int i=0; i < 23; i++) {
-//                this.introAnim.add(sprite);
-//            }
-//            // 13 frames normal
-//            sprite = new Sprite(pokemonText, 56*0, 0, 56, 56);
-////            sprite.flip(true, false);
-//            for (int i=0; i < 14; i++) {
-//                this.introAnim.add(sprite);
-//            }
-//            // 12 frames fists up
-//            sprite = new Sprite(pokemonText, 56*1, 0, 56, 56);
-////            sprite.flip(true, false);
-//            for (int i=0; i < 13; i++) {
-//                this.introAnim.add(sprite);
-//            }
-//            // 13 frames normal
-//            sprite = new Sprite(pokemonText, 56*0, 0, 56, 56);
-////            sprite.flip(true, false);
-//            for (int i=0; i < 14; i++) {
-//                this.introAnim.add(sprite);
-//            }
-//            // 13 frames fists up
-//            sprite = new Sprite(pokemonText, 56*1, 0, 56, 56);
-////            sprite.flip(true, false);
-//            for (int i=0; i < 14; i++) {
-//                this.introAnim.add(sprite);
-//            }
-//            // 11 frames normal
-//            sprite = new Sprite(pokemonText, 56*0, 0, 56, 56);
-////            sprite.flip(true, false);
-//            for (int i=0; i < 14; i++) {
-//                this.introAnim.add(sprite);
-//            }
-//        }
         else {
-            return;
+            int percentFemale = 0;
+            if (specie.genderRatio.equals("GENDER_F12_5")) {
+                percentFemale = 125;
+            }
+            else if (specie.genderRatio.equals("GENDER_F25")) {
+                percentFemale = 250;
+            }
+            else if (specie.genderRatio.equals("GENDER_F50")) {
+                percentFemale = 500;
+            }
+            else if (specie.genderRatio.equals("GENDER_F75")) {
+                percentFemale = 750;
+            }
+            else if (specie.genderRatio.equals("GENDER_F100")) {
+                percentFemale = 1000;
+            }
+            if (Pokemon.rand.nextInt(1000) < percentFemale) {
+                this.gender = "female";
+            }
+            else {
+                this.gender = "male";
+            }
         }
-
+        //set hapiness level
+        this.happiness = specie.baseHappiness;
+        
+    
+        
+        
+//        // if it is in original 251, load from crystal
+//        if (this.name.equals("egg") ||
+//            Specie.nuukPokemon.contains(this.name.toLowerCase()) ||
+//            (Integer.valueOf(this.dexNumber) <= 251 && Integer.valueOf(this.dexNumber) > 0)) {
+////            this.loadCrystalPokemon(name);
+//        // else try loading from prism
+//        } else {
+////            this.loadPrismPokemon(name);
+//        }
+       
         getCurrentAttacks(); // fill this.attacks with what it can currently know
         this.exp = gen2CalcExpForLevel(this.level);
-
-        // stats formulas here
-        calcMaxStats();
-        this.currentStats = new HashMap<String, Integer>(this.maxStats); // copy maxStats
-        this.initHabitatValues();
+      
     }
 
     // TODO - this doesn't take IV's or EV's into account.
@@ -1268,7 +684,7 @@ public class Pokemon {
             }
 
             // Check for potential 'mates' (pokemon breeding mechanic)
-            if (!this.name.equals("egg") &&
+            if (!this.isEgg &&
                 this.loveInterest == null &&
                 game.map.pokemon.containsKey(currPos) &&
                 game.map.pokemon.get(currPos) != this &&
@@ -1297,7 +713,7 @@ public class Pokemon {
                         }
                     }
                 }
-                if (!potentialMate.name.equals("egg") &&
+                if (!potentialMate.isEgg &&
                     genderCompatible && sameEggGroup &&
                     potentialMate.loveInterest == null) {
                     this.loveInterest = potentialMate;
@@ -1340,274 +756,90 @@ public class Pokemon {
         }
     }
 
+    /*
+     * Turn off egg flag & reset overworld textures
+     * */
+    void hatch() {
+    	this.isEgg = false;
+    	this.loadOverworldSprites();
+    	this.name = this.specie.name;
+    	if(isShiny)
+        {
+        	this.sprite = specie.spriteShiny;
+        	this.backSprite = specie.backSpriteShiny;
+        	this.introAnim = specie.introAnimShiny;
+        }
+        else {
+        	this.sprite = specie.sprite;
+        	this.backSprite = specie.backSprite;
+        	this.introAnim = specie.introAnim;
+        }
+    }
+    /*
+     * Called when setting up a Ghost encounter
+     * */
+    void spookify() {
+    	this.isGhost = true;
+    	this.name = "Ghost";
+    	this.sprite = Specie.spriteGhost;
+    	this.backSprite = null;
+    	this.introAnim = Specie.introAnimGhost;
+    }
+    /*
+     * Called when Silph Scope is used
+     * */
+    public Pokemon revealGhost() {
+    	this.isGhost = false;
+    	this.loadOverworldSprites();
+    	this.name = this.specie.name;
+    	//need to store these as the Sprite will be reset once the ghost is revealed
+    	float x = this.sprite.getX();
+    	float y = this.sprite.getY();
+    	if(isShiny)
+        {
+        	this.sprite = specie.spriteShiny;
+        	this.backSprite = specie.backSpriteShiny;
+        	this.introAnim = specie.introAnimShiny;
+        }
+        else {
+        	this.sprite = specie.sprite;
+        	this.backSprite = specie.backSprite;
+        	this.introAnim = specie.introAnim;
+        }
+    	//reset the new sprite to the correct place in the Battle
+    	this.sprite.setPosition(x, y);
+    	return this;
+    }
     /**
      * Compute changes required by evolution.
      */
     void evolveTo(String targetName) {
-        this.name = targetName;
-        this.dexNumber = Pokemon.nameToIndex(this.name);
+    	updateSpecieInfo(targetName);
+    	
         // Update base stats and various values.
         // Don't modify attacks, current hp, etc.
         // TODO: current hp is probably compensated in the real game
-        if (Pokemon.nuukPokemon.contains(this.name.toLowerCase()) ||
-            (Integer.valueOf(this.dexNumber) <= 251 && Integer.valueOf(this.dexNumber) > 0)) {
-            this.loadCrystalPokemon(this.name);
-        }
-        else {
-            this.loadPrismPokemon(this.name);
-        }
-        this.standingSprites.clear();
-        this.movingSprites.clear();
-        this.altMovingSprites.clear();
-        this.avatarSprites.clear();
-        this.loadOverworldSprites(this.name);
-        this.calcMaxStats();
+//        if (Specie.nuukPokemon.contains(this.name.toLowerCase()) ||
+//            (Integer.valueOf(this.dexNumber) <= 251 && Integer.valueOf(this.dexNumber) > 0)) {
+//            this.loadCrystalPokemon(this.name);
+//        }
+//        else {
+//            this.loadPrismPokemon(this.name);
+//        }
+      
         // restore hp to full
         this.currentStats.put("hp", this.maxStats.get("hp"));
 
-        // TODO: probably move this to function somewhere
-        this.hms.clear();
-        if (this.types.contains("FIGHTING")) {
-            this.hms.add("BUILD");
-        }
-        if (name.equals("hypno") ||
-            name.equals("nidorina") ||
-            name.equals("nidoqueen") ||
-            name.equals("nidorino") ||
-            name.equals("nidoking") ||
-            name.equals("granbull") ||
-            name.equals("jynx") ||
-            name.equals("snorlax") ||
-            name.equals("ursaring")) {
-            this.hms.add("HEADBUTT");
-        }
-        if (name.equals("sneasel") || 
-            name.equals("scyther") ||
-            name.equals("pinsir")) {
-            this.hms.add("CUT");
-        }
-        if (name.equals("stantler") ||
-            name.equals("ponyta") ||
-            name.equals("arcanine") ||
-            name.equals("donphan") ||
-            name.equals("girafarig") ||
-            name.equals("houndoom") ||
-            name.equals("rapidash") ||
-            name.equals("tauros") ||
-            name.equals("ninetales") ||
-            name.equals("mamoswine") ||
-            name.equals("mightyena") ||
-            //
-            name.equals("persian") ||
-            name.equals("onix") ||
-            name.equals("steelix") ||
-            name.equals("haunter") ||
-            name.equals("rhyhorn") ||
-            name.equals("rhydon") ||
-            //
-            name.equals("dodrio") ||
-            name.equals("luxray")) {
-            // TODO: change to 'RIDE' later. Making it 'JUMP' for now so that it's not confusing.
-            // Later, once there (hopefully) are riding sprites, this can be changed to ride.
-            // My current idea is that RIDE increases movement speed and can perform jumps up ledges.
-            this.hms.add("RIDE");
-        }
-        if (name.equals("pidgeot") ||
-            name.equals("aerodactyl") ||
-            name.equals("charizard") ||
-            name.equals("dragonair") ||
-            name.equals("dragonite") ||
-            name.equals("salamence") ||
-            name.equals("ho_oh") ||
-            name.equals("lugia") ||
-            name.equals("skarmory") ||
-            name.equals("articuno") ||
-            name.equals("zapdos") ||
-            name.equals("moltres") ||
-            name.equals("crobat") ||
-            name.equals("noctowl") ||
-            name.equals("xatu") ||
-            name.equals("flygon") ||
-            name.equals("togekiss") ||
-            name.equals("swellow") ||
-            name.equals("pelipper") ||
-            name.equals("altaria") ||
-            name.equals("rayquaza") ||
-//            name.equals("farfetch_d") ||  // TODO: removed
-            name.equals("drifblim") ||
-            name.equals("honchkrow") ||
-            name.equals("yanmega") ||
-            name.equals("fearow")) {
-            this.hms.add("FLY");
-        }
-        // TODO: for now, all grass types can cut
-        if (this.types.contains("GRASS")) {
-            this.hms.add("CUT");
-        }
-        if (this.types.contains("ROCK")) {
-            this.hms.add("SMASH");
-        }
-        if (this.types.contains("FIRE") ||
-            name.equals("chinchou") ||
-            name.equals("lanturn") ||
-            name.equals("mareep") ||
-            name.equals("flaaffy") ||
-            name.equals("ampharos")) {
-            // Calling it FLASH for now, since that's what most people
-            // are familiar with.
-            this.hms.add("FLASH");  
-        }
-        if (this.types.contains("DARK") && !this.hms.contains("RIDE")) {
-            this.hms.add("ATTACK");
-        }
-        this.initHabitatValues();
     }
 
     /**
      * .
      */
     void initHabitatValues() {
-        String name = this.name.toLowerCase();
-        this.harvestables.clear();
-        this.habitats.clear();
-        // Type-specific
-        if (this.types.contains("BUG")) {
-            this.habitats.add("flower");
-            this.harvestables.add("silky thread");
-        }
-        if (this.types.contains("WATER")) {
-            this.habitats.add("water");
-            this.harvestables.add("hard shell");
-        }
-        if (this.types.contains("FLYING")) {
-            this.habitats.add("tree");
-            this.harvestables.add("soft feather");
-        }
-        if (this.types.contains("ROCK")) {
-            this.habitats.add("rock");
-            this.harvestables.add("hard stone");
-        }
-        if (this.types.contains("FIRE")) {
-            this.habitats.add("campfire");
-            this.harvestables.add("charcoal");
-        }
-        // GRASS, grass, grass
-        if (this.types.contains("GRASS")) {
-            this.habitats.add("grass");
-            // TODO: test changes
-//            this.harvestables.add("grass");
-//            this.harvestables.add("grass");
-            this.harvestables.add("miracle seed");
-        }
-        if (this.types.contains("GROUND")) {
-            this.habitats.add("mountain|sand");
-//            this.habitats.add("sand");  // not sure. probably needs to be either-or.
-//            this.harvestables.add("soft clay");
-            // used to make 'glass', required for silph scope
-            // for now.
-            this.harvestables.add("soft sand");
-        }
-        if (this.types.contains("STEEL")) {
-            this.habitats.add("mountain");
-            this.harvestables.add("metal coat");
-        }
-        if (this.types.contains("PSYCHIC")) {
-            this.harvestables.add("psi energy");
-        }
-        if (this.types.contains("DARK")) {
-            this.harvestables.add("dark energy");
-        }
-        if (this.types.contains("GHOST")) {
-            this.harvestables.add("spell tag");
-        }
-        if (this.types.contains("DRAGON")) {
-            this.habitats.clear();
-            this.habitats.add("water");  // TODO: potentially change for other dragon types
-            this.harvestables.clear();  // TODO: disable this line once it's easier to get dragon types.
-            this.harvestables.add("dragon fang");
-            this.harvestables.add("dragon scale");
-            this.harvestables.add("dragon scale");
-            this.harvestables.add("dragon scale");
-            this.harvestables.add("dragon scale");
-        }
-        if (this.types.contains("ICE")) {
-            this.habitats.add("snow");  // TODO: this originally wasn't here, why?
-            this.harvestables.add("nevermeltice");
-        }
-        if (this.types.contains("ELECTRIC")) {
-            this.harvestables.add("magnet");
-        }
-        if (name.equals("mareep") || name.equals("flaaffy") || name.equals("ampharos")) {
-            this.habitats.clear();
-            this.habitats.add("grass");
-            this.harvestables.clear();
-            this.harvestables.add("soft wool");
-        }
-        // TODO: enable if used
-//        else if (name.equals("beedrill") || name.equals("butterfree")) {
-//            this.harvestables.clear();
-//            this.harvestables.add("sweet nectar");
-//        }
-        else if (name.equals("miltank")) {
-            this.harvestables.clear();
-            this.harvestables.add("moomoo milk");
-        }
-        // Current idea is this can drop any item
-        else if (name.equals("delibird")) {
-            this.harvestables.clear();
-            this.harvestables.add("ancientpowder");
-            this.harvestables.add("nevermeltice");
-            this.harvestables.add("magnet");
-            this.harvestables.add("ancientpowder");
-            this.harvestables.add("soft wool");
-            this.harvestables.add("moomoo milk");
-            this.harvestables.add("hard stone");
-            this.harvestables.add("manure");
-            this.harvestables.add("berry juice");
-            this.harvestables.add("soft sand");
-            this.harvestables.add("nevermeltice");
-            this.harvestables.add("spell tag");
-            this.harvestables.add("dragon fang");
-            this.harvestables.add("dragon scale");
-            this.harvestables.add("spell tag");
-            this.harvestables.add("psi energy");
-            this.harvestables.add("dark energy");
-            this.harvestables.add("metal coat");
-            this.harvestables.add("silky thread");
-            this.harvestables.add("hard shell");
-            this.harvestables.add("soft feather");
-            this.harvestables.add("hard stone");
-            this.harvestables.add("charcoal");
-            this.harvestables.add("grass");
-        }
-        else if (name.contains("unown")) {
-            this.harvestables.clear();
-            this.harvestables.add("ancientpowder");
-            this.harvestTimerMax = (int)(3600f*3.5f);
-        }
-        else if (name.contains("regi")) {
-            this.harvestables.add("ancientpowder");
-        }
-        // just ideas
-//        else if (name.equals("slowpoke")) {
-//            this.harvestables.clear();
-//            this.harvestables.add("slowpoketail");
-//        }
-//        else if (this.isShiny && (name.equals("onyx") || name.equals("steelix"))) {
-//            this.harvestables.clear();
-//            this.harvestables.add("gold nugget");
-//        }
-        else if (name.equals("shuckle")) {
-            this.harvestables.clear();
-            this.harvestables.add("berry juice");
-        }
-        // Fill in with defaults
-        if (this.habitats.size() <= 0) {
-            this.habitats.add("green");
-        }
-        if (this.harvestables.size() <= 0) {
-            this.harvestables.add("manure");
-        }
+        this.harvestables = specie.harvestables;
+        this.habitats = specie.habitats;
+        this.harvestTimerMax = specie.harvestTimerMax;
+        
     }
 
     /**
@@ -1727,1046 +959,27 @@ public class Pokemon {
         }
     }
 
-    /**
-     * Load pokemon sprites and data from crystal_pokemon files.
-     */
-    void loadCrystalPokemon(String name) {
-        name = name.toLowerCase();
+   
 
-        String newName = name;
-        if (name.contains("unown")) {
-            newName = "unown";
-        }
-        if (name.equals("egg")) {
-            newName = this.eggHatchInto;
-        }
-        String path = "";
-        if (Pokemon.nuukPokemon.contains(newName)) {
-            path = "nuuk/";
-        }
-
-        // Load base stats
-        try {
-            FileHandle file = Gdx.files.internal("crystal_pokemon/"+path+"base_stats/" + newName + ".asm");
-            Reader reader = file.reader();
-            BufferedReader br = new BufferedReader(reader);
-            String line;
-            int lineNum = 0;
-            while ((line = br.readLine()) != null)   {
-                // TODO: using table to look up number now
-//                if (lineNum == 0) {
-//                    this.dexNumber = line.split(" ; ")[1];
-//                } else
-                if (lineNum == 2) {
-                    String stats[] = line.split("db")[1].split(",");
-                    this.baseStats.put("hp", Integer.valueOf((stats[0].replace(" ", ""))));
-                    this.baseStats.put("attack", Integer.valueOf((stats[1].replace(" ", ""))));
-                    this.baseStats.put("defense", Integer.valueOf((stats[2].replace(" ", ""))));
-                    this.baseStats.put("speed", Integer.valueOf((stats[3].replace(" ", ""))));
-                    this.baseStats.put("specialAtk", Integer.valueOf((stats[4].replace(" ", ""))));
-                    this.baseStats.put("specialDef", Integer.valueOf((stats[5].replace(" ", ""))));
-                } else if (lineNum == 5) {
-                    String types[] = line.split("db ")[1].split(" ; ")[0].split(", ");
-                    this.types.add(types[0]);
-                    this.types.add(types[1]);
-                } else if (lineNum == 6) {
-                    String catchRate = line.split("db ")[1].split(" ;")[0];
-                    this.baseStats.put("catchRate", Integer.valueOf(catchRate));
-                } else if (lineNum == 7) {
-                    String baseExp = line.split("db ")[1].split(" ;")[0];
-                    this.baseStats.put("baseExp", Integer.valueOf(baseExp));
-                // If gender not assigned yet, assign it here based on gender ratio
-                } else if (lineNum == 9) {
-                    // source: https://github.com/pret/pokecrystal/wiki/Add-a-new-Pok%C3%A9mon
-                    // GENDER_F0: 100% male
-                    // GENDER_F12_5: 7/8 male, 1/8 female
-                    // GENDER_F25: 3/4 male, 1/4 female
-                    // GENDER_F50: 1/2 male, 1/2 female
-                    // GENDER_F75: 1/4 male, 3/4 female
-                    // GENDER_F100: 100% female
-                    // GENDER_UNKNOWN: genderless
-                    String genderRatio = line.split("db ")[1].split(" ;")[0];
-                    if (genderRatio.equals("GENDER_UNKNOWN")) {
-                        this.gender = "unknown";
-                    }
-                    else {
-                        int percentFemale = 0;
-                        if (genderRatio.equals("GENDER_F12_5")) {
-                            percentFemale = 125;
-                        }
-                        else if (genderRatio.equals("GENDER_F25")) {
-                            percentFemale = 250;
-                        }
-                        else if (genderRatio.equals("GENDER_F50")) {
-                            percentFemale = 500;
-                        }
-                        else if (genderRatio.equals("GENDER_F75")) {
-                            percentFemale = 750;
-                        }
-                        else if (genderRatio.equals("GENDER_F100")) {
-                            percentFemale = 1000;
-                        }
-                        if (Pokemon.rand.nextInt(1000) < percentFemale) {
-                            this.gender = "female";
-                        }
-                        else {
-                            this.gender = "male";
-                        }
-                    }
-                // Egg cycles to hatch
-                } else if (lineNum == 11 && this.name.equals("egg")) {
-                    String eggCycles = line.split("db ")[1].split(" ;")[0];
-                    this.happiness = Integer.valueOf(eggCycles);
-                } else if (lineNum == 15) {
-                    this.growthRateGroup = line.split("db ")[1].split(" ;")[0];
-                // Egg groups this pokemon belongs to
-                } else if (lineNum == 16) {
-                    String groups = line.split("dn ")[1].split(" ;")[0];
-                    this.eggGroups = groups.split(", ");
-                }
-                // TODO: other stats
-                lineNum++;
-            }
-            reader.close();
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-
-        if (name.equals("egg")) {
-            path = "";  // all egg sprites loaded from crystal
-        }
-
-        // Load sprite and animation data (cached)
-        if (!Pokemon.textures.containsKey(name+"_front")) {
-            // Load front sprite
-            Texture text = TextureCache.get(Gdx.files.internal("crystal_pokemon/"+path+"pokemon/" + name + "/front.png"));
-            // unown sprites have color data only stored in one channel (alpha)
-            // convert this to regular texture
-            if (name.contains("unown")) {
-                TextureData temp = text.getTextureData();
-                if (!temp.isPrepared()) {
-                    temp.prepare();
-                }
-                Pixmap currPixmap = temp.consumePixmap();
-                Pixmap newPixmap = new Pixmap(text.getWidth(), text.getHeight(), Pixmap.Format.RGBA8888);
-                newPixmap.setColor(new Color(0, 0, 0, 0));
-                newPixmap.fill();
-                for (int i=0, j=0; j < text.getHeight(); i++) {
-                    if (i > text.getWidth()) {
-                        i=-1;
-                        j++;
-                        continue;
-                    }
-                    Color color = new Color(currPixmap.getPixel(i, j));
-                    newPixmap.drawPixel(i, j, Color.rgba8888(color.a, color.a, color.a, 1f));
-                }
-                text = new Texture(newPixmap);
-            }
-            Pokemon.textures.put(name+"_front", text);
-
-            // Swap palette for shiny texture (load by appending '_shiny' to the texture name)
-            // Load shiny palette from file
-            Color normalColor1 = null;
-            Color normalColor2 = new Color();
-            Color shinyColor1 = null;
-            Color shinyColor2 = new Color();
-            // TODO: this is just a hack workaround
-            if (Pokemon.nuukPokemon.contains(newName)) {
-                path = "nuuk/";
-            }
-            try {
-                FileHandle file = Gdx.files.internal("crystal_pokemon/"+path+"pokemon/" + newName + "/shiny.pal");
-                Reader reader = file.reader();
-                BufferedReader br = new BufferedReader(reader);
-                String line;
-                while ((line = br.readLine()) != null)   {
-                    if (line.contains("RGB")) {
-                        String[] vals = line.split("\tRGB ")[1].split(", ");
-                        if (shinyColor1 == null) {
-                            shinyColor1 = new Color();
-                            shinyColor1.r = (Float.valueOf(vals[0])*8f)/256f;
-                            shinyColor1.g = (Float.valueOf(vals[1])*8f)/256f;
-                            shinyColor1.b = (Float.valueOf(vals[2])*8f)/256f;
-                        }
-                        else {
-                            shinyColor2.r = (Float.valueOf(vals[0])*8f)/256f;
-                            shinyColor2.g = (Float.valueOf(vals[1])*8f)/256f;
-                            shinyColor2.b = (Float.valueOf(vals[2])*8f)/256f;
-                        }
-                    }
-                }
-                reader.close();
-
-                // TODO: hack workaround
-                if (name.equals("egg")) {
-                    path = "";  // all egg sprites loaded from crystal
-                }
-
-                if (name.contains("unown")) {
-                    file = Gdx.files.internal("crystal_pokemon/"+path+"pokemon/" + newName + "/normal.pal");
-                }
-                else {
-                    file = Gdx.files.internal("crystal_pokemon/"+path+"pokemon/" + name + "/front.pal");
-                }
-                // TODO: don't really need anymore b/c SpriteProxy knows color1/color2
-                if (file.exists()) {
-                    reader = file.reader();
-                    br = new BufferedReader(reader);
-                    while ((line = br.readLine()) != null)   {
-                        if (line.contains("RGB")) {
-                            String[] vals = line.split("\tRGB ")[1].split(", ");
-                            if (normalColor1 == null) {
-                                // TODO: this is wrong, these values range from 0-32 but .r .g .b should be floats.
-                                normalColor1 = new Color();
-                                normalColor1.r = Integer.valueOf(vals[0]);
-                                normalColor1.g = Integer.valueOf(vals[1]);
-                                normalColor1.b = Integer.valueOf(vals[2]);
-                            }
-                            else {
-                                normalColor2.r = Integer.valueOf(vals[0]);
-                                normalColor2.g = Integer.valueOf(vals[1]);
-                                normalColor2.b = Integer.valueOf(vals[2]);
-                            }
-                        }
-                    }
-                    reader.close();
-                }
-                else {
-                    SpriteProxy tempSprite = new SpriteProxy(Pokemon.textures.get(name+"_front"),
-                                                             0, 0, text.getWidth(), text.getWidth());
-//                    normalColor1 = tempSprite.color1;
-//                    normalColor2 = tempSprite.color2;
-                    // TODO: these should be floats from 0-1, not from 0-32
-                    normalColor1 = new Color();
-                    normalColor1.r = tempSprite.color1.r*32f;
-                    normalColor1.g = tempSprite.color1.g*32f;
-                    normalColor1.b = tempSprite.color1.b*32f;
-                    normalColor2 = new Color();
-                    normalColor2.r = tempSprite.color2.r*32f;
-                    normalColor2.g = tempSprite.color2.g*32f;
-                    normalColor2.b = tempSprite.color2.b*32f;
-                }
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
-            TextureData temp = text.getTextureData();
-            if (!temp.isPrepared()) {
-                temp.prepare();
-            }
-            Pixmap currPixmap = temp.consumePixmap();
-            Pixmap newPixmap = new Pixmap(text.getWidth(), text.getHeight(), Pixmap.Format.RGBA8888);
-            newPixmap.setColor(new Color(0, 0, 0, 0));
-            newPixmap.fill();
-            for (int i=0, j=0; j < text.getHeight(); i++) {
-                if (i > text.getWidth()) {
-                    i=-1;
-                    j++;
-                    continue;
-                }
-                Color color = new Color(currPixmap.getPixel(i, j));
-                if ((int)(color.r*32) == (int)normalColor1.r && (int)(color.g*32) == (int)normalColor1.g && (int)(color.b*32) == (int)normalColor1.b) {
-                    color = shinyColor1;
-                }
-                else if ((int)(color.r*32) == (int)normalColor2.r && (int)(color.g*32) == (int)normalColor2.g && (int)(color.b*32) == (int)normalColor2.b) {
-                    color = shinyColor2;
-                }
-                newPixmap.drawPixel(i, j, Color.rgba8888(color.r, color.g, color.b, 1f));
-            }
-            text = TextureCache.get(newPixmap);
-            Pokemon.textures.put(name+"_front_shiny", text);
-
-            // back sprites
-            text = TextureCache.get(Gdx.files.internal("crystal_pokemon/"+path+"pokemon/" + name + "/back.png"));
-            Pokemon.textures.put(name+"_back", text);
-            temp = text.getTextureData();
-            if (!temp.isPrepared()) {
-                temp.prepare();
-            }
-            currPixmap = temp.consumePixmap();
-            newPixmap = new Pixmap(text.getWidth(), text.getHeight(), Pixmap.Format.RGBA8888);
-            newPixmap.setColor(new Color(0, 0, 0, 0));
-            newPixmap.fill();
-            for (int i=0, j=0; j < text.getHeight(); i++) {
-                if (i > text.getWidth()) {
-                    i=-1;
-                    j++;
-                    continue;
-                }
-                Color color = new Color(currPixmap.getPixel(i, j));
-                if ((int)(color.r*32) == (int)normalColor1.r && (int)(color.g*32) == (int)normalColor1.g && (int)(color.b*32) == (int)normalColor1.b) {
-                    color = shinyColor1;
-                }
-                else if ((int)(color.r*32) == (int)normalColor2.r && (int)(color.g*32) == (int)normalColor2.g && (int)(color.b*32) == (int)normalColor2.b) {
-                    color = shinyColor2;
-                }
-                newPixmap.drawPixel(i, j, Color.rgba8888(color.r, color.g, color.b, 1f));
-            }
-            text = TextureCache.get(newPixmap);
-            Pokemon.textures.put(name+"_back_shiny", text);
-        }
-        String isShiny = "";
-        if (this.isShiny) {
-            isShiny = "_shiny";
-        }
-        Texture pokemonText = Pokemon.textures.get(name+"_front"+isShiny);
-        // height and width are the same for these sprites
-        int height = pokemonText.getWidth();
-//        this.sprite = new Sprite(pokemonText, 0, 0, height, height);  // TODO: test
-        this.sprite = new SpriteProxy(pokemonText, 0, 0, height, height);
-
-        // TODO: remove
-//        if (!Pokemon.textures.containsKey(name+"_back")) {
-//            Texture text = new Texture(Gdx.files.internal("crystal_pokemon/pokemon/" + name + "/back.png"));
-//            Pokemon.textures.put(name+"_back", text);
-//        }
-//      pokemonText = new Texture(Gdx.files.internal("crystal_pokemon/pokemon/" + name + "/back.png"));
-        pokemonText = Pokemon.textures.get(name+"_back"+isShiny);
-//        height = pokemonText.getWidth();
-
-//        this.backSprite = new Sprite(pokemonText, 0, 0, 48, 48); // TODO: test
-        this.backSprite = new SpriteProxy(pokemonText, 0, 0, 48, 48);
-
-        // Load animation from file
-        this.introAnim = new ArrayList<SpriteProxy>();
-        try {
-            FileHandle file = Gdx.files.internal("crystal_pokemon/"+path+"pokemon/" + name + "/anim.asm");
-            Reader reader = file.reader();
-            BufferedReader br = new BufferedReader(reader);
-            String line;
-            int setrepeat = 0;
-            ArrayList<String> lines = new ArrayList<String>();
-            while ((line = br.readLine()) != null)   {
-                lines.add(line);
-            }
-            for (int i=0; i < lines.size(); ) {
-                line = lines.get(i);
-                if (line.contains("setrepeat")) {
-                    setrepeat = Integer.valueOf(line.split("setrepeat ")[1]);
-                } else if (line.contains("frame")) {
-                    String vals[] = line.split("frame ")[1].split(", ");
-                    int numFrames = Integer.valueOf(vals[1].trim());
-                    int frame = Integer.valueOf(vals[0]);
-                    for (int j=0; j < numFrames; j++) {
-//                        pokemonText = new Texture(Gdx.files.internal("crystal_pokemon/pokemon/" + name + "/front.png"));
-                        pokemonText = Pokemon.textures.get(name+"_front"+isShiny);
-                        SpriteProxy sprite = new SpriteProxy(pokemonText, 0, height*frame, height, height);
-                        this.introAnim.add(sprite);
-                    }
-                } else if (line.contains("dorepeat")) {
-                    if (setrepeat != 0) {
-                        i = Integer.valueOf(line.split("dorepeat ")[1]);
-                        setrepeat--;
-                        continue;
-                    }
-                }
-                i++;
-            }
-            reader.close();
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-
-        // TODO: this is just a hack workaround
-        if (Pokemon.nuukPokemon.contains(newName)) {
-            path = "nuuk/";
-        }
-
-        // Load attacks from file
-        // TODO: just load all of this statically in static {} block (?)
-        if (!Pokemon.gen2Attacks.containsKey(newName) || !Pokemon.gen2Evos.containsKey(newName)) {
-            Map<Integer, String[]> attacks = new HashMap<Integer, String[]>();
-            Map<String, String> evos = new HashMap<String, String>();
-            Pokemon.gen2Attacks.put(newName, attacks);
-            Pokemon.gen2Evos.put(newName, evos);
-            try {
-                FileHandle file = Gdx.files.internal("crystal_pokemon/"+path+"evos_attacks.asm");
-                Reader reader = file.reader();
-                BufferedReader br = new BufferedReader(reader);
-                String line;
-                boolean inSection = false;
-                ArrayList<String> lines = new ArrayList<String>();
-                while ((line = br.readLine()) != null)   {
-                    lines.add(line);
-                }
-
-                for (int i=0; i < lines.size(); i++) {
-                    line = lines.get(i);
-                    if (line.toLowerCase().equals(newName+"evosattacks:")) {
-                        inSection = true;
-                        continue;
-                    }
-                    if (!inSection) {
-                        continue;
-                    }
-                    if (line.contains(";")) {
-                        // skip commented line
-                        continue;
-                    }
-                    if (line.contains("EVOLVE_LEVEL")) {
-                        String vals[] = line.split(", ");
-                        evos.put(vals[1], vals[2].toLowerCase());
-                    }
-                    else if (line.contains("EVOLVE_ITEM") || line.contains("EVOLVE_TRADE") || line.contains("EVOLVE_HAPPINESS") || line.contains("EVOLVE_MOVE")) {
-                        // TODO
-                        String vals[] = line.split(", ");
-                        evos.put(vals[1].toLowerCase().replace("_", " "), vals[2].toLowerCase());
-                    }
-                    else if (!line.contains("\t")) {
-                        inSection = false;
-                    }
-                    else if (!line.contains("db 0")) {
-                        String vals[] = line.split(", ");
-                        String attack = vals[1].toLowerCase().replace('_', ' ');
-                        // TODO: eventually remove attacksNotImplemented check
-                        // Prevent loading moves like Metronome, Mimic etc that arent
-                        // implemented
-                        if (!Pokemon.attacksNotImplemented.contains(attack)) {
-                            int level = Integer.valueOf(vals[0].split(" ")[1]);
-                            String[] attacksArray = new String[]{attack};
-                            if (attacks.containsKey(level)) {
-                                attacksArray = new String[attacks.get(level).length+1];
-                                for (int j=0; j<attacks.get(level).length; j++) {
-                                    attacksArray[j] = attacks.get(level)[j];
-                                }
-                                attacksArray[attacks.get(level).length] = attack;
-                            }
-                            attacks.put(level, attacksArray);
-                        }
-                    }
-                }
-                reader.close();
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-        this.learnSet = Pokemon.gen2Attacks.get(newName);
-    }
-
-    void loadOverworldSprites(String name) {
-        name = name.toLowerCase();
-
-        // Load overworld sprites from file
-        try {
-            FileHandle file = Gdx.files.internal("crystal_pokemon/prism/pokemon_names.asm");
-            Reader reader = file.reader();
-            BufferedReader br = new BufferedReader(reader);
-            String line;
-            ArrayList<String> lines = new ArrayList<String>();
-            while ((line = br.readLine()) != null)   {
-                lines.add(line);
-            }
-            boolean found = false;
-            boolean flip = true;  // some up/down animations are 2 frame
-            
-            for (int i=0; i < lines.size(); ) {
-                if (name.equals("egg")) {
-                    break;
-                }
-                line = lines.get(i);
-
-                // TODO: no overworld sprites for some pokemon
-                if (name.equals("poochyena")) {
-                    i = 312;
-                    found = true;
-                }
-                else if (name.equals("mightyena")) {
-                    i = 313;
-                    found = true;
-                }
-                else if (name.equals("wingull")) {
-                    i = 314;
-                    found = true;
-                }
-                else if (name.equals("pelipper")) {
-                    i = 315;
-                    found = true;
-                }
-                else if (name.equals("snover")) {
-                    i = 316;
-                    found = true;
-                }
-                else if (name.equals("mimikyu")) {
-                    i = 317;
-                    found = true;
-                }
-                else if (name.equals("corphish")) {
-                    i = 318;
-                    found = true;
-                }
-                else if (name.equals("crawdaunt")) {
-                    i = 319;
-                    found = true;
-                }
-                else if (name.equals("litwick")) {
-                    i = 320;
-                    found = true;
-                    flip = false;
-                }
-                else if (name.equals("lampent")) {
-                    i = 321;
-                    found = true;
-                    flip = false;
-                }
-                else if (name.equals("chandelure")) {
-                    i = 322;
-                    found = true;
-                    flip = false;
-                }
-                else if (name.equals("dwebble")) {
-                    i = 323;
-                    found = true;
-                    flip = false;
-                }
-                else if (name.equals("crustle")) {
-                    i = 324;
-                    found = true;
-                    flip = false;
-                }
-                else if (name.equals("scorbunny")) {
-                    i = 325;
-                    found = true;
-                }
-                else if (name.equals("raboot")) {
-                    i = 326;
-                    found = true;
-                }
-                else if (name.equals("cinderace")) {
-                    i = 327;
-                    found = true;
-                }
-                else if (name.equals("regidrago")) {
-                    i = 328;
-                    found = true;
-                }
-                else if (name.equals("regieleki")) {
-                    i = 329;
-                    found = true;
-                }
-                else if (name.equals("regice")) {
-                    i = 330;
-                    found = true;
-                    flip = false;
-                }
-                else if (name.equals("regirock")) {
-                    i = 331;
-                    found = true;
-                    flip = false;
-                }
-                else if (name.equals("registeel")) {
-                    i = 332;
-                    found = true;
-                    flip = false;
-                }
-                else if (name.equals("regigigas")) {
-                    i = 333;
-                    found = true;
-                }
-                String currName = line.split("db \"")[1].split("\"")[0].toLowerCase().replace("@", "");
-                if (currName.equals(name) || found) {
-                    found = true;
-                    // TODO: Credits to Megaman-Omega on Deviantart for prism overworld sprites
-                    Texture text = TextureCache.get(Gdx.files.internal("crystal_pokemon/prism-overworld-sprites2.png"));
-                    // These aren't consistent because sprite sheet is also inconsistent in ordering
-                    int col = (i*6) % 156;
-                    int row = (int)((i*6) / 156);
-                    this.spriteOffsetY = row*16;
-                    this.movingSprites.put("left", new Sprite(text, col*16, row*16, 16, 16));
-                    this.altMovingSprites.put("left", new Sprite(text, col*16, row*16, 16, 16));
-                    this.standingSprites.put("left", new Sprite(text, col*16 +16, row*16, 16, 16));
-
-                    this.movingSprites.put("right", new Sprite(text, col*16, row*16, 16, 16));
-                    this.movingSprites.get("right").flip(true, false);
-                    this.altMovingSprites.put("right", new Sprite(text, col*16, row*16, 16, 16));
-                    this.altMovingSprites.get("right").flip(true, false);
-                    this.standingSprites.put("right", new Sprite(text, col*16 +16, row*16, 16, 16));
-                    this.standingSprites.get("right").flip(true, false);
-
-                    // TODO: some of these probably need to be flipped in the sprite sheet
-                    this.movingSprites.put("up", new Sprite(text, col*16 +32, row*16, 16, 16));
-                    this.altMovingSprites.put("up", new Sprite(text, col*16 +32, row*16, 16, 16));
-                    if (flip) {
-                        this.altMovingSprites.get("up").flip(true, false);
-                    }
-                    this.standingSprites.put("up", new Sprite(text, col*16 +48, row*16, 16, 16));
-
-                    this.standingSprites.put("down", new Sprite(text, col*16 +64, row*16, 16, 16));
-                    this.movingSprites.put("down", new Sprite(text, col*16 +80, row*16, 16, 16));
-                    this.altMovingSprites.put("down", new Sprite(text, col*16 +80, row*16, 16, 16));
-                    if (flip) {
-                        this.altMovingSprites.get("down").flip(true, false);
-                    }
-                    
-                    this.avatarSprites.add(this.standingSprites.get("down"));
-                    this.avatarSprites.add(this.movingSprites.get("down"));
-                    this.avatarSprites.add(this.standingSprites.get("down"));
-                    this.avatarSprites.add(this.altMovingSprites.get("down"));
-                    for (String key : new ArrayList<String>(this.standingSprites.keySet())) {
-                        this.standingSprites.put(key+"_running", this.standingSprites.get(key));
-                    }
-                    for (String key : new ArrayList<String>(this.movingSprites.keySet())) {
-                        this.movingSprites.put(key+"_running", this.movingSprites.get(key));
-                    }
-                    for (String key : new ArrayList<String>(this.altMovingSprites.keySet())) {
-                        this.altMovingSprites.put(key+"_running", this.altMovingSprites.get(key));
-                    }
-                    break;
-                }
-                i++;
-            }
-            reader.close();
-
-            if (found) {
-                return;
-            }
-
+    void loadOverworldSprites() {                
             // If this is an egg, load special texture for the overworld sprite
-            if (this.name.equals("egg")) {
-//                Texture text = TextureCache.get(Gdx.files.internal("crystal_pokemon/egg1.png"));
-                // If cached egg texture doesn't exist in TextureCache.eggTextures, make
-                // a new pixmap with colors replaced.
-                String path = "";
-                if (Pokemon.nuukPokemon.contains(this.eggHatchInto)) {
-                    path = "nuuk/";
-                }
-                
-                Texture text;
-                if (!TextureCache.eggTextures.containsKey(this.eggHatchInto)) {
-                    // TODO: won't work for prism pokemon
-                    text = TextureCache.get(Gdx.files.internal("crystal_pokemon/"+path+"pokemon/" + this.eggHatchInto + "/back.png"));
-                    int height = text.getWidth();
-                    SpriteProxy tempSprite = new SpriteProxy(text, 0, 0, height, height);
-//                    System.out.println(tempSprite.color1);
-//                    System.out.println(tempSprite.color2);
-                    // Replace colors in egg icon
-                    text = TextureCache.get(Gdx.files.internal("crystal_pokemon/egg1.png"));
-                    SpriteProxy tempEggSprite = new SpriteProxy(text, 0, 0, text.getWidth(), text.getHeight());
-                    //
-                    TextureData temp = text.getTextureData();
-                    if (!temp.isPrepared()) {
-                        temp.prepare();
-                    }
-                    Pixmap currPixmap = temp.consumePixmap();
-                    Pixmap newPixmap = new Pixmap(text.getWidth(), text.getHeight(), Pixmap.Format.RGBA8888);
-                    newPixmap.setColor(new Color(0, 0, 0, 0));
-                    newPixmap.fill();
-                    for (int i=0, j=0; j < text.getHeight(); i++) {
-                        if (i > text.getWidth()) {
-                            i=-1;
-                            j++;
-                            continue;
-                        }
-                        Color color = new Color(currPixmap.getPixel(i, j));
-                        // color 1
-                        if (color.r == tempEggSprite.color1.r && color.g == tempEggSprite.color1.g && color.b == tempEggSprite.color1.b) {
-                            color.r = tempSprite.color1.r;
-                            color.g = tempSprite.color1.g;
-                            color.b = tempSprite.color1.b;
-                        }
-                        // color 2
-                        else if (color.r == tempEggSprite.color2.r && color.g == tempEggSprite.color2.g && color.b == tempEggSprite.color2.b) {
-                            color.r = tempSprite.color2.r;
-                            color.g = tempSprite.color2.g;
-                            color.b = tempSprite.color2.b;
-                        }
-                        newPixmap.drawPixel(i, j, Color.rgba8888(color.r, color.g, color.b, color.a));
-                    }
-                    TextureCache.eggTextures.put(this.eggHatchInto, TextureCache.get(newPixmap));
-                }
-                text = TextureCache.eggTextures.get(this.eggHatchInto);
-                for (String dir : new String[]{"up", "down", "left", "right"}) {
-                    this.standingSprites.put(dir, new Sprite(text, 0, 0, 16, 16));
-                    this.movingSprites.put(dir, new Sprite(text, 0, 32, 16, 16));
-                    this.altMovingSprites.put(dir, new Sprite(text, 0, 48, 16, 16));
-                }
-                Sprite hopSprite = new Sprite(text, 0, 16, 16, 16);
-                this.avatarSprites.add(this.standingSprites.get("down"));
-                this.avatarSprites.add(hopSprite);
-                this.avatarSprites.add(this.standingSprites.get("down"));
-                this.avatarSprites.add(hopSprite);
+            if (this.isEgg) {
+            	this.movingSprites = specie.movingSpritesEgg;
+                this.altMovingSprites = specie.altMovingSpritesEgg;
+                this.standingSprites = specie.standingSpritesEgg;
+                this.avatarSprites = specie.avatarSpritesEgg;
             }
-            // else, load from crystal overworld sprite sheet
-            else {
-                // If failed to load from prism animations, load from crystal
-                Texture text = TextureCache.get(Gdx.files.internal("crystal_pokemon/crystal-overworld-sprites1.png"));
-                int dexNumber = Integer.valueOf(this.dexNumber)-1;
-                // TODO: no honchkrow o/w sprite that I know of, just make it equal to murkrow's for now
-                // TODO: could check  C:\cygwin64\home\Evan\polishedcrystal\gfx\icon if that exists
-                // fun fact - polishedcrystal honchkrow uses identical pallete to houndoom.
-                if (name.equals("honchkrow")) {
-                    dexNumber = 197;
-                }
-//                if (dexNumber > 123) {
-//                    dexNumber += 3;
-//                }
-                int col = (dexNumber % 15) * 2;
-                int row = (int)((dexNumber) / 15);
-                this.spriteOffsetY = 31 +row*25;
-                for (String dir : new String[]{"up", "down", "left", "right"}) {
-                    this.standingSprites.put(dir, new Sprite(text, 1 +col*17, 31 +row*25, 16, 16));
-                    this.movingSprites.put(dir, new Sprite(text, 1 +col*17 +17, 31 +row*25, 16, 16));
-                    this.altMovingSprites.put(dir, new Sprite(text, 1 +col*17 +17, 31 +row*25, 16, 16));
-                }
-                this.avatarSprites.add(this.standingSprites.get("down"));
-                this.avatarSprites.add(this.movingSprites.get("down"));
-                this.avatarSprites.add(this.standingSprites.get("down"));
-                this.avatarSprites.add(this.movingSprites.get("down"));
-            }
-
-            for (String key : new ArrayList<String>(this.standingSprites.keySet())) {
-                this.standingSprites.put(key+"_running", this.standingSprites.get(key));
-            }
-            for (String key : new ArrayList<String>(this.movingSprites.keySet())) {
-                this.movingSprites.put(key+"_running", this.movingSprites.get(key));
-            }
-            for (String key : new ArrayList<String>(this.altMovingSprites.keySet())) {
-                this.altMovingSprites.put(key+"_running", this.altMovingSprites.get(key));
-            }
-
-            // TODO: load ghost overworld sprite from ghost sheet.
-            
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
+            else //otherwise, set normal overworld textures
+            {
+            	this.spriteOffsetY = specie.spriteOffsetY;
+                this.movingSprites = specie.movingSprites;
+                this.altMovingSprites = specie.altMovingSprites;
+                this.standingSprites = specie.standingSprites;
+                this.avatarSprites = specie.avatarSprites;
+            }       
     }
 
-    /**
-     * Load pokemon sprites and data from crystal_pokemon/prism files.
-     */
-    void loadPrismPokemon(String name) {
-        name = name.toLowerCase();
-        
-        if (this.name.equals("egg")) {
-            name = this.eggHatchInto;
-        }
-
-        // TODO: if can't find prism path, check other paths
-//        String path = "crystal_pokemon/prism/";
-//        FileHandle file = Gdx.files.internal(path+"base_stats/" + name + ".asm");
-//        if (!file.exists()) {
-//            path = "crystal_pokemon/nuuk/";
-//        }
-
-        // load base stats
-        try {
-            FileHandle file = Gdx.files.internal("crystal_pokemon/prism/base_stats/" + name + ".asm");
-            Reader reader = file.reader();
-            BufferedReader br = new BufferedReader(reader);
-            String line;
-            int lineNum = 0;
-            while ((line = br.readLine()) != null)   {
-                if (lineNum == 1) {
-                    String stats[] = line.split("db")[1].split(",");
-                    this.baseStats.put("hp", Integer.valueOf((stats[0].replace(" ", ""))));
-                    this.baseStats.put("attack", Integer.valueOf((stats[1].replace(" ", ""))));
-                    this.baseStats.put("defense", Integer.valueOf((stats[2].replace(" ", ""))));
-                    this.baseStats.put("speed", Integer.valueOf((stats[3].replace(" ", ""))));
-                    this.baseStats.put("specialAtk", Integer.valueOf((stats[4].replace(" ", ""))));
-                    this.baseStats.put("specialDef", Integer.valueOf((stats[5].replace(" ", ""))));
-                } else if (lineNum == 2) {
-                    String types[] = line.split("db ")[1].split(" ; ")[0].split(", ");
-                    this.types.add(types[0]);
-                    this.types.add(types[1]);
-                } else if (lineNum == 3) {
-                    String catchRate = line.split("db ")[1].split(" ;")[0];
-                    this.baseStats.put("catchRate", Integer.valueOf(catchRate));
-                } else if (lineNum == 4) {
-                    String baseExp = line.split("db ")[1].split(" ;")[0];
-                    this.baseStats.put("baseExp", Integer.valueOf(baseExp));
-                } else if (lineNum == 7) {
-                    // prism seems to just use (number+1)/256 for percent female
-                    String genderRatio = line.split("db ")[1].split(" ;")[0];
-                    int percentFemale = Integer.valueOf(genderRatio);
-                    if (Pokemon.rand.nextInt(256) < percentFemale) {
-                        this.gender = "female";
-                    }
-                    else {
-                        this.gender = "male";
-                    }
-                // Egg cycles to hatch
-                } else if (lineNum == 9 && this.name.equals("egg")) {
-                    String eggCycles = line.split("db ")[1].split(" ;")[0];
-                    this.happiness = Integer.valueOf(eggCycles);
-                } else if (lineNum == 14) {
-                    this.growthRateGroup = line.split("db ")[1].split(" ;")[0];
-                // Egg groups this pokemon belongs to
-                } else if (lineNum == 15) {
-                    String groups = line.split("dn ")[1].split(" ;")[0];
-                    this.eggGroups = groups.split(", ");
-                }
-                // TODO: other stats
-                lineNum++;
-            }
-            reader.close();
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        // Load sprite and animation data
-        // Load front sprite
-        if (!Pokemon.textures.containsKey(name+"_front")) {
-            Texture text = TextureCache.get(Gdx.files.internal("crystal_pokemon/prism/pics/" + name + "/front.png"));
-            Pokemon.textures.put(name+"_front", text);
-
-            // Swap palette for shiny texture (load by appending '_shiny' to the texture name)
-            // Load shiny palette from file
-            Color normalColor1 = null;
-            Color normalColor2 = new Color();
-            Color shinyColor1 = null;
-            Color shinyColor2 = new Color();
-            try {
-                FileHandle file = Gdx.files.internal("crystal_pokemon/prism/pics/" + name + "/shiny.pal");
-                Reader reader = file.reader();
-                BufferedReader br = new BufferedReader(reader);
-                String line;
-                while ((line = br.readLine()) != null)   {
-                    if (line.contains("RGB")) {
-                        String[] vals = line.split("\tRGB ")[1].split(", ");
-                        if (shinyColor1 == null) {
-                            shinyColor1 = new Color();
-                            shinyColor1.r = Float.valueOf(vals[0]);
-                            shinyColor1.g = Float.valueOf(vals[1]);
-                            shinyColor1.b = Float.valueOf(vals[2]);
-                        }
-                        else {
-                            shinyColor2.r = Float.valueOf(vals[0]);
-                            shinyColor2.g = Float.valueOf(vals[1]);
-                            shinyColor2.b = Float.valueOf(vals[2]);
-                        }
-                    }
-                }
-                reader.close();
-
-                file = Gdx.files.internal("crystal_pokemon/prism/pics/" + name + "/normal.pal");
-                reader = file.reader();
-                br = new BufferedReader(reader);
-                while ((line = br.readLine()) != null)   {
-                    if (line.contains("RGB")) {
-                        String[] vals = line.split("\tRGB ")[1].split(", ");
-                        if (normalColor1 == null) {
-                            normalColor1 = new Color();
-                            normalColor1.r = Float.valueOf(vals[0]);
-                            normalColor1.g = Float.valueOf(vals[1]);
-                            normalColor1.b = Float.valueOf(vals[2]);
-                        }
-                        else {
-                            normalColor2.r = Float.valueOf(vals[0]);
-                            normalColor2.g = Float.valueOf(vals[1]);
-                            normalColor2.b = Float.valueOf(vals[2]);
-                        }
-                    }
-                }
-                reader.close();
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
-            TextureData temp = text.getTextureData();
-            if (!temp.isPrepared()) {
-                temp.prepare();
-            }
-            Pixmap currPixmap = temp.consumePixmap();
-            Pixmap newPixmap = new Pixmap(text.getWidth(), text.getHeight(), Pixmap.Format.RGBA8888);
-            newPixmap.setColor(new Color(0, 0, 0, 0));
-            newPixmap.fill();
-            for (int i=0, j=0; j < text.getHeight(); i++) {
-                if (i > text.getWidth()) {
-                    i=-1;
-                    j++;
-                    continue;
-                }
-                Color color = new Color(currPixmap.getPixel(i, j));
-                if ((int)(color.r*32) == (int)normalColor1.r && (int)(color.g*32) == (int)normalColor1.g && (int)(color.b*32) == (int)normalColor1.b) {
-                    color.r = (shinyColor1.r*8f)/256f;
-                    color.g = (shinyColor1.g*8f)/256f;
-                    color.b = (shinyColor1.b*8f)/256f;
-                }
-                else if ((int)(color.r*32) == (int)normalColor2.r && (int)(color.g*32) == (int)normalColor2.g && (int)(color.b*32) == (int)normalColor2.b) {
-                    color.r = (shinyColor2.r*8f)/256f;
-                    color.g = (shinyColor2.g*8f)/256f;
-                    color.b = (shinyColor2.b*8f)/256f;
-//                    color = shinyColor2;
-                }
-                newPixmap.drawPixel(i, j, Color.rgba8888(color.r, color.g, color.b, 1f));
-            }
-            text = TextureCache.get(newPixmap);
-            Pokemon.textures.put(name+"_front_shiny", text);
-
-            // Back sprites
-            text = TextureCache.get(Gdx.files.internal("crystal_pokemon/prism/pics/" + name + "/back.png"));
-            Pokemon.textures.put(name+"_back_shiny", text);
-            temp = text.getTextureData();
-            if (!temp.isPrepared()) {
-                temp.prepare();
-            }
-            currPixmap = temp.consumePixmap();
-            newPixmap = new Pixmap(text.getWidth(), text.getHeight(), Pixmap.Format.RGBA8888);
-            newPixmap.setColor(new Color(0, 0, 0, 0));
-            newPixmap.fill();
-            for (int i=0, j=0; j < text.getHeight(); i++) {
-                if (i > text.getWidth()) {
-                    i=-1;
-                    j++;
-                    continue;
-                }
-                Color color = new Color(currPixmap.getPixel(i, j));
-                if ((int)(color.r*32) == (int)shinyColor1.r && (int)(color.g*32) == (int)shinyColor1.g && (int)(color.b*32) == (int)shinyColor1.b) {
-                    color.r = (normalColor1.r*8f)/256f;
-                    color.g = (normalColor1.g*8f)/256f;
-                    color.b = (normalColor1.b*8f)/256f;
-                }
-                else if ((int)(color.r*32) == (int)shinyColor2.r && (int)(color.g*32) == (int)shinyColor2.g && (int)(color.b*32) == (int)shinyColor2.b) {
-                    color.r = (normalColor2.r*8f)/256f;
-                    color.g = (normalColor2.g*8f)/256f;
-                    color.b = (normalColor2.b*8f)/256f;
-                }
-                newPixmap.drawPixel(i, j, Color.rgba8888(color.r, color.g, color.b, 1f));
-            }
-            text = TextureCache.get(newPixmap);
-            Pokemon.textures.put(name+"_back", text);
-        }
-//        Texture pokemonText = new Texture(Gdx.files.internal("crystal_pokemon/prism/pics/" + name + "/front.png"));  // TODO: remove
-        String isShiny = "";
-        if (this.isShiny) {
-            isShiny = "_shiny";
-        }
-        Texture pokemonText = Pokemon.textures.get(name+"_front"+isShiny);
-        // height and width are the same for these sprites
-        int height = pokemonText.getWidth();
-        this.sprite = new SpriteProxy(pokemonText, 0, 0, height, height);
-//        if (!Pokemon.textures.containsKey(name+"_back")) {
-//            Pokemon.textures.put(name+"_back", new Texture(Gdx.files.internal("crystal_pokemon/prism/pics/" + name + "/back.png")));
-//        }
-//        pokemonText = new Texture(Gdx.files.internal("crystal_pokemon/prism/pics/" + name + "/back.png"));  // TODO: remove
-        pokemonText = Pokemon.textures.get(name+"_back"+isShiny);
-//        height = pokemonText.getWidth();
-        this.backSprite = new SpriteProxy(pokemonText, 0, 0, 48, 48);
-
-        // Load animation from file
-        this.introAnim = new ArrayList<SpriteProxy>();
-        try {
-            FileHandle file = Gdx.files.internal("crystal_pokemon/prism/pics/" + name + "/anim0.asm");
-            Reader reader = file.reader();
-            BufferedReader br = new BufferedReader(reader);
-            String line;
-            int setrepeat = 0;
-            ArrayList<String> lines = new ArrayList<String>();
-            while ((line = br.readLine()) != null)   {
-                lines.add(line);
-            }
-            for (int i=0; i < lines.size(); ) {
-                line = lines.get(i);
-                if (line.contains("setrepeat")) {
-                    setrepeat = Integer.valueOf(line.split("setrepeat ")[1]);
-                } else if (line.contains("frame")) {
-                    String vals[] = line.split("frame ")[1].split(", ");
-                    int numFrames = Integer.valueOf(vals[1]);
-                    int frame = Integer.valueOf(vals[0]);
-                    for (int j=0; j < numFrames; j++) {
-//                        pokemonText = new Texture(Gdx.files.internal("crystal_pokemon/prism/pics/" + name + "/front.png")
-                        pokemonText = Pokemon.textures.get(name+"_front"+isShiny);
-                        SpriteProxy sprite = new SpriteProxy(pokemonText, 0, height*frame, height, height);
-                        this.introAnim.add(sprite);
-                    }
-                } else if (line.contains("dorepeat")) {
-                    if (setrepeat != 0) {
-                        i = Integer.valueOf(line.split("dorepeat ")[1]);
-                        setrepeat--;
-                        continue;
-                    }
-                }
-                i++;
-            }
-            reader.close();
-            
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-
-        // Load attacks from file
-        if (!Pokemon.gen2Attacks.containsKey(name) || !Pokemon.gen2Evos.containsKey(name)) {
-            Map<Integer, String[]> attacks = new HashMap<Integer, String[]>();
-            Map<String, String> evos = new HashMap<String, String>();
-            Pokemon.gen2Attacks.put(name, attacks);
-            Pokemon.gen2Evos.put(name, evos);
-            try {
-                FileHandle file = Gdx.files.internal("crystal_pokemon/prism/movesets/"+name.substring(0,1).toUpperCase()+name.substring(1)+".asm");
-                Reader reader = file.reader();
-                BufferedReader br = new BufferedReader(reader);
-                String line;
-                ArrayList<String> lines = new ArrayList<String>();
-                while ((line = br.readLine()) != null)   {
-                    lines.add(line);
-                }
-
-                for (int i=0; i < lines.size(); i++) {
-                    line = lines.get(i);
-                    if (!line.contains("db")) {
-                        continue;
-                    }
-                    if (line.contains("EVOLVE_LEVEL")) {
-                        String vals[] = line.split(", ");
-                        evos.put(vals[1], vals[2].toLowerCase());
-                    }
-                    else if (line.contains("EVOLVE_ITEM") || line.contains("EVOLVE_TRADE")) {
-                        // TODO
-                        String vals[] = line.split(", ");
-                        evos.put(vals[1].toLowerCase().replace("_", " "), vals[2].toLowerCase());
-                    }
-                    else if (!line.contains("db 0")) {
-                        String vals[] = line.split(", ");
-                        String attack = vals[1].toLowerCase().replace('_', ' ');
-                        // TODO: there are a bunch of prism attacks that can't be handled by the engine,
-                        //  so check if the attack exists currently.
-                        // Ie, attacks with different typings (SOUND, FAIRY etc).
-                        // Would be ideal to update the prism pokemon from later generations to use
-                        //  valid types and attacks (I'm undecided tho as to what exactly is the best
-                        //  solution).
-                        if (!Game.staticGame.battle.attacks.containsKey(attack)) {
-                            continue;
-                        }
-                        int level = Integer.valueOf(vals[0].split(" ")[1]);
-                        String[] attacksArray = new String[]{attack};
-                        if (attacks.containsKey(level)) {
-                            attacksArray = new String[attacks.get(level).length+1];
-                            for (int j=0; j<attacks.get(level).length; j++) {
-                                attacksArray[j] = attacks.get(level)[j];
-                            }
-                            attacksArray[attacks.get(level).length] = attack;
-                        }
-                        attacks.put(level, attacksArray);
-                    }
-                }
-                reader.close();
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
-        }
-        this.learnSet = Pokemon.gen2Attacks.get(name);
-    }
+    
 
     /**
      * When you send out a pokemon, reset all of it's stat stages to 0 (and corresponding stats).
@@ -2835,7 +1048,7 @@ public class Pokemon {
                 return;
             }
             Action newAction;
-            if (Pokemon.this.name.equals("egg") && Pokemon.this.previousOwner != game.player) {
+            if (Pokemon.this.isEgg && Pokemon.this.previousOwner != game.player) {
                 newAction = //new SetField(game, "playerCanMove", false,
                             new DisplayText(game, game.player.name+" received an EGG.", "Berry_Get.ogg", null,
                             //new SetField(game, "playerCanMove", true,
@@ -2859,7 +1072,7 @@ public class Pokemon {
                     if (pokemon == null) {
                         continue;
                     }
-                    if (pokemon.name.equals("egg")) {
+                    if (pokemon.isEgg) {
                         continue;
                     }
                     // Pokemon that are friendly to the player don't aggro
@@ -2938,7 +1151,7 @@ public class Pokemon {
 
         @Override
         public void firstStep(Game game) {
-            this.isEgg = Pokemon.this.name.equals("egg");
+            this.isEgg = Pokemon.this.isEgg;
         }
 
         @Override
@@ -3154,7 +1367,7 @@ public class Pokemon {
                 if (baseSpecies.equals("nidoran_f") && Game.rand.nextInt(256) < 128) {
                     baseSpecies = "nidoran_m";
                 }
-                Pokemon pokemonEgg = new Pokemon("egg", 5, Pokemon.Generation.CRYSTAL, Game.rand.nextInt(256) == 0, baseSpecies);
+                Pokemon pokemonEgg = new Pokemon(baseSpecies, 5, Game.rand.nextInt(256) == 0, true);
                 // Find first empty attack slot in pokemon egg (first egg move is put here)
                 int currIndex = 0;
                 for (int i=0; i < pokemonEgg.attacks.length; i++) {
@@ -3542,7 +1755,7 @@ public class Pokemon {
             // Right now, if pokemon hatches from egg in overworld
             // this will remain frozen. But that's okay b/c they
             // can't hatch in the overworld.
-            this.isEgg = Pokemon.this.name.equals("egg");
+            this.isEgg = Pokemon.this.isEgg;
         }
 
         public void localStep(Game game) {
@@ -4073,7 +2286,7 @@ class SpecialMewtwo1 extends Pokemon {
     public SpecialMewtwo1(int level, Tile tile) {
         // initialize variables
 //        super("Mewtwo", level);
-        super("Mewtwo", level, Pokemon.Generation.CRYSTAL);
+        super("Mewtwo", level);
         this.tile = tile;
         // gen I properties
 //        this.baseStats.put("hp", 106);

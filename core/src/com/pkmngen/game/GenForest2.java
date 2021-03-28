@@ -1348,7 +1348,7 @@ public class GenForest2 extends Action {
                                 int randInt = this.rand.nextInt(3);
                                 if (randInt == 2) {
                                     randInt = this.rand.nextInt(pokemon.length);
-                                    tempRoute.pokemon.add(new Pokemon(pokemon[randInt], 10+this.rand.nextInt(4), Pokemon.Generation.CRYSTAL));
+                                    tempRoute.pokemon.add(new Pokemon(pokemon[randInt], 10+this.rand.nextInt(4)));
                                 }
                                 this.tilesToAdd.put(temp.position.cpy().add(0,0), new Tile("bush1", temp.position.cpy().add(0,0), this.color, tempRoute));
                             }
@@ -1464,8 +1464,8 @@ class GenIsland1 extends Action {
                 continue;
             }
             for (Pokemon pokemon : new ArrayList<Pokemon>(tile.routeBelongsTo.pokemon)) {
-                boolean isBaseSpecies = Pokemon.baseSpecies.get(pokemon.name).equals(pokemon.name);
-                boolean hasEvo = !Pokemon.gen2Evos.get(pokemon.name).isEmpty();
+                boolean isBaseSpecies = Pokemon.baseSpecies.get(pokemon.name.toLowerCase()).equalsIgnoreCase(pokemon.name);
+                boolean hasEvo = !Specie.gen2Evos.get(pokemon.name).isEmpty();
                 if (tile.routeBelongsTo.name.contains("beach")) {
                     hasEvo = !hasEvo;  // want wartortle, croconaw, etc to walk around
                 }
@@ -2078,10 +2078,10 @@ class GenIsland1 extends Action {
                                     tempRoute.pokemon.clear();
                                     int randInt = this.rand.nextInt(5);
                                     if (randInt == 4) {
-                                        tempRoute.pokemon.add(new Pokemon("Exeggutor", 10+this.rand.nextInt(4), Pokemon.Generation.CRYSTAL));
+                                        tempRoute.pokemon.add(new Pokemon("Exeggutor", 10+this.rand.nextInt(4)));
                                     }
                                     else if (randInt > 1) {
-                                        tempRoute.pokemon.add(new Pokemon("Exeggcute", 10+this.rand.nextInt(4), Pokemon.Generation.CRYSTAL));
+                                        tempRoute.pokemon.add(new Pokemon("Exeggcute", 10+this.rand.nextInt(4)));
                                     }
                                     // TODO: probably will just make puddles spawn pokemon, not sure
                                     if (this.rand.nextInt(2) == 0) {
@@ -2145,7 +2145,7 @@ class GenIsland1 extends Action {
                                     // Add mates for some pokemon (at same position)
                                     if (GenForest2.mates2.containsKey(pokemon.name)) {
                                         String oppGender = pokemon.gender.equals("male") ? "female" : "male";
-                                        Pokemon mate = new Pokemon(GenForest2.mates2.get(pokemon.name), pokemon.level, Pokemon.Generation.CRYSTAL);
+                                        Pokemon mate = new Pokemon(GenForest2.mates2.get(pokemon.name), pokemon.level);
                                         mate.gender = oppGender;
                                         mate.position = pokemon.position.cpy().add(16, 0);
                                         mate.mapTiles = game.map.overworldTiles;
@@ -2167,13 +2167,13 @@ class GenIsland1 extends Action {
                                         level = 4;
                                     }
                                     String name = new ArrayList<String>(GenForest2.mates.keySet()).get(Game.rand.nextInt(GenForest2.mates.keySet().size()));
-                                    Pokemon pokemon = new Pokemon(name, level, Pokemon.Generation.CRYSTAL);
+                                    Pokemon pokemon = new Pokemon(name, level);
                                     pokemon.position = edge.cpy();
                                     pokemon.mapTiles = game.map.overworldTiles;
                                     pokemon.standingAction = pokemon.new Standing();
                                     this.pokemonToAdd.put(pokemon.position.cpy(), pokemon);
                                     String oppGender = pokemon.gender.equals("male") ? "female" : "male";
-                                    Pokemon mate = new Pokemon(GenForest2.mates.get(pokemon.name), pokemon.level, Pokemon.Generation.CRYSTAL);
+                                    Pokemon mate = new Pokemon(GenForest2.mates.get(pokemon.name), pokemon.level);
                                     mate.gender = oppGender;
                                     mate.position = pokemon.position.cpy().add(16, 0);
                                     mate.mapTiles = game.map.overworldTiles;
@@ -2289,7 +2289,7 @@ class GenIsland1 extends Action {
 //                                                                            "ledyba", "hoothoot", "zubat", "pidgey", "spearow", "forretress",
                                                                             "snover"};
                                             randInt = this.rand.nextInt(pokemon.length);
-                                            tempRoute.pokemon.add(new Pokemon(pokemon[randInt], 20+this.rand.nextInt(4), Pokemon.Generation.CRYSTAL));
+                                            tempRoute.pokemon.add(new Pokemon(pokemon[randInt], 20+this.rand.nextInt(4)));
                                         }
                                         newTile = new Tile("tree4", edge, true, tempRoute);
                                     }
@@ -2303,7 +2303,7 @@ class GenIsland1 extends Action {
                                             String[] pokemon = new String[]{"pineco", "aipom", "kakuna", "metapod", "spinarak", "heracross",
                                                                             "ledyba", "hoothoot", "zubat", "pidgey", "spearow", "forretress"};
                                             randInt = this.rand.nextInt(pokemon.length);
-                                            tempRoute.pokemon.add(new Pokemon(pokemon[randInt], 20+this.rand.nextInt(4), Pokemon.Generation.CRYSTAL));
+                                            tempRoute.pokemon.add(new Pokemon(pokemon[randInt], 20+this.rand.nextInt(4)));
                                         }
                                         newTile = new Tile("tree2", edge, true, tempRoute);
                                     }

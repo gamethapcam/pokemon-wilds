@@ -191,7 +191,7 @@ class DrawMap extends Action {
                 // TODO: doing in drawmap
                 // Play sounds for nearby pokemon eggs
                 if (pokemon.standingAction != null &&
-                    pokemon.name.equals("egg") &&
+                    pokemon.isEgg &&
                     pokemon.mapTiles == game.map.tiles &&
                     Pokemon.Standing.class.isInstance(pokemon.standingAction)) {
                     Pokemon.Standing standingAction = ((Pokemon.Standing)pokemon.standingAction);
@@ -2327,10 +2327,10 @@ class Route {
             this.allowedPokemon.clear();
 //            this.pokemon.add(new Pokemon("kangaskhan", 22, Pokemon.Generation.CRYSTAL));
 //            this.pokemon.add(new Pokemon("togekiss", 22, Pokemon.Generation.CRYSTAL));
-            this.pokemon.add(new Pokemon("rhydon", 22, Pokemon.Generation.CRYSTAL));
-            this.pokemon.add(new Pokemon("rhyhorn", 22, Pokemon.Generation.CRYSTAL));
-            this.pokemon.add(new Pokemon("onix", 22, Pokemon.Generation.CRYSTAL));
-            this.pokemon.add(new Pokemon("machop", 22, Pokemon.Generation.CRYSTAL));
+            this.pokemon.add(new Pokemon("rhydon", 22));
+            this.pokemon.add(new Pokemon("rhyhorn", 22));
+            this.pokemon.add(new Pokemon("onix", 22));
+            this.pokemon.add(new Pokemon("machop", 22));
             this.allowedPokemon.add("mamoswine");
             this.allowedPokemon.add("weavile");
             this.allowedPokemon.add("magmortar");
@@ -2422,7 +2422,7 @@ class Route {
             if (usedPokemon.contains(pokemonName) && this.allowedPokemon.size() > 4) {
                 continue;
             }
-            Pokemon tempPokemon = new Pokemon(pokemonName, this.level + randomLevel, Pokemon.Generation.CRYSTAL);
+            Pokemon tempPokemon = new Pokemon(pokemonName, this.level + randomLevel);
             // Evolve as high as possible. Notch level up by 10 whenever evolved.
             // (this makes it so that fully evolved pokemon are 'hazards')
             String evolveTo = null;
@@ -2431,7 +2431,7 @@ class Route {
             boolean failed = false;
             while (!failed && shouldEvo) {
                 failed = true;
-                evos = Pokemon.gen2Evos.get(tempPokemon.name.toLowerCase());
+                evos = Specie.gen2Evos.get(tempPokemon.name.toLowerCase());
                 for (String evo : evos.keySet()) {
                     try {
                         int evoLevel = Integer.valueOf(evo);
@@ -3838,7 +3838,7 @@ class Tile {
 
             Action emote;
             // If it's an egg, display the '...' emote
-            if (pokemon.name.equals("egg")) {
+            if (pokemon.isEgg) {
                 emote = pokemon.new Emote("...", null);
             }
             else if (pokemon.previousOwner != game.player) {
@@ -3860,7 +3860,7 @@ class Tile {
                          new PlaySound(pokemon,
                          null)))));
 
-            if (pokemon.name.equals("egg")) {
+            if (pokemon.isEgg) {
                 String[] huhs = new String[]{"Neat!", "Hey!", "Look!", "Wow!", "Huh?", "Hmm..."};
                 nextAction.append(//new WaitFrames(game, 60,  // use if no cry for egg
                                   new DisplayText(game, huhs[Game.rand.nextInt(huhs.length)]+" A POKÈMON egg!", null, false, true,
@@ -3879,7 +3879,7 @@ class Tile {
                 nextAction.append(new DisplayText(game, pokemon.name.toUpperCase()+" seems happy. ", null, false, true, null));
             }
 //                              new DisplayText(game, "Put "+pokemon.name.toUpperCase()+" in it' POKÈBALL?", null, true, false,
-            String text = pokemon.name.equals("egg") ? "Pick it up?" : "Add "+pokemon.name.toUpperCase()+" to your party?";
+            String text = pokemon.isEgg ? "Pick it up?" : "Add "+pokemon.name.toUpperCase()+" to your party?";
             game.player.displayedMaxPartyText = false; // tODO: debug, remove
             nextAction.append(new DisplayText(game, text, null, true, false,
                               new DrawYesNoMenu(null,
@@ -3923,7 +3923,7 @@ class Tile {
             MoveWater.regiTimer2 = 0;
             // Battle intro animation and text
             game.playerCanMove = false;
-            game.battle.oppPokemon = new Pokemon("regigigas", 50, Generation.CRYSTAL);
+            game.battle.oppPokemon = new Pokemon("regigigas", 50);
             // This is used to remove him from the map if caught.
             game.battle.oppPokemon.position = this.position.cpy();
             game.player.setCurrPokemon();
@@ -3946,7 +3946,7 @@ class Tile {
         }
         // Regi legendary pokemon is on this tile
         else if (this.nameUpper.contains("REGI")) {
-            Pokemon regi = new Pokemon(this.nameUpper.toLowerCase(), 40, Generation.CRYSTAL);
+            Pokemon regi = new Pokemon(this.nameUpper.toLowerCase(), 40);
             // TODO: need text for their cry
             game.playerCanMove = false;
             game.battle.oppPokemon = regi;

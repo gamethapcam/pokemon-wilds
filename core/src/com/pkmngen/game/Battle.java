@@ -45,7 +45,7 @@ class AfterFriendlyFaint extends Action {
         game.actionStack.remove(this);
         boolean hasAlivePokemon = false;
         for (Pokemon pokemon : game.player.pokemon) {
-            if (pokemon.currentStats.get("hp") > 0 && !pokemon.name.equals("egg")) {
+            if (pokemon.currentStats.get("hp") > 0 && !pokemon.isEgg) {
                 hasAlivePokemon = true;
                 break;
             }
@@ -61,7 +61,7 @@ class AfterFriendlyFaint extends Action {
         }
         // Restore hp to half for each pokemon if player whites out.
         for (Pokemon pokemon : game.player.pokemon) {
-            if (pokemon.name.equals("egg")) {
+            if (pokemon.isEgg) {
                 continue;
             }
             pokemon.currentStats.put("hp", pokemon.maxStats.get("hp")/2);
@@ -4171,32 +4171,21 @@ public class Battle {
                     }
                 }
                 else if (itemName.equals("silph scope")) {
-                    // Replace oppPokemon with a random ghost
-                    // and play the fade in/out animation
-                    String[] pokemon = new String[]{"litwick", "lampent", "chandelure",
-                                                    "mimikyu", "misdreavus", "sableye",
-                                                    "gastly", "haunter", "gengar"};
-                    Pokemon ghost = new Pokemon(pokemon[Game.rand.nextInt(pokemon.length)],
-                                                game.battle.oppPokemon.level,
-                                                Pokemon.Generation.CRYSTAL);
-                    ghost.sprite.setPosition(game.battle.oppPokemon.sprite.getX(),
-                                             game.battle.oppPokemon.sprite.getY());
+
                     playerAction = new DisplayText(game, game.player.name+" used "+itemName.toUpperCase()+"!",
                                                    null, true, false,
-//                                   new DisplayText(game, "The "+game.battle.oppPokemon.name.toUpperCase()+" true form was revealed!",
-//                                                   null, true, false,
                                    new SplitAction(
                                        new WaitFrames(game, 96,
-                                       new SetField(game.battle, "oppPokemon", ghost,
+                                       new CallMethod(game.battle.oppPokemon, "revealGhost", new Object[] {},
                                        null)),
                                    new FadeAnim(game, 8,
                                    new SplitAction(new WaitFrames(game, 4,
-                                                   new PlaySound(ghost,
+                                                   new PlaySound(new Pokemon(game.battle.oppPokemon.specie.name,10),
                                                    null)),
                                    new PokemonIntroAnim(
                                    new DisplayText.Clear(game,
                                    new WaitFrames(game, 3,
-                                   new DisplayText(game, "Enemy "+ghost.name.toUpperCase()+" was revealed!",
+                                   new DisplayText(game, "Enemy "+game.battle.oppPokemon.specie.name.toUpperCase()+" was revealed!",
                                                    null, null,
                                    null))))))));
                 }
@@ -7579,7 +7568,7 @@ class DrawEnemyHealth extends Action {
             }
             // Draw gender icon if the enemy pokemon is male or female
 //            int nameOffset = game.battle.oppPokemon.name.length() > 8 ? game.battle.oppPokemon.name.length()-8 : 0;
-            if (!game.battle.oppPokemon.name.equals("ghost")) {
+            if (!game.battle.oppPokemon.isGhost) {
                 if (game.battle.oppPokemon.gender.equals("male")) {
                     game.uiBatch.draw(TextureCache.maleSymbol, 72 +this.translateAmt.x, 136 -8);
                 }
@@ -8381,7 +8370,7 @@ class DrawPokemonMenu extends MenuAction {
                 letterSprite = game.textDict.get(textArray[j]);
                 game.uiBatch.draw(letterSprite, 24 +8*j, 136 -16*i);
             }
-            if (currPokemon.name.equals("egg")) {
+            if (currPokemon.isEgg) {
                 continue;
             }
 
@@ -8582,7 +8571,7 @@ class DrawPokemonMenu extends MenuAction {
             // TODO: wouldn't need this if had yield, could insert yield in DrawUseTossMenu
             if (this.item != null) {
                 // Items can't be used on eggs
-                if (currPokemon.name.equals("egg")) {
+                if (currPokemon.isEgg) {
                     game.insertAction(new DisplayText(game, "It wonì have any effect.", null, null,
                                       new SetField(this, "goAway", true,
                                       new DrawPokemonMenu.Outro(
@@ -8829,7 +8818,7 @@ class DrawPokemonMenu extends MenuAction {
                            null)));
                 }
                 // Don't allow switch to fainted pokemon or egg
-                else if (currPokemon.currentStats.get("hp") <= 0 || currPokemon.name.equals("egg")) {
+                else if (currPokemon.currentStats.get("hp") <= 0 || currPokemon.isEgg) {
                     this.disabled = true;
                     game.insertAction(this.prevMenu);
                     return new PlaySound("error1",
@@ -8896,7 +8885,7 @@ class DrawPokemonMenu extends MenuAction {
                     if (pokemon == otherPokemon) {
                         continue;
                     }
-                    if (otherPokemon.currentStats.get("hp") > 0 && !otherPokemon.name.equals("egg")) {
+                    if (otherPokemon.currentStats.get("hp") > 0 && !otherPokemon.isEgg) {
                         hasOneHealthyPokemon = true;
                         break;
                     }
@@ -10093,7 +10082,7 @@ class DrawUseTossMenu extends MenuAction {
             return;
         }
         // Silph scope must be used on a ghost
-        if (itemName.equals("silph scope") && !game.battle.oppPokemon.name.equals("ghost")) {
+        if (itemName.equals("silph scope") && !game.battle.oppPokemon.isGhost) {
             game.insertAction(this.prevMenu);
             game.insertAction(new PlaySound("error1",
                               new SetField(this.prevMenu, "disabled", false,
@@ -10101,7 +10090,7 @@ class DrawUseTossMenu extends MenuAction {
             return;
         }
         // Not allowed to catch ghosts (for now)
-        if (itemName.contains("ball") && game.battle.oppPokemon.name.equals("ghost")) {
+        if (itemName.contains("ball") && game.battle.oppPokemon.isGhost) {
             game.insertAction(new DisplayText(game, game.battle.oppPokemon.name.toUpperCase()+" canì be caught!", null, null,
                               new SetField(this.prevMenu, "disabled", false,
                               this.prevMenu)));
@@ -10605,8 +10594,8 @@ class EggHatchAnim extends Action {
         EggHatchAnim.drawSprite = false;
         EggHatchAnim.isDone = false;
 
-        this.pokemon.evolveTo(this.pokemon.eggHatchInto);
-        this.pokemon.eggHatchInto = null;
+        this.pokemon.hatch();
+        
         // set oppPokemon to hatching pokemon in order to play intro animation
         game.battle.oppPokemon = this.pokemon;
 
@@ -11084,8 +11073,8 @@ class CheckEvo extends Action {
         if (this.pokemon.gainedLevel) {
             this.pokemon.gainedLevel = false;
             for (int i=1; i <= this.pokemon.level; i++) {
-                if (Pokemon.gen2Evos.get(this.pokemon.name.toLowerCase()).containsKey(String.valueOf(i))) {
-                    String evolveTo = Pokemon.gen2Evos.get(this.pokemon.name.toLowerCase()).get(String.valueOf(i));
+                if (Specie.gen2Evos.get(this.pokemon.name.toLowerCase()).containsKey(String.valueOf(i))) {
+                    String evolveTo = Specie.gen2Evos.get(this.pokemon.name.toLowerCase()).get(String.valueOf(i));
                     this.nextAction = new WaitFrames(game, 61,
                                     new WaitFrames(game, 3,  // NOTE: this is in case I add 3 frame delay to DisplayText, in that case
                                                              // remove this line.
@@ -11098,7 +11087,7 @@ class CheckEvo extends Action {
                                         new EvolutionAnim.StartMusic(),
                                     new Battle.LoadAndPlayAnimation(game, "evolve", null,
                                     new WaitFrames(game, 30,  // about 30 frames after bubble anim until pokemon cry is heard
-                                    new PlaySound(new Pokemon(evolveTo.toLowerCase(), 10, Pokemon.Generation.CRYSTAL),
+                                    new PlaySound(new Pokemon(evolveTo.toLowerCase(), 10),
                                     new DisplayText.Clear(game,
                                     new WaitFrames(game, 3,
                                     new DisplayText(game, "Congratulations! Your "+this.pokemon.name.toUpperCase(),

@@ -414,7 +414,7 @@ class CycleDayNight extends Action {
                         System.out.println("numDragonites");
                         System.out.println(numDragonites);
                         Vector2 edge = game.map.edges.get(index);
-                        Pokemon pokemon = new Pokemon("dragonite", 55, Pokemon.Generation.CRYSTAL);
+                        Pokemon pokemon = new Pokemon("dragonite", 55);
                         pokemon.gender = gender2;
                         pokemon.position = edge.cpy();
                         pokemon.mapTiles = game.map.overworldTiles;
@@ -1617,7 +1617,13 @@ class DrawGhost extends Action {
         // need to store which pokemon this actually will be (i think)
 //        this.pokemon = new Pokemon("Sableye", 21);
 //        this.pokemon = new Pokemon("Sableye", 21, Pokemon.Generation.CRYSTAL);
-        this.pokemon = new Pokemon("Ghost", 21, Pokemon.Generation.CRYSTAL);
+        
+        String[] pokemon = new String[]{"litwick", "lampent", "chandelure",
+                "mimikyu", "misdreavus", "sableye",
+                "gastly", "haunter", "gengar"};
+        
+        this.pokemon = new Pokemon(pokemon[Game.rand.nextInt(pokemon.length)], 21);
+        this.pokemon.spookify();
 
         Texture ghostTexture = new Texture(Gdx.files.internal("ghost_sheet1.png"));
         this.sprites.put("down", new Sprite[]{
@@ -1674,7 +1680,7 @@ class DrawGhost extends Action {
         // Check if player's party has fainted. if yes, remove this from AS
         boolean hasAlivePokemon = false;
         for (Pokemon pokemon : game.player.pokemon) {
-            if (pokemon.currentStats.get("hp") > 0 && !pokemon.name.equals("egg")) {
+            if (pokemon.currentStats.get("hp") > 0 && !pokemon.isEgg) {
                 hasAlivePokemon = true;
                 break;
             }
@@ -3511,13 +3517,13 @@ public class Player {
         }
         if (this.hmPokemon != null &&
             this.hmPokemon.currentStats.get("hp") > 0 &&
-            !this.hmPokemon.name.equals("egg")) {
+            !this.hmPokemon.isEgg) {
             this.currPokemon = this.hmPokemon;
             return;
         }
         for (Pokemon currPokemon : this.pokemon) {
             if (currPokemon.currentStats.get("hp") > 0 &&
-                !currPokemon.name.equals("egg")) {
+                !currPokemon.isEgg) {
                 this.currPokemon = currPokemon;
                 return;
             }
@@ -4850,7 +4856,7 @@ class PlayerStanding extends Action {
                         int numberPokemon = 0;
                         for (Pokemon mon : game.player.pokemon) {
                             // Eggs don't count towards level scaling
-                            if (mon.name.equals("egg")) {
+                            if (mon.isEgg) {
                                 continue;
                             }
                             averageLevel += mon.level;
@@ -5304,9 +5310,9 @@ class PlayerStanding extends Action {
             // NOTE: vgc makes this check every 256 steps but that is way too high
             if (game.player.eggStepTimer >= 16) {  //either 16 or 32, not sure which  //16) {  // 256
                 for (Pokemon pokemon : game.player.pokemon) {
-                    if (pokemon.name.equals("egg")) {
+                    if (pokemon.isEgg) {
                         pokemon.happiness -= 1;
-                        System.out.println(pokemon.eggHatchInto);
+                        System.out.println(pokemon.name);
                         System.out.println(pokemon.happiness);
                         if (pokemon.happiness <= 0) {
                             game.playerCanMove = false;
@@ -5322,11 +5328,11 @@ class PlayerStanding extends Action {
                                                         new SetField(game.musicController, "startEvolveMusic", true, null),
                                                     new Battle.LoadAndPlayAnimation(game, "egg_hatch", null,
                                                     new SplitAction(new WaitFrames(game, 4,
-                                                                    new PlaySound(new Pokemon(pokemon.eggHatchInto, 10, Pokemon.Generation.CRYSTAL),
+                                                                    new PlaySound(new Pokemon(pokemon.specie.name, 10),
                                                                     null)),
                                                     new PokemonIntroAnim(
                                                     new WaitFrames(game, 4,
-                                                    new DisplayText(game, pokemon.eggHatchInto.toUpperCase()+" came out of its EGG!",
+                                                    new DisplayText(game, pokemon.specie.name.toUpperCase()+" came out of its EGG!",
                                                                     "fanfare2.ogg", false, true,
                                                     // Commented block is more accurate to the game, but feels weird
                                                     // b/c fadeout is so quick
@@ -5444,7 +5450,7 @@ class PlayerStanding extends Action {
                     if (game.musicController.unownMusic) {
                         String unownLetter = game.map.unownUsed.get(game.map.rand.nextInt(game.map.unownUsed.size()));
 //                        game.map.unownUsed.remove(unownLetter);
-                        game.battle.oppPokemon = new Pokemon("unown_"+unownLetter, 13, Pokemon.Generation.CRYSTAL);
+                        game.battle.oppPokemon = new Pokemon("unown_"+unownLetter, 13);
                     }
                     game.insertAction(Battle.getIntroAction(game));
                     this.checkWildEncounter = false;
@@ -5478,8 +5484,7 @@ class PlayerStanding extends Action {
             game.playerCanMove = false;
             Network.PokemonData pokemonData = this.player.network.doEncounter.pokemonData;
             game.battle.oppPokemon = new Pokemon(pokemonData.name,
-                                                 pokemonData.level,
-                                                 pokemonData.generation);
+                                                 pokemonData.level);
             game.battle.oppPokemon.currentStats.put("hp", pokemonData.hp);
             game.musicController.startBattle = "wild";
             game.insertAction(Battle.getIntroAction(game));
@@ -6679,7 +6684,7 @@ class PlayerStanding extends Action {
                 // TODO: restore player hp
                 // TODO: this needs to go in remoteStep or something for remote player
                 for (Pokemon pokemon : this.player.pokemon) {
-                    if (pokemon.name.equals("egg")) {
+                    if (pokemon.isEgg) {
                         continue;
                     }
                     if (outdoors) {

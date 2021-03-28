@@ -1854,7 +1854,7 @@ class DrawSetupMenu extends Action {
                                     }
                                 });
                                 // TODO: uncomment
-//                                thread.start();
+                                thread.start();
                                 
                                 
 //                                System.out.println("Generating map...");
@@ -1872,12 +1872,12 @@ class DrawSetupMenu extends Action {
 //                                System.out.println(java.time.LocalTime.now());
                                 
                                 // TODO: uncomment
-//                                game.insertAction(new DisplayText(game, "Generating... please wait...", null, true, false, null));
-//                                game.insertAction(drawControls);
+                                game.insertAction(new DisplayText(game, "Generating... please wait...", null, true, false, null));
+                                game.insertAction(drawControls);
 
-                                game.map = new PkmnMap("default"); // TODO: ideally shouldn't have to do this.
-                                game.start();
-                                game.insertAction(new TileEditor());
+//                                game.map = new PkmnMap("default"); // TODO: ideally shouldn't have to do this.
+//                                game.start();
+//                                game.insertAction(new TileEditor());
 
                                 // Set player name
                                 String name = "";
@@ -1932,7 +1932,7 @@ class DrawSetupMenu extends Action {
                                 game.insertAction(enterBuilding);
                                 
                                 // TODO: remove
-                                game.insertAction(new TileEditor());
+//                                game.insertAction(new TileEditor());
                             }
                             // periodically save game in both host/local cases
                             // TODO: this lags too much for large maps, which causes server desync.
@@ -2775,19 +2775,21 @@ class PlaySound extends Action {
         this.sound = pokemon.name;
         this.music = null;
         // Don't play cry if this is an egg
-        if (pokemon.name.equals("egg")) {
+        if (pokemon.isEgg) {
             this.music = Gdx.audio.newMusic(Gdx.files.internal("egg_noise1.ogg"));
             this.music.setLooping(false);
         }
         // if it's crystal pokemon, load from crystal dir
         else if (pokemon.generation == Pokemon.Generation.CRYSTAL) {
-            this.music = Gdx.audio.newMusic(Gdx.files.internal("crystal_pokemon/cries/" + pokemon.dexNumber + ".ogg"));
-            if (pokemon.dexNumber.equals("000")) {
-                this.music.setVolume(0.9f);
-            }
-            else {
-                this.music.setVolume(0.5f);
-            }
+        	if(pokemon.isGhost)
+        	{
+        		this.music = Gdx.audio.newMusic(Gdx.files.internal("crystal_pokemon/cries/000.ogg"));
+        		this.music.setVolume(0.9f);
+        	}
+        	else {
+        		this.music = Gdx.audio.newMusic(Gdx.files.internal("crystal_pokemon/cries/" + pokemon.dexNumber + ".ogg"));
+        		this.music.setVolume(0.5f);        		
+        	}
             this.music.setLooping(false);
         }
     }
