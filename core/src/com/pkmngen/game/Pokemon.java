@@ -471,7 +471,33 @@ public class Pokemon {
         this.name = name.toLowerCase();
 
         if (!Specie.species.containsKey(this.name)) {
-            Specie.species.put(this.name, new Specie(this.name));
+            // Very clunky looking, but I don't know of a better way
+            if (Thread.currentThread() != Game.staticGame.gameThread) {
+                final String finalName = this.name;
+                Runnable runnable = new Runnable() {
+                    public void run() {
+                        try {
+                            Specie.species.put(finalName, new Specie(finalName));
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                        synchronized (this) {
+                            this.notify();
+                        }
+                    }
+                };
+                Gdx.app.postRunnable(runnable);
+                try {
+                    synchronized (runnable) {
+                        runnable.wait();
+                    }
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+            else {
+                Specie.species.put(this.name, new Specie(this.name));
+            }
         }
         this.specie = Specie.species.get(this.name);
         if(specie == null)

@@ -190,8 +190,6 @@ public class Specie {
         this(name, Generation.CRYSTAL);
     }
 
-    public static long timeSpent = 0;
-
     Specie(String name, Generation gen){
         this.init(name, gen);
     }
@@ -226,15 +224,7 @@ public class Specie {
             // if it is in original 251, load from crystal
             if (Specie.nuukPokemon.contains(this.name.toLowerCase()) ||
                     (Integer.valueOf(this.dexNumber) <= 251 && Integer.valueOf(this.dexNumber) > 0)) {
-
-                System.out.println(n);
-                long startTime = System.currentTimeMillis();
-                
                 this.loadCrystalPokemon();
-                
-                long endTime = System.currentTimeMillis()-startTime;
-                Specie.timeSpent += endTime;
-                System.out.println("Time spent: " + String.valueOf(endTime));
                 // else try loading from prism
             } else {
                 System.out.println(this.dexNumber + ", " + Integer.valueOf(this.dexNumber));
