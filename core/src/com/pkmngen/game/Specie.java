@@ -43,7 +43,7 @@ public class Specie {
                                      "scorbunny",  // Internet_Goblin on discord
                                      "raboot",  // Internet_Goblin on discord
                                      "regieleki", "regidrago", "registeel", "regirock", "regice", "regigigas", // Mr Dustman and Sadfish on discord
-        "snover"};  // TODO: sep loading method
+                                     "snover"};  // TODO: sep loading method
         for (String t : temp) {
             nuukPokemon.add(t);
         }
@@ -190,13 +190,14 @@ public class Specie {
         this(name, Generation.CRYSTAL);
     }
 
-
+    public static long timeSpent = 0;
 
     Specie(String name, Generation gen){
         this.init(name, gen);
     }
 
     public void init(String n, Generation generation) {
+
         this.name = n.toLowerCase();
 
         //        this.eggHatchInto = eggHatchInto;
@@ -225,7 +226,15 @@ public class Specie {
             // if it is in original 251, load from crystal
             if (Specie.nuukPokemon.contains(this.name.toLowerCase()) ||
                     (Integer.valueOf(this.dexNumber) <= 251 && Integer.valueOf(this.dexNumber) > 0)) {
+
+                System.out.println(n);
+                long startTime = System.currentTimeMillis();
+                
                 this.loadCrystalPokemon();
+                
+                long endTime = System.currentTimeMillis()-startTime;
+                Specie.timeSpent += endTime;
+                System.out.println("Time spent: " + String.valueOf(endTime));
                 // else try loading from prism
             } else {
                 System.out.println(this.dexNumber + ", " + Integer.valueOf(this.dexNumber));
@@ -355,6 +364,8 @@ public class Specie {
 
 
         this.initHabitatValues();
+
+        
     }
 
 

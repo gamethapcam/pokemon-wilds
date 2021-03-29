@@ -1892,6 +1892,8 @@ class GenIsland1 extends Action {
             e.printStackTrace();
         }
         
+        System.out.println("Total time spent: " + String.valueOf(Specie.timeSpent));
+        
     }
 
     public void AddMtnLayer(HashMap<Vector2, Tile> levelTiles,

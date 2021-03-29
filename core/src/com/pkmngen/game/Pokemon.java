@@ -471,9 +471,9 @@ public class Pokemon {
         this.name = name.toLowerCase();
 
         if (!Specie.species.containsKey(this.name)) {
-            Specie.species.put(name.toLowerCase(), new Specie(this.name));
+            Specie.species.put(this.name, new Specie(this.name));
         }
-        this.specie = Specie.species.get(name.toLowerCase());
+        this.specie = Specie.species.get(this.name);
         if(specie == null)
         {
             System.out.println("No such specie exists: " + name);
