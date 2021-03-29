@@ -241,6 +241,9 @@ public class Game extends ApplicationAdapter {
         if(Gdx.input.isKeyJustPressed(Input.Keys.F)) {
             this.cam.zoom = 1;
         }
+        if(Gdx.input.isKeyJustPressed(Input.Keys.T)) {
+            CycleDayNight.dayTimer = 100;
+        }
         // Print action stack in layer-order
         if(Gdx.input.isKeyPressed(Input.Keys.P)) {
             System.out.println("Layer, Name");
@@ -409,7 +412,21 @@ public class Game extends ApplicationAdapter {
                     }
                 }
                 System.out.println("Creating screenshot of full map...");
-                Pixmap pixmap = new Pixmap((int)(br.x-tl.x)+16, (int)(tl.y-br.y)+16, Pixmap.Format.RGBA8888);
+                System.out.println((int)(br.x-tl.x)+16);
+                System.out.println((int)(tl.y-br.y)+16);
+                Pixmap pixmap;
+                while (true) {
+                    try {
+                        pixmap = new Pixmap((int)(br.x-tl.x)+16, (int)(tl.y-br.y)+16, Pixmap.Format.RGBA8888);
+                        break;
+                    }
+                    catch(Exception e) {
+                        br.x -= 16;
+                        br.y += 16;
+                        tl.x += 16;
+                        tl.y -= 16;
+                    }
+                }
                 // Draw all tiles onto the pixmap from top-left to bottom-right
                 for (Vector2 currPos = tl.cpy(); currPos.y >= br.y-16; currPos.x += 16) {
                     if (currPos.x > br.x+16) {
@@ -838,8 +855,14 @@ public class Game extends ApplicationAdapter {
             this.player.pokemon.add(new Pokemon("lotad", 70, Pokemon.Generation.CRYSTAL));
             this.player.pokemon.add(new Pokemon("parasect", 46, Pokemon.Generation.CRYSTAL));
             this.player.pokemon.add(new Pokemon("ampharos", 46, Pokemon.Generation.CRYSTAL));
-            this.player.pokemon.add(new Pokemon("whismur", 46, Pokemon.Generation.CRYSTAL));
+            this.player.pokemon.add(new Pokemon("krookodile", 46, Pokemon.Generation.CRYSTAL));
             this.player.pokemon.get(2).attacks[0] = "false swipe";
+
+
+            this.player.pokemon.get(0).attacks[0] = "false swipe";
+            this.player.pokemon.get(0).attacks[1] = "false swipe";
+            this.player.pokemon.get(0).attacks[2] = "false swipe";
+            this.player.pokemon.get(0).attacks[3] = "false swipe";
 
             // TODO: remove
 //            this.player.pokemon.add(new Pokemon("charizard", 60, Pokemon.Generation.CRYSTAL));

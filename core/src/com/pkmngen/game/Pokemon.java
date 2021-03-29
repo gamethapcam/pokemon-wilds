@@ -137,6 +137,11 @@ public class Pokemon {
                                      "scorbunny",  // Internet_Goblin on discord
                                      "raboot",  // Internet_Goblin on discord
                                      "regieleki", "regidrago", "registeel", "regirock", "regice", "regigigas", // Mr Dustman and Sadfish on discord
+                                     "bronzor", "bronzong",  // SkwovetSquire on discord
+                                     "darumaka",  // Goose on discord
+                                     "elgyem", "beheeyem",  // Goose on discord
+                                     "sandile", "krokorok", "krookodile",  // Goose and Sadfish on discord
+                                     "cutiefly", "ribombee", // TerraTerraCotta on discord
                                      "snover"};  // TODO: sep loading method
         for (String t : temp) {
             nuukPokemon.add(t);
@@ -376,6 +381,9 @@ public class Pokemon {
     public boolean aggroPlayer = false;  // If true, pokemon chases the player.
     public boolean interactedWith = false;  // used for evolved overworld pokemon to aggro player
     public boolean drawThisFrame = false;
+    
+    // Whether or not player can flee.
+    public boolean isTrapping = false;
     
     // TODO: if a pokemon is switched out in a trainer battle, does the game
     //       remember which Pokemon were used against the switched out pokemon?
@@ -2272,6 +2280,55 @@ public class Pokemon {
                     i = 333;
                     found = true;
                 }
+                else if (name.equals("cacturne")) {
+                    i = 336;
+                    found = true;
+                }
+                else if (name.equals("elgyem")) {
+                    i = 339;
+                    found = true;
+                }
+                else if (name.equals("elgyem")) {
+                    i = 339;
+                    found = true;
+                    flip = false;
+                }
+                else if (name.equals("hippopotas")) {
+                    i = 340;
+                    found = true;
+                    flip = false;
+                }
+                else if (name.equals("cutiefly")) {
+                    i = 341;
+                    found = true;
+                    flip = false;
+                }
+                else if (name.equals("ribombee")) {
+                    i = 342;
+                    found = true;
+                    flip = false;
+                }
+                else if (name.equals("sandile")) {
+                    i = 344;
+                    found = true;
+                    flip = false;
+                }
+                else if (name.equals("krokorok")) {
+                    i = 345;
+                    found = true;
+                    flip = false;
+                }
+                else if (name.equals("krookodile")) {
+                    i = 346;
+                    found = true;
+                    flip = false;
+                }
+                // TODO: debug, remove
+                else if (name.equals("whismur")) {
+                    i = 343;
+                    found = true;
+                    flip = false;
+                }
                 String currName = line.split("db \"")[1].split("\"")[0].toLowerCase().replace("@", "");
                 if (currName.equals(name) || found) {
                     found = true;
@@ -2895,9 +2952,7 @@ public class Pokemon {
             }
             if (game.player.pokemon.size() >= 6 && !game.player.displayedMaxPartyText) {
                 game.player.displayedMaxPartyText = true;
-                newAction.append(///new SetField(game, "playerCanMove", false,
-                                 new DisplayText(game, "Your party is full! You will need to DROP some of them in order to catch more.", null, false, true,
-                                 //new SetField(game, "playerCanMove", true,
+                newAction.append(new DisplayText(game, "Your party is full! You will need to DROP some of them in order to catch more.", null, false, true,
                                  null));
             }
             Pokemon.this.previousOwner = game.player;
@@ -3494,6 +3549,541 @@ public class Pokemon {
             }
 
             this.timer1++;
+        }
+    }
+
+    /**
+     * Cacturne when it's mad.
+     */
+    public class Cacturnt extends Action {
+        public int layer = 108;
+        public int aggroTimer = 0;
+        public boolean alternate = false;
+        public int campfireDespawn = 0;
+        Sprite tornadoSprite;
+
+        public Cacturnt(Action nextAction) {
+            this.nextAction = nextAction;
+            Texture text = TextureCache.get(Gdx.files.internal("tornado_sheet1.png"));
+            this.tornadoSprite = new Sprite(text, 0, 0, 16, 16);
+        }
+
+        public String getCamera() {
+            return "map";
+        }
+
+        public int getLayer(){
+            return this.layer;
+        }
+
+        @Override
+        public void firstStep(Game game) {
+            game.map.pokemon.put(Pokemon.this.position.cpy(), Pokemon.this);
+            Pokemon.this.standingAction = this;
+            Pokemon.this.currOwSprite = Pokemon.this.standingSprites.get(Pokemon.this.dirFacing);
+            game.insertAction(Pokemon.this.new DrawLower());
+            game.insertAction(Pokemon.this.new DrawUpper());
+            // Determine if pokemon near farm structures / habitat.
+//            Pokemon.this.checkHabitat(game);
+        }
+
+
+        @Override
+        public void step(Game game) {
+            if (!game.playerCanMove) {
+                return;
+            }
+            
+            // Despawn if cacturne was near a campfire
+            if (this.campfireDespawn > 0) {
+                if (this.campfireDespawn == 60) {
+                    Pokemon.this.dirFacing = "down";
+                    Pokemon.this.currOwSprite = Pokemon.this.standingSprites.get(Pokemon.this.dirFacing);
+                    game.insertAction(Pokemon.this.new CactusSpawn(null, null));
+                }
+
+                if (this.campfireDespawn < 40) {
+                    if (this.campfireDespawn % 4 == 3) {
+                        this.tornadoSprite.setRegion(0, 0, 18, 16);
+                    }
+                    else if (this.campfireDespawn % 4 == 1) {
+                        this.tornadoSprite.setRegion(18, 0, 18, 16);
+                    }
+                    game.mapBatch.draw(this.tornadoSprite, Pokemon.this.position.x-2, Pokemon.this.position.y+2);
+                }
+                
+                // Remove the cacturne
+                if (this.campfireDespawn <= 1) {
+                    game.actionStack.remove(this);
+                    game.map.pokemon.remove(Pokemon.this.position);
+                    game.actionStack.remove(Pokemon.this.standingAction);
+                    
+                    // If no other cacturne, then 
+                    boolean foundCacturnt = false;
+                    for (Action action : game.actionStack) {
+                        if (action instanceof Cacturnt) {
+                            foundCacturnt = true;
+                            break;
+                        }
+                    }
+                    if (!foundCacturnt) {
+                        game.musicController.nightAlert = false;
+                        game.musicController.resumeOverworldMusic = true;
+                    }
+                }
+
+                this.campfireDespawn--;
+                return;
+            }
+            
+
+            if (game.map.timeOfDay.equals("day")) {
+                this.campfireDespawn = 60;
+                return;
+            }
+            
+            if (this.aggroTimer > 240) {
+//                this.aggroTimer = 32;
+                this.aggroTimer = 0;
+            }
+            this.aggroTimer++;
+
+            // Play skull emote + pokemon cry every so often
+            if (this.aggroTimer == 1) {
+                game.insertAction(Pokemon.this.new Emote("skull", null));
+            }
+
+            float dst2 = Pokemon.this.position.dst2(game.player.position);
+            // Play skull emote + pokemon cry every so often
+            if (this.aggroTimer == 1) {
+                game.insertAction(new PlaySound(Pokemon.this, true, null));
+            }
+            // Wait before moving
+            // Play sounds
+            if (this.aggroTimer < 4) {
+                if (this.aggroTimer == 0) {
+                    game.insertAction(new PlaySound("ride1", 0.5f, true, null));
+                }
+                Pokemon.this.currOwSprite = Pokemon.this.altMovingSprites.get(Pokemon.this.dirFacing);
+                return;
+            }
+            else if (this.aggroTimer < 8) {
+                Pokemon.this.currOwSprite = Pokemon.this.standingSprites.get(Pokemon.this.dirFacing);
+                return;
+            }
+            else if (this.aggroTimer < 12) {
+                if (this.aggroTimer == 8) {
+                    game.insertAction(new PlaySound("ride1", 0.5f, true, null));
+                }
+                Pokemon.this.currOwSprite = Pokemon.this.movingSprites.get(Pokemon.this.dirFacing);
+                return;
+            }
+            else if (this.aggroTimer < 16) {
+                Pokemon.this.currOwSprite = Pokemon.this.standingSprites.get(Pokemon.this.dirFacing);
+                return;
+            }
+            else if (this.aggroTimer < 20) {
+                if (this.aggroTimer == 16) {
+                    game.insertAction(new PlaySound("ride1", 0.5f, true, null));
+                }
+                Pokemon.this.currOwSprite = Pokemon.this.altMovingSprites.get(Pokemon.this.dirFacing);
+                return;
+            }
+            else if (this.aggroTimer < 24) {
+                Pokemon.this.currOwSprite = Pokemon.this.standingSprites.get(Pokemon.this.dirFacing);
+                return;
+            }
+            else if (this.aggroTimer < 28) {
+                if (this.aggroTimer == 24) {
+                    game.insertAction(new PlaySound("ride1", 0.5f, true, null));
+                }
+                Pokemon.this.currOwSprite = Pokemon.this.movingSprites.get(Pokemon.this.dirFacing);
+                return;
+            }
+            else if (this.aggroTimer < 32) {
+                Pokemon.this.currOwSprite = Pokemon.this.standingSprites.get(Pokemon.this.dirFacing);
+                return;
+            }
+
+            // Get dir towards player
+            ArrayList<String> preferredMoves = new ArrayList<String>();
+
+            float dx = Pokemon.this.position.x - game.player.position.x;
+            float dy = Pokemon.this.position.y - game.player.position.y;
+            if (dx < dy) {
+                if (game.player.position.y < Pokemon.this.position.y) {
+                    preferredMoves.add("down");
+                    preferredMoves.add("right");
+                }
+                else {
+                    preferredMoves.add("right");
+                    preferredMoves.add("up");
+                }
+            }
+            else {
+                if (game.player.position.x < Pokemon.this.position.x) {
+                    preferredMoves.add("left");
+                    preferredMoves.add("down");
+                }
+                else {
+                    preferredMoves.add("up");
+                    preferredMoves.add("left");
+                }
+            }
+            
+//            if (Pokemon.this.position.x < game.player.position.x) {
+//                preferredMoves.add("right");
+//                preferredMoves.add("up");
+//            }
+//            else if (Pokemon.this.position.y > game.player.position.y) {
+//                preferredMoves.add("down");
+//                preferredMoves.add("right");
+//            }
+//            else if (Pokemon.this.position.x > game.player.position.x){
+//                preferredMoves.add("left");
+//                preferredMoves.add("down");
+//            }
+//            else if (Pokemon.this.position.y < game.player.position.y) {
+//                preferredMoves.add("up");
+//                preferredMoves.add("left");
+//            }
+//            else {
+//                if (Pokemon.this.position.y < game.player.position.y) {
+//                    preferredMoves.add("up");
+//                }
+//                else { //if (Pokemon.this.position.y > game.player.position.y){
+//                    preferredMoves.add("down");
+//                }
+//            }
+//            preferredMoves.add("up");
+//            if (preferredMoves.size() < 2 && Pokemon.this.position.y > game.player.position.y) {
+//                preferredMoves.remove("up");
+//                preferredMoves.add("down");
+//            }
+//            if (preferredMoves.isEmpty()) {
+//                if (Pokemon.this.position.x < game.player.position.x) {
+//                    preferredMoves.add("up");
+//                }
+//                if (Pokemon.this.position.y < game.player.position.y) {
+//                    preferredMoves.add("right");
+//                }
+//            }
+            // flip-flop elements randomly
+//            if (!preferredMoves.isEmpty() && Game.rand.nextInt(256) < 128) {
+//                preferredMoves.add(preferredMoves.remove(0));
+//            }
+            // If standing on top of player, then initiate battle.
+            if (dst2 < 64 &&
+                this.aggroTimer > 32 &&
+                !game.player.isFlying &&
+                game.player.acceptInput) {
+                game.playerCanMove = false;
+                this.aggroTimer = 0;
+//                game.musicController.startBattle = "wild";
+                game.battle.oppPokemon = Pokemon.this;
+                game.player.setCurrPokemon();
+                game.insertAction(Battle.getIntroAction(game));
+                return;
+            }
+            for (String move : preferredMoves) {
+                Vector2 newPos = Pokemon.this.facingPos(move);
+                Tile facingTile = Pokemon.this.mapTiles.get(newPos);
+                Tile currTile = Pokemon.this.mapTiles.get(Pokemon.this.position);
+                boolean isLedge = (facingTile != null && facingTile.attrs.get("ledge")) ||
+                                  (currTile != null && currTile.attrs.get("ledge") && currTile.ledgeDir.equals("up") && move.equals("up"));
+                if (!facingTile.attrs.get("solid") &&
+                    !isLedge &&
+                    !facingTile.name.contains("door") &&
+                    !facingTile.nameUpper.contains("door") &&
+                    !game.map.pokemon.containsKey(newPos)) {
+                    
+
+                    // Find out if near campfire
+                    Vector2 startPos = Pokemon.this.position.cpy().add(-80, -80);
+                    startPos.x = (int)startPos.x - (int)startPos.x % 16;
+                    startPos.y = (int)startPos.y - (int)startPos.y % 16;
+                    Vector2 endPos = Pokemon.this.position.cpy().add(80, 80);
+                    endPos.x = (int)endPos.x - (int)endPos.x % 16;
+                    endPos.y = (int)endPos.y - (int)endPos.y % 16;
+                    for (Vector2 currPos = new Vector2(startPos.x, startPos.y); currPos.y < endPos.y;) {
+                        Tile tile = game.map.tiles.get(currPos);
+                        currPos.x += 16;
+                        if (currPos.x > endPos.x) {
+                            currPos.x = startPos.x;
+                            currPos.y += 16;
+                        }
+                        if (tile == null) {
+                            continue;
+                        }
+                        if (tile.nameUpper.contains("campfire")) {
+                            this.campfireDespawn = 200;
+                            return;
+                        }
+                        else if (tile.items().containsKey("torch") &&
+                                 Pokemon.this.position.dst2(tile.position) < 1024) {
+                            // TODO: probably only check if within small radius
+                            this.campfireDespawn = 200;
+                            return;
+                        }
+                        else if (game.map.pokemon.containsKey(currPos)) {
+                            Pokemon pokemon = game.map.pokemon.get(currPos);
+                            if (pokemon.hms.contains("FLASH")) {
+                                this.campfireDespawn = 200;
+                                return;
+                            }
+                        }
+                    }
+
+                    // Avoid pokemon walking over each other
+                    if (game.map.pokemon.containsKey(Pokemon.this.position) && game.map.pokemon.get(Pokemon.this.position).equals(Pokemon.this)) {
+                        game.map.pokemon.remove(Pokemon.this.position);
+                    }
+                    game.map.pokemon.put(newPos.cpy(), Pokemon.this);
+
+                    // Move like normal if didn't find a campfire
+                    Pokemon.this.dirFacing = move;
+                    game.actionStack.remove(this);
+                    Action action = Pokemon.this.new Moving(1, 1.5f, this.alternate, this);
+                    this.alternate = !this.alternate;
+                    game.insertAction(action);
+                    Pokemon.this.standingAction = action;
+                    break;
+                }
+            }
+
+            // TODO: if haven't moved in a while, choose a different dir
+            // other than moveDir
+            
+            // TODO: give up if enough time passed or haven't moved in a while.
+
+            return;
+        }
+    }
+
+    /**
+     */
+    public class CactusSpawn extends Action {
+        public int layer = 116;
+        Tile tile;
+        int timer = 0;
+
+        public CactusSpawn(Tile tile, Action nextAction) {
+            this.tile = tile;
+            this.nextAction = nextAction;
+        }
+
+        public String getCamera() {
+            return "map";
+        }
+
+        public int getLayer(){
+            return this.layer;
+        }
+        
+        @Override
+        public void firstStep(Game game) {
+        }
+        
+        @Override
+        public void step(Game game) {
+            if (this.timer % 4 < 2) {
+                // TODO: remove maybe
+//                game.mapBatch.draw(this.tile.overSprite, this.tile.overSprite.getX(), this.tile.overSprite.getY());
+                Pokemon.this.drawThisFrame = false;
+            }
+            else {
+//                Pokemon.this.drawThisFrame = true;
+            }
+
+            if (this.timer > 60) {
+                game.actionStack.remove(this);
+                game.insertAction(this.nextAction);
+            }
+            this.timer++;
+        }
+    }
+
+    /**
+     */
+    public class Burrowed extends Action {
+        public int layer = 119;
+        
+        Sprite whirlpoolSprite;
+        int whirlTimer = 0;
+        boolean popOut = false;
+        int jumpTimer = 0;
+        int offsetY = 0;
+        Sprite spritePart;
+        Sprite sandSprite;
+        Sprite trapinchSprite;
+
+        public Burrowed() {
+            Texture text = TextureCache.get(Gdx.files.internal("whirlpool_desert2.png"));
+            this.whirlpoolSprite = new Sprite(text, 0, 0, 16, 16);
+            text = TextureCache.get(Gdx.files.internal("grass_over_sheet3.png"));
+            this.sandSprite = new Sprite(text, 0, 0, 16, 16);
+
+            text = TextureCache.get(Gdx.files.internal("trapinch_ow1.png"));
+            this.trapinchSprite = new Sprite(text, 0, 0, 16, 16);
+        }
+
+        public String getCamera() {
+            return "map";
+        }
+
+        public int getLayer(){
+            return this.layer;
+        }
+        
+        @Override
+        public void firstStep(Game game) {
+            Pokemon.this.dirFacing = "right";
+//            Pokemon.this.currOwSprite = Pokemon.this.standingSprites.get(Pokemon.this.dirFacing);
+            Pokemon.this.currOwSprite = this.trapinchSprite;
+            game.insertAction(this.new DrawUpper());
+        }
+        
+        @Override
+        public void step(Game game) {
+
+            if (game.player.position.equals(Pokemon.this.position)) {
+                this.popOut = true;
+            }
+            if (this.popOut) {
+
+                if (this.jumpTimer < 30 +20) {
+                    this.jumpTimer++;
+
+                    if (this.jumpTimer % 8 == 0) {
+                        game.insertAction(new PlaySound("sounds/move_object", 0.6f, true, null));
+                    }
+                }
+                else if (this.jumpTimer < 33 +20) {
+                    this.jumpTimer++;
+                    this.offsetY+=4;
+                    if (this.jumpTimer % 8 < 4) {
+//                        Pokemon.this.currOwSprite = Pokemon.this.movingSprites.get(Pokemon.this.dirFacing);
+                        this.trapinchSprite.setRegion(0, 0, 16, 16);
+                    }
+                    else {
+//                        Pokemon.this.currOwSprite = Pokemon.this.standingSprites.get(Pokemon.this.dirFacing);
+                        this.trapinchSprite.setRegion(16, 0, 16, 16);
+                    }
+
+                }
+                else if (this.jumpTimer < 36 +30) {
+                    this.jumpTimer++;
+                }
+                else if (!game.player.position.equals(Pokemon.this.position)) {
+                    this.jumpTimer++;
+                    if (this.jumpTimer < 120) {
+                        
+                    }
+                    else if (this.jumpTimer < 96 +60) {
+                        if (this.jumpTimer % 8 < 4) {
+//                            Pokemon.this.currOwSprite = Pokemon.this.movingSprites.get(Pokemon.this.dirFacing);
+                            this.trapinchSprite.setRegion(0, 0, 16, 16);
+                        }
+                        else {
+//                            Pokemon.this.currOwSprite = Pokemon.this.standingSprites.get(Pokemon.this.dirFacing);
+                            this.trapinchSprite.setRegion(16, 0, 16, 16);
+                        }
+                        if (this.jumpTimer % 8 == 0) {
+                            game.insertAction(new PlaySound("sounds/move_object", 0.6f, true, null));
+                        }
+                        if (this.jumpTimer >= 81+60) {
+                            this.offsetY--;
+                        }
+                    }
+                    
+                    if (this.jumpTimer >= 92+60) {
+                        this.popOut = false;
+                        this.jumpTimer = 0;
+                    }
+                }
+                
+                
+                if (this.jumpTimer >= 33 +30 &&
+                    game.player.position.equals(Pokemon.this.position) &&
+                    game.playerCanMove) {  // TODO: this will instantly retrigger battle
+                    // initiate battle
+                    game.playerCanMove = false;
+                    game.musicController.startBattle = "wild";
+                    game.battle.oppPokemon = Pokemon.this;
+                    game.player.setCurrPokemon();
+                    game.insertAction(Battle.getIntroAction(game));
+                }
+
+                if (this.jumpTimer == 34) {
+                    game.insertAction(new PlaySound(Pokemon.this, null));
+                }
+            }
+
+            if (this.jumpTimer > 0) {
+                if (this.whirlTimer == 0) {
+                    this.whirlpoolSprite.setRegion(0, 0, 16, 16);
+                }
+                else if (this.whirlTimer == 40) {
+                    this.whirlpoolSprite.setRegion(16, 0, 16, 16);
+                    
+                }
+                game.mapBatch.draw(this.whirlpoolSprite,
+                                   Pokemon.this.position.x,
+                                   Pokemon.this.position.y);
+            }
+
+            this.whirlTimer++;
+            if (this.whirlTimer >= 80) {
+                this.whirlTimer = 0;
+            }
+        }
+        
+        /**
+         * Drawn above player unlike normal with pokemon.
+         */
+        class DrawUpper extends Action {
+
+            public int layer = 114;
+            Sprite spritePart;
+            
+            public String getCamera() {
+                return "map";
+            }
+
+            public int getLayer(){
+                return this.layer;
+            }
+            
+            public DrawUpper() {
+                
+            }
+
+            @Override
+            public void step(Game game) {
+                if (!game.actionStack.contains(Burrowed.this)) {
+                    game.actionStack.remove(this);
+                }
+                this.spritePart = new Sprite(Pokemon.this.currOwSprite);
+//                this.spritePart.setRegionY(Pokemon.this.spriteOffsetY);
+                this.spritePart.setRegionHeight(Burrowed.this.offsetY);
+                game.mapBatch.draw(this.spritePart, Pokemon.this.position.x, Pokemon.this.position.y+6);  //x+4
+                
+
+                // Small sand ripple animation
+                if (Burrowed.this.jumpTimer < 30 +20) {
+                    
+                }
+                else if (Burrowed.this.jumpTimer < 30 +36) {
+                    if (Burrowed.this.jumpTimer == 30 +20) {
+                        Burrowed.this.sandSprite.setRegion(0, 0, 16, 16);
+                    }
+                    else if (Burrowed.this.jumpTimer == 30 +28) {
+                        Burrowed.this.sandSprite.setRegion(16, 0, 16, 16);
+                    }
+                    game.mapBatch.draw(Burrowed.this.sandSprite, Pokemon.this.position.x, Pokemon.this.position.y+6);  //x+4
+                }
+                
+            }
         }
     }
 

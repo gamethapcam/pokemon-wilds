@@ -11,6 +11,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.math.Vector2;
+import com.pkmngen.game.Pokemon.Burrowed;
 import com.pkmngen.game.Pokemon.Standing;
 
 public class GenForest2 extends Action {
@@ -1417,6 +1418,8 @@ class GenIsland1 extends Action {
     public static boolean doneRegiDungeon = false;
     public static int unownCounter = 0;
 
+    public static int doneDesert = 0;
+
     public GenIsland1(Game game, Vector2 origin, int radius) {
         this.radius = radius;
         this.origin = origin;
@@ -1432,24 +1435,60 @@ class GenIsland1 extends Action {
         int maxDist = this.radius;  // 16*10;
         Tile originTile = new Tile("sand1", this.origin.cpy());
         this.tilesToAdd.put(originTile.position.cpy(), originTile);
+
+        Route blotchRoute = new Route("desert1", 40);
+        ApplyBlotch(game, "desert", originTile, maxDist/36, this.tilesToAdd, 1, false, blotchRoute);
+        
+        
         // TODO: uncomment this for just giant island
 //        ApplyBlotch(game, "island", originTile, maxDist, this.tilesToAdd, 1, false, new Route("forest1", 22));
         HashMap<Vector2, Tile> mtnTiles = new HashMap<Vector2, Tile>();
-        ArrayList<Tile> endPoints = ApplyBlotchMountain(game, originTile, maxDist, mtnTiles);
-        for (Tile tile : endPoints) {
-              // TODO: this might be fixed, test
-            Route blotchRoute = new Route("forest1", 40); // TODO: mem usage too high
-            // TODO: maxDist/6 is too big I think for some islands.
-            // maxDist/6 for 100x100 island, it looked pretty good.
-            // maxDist/10 for 100x180 island
-            // maxDist/14 for 100x350 island
-            // maxDist/18 for 100x500 island
-            // TODO: could try adding more layers to mountains for larger islands.
-            // TODO: maxDist/18 is actually working pretty well for most sizes.
-            ApplyBlotch(game, "island", tile, maxDist/18, this.tilesToAdd, 1, true, blotchRoute); 
-        }
-        this.tilesToAdd.putAll(mtnTiles);
+        
+//        // TODO: debug, revert
+//        ArrayList<Tile> endPoints = ApplyBlotchMountain(game, originTile, maxDist, mtnTiles);
+//        System.out.println("endPoints size");
+//        System.out.println(endPoints.size());
+//        for (Tile tile : endPoints) {
+//
+//            if (GenIsland1.doneDesert == 1) {
+//                // TODO: seems to be happening near middle of mountain, would like it to be elsewhere.
+//                Route blotchRoute = new Route("desert1", 40);
+//                ApplyBlotch(game, "desert", tile, maxDist/18 +maxDist/4, this.tilesToAdd, 1, true, blotchRoute);
+//                continue;
+//            }
+//            else {
+//                GenIsland1.doneDesert++;
+//            }
+//            
+//              // TODO: this might be fixed, test
+//            Route blotchRoute = new Route("forest1", 40); // TODO: mem usage too high
+//            // TODO: maxDist/6 is too big I think for some islands.
+//            // maxDist/6 for 100x100 island, it looked pretty good.
+//            // maxDist/10 for 100x180 island
+//            // maxDist/14 for 100x350 island
+//            // maxDist/18 for 100x500 island
+//            // TODO: could try adding more layers to mountains for larger islands.
+//            // TODO: maxDist/18 is actually working pretty well for most sizes.
+//            ApplyBlotch(game, "island", tile, maxDist/18, this.tilesToAdd, 1, true, blotchRoute); 
+//        }
 
+        // TODO: this probably will tack on even more processing time.
+        // TODO: doesn't really work, bleeds into upper mountain area
+//        long startTime = System.currentTimeMillis();
+//        System.out.println("Start mountain tile dither: " + String.valueOf(startTime));
+//        for (Tile tile : mtnTiles.values()) {
+//            if (this.tilesToAdd.containsKey(tile.position)) {
+//                Tile currTile = this.tilesToAdd.get(tile.position);
+//                if (currTile.name.contains("desert") && tile.name.contains("snow")) {
+//                    continue;
+//                }
+//            }
+//            this.tilesToAdd.put(tile.position, tile);
+//        }
+//        System.out.println("End mountain tile dither: " + String.valueOf(System.currentTimeMillis()-startTime));
+        this.tilesToAdd.putAll(mtnTiles);  // TODO: testing, revert
+
+ 
         // Remove 'stray' overworld pokemon
         for (Vector2 pos : mtnTiles.keySet()) {
             if (this.pokemonToAdd.containsKey(pos)) {
@@ -1464,6 +1503,9 @@ class GenIsland1 extends Action {
                 continue;
             }
             for (Pokemon pokemon : new ArrayList<Pokemon>(tile.routeBelongsTo.pokemon)) {
+                if (Pokemon.baseSpecies.get(pokemon.name) == null) {
+                    System.out.println(pokemon.name);  // TODO: debug, remove
+                }
                 boolean isBaseSpecies = Pokemon.baseSpecies.get(pokemon.name).equals(pokemon.name);
                 boolean hasEvo = !Pokemon.gen2Evos.get(pokemon.name).isEmpty();
                 if (tile.routeBelongsTo.name.contains("beach")) {
@@ -1601,6 +1643,10 @@ class GenIsland1 extends Action {
                     if ((touchLeft && touchRight) || (touchUp && touchDown)) {
                         this.tilesToAdd.put(tile.position, new Tile("sand1", tile.position.cpy(), true, tile.routeBelongsTo));
                     }
+                }
+                else if (tile.name.equals("cactus10")) {
+                    // TODO: not working.
+                    tilesToAdd.put(tile.position.cpy().add(16,0), new Tile("solid", "solid", tile.position.cpy().add(16, 0), true, tile.routeBelongsTo));
                 }
                 // Remove overworld pokemon that are currently inside something solid
                 //  Hard to remove them when they are being placed initially, this issue
@@ -1786,8 +1832,8 @@ class GenIsland1 extends Action {
 //            }
 //        }
 //        System.out.println("End post-process: " + String.valueOf(System.currentTimeMillis()-startTime));
-        
-        
+
+
 
         long startTime = System.currentTimeMillis();
         Vector2[] positions = new Vector2[]{new Vector2(-16, 0), new Vector2(16, 0),
@@ -1999,9 +2045,59 @@ class GenIsland1 extends Action {
     //                    System.out.println(putTile);
                         // ((int)distance < 7*maxDist/16 will ensure tiles near middle always get added, ie
                         // that there aren't any random gaps in the middle of an island.
-                        if (putTile < maxDist || ((int)distance < 7*maxDist/16)) {
+                        boolean shouldPut = ((int)distance < 7*maxDist/16);
+                        if (type.equals("desert")) {
+                            shouldPut = ((int)distance < 8*maxDist/16);
+                        }
+                        
+                        // TODO: remove
+//                        if (putTile < maxDist) {  // TODO: remove
+//
+//                            // TODO: perf test, remove
+//                            Tile aTile = new Tile("desert4", edge);
+//                            aTile.biome = "desert";
+//                            tilesToAdd.put(aTile.position.cpy(), aTile);
+//                            edgeTiles.put(aTile.position.cpy(), aTile);
+//                        }
+//                        else if (putTile < maxDist && isMaze != 1) {  // always fails
+                        //
+
+                        if (putTile < maxDist || shouldPut) {
+
+                            if (type.equals("desert")) {
+                                Tile newTile = new Tile("desert4", edge);
+                                newTile.biome = "desert";
+
+                                if (this.rand.nextInt(maxDist) < 6) {
+                                    int nextSize = 200;
+                                    ApplyBlotch(game, "desert_cacti2", newTile, nextSize, grassTiles, 0, false, currRoute);
+
+                                    // 
+                                    nextSize = this.rand.nextInt(40) + 20;  //30;
+                                    HashMap<Vector2, Tile> newTiles = new HashMap<Vector2, Tile>();
+                                    ApplyBlotch(game, "desert_cacti1", newTile, nextSize, newTiles, 0, false, currRoute);
+                                    grassTiles.putAll(newTiles);
+                                }
+                                else if (this.rand.nextInt(maxDist) < 3) {
+                                    int nextSize = 30 +this.rand.nextInt(20);
+                                    HashMap<Vector2, Tile> newTiles = new HashMap<Vector2, Tile>();
+                                    ApplyBlotch(game, "desert_cacti3", newTile, nextSize, newTiles, 0, false, currRoute);
+                                    grassTiles.putAll(newTiles);
+                                }
+                                else if (this.rand.nextInt(maxDist) < 3) {
+                                    newTile = new Tile("cactus10", edge, true, currRoute);
+                                }
+
+
+                                tilesToAdd.put(newTile.position.cpy(), newTile);
+                                edgeTiles.put(newTile.position.cpy(), newTile);
+                                if (GenIsland1.doneDesert < 2) {
+                                    GenIsland1.doneDesert = 2;
+                                }
+                            }
+
                             // trees in middle, grass near middle, sand and rock on edges
-                            if (type.equals("island")) {
+                            else if (type.equals("island")) {
                                 Tile newTile = new Tile("sand1", edge);
                                 int isRock = this.rand.nextInt(maxDist) + (int)distance;
                                 if (isRock > maxDist + maxDist/2) {
@@ -2266,8 +2362,121 @@ class GenIsland1 extends Action {
                                 }
                                 tilesToAdd.put(newTile.position.cpy(), newTile);
                                 edgeTiles.put(newTile.position.cpy(), newTile);
-                            } else if (type.equals("grass_sand")) {
+                            }
+                            else if (type.equals("grass_sand")) {
                                 Tile newTile = new Tile("grass_sand1", edge, false, currRoute);
+                                tilesToAdd.put(newTile.position.cpy(), newTile);
+                                edgeTiles.put(newTile.position.cpy(), newTile);
+                            }
+                            else if (type.equals("grass_desert1")) {
+                                Tile newTile = new Tile("desert4", edge);
+                                if (distance < 2*maxDist/3) {
+                                    newTile = new Tile("grass_sand3", edge, true, currRoute);
+                                }
+                                tilesToAdd.put(newTile.position.cpy(), newTile);
+                                edgeTiles.put(newTile.position.cpy(), newTile);
+                            }
+                            else if (type.equals("sand_pit1")) {
+                                Tile newTile = new Tile("desert4", edge);
+                                if (distance < 2*maxDist/3) {
+                                    // TODO: special sand pit route
+                                    newTile = new Tile("desert2", edge, true, currRoute);
+
+                                    // Chance to put trapinch in this tile
+                                    if (this.rand.nextInt(256) < 32) {
+                                        Pokemon trapinch = new Pokemon("trapinch", 22, Pokemon.Generation.CRYSTAL);
+                                        trapinch.position = edge.cpy();
+                                        trapinch.isTrapping = true;
+                                        game.insertAction(trapinch.new Burrowed());
+                                        newTile.items().put("trapinch", 1);
+                                    }
+                                    
+                                }
+                                tilesToAdd.put(newTile.position.cpy(), newTile);
+                                edgeTiles.put(newTile.position.cpy(), newTile);}
+                            // Cactus and/or deadbrush
+                            else if (type.equals("desert_cacti1")) {
+//                                Tile newTile = new Tile("sand1", edge);
+                                Tile newTile = new Tile("desert4", edge);
+                                boolean doCactus = true;
+                                if (distance > 0) {
+                                    doCactus = this.rand.nextInt((int)distance) < maxDist/8;
+                                }
+                                if (doCactus) {
+                                    Route tempRoute = null;  // TODO: headbutt?
+                                    if (distance < maxDist/4) {  //  && this.rand.nextInt(2) == 1
+                                        newTile = new Tile("cactus2", edge, true, tempRoute);
+                                    }
+                                    else {
+                                        newTile = new Tile("cactus1", edge, true, tempRoute);
+                                    }
+                                }
+                                tilesToAdd.put(newTile.position.cpy(), newTile);
+                                edgeTiles.put(newTile.position.cpy(), newTile);
+                            }
+                            else if (type.equals("desert_cacti3")) {
+                                Tile newTile = new Tile("desert4", edge);
+                                boolean doCactus = true;
+                                if (distance > 0) {
+                                    doCactus = this.rand.nextInt((int)distance) < maxDist/8;
+                                }
+                                if (doCactus) {
+                                    Route tempRoute = null;
+                                    if (distance < maxDist/4) {
+                                        newTile = new Tile("cactus9", edge, true, tempRoute);
+                                    }
+                                    else {
+                                        newTile = new Tile("cactus8", edge, true, tempRoute);
+                                    }
+                                }
+                                tilesToAdd.put(newTile.position.cpy(), newTile);
+                                edgeTiles.put(newTile.position.cpy(), newTile);
+                            }
+                            else if (type.equals("desert_cacti4")) {
+                                Tile newTile = new Tile("desert4", edge);
+                                if (this.rand.nextInt((int)(maxDist-distance)) < maxDist) {
+                                    Route tempRoute = null;
+                                    if (distance < maxDist/4) {
+                                        if (this.rand.nextInt(2) == 1) {
+                                            newTile = new Tile("desert6", "cactus7", edge, true, tempRoute);  //desert4
+                                        }
+                                    }
+                                    else {
+                                        newTile = new Tile("desert6", "cactus7", edge, true, tempRoute);
+                                    }
+                                }
+                                tilesToAdd.put(newTile.position.cpy(), newTile);
+                                edgeTiles.put(newTile.position.cpy(), newTile);
+                            }
+                            else if (type.equals("desert_cacti2")) {
+                                Tile newTile = new Tile("desert4", edge);
+
+                                if (distance < 2*maxDist/7) {
+                                    
+                                }
+//                                else if (this.rand.nextInt(100) > 98) {
+////                                    int nextSize = 25;
+//                                    int nextSize = 50;
+//                                    ApplyBlotch(game, "grass_desert1", newTile, nextSize, grassTiles, 0, false, currRoute);
+//                                }
+//                                else if (this.rand.nextInt(140) > 138) {
+//                                    int nextSize = 20;
+////                                    newTile = new Tile("desert4", "cactus7", edge);
+//                                    HashMap<Vector2, Tile> newTiles = new HashMap<Vector2, Tile>();
+//                                    ApplyBlotch(game, "desert_cacti4", newTile, nextSize, newTiles, 0, false, currRoute);
+//                                    tilesToAdd.putAll(newTiles);
+//                                }
+                                else if (distance < 5*maxDist/7) {
+                                    
+                                }
+                                else if (this.rand.nextInt(10) > 8) {
+                                    int nextSize = 40 +this.rand.nextInt(80);  // 100;
+                                    newTile = new Tile("desert2_trapinch_spawn", edge, true, currRoute);
+                                    HashMap<Vector2, Tile> newTiles = new HashMap<Vector2, Tile>();
+                                    ApplyBlotch(game, "sand_pit1", newTile, nextSize, newTiles, 0, false, currRoute);
+                                    tilesToAdd.putAll(newTiles);
+                                }
+
                                 tilesToAdd.put(newTile.position.cpy(), newTile);
                                 edgeTiles.put(newTile.position.cpy(), newTile);
                             }
@@ -2317,6 +2526,7 @@ class GenIsland1 extends Action {
                                     }
 
                                 }
+                                // Rock smash rock
                                 else if (this.rand.nextInt(10) == 0) {
 //                                    Route tempRoute = new Route("rock_smash1", currRoute.level);  // TODO: remove
                                     Route tempRoute = null;
@@ -2339,6 +2549,7 @@ class GenIsland1 extends Action {
                                         newTile = new Tile("green1", "rock1_color", edge.cpy(), true, tempRoute);
                                     }
                                 }
+                                // flowers for mtn_green
                                 else if (this.rand.nextInt(8) == 0) {
                                     if (type.equals("mtn_green1")) {
                                         if (this.rand.nextInt(2) == 0) {
@@ -2520,8 +2731,17 @@ class GenIsland1 extends Action {
 //        remove/fix this logic
         HashMap<Vector2, Tile> nextIslandTiles = new HashMap<Vector2, Tile>();
         int next=0;
-        if (type.equals("island") && doNext) {
+        if ((type.equals("island") || type.equals("desert")) && doNext) {
             for (int i=0; i < randInt; i++) {
+
+                if (GenIsland1.doneDesert == 1) {
+                    tilesToAdd.put(prevTiles.get(next).position.cpy(), prevTiles.get(next));
+                    Route blotchRoute = new Route("desert1", 40);
+                    // newSize +80  -- desert slightly bigger
+                    ApplyBlotch(game, "desert", prevTiles.get(next), newSize +(maxDist/4), nextIslandTiles, 1, true, blotchRoute);
+                    continue;
+                }
+                
                 tilesToAdd.put(prevTiles.get(next).position.cpy(), prevTiles.get(next));
                 // TODO: remove once tested
                 ApplyBlotch(game, "island", prevTiles.get(next), newSize, nextIslandTiles, 1, true, currRoute);
@@ -2542,14 +2762,23 @@ class GenIsland1 extends Action {
         // other option is tilesToAdd is only beach tiles, idk.
         for (Tile tile : nextIslandTiles.values()) {
             if (tilesToAdd.containsKey(tile.position)) {
-                if ((tilesToAdd.get(tile.position).name.equals("sand1") ||
-                     tilesToAdd.get(tile.position).name.equals("rock1") ||
-                     tilesToAdd.get(tile.position).name.equals("tree5") ||
-                     tilesToAdd.get(tile.position).name.equals("grass_sand1")) &&
+                Tile currTile = tilesToAdd.get(tile.position);
+                // Desert tiles take priority
+                if (tile.name.contains("desert")) {
+                    tilesToAdd.put(tile.position.cpy(), tile);
+                    continue;
+                }
+                if (currTile.name.contains("desert")) {
+                    continue;
+                }
+                if ((currTile.name.equals("sand1") ||
+                     currTile.name.equals("rock1") ||
+                     currTile.name.equals("tree5") ||
+                     currTile.name.equals("grass_sand1")) &&
                     !tile.name.equals("sand1")) {
                     tilesToAdd.put(tile.position.cpy(), tile);
                 }
-                // works decently well, still some blank areas
+                // Works decently well, still some blank areas
                 if (tile.name.equals("tree_large1")) {
                     tilesToAdd.put(tile.position.cpy(), tile);
                     tilesToAdd.put(tile.position.cpy().add(16,0), new Tile("tree_large1_noSprite", tile.position.cpy().add(16,0)));

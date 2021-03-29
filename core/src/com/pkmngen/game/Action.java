@@ -64,7 +64,7 @@ public class Action {
     // Game game = Game.staticGame;
     Action nextAction = null;
     boolean firstStep = true;
-    
+
     Object[] params;  // unused for now
 
     public Action(Object... parameters) {
@@ -1854,7 +1854,7 @@ class DrawSetupMenu extends Action {
                                     }
                                 });
                                 // TODO: uncomment
-//                                thread.start();
+                                thread.start();
                                 
                                 
 //                                System.out.println("Generating map...");
@@ -1872,12 +1872,14 @@ class DrawSetupMenu extends Action {
 //                                System.out.println(java.time.LocalTime.now());
                                 
                                 // TODO: uncomment
-//                                game.insertAction(new DisplayText(game, "Generating... please wait...", null, true, false, null));
-//                                game.insertAction(drawControls);
+                                game.insertAction(new DisplayText(game, "Generating... please wait...", null, true, false, null));
+                                game.insertAction(drawControls);
 
-                                game.map = new PkmnMap("default"); // TODO: ideally shouldn't have to do this.
-                                game.start();
-                                game.insertAction(new TileEditor());
+                                
+                                //
+//                                game.map = new PkmnMap("default"); // TODO: ideally shouldn't have to do this.
+//                                game.start();
+//                                game.insertAction(new TileEditor());  // TODO: formally handle somehow, maybe command line arg
 
                                 // Set player name
                                 String name = "";
@@ -1932,7 +1934,7 @@ class DrawSetupMenu extends Action {
                                 game.insertAction(enterBuilding);
                                 
                                 // TODO: remove
-                                game.insertAction(new TileEditor());
+                                game.insertAction(new TileEditor());  // TODO: formally handle somehow, maybe command line arg
                             }
                             // periodically save game in both host/local cases
                             // TODO: this lags too much for large maps, which causes server desync.
@@ -2768,12 +2770,16 @@ class PlaySound extends Action {
 
     boolean playedYet; // do music.play on first step
 
-    // for playing pokemon cry
     public PlaySound(Pokemon pokemon, Action nextAction) {
+        this(pokemon, false, nextAction);
+    }
+    // for playing pokemon cry
+    public PlaySound(Pokemon pokemon, boolean cached, Action nextAction) {
         this.nextAction = nextAction;
         this.playedYet = false;
         this.sound = pokemon.name;
         this.music = null;
+        this.cached = cached;
         // Don't play cry if this is an egg
         if (pokemon.name.equals("egg")) {
             this.music = Gdx.audio.newMusic(Gdx.files.internal("egg_noise1.ogg"));
@@ -2781,6 +2787,18 @@ class PlaySound extends Action {
         }
         // if it's crystal pokemon, load from crystal dir
         else if (pokemon.generation == Pokemon.Generation.CRYSTAL) {
+
+            if (cached) {
+                if (!Game.staticGame.loadedMusic.containsKey(sound)) {
+                    Game.staticGame.loadedMusic.put(sound, Gdx.audio.newMusic(Gdx.files.internal("crystal_pokemon/cries/" + pokemon.dexNumber + ".ogg")));
+                }
+                this.music = Game.staticGame.loadedMusic.get(sound);
+                this.music.stop();
+                this.music.setVolume(0.5f);
+                this.music.setLooping(false);
+                return;
+            }
+
             this.music = Gdx.audio.newMusic(Gdx.files.internal("crystal_pokemon/cries/" + pokemon.dexNumber + ".ogg"));
             if (pokemon.dexNumber.equals("000")) {
                 this.music.setVolume(0.9f);
@@ -3264,6 +3282,7 @@ class TileEditor extends Action {
     // List of pokemon, list of overtiles, list of undertiles
     ArrayList<String> overTiles = new ArrayList<String>();
     {
+        overTiles.add("cactus7");
         overTiles.add("rock1_color");
         overTiles.add("tree7");
         overTiles.add("aloe_large1");
@@ -3290,13 +3309,28 @@ class TileEditor extends Action {
         underTiles.add("desert3");
         underTiles.add("desert4");
         
+
+        underTiles.add("ruins1_NE");
+        underTiles.add("ruins1_NSEW");
+        underTiles.add("ruins1_SE");
+        underTiles.add("ruins1_NW");
+        underTiles.add("ruins1_SW");
+        underTiles.add("ruins1_pillar1");
+
+        
         // Trees
         overTiles.add("bush1");
         overTiles.add("tree2");
         overTiles.add("tree4");
+        overTiles.add("tree6");
         overTiles.add("cactus1");
         overTiles.add("cactus2");
+        overTiles.add("cactus3");
+        overTiles.add("cactus4");
+        overTiles.add("cactus5");
+        overTiles.add("cactus6");
         
+
         underTiles.addAll(this.overTiles);
     }
     

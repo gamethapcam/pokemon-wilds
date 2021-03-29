@@ -832,3 +832,174 @@ RegigigasEvosAttacks:
 	db 78, CRUSH_GRIP
 	db 0 ; no more level-up moves
 
+BronzorEvosAttacks:
+	db EVOLVE_LEVEL, 33, BRONZONG
+	db 0 ; no more evolutions
+	db 1, TACKLE
+	db 4, DISABLE
+	db 7, CONFUSION
+	db 10, HYPNOSIS
+	db 13, FUTURE_SIGHT
+	db 17, FEINT_ATTACK
+	db 20, PSYBEAM
+	db 23, CONFUSE_RAY
+	db 26, FLASH_CANNON
+	db 32, ZEN_HEADBUTT
+	db 38, IRON_HEAD
+	db 41, IRON_DEFENSE
+	db 44, PSYCHIC
+	db 0 ; no more level-up moves
+
+BronzongEvosAttacks:
+	db 0 ; no more evolutions
+	db 1, CONFUSE_RAY
+	db 1, FLASH_CANNON
+	db 1, ZEN_HEADBUTT
+	db 41, IRON_HEAD
+	db 46, IRON_DEFENSE
+	db 51, PSYCHIC
+	db 0 ; no more level-up moves
+
+DarumakaEvosAttacks:
+	; db EVOLVE_LEVEL, 33, BRONZONG
+	db 0 ; no more evolutions
+	db 1, TACKLE
+	db 4, DISABLE
+	db 7, CONFUSION
+	db 10, HYPNOSIS
+	db 13, FUTURE_SIGHT
+	db 17, FEINT_ATTACK
+	db 20, PSYBEAM
+	db 23, CONFUSE_RAY
+	db 26, FLASH_CANNON
+	db 32, ZEN_HEADBUTT
+	db 38, IRON_HEAD
+	db 41, IRON_DEFENSE
+	db 44, PSYCHIC
+	db 0 ; no more level-up moves
+
+ElgyemEvosAttacks:
+	; db EVOLVE_LEVEL, 33, BRONZONG
+	db 0 ; no more evolutions
+	db 1, TACKLE
+	db 4, DISABLE
+	db 7, CONFUSION
+	db 10, HYPNOSIS
+	db 13, FUTURE_SIGHT
+	db 17, FEINT_ATTACK
+	db 20, PSYBEAM
+	db 23, CONFUSE_RAY
+	db 26, FLASH_CANNON
+	db 32, ZEN_HEADBUTT
+	db 38, IRON_HEAD
+	db 41, IRON_DEFENSE
+	db 44, PSYCHIC
+	db 0 ; no more level-up moves
+
+CutieflyEvosAttacks:
+	; db EVOLVE_LEVEL, 33, BRONZONG
+	db 0 ; no more evolutions
+	db 1, TACKLE
+	db 4, DISABLE
+	db 7, CONFUSION
+	db 10, HYPNOSIS
+	db 13, FUTURE_SIGHT
+	db 17, FEINT_ATTACK
+	db 20, PSYBEAM
+	db 23, CONFUSE_RAY
+	db 26, FLASH_CANNON
+	db 32, ZEN_HEADBUTT
+	db 38, IRON_HEAD
+	db 41, IRON_DEFENSE
+	db 44, PSYCHIC
+	db 0 ; no more level-up moves
+
+RibombeeEvosAttacks:
+	; db EVOLVE_LEVEL, 33, BRONZONG
+	db 0 ; no more evolutions
+	db 1, TACKLE
+	db 4, DISABLE
+	db 7, CONFUSION
+	db 10, HYPNOSIS
+	db 13, FUTURE_SIGHT
+	db 17, FEINT_ATTACK
+	db 20, PSYBEAM
+	db 23, CONFUSE_RAY
+	db 26, FLASH_CANNON
+	db 32, ZEN_HEADBUTT
+	db 38, IRON_HEAD
+	db 41, IRON_DEFENSE
+	db 44, PSYCHIC
+	db 0 ; no more level-up moves
+
+BeheeyemEvosAttacks:
+	; db EVOLVE_LEVEL, 33, BRONZONG
+	db 0 ; no more evolutions
+	db 1, TACKLE
+	db 4, DISABLE
+	db 7, CONFUSION
+	db 10, HYPNOSIS
+	db 13, FUTURE_SIGHT
+	db 17, FEINT_ATTACK
+	db 20, PSYBEAM
+	db 23, CONFUSE_RAY
+	db 26, FLASH_CANNON
+	db 32, ZEN_HEADBUTT
+	db 38, IRON_HEAD
+	db 41, IRON_DEFENSE
+	db 44, PSYCHIC
+	db 0 ; no more level-up moves
+
+SandileEvosAttacks:
+	db EVOLVE_LEVEL, 11, KROKOROK
+	db 0 ; no more evolutions
+	db 1, TACKLE
+	db 4, DISABLE
+	db 7, CONFUSION
+	db 10, HYPNOSIS
+	db 13, FUTURE_SIGHT
+	db 17, FEINT_ATTACK
+	db 20, PSYBEAM
+	db 23, CONFUSE_RAY
+	db 26, FLASH_CANNON
+	db 32, ZEN_HEADBUTT
+	db 38, IRON_HEAD
+	db 41, IRON_DEFENSE
+	db 44, PSYCHIC
+	db 0 ; no more level-up moves
+
+KrokorokEvosAttacks:
+	db EVOLVE_LEVEL, 22, Krookodile
+	db 0 ; no more evolutions
+	db 1, TACKLE
+	db 4, DISABLE
+	db 7, CONFUSION
+	db 10, HYPNOSIS
+	db 13, FUTURE_SIGHT
+	db 17, FEINT_ATTACK
+	db 20, PSYBEAM
+	db 23, CONFUSE_RAY
+	db 26, FLASH_CANNON
+	db 32, ZEN_HEADBUTT
+	db 38, IRON_HEAD
+	db 41, IRON_DEFENSE
+	db 44, PSYCHIC
+	db 0 ; no more level-up moves
+
+KrookodileEvosAttacks:
+	db 0 ; no more evolutions
+	db 1, TACKLE
+	db 4, DISABLE
+	db 7, CONFUSION
+	db 10, HYPNOSIS
+	db 13, FUTURE_SIGHT
+	db 17, FEINT_ATTACK
+	db 20, PSYBEAM
+	db 23, CONFUSE_RAY
+	db 26, FLASH_CANNON
+	db 32, ZEN_HEADBUTT
+	db 38, IRON_HEAD
+	db 41, IRON_DEFENSE
+	db 44, PSYCHIC
+	db 0 ; no more level-up moves
+

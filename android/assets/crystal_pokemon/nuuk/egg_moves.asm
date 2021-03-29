@@ -116,3 +116,15 @@ RegigigasEggMoves:
 SableyeEggMoves:
 
 SurskitEggMoves:
+
+BronzorEggMoves:
+
+DarumakaEggMoves:
+
+ElgyemEggMoves:
+
+CutieflyEggMoves:
+
+BeheeyemEggMoves:
+
+SandileEggMoves:

@@ -1690,7 +1690,16 @@ public class PkmnMap {
                     loadedRoutes.put(tileData.routeBelongsTo, new Route(saveData.mapTiles.routes.get(tileData.routeBelongsTo)));
                 }
                 Route tempRoute = loadedRoutes.get(tileData.routeBelongsTo);
-                this.tiles.put(tileData.pos.cpy(), Tile.get(tileData, tempRoute));
+                Tile newTile = Tile.get(tileData, tempRoute);
+                this.tiles.put(tileData.pos.cpy(), newTile);
+
+                // Load burrowed trapinch
+                if (newTile.items != null && newTile.items.containsKey("trapinch")) {
+                    Pokemon trapinch = new Pokemon("trapinch", 22, Pokemon.Generation.CRYSTAL);
+                    trapinch.isTrapping = true;
+                    trapinch.position = newTile.position.cpy();
+                    game.insertAction(trapinch.new Burrowed());
+                }
 
                 if (this.topRight.x < tileData.pos.x) {
                     this.topRight.x = tileData.pos.x;
@@ -2254,22 +2263,29 @@ class Route {
         }
         else if (name.equals("desert1")) {
             // TODO: these are just some ideas
-            this.allowedPokemon.add("gible");
-            this.allowedPokemon.add("gabite");
+//            this.allowedPokemon.add("gible");  // TODO: was prism, remove
+//            this.allowedPokemon.add("gabite");
             // TODO: would be sweet if fully evolved forms were hard to escape from and catch
             //  ie, they were scary to run into.
             //  probably just make them high level.
-            this.allowedPokemon.add("garchomp");   // high-level
-            this.allowedPokemon.add("shieldon");
-            this.allowedPokemon.add("cacnea");
+//            this.allowedPokemon.add("garchomp");   // high-level
+//            this.allowedPokemon.add("cacnea");
+//            this.allowedPokemon.add("cacturne");
+            
             this.allowedPokemon.add("sandshrew");
-            this.allowedPokemon.add("kangaskan");
-            this.allowedPokemon.add("rhyhorn");
-            this.allowedPokemon.add("shieldon");
-            this.allowedPokemon.add("bastiodon");  // high-level
-            this.allowedPokemon.add("skorupi");
-            this.allowedPokemon.add("drapion");    // high-level
-            this.allowedPokemon.add("trapinch");
+//            this.allowedPokemon.add("sandslash");
+            this.allowedPokemon.add("kangaskhan");
+            this.allowedPokemon.add("cubone");
+            this.allowedPokemon.add("diglett");
+//            this.allowedPokemon.add("marowak");
+            
+//            this.allowedPokemon.add("rhyhorn");  // TODO: remove
+//            this.allowedPokemon.add("shieldon");  // TODO: was prism, remove
+//            this.allowedPokemon.add("bastiodon");  // high-level
+//            this.allowedPokemon.add("skorupi");  // TODO: was prism, remove
+//            this.allowedPokemon.add("drapion");    // high-level
+//            this.allowedPokemon.add("trapinch");  // TODO: was prism, remove
+//            this.allowedPokemon.add("vibrava");
         }
         else if (name.equals("snow1")) {
             this.allowedPokemon.add("larvitar");
@@ -3201,8 +3217,7 @@ class Tile {
             this.overSprite = new Sprite(playerText, 0, 0, 16, 16);
             this.attrs.put("solid", true);
         } else if (tileName.equals("solid")) {
-            Texture playerText = TextureCache.get(
-                    Gdx.files.internal("tiles/qmark_tile1.png"));
+            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/qmark_tile1.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
             // this.attrs.put("qmark", true); // TODO - remove if unused
             this.attrs.put("solid", true); // solid in case I need to put
@@ -3341,6 +3356,14 @@ class Tile {
             this.attrs.put("tree", true);
             this.attrs.put("headbuttable", true);
 
+        // TODO: not used anywhere afaik except tile editor
+        } else if (tileName.equals("tree6")) {
+            // TODO: this is just for tileEditor
+            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/tree6.png"));
+            this.sprite = new Sprite(playerText, 0, 0, 16, 32);
+            this.attrs.put("solid", true);
+            this.attrs.put("tree", true);
+            this.attrs.put("headbuttable", true);
         } else if (tileName.equals("tree7")) {
             // TODO: this is just for tileEditor
             Texture playerText = TextureCache.get(Gdx.files.internal("tiles/tree7.png"));
@@ -3354,18 +3377,32 @@ class Tile {
             this.attrs.put("solid", true);
             
         } else if (tileName.contains("cactus")) {
-            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/sand1.png"));   // TODO: which sand idk
+//            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/sand1.png"));
+//            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/desert4.png")); 
+            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/desert6.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
             playerText = TextureCache.get(Gdx.files.internal("tiles/"+tileName+".png"));
             this.overSprite = new Sprite(playerText, 0, 0, 16, 16);
-            if (tileName.equals("cactus2")) {
+            if (tileName.equals("cactus2") || tileName.equals("cactus3") || tileName.equals("cactus9")) {
                 this.overSprite = new Sprite(playerText, 0, 0, 16, 32);
             }
-            this.name = "sand1";
-            this.nameUpper = tileName;
+            if (tileName.equals("cactus10")) {
+                this.overSprite = new Sprite(playerText, 0, 0, 32, 16);
+            }
+            if (!tileName.equals("cactus10") && !tileName.equals("cactus7") && !tileName.equals("cactus8") && !tileName.equals("cactus9")) {
+                this.name = "sand1";
+                this.nameUpper = tileName;
+            }
             this.attrs.put("solid", true);
             this.attrs.put("headbuttable", true);
 
+        } else if (tileName.contains("ruins")) {
+            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/"+tileName+".png"));
+            this.sprite = new Sprite(playerText, 0, 0, 16, 16);
+            if (tileName.contains("pillar")) {
+                this.overSprite = new Sprite(playerText, 0, 0, 16, 32);
+            }
+            
         } else if (tileName.equals("tree_plant1")) {
             Texture playerText = TextureCache.get(Gdx.files.internal("tiles/green1.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
@@ -3468,8 +3505,17 @@ class Tile {
             this.sprite = new Sprite(playerText, 0, 0, 16, 20);
         }
         else if (tileName.contains("desert")) {
+            if (tileName.equals("desert2_trapinch_spawn")) {
+                tileName = "desert2";
+            }
             Texture playerText = TextureCache.get(Gdx.files.internal("tiles/"+tileName+".png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
+            
+            if (tileName.equals("desert2")) {
+                this.attrs.put("grass", true);
+                this.overSprite = this.sprite;
+            }
+
         }
         else if (tileName.equals("grass_sand2")) {
             Texture playerText = TextureCache.get(Gdx.files.internal("tiles/desert1.png"));
@@ -3480,7 +3526,10 @@ class Tile {
             this.attrs.put("cuttable", true);
         }
         else if (tileName.equals("grass_sand3")) {
-            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/desert1.png"));
+//            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/desert4.png"));
+//            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/sand1.png"));
+            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/desert6.png"));
+            
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
             playerText = TextureCache.get(Gdx.files.internal("tiles/grass5_over.png"));
             this.overSprite = new Sprite(playerText, 0, 0, 16, 16);
@@ -3545,12 +3594,14 @@ class Tile {
             if (this.nameUpper.equals("house_bed1") ||
                 this.nameUpper.contains("tree2") ||
                 this.nameUpper.contains("tree4") ||
+                this.nameUpper.contains("tree6") ||
                 this.nameUpper.contains("tree7") ||
                 this.nameUpper.contains("house_plant1") ||
                 this.nameUpper.contains("house_plant2") ||
                 this.nameUpper.contains("house_gym1") ||
                 this.nameUpper.contains("house_wardrobe1") ||
                 this.nameUpper.contains("cactus2") ||
+                this.nameUpper.contains("cactus3") ||
                 this.nameUpper.contains("house_shelf1")) {
                 this.overSprite = new Sprite(text, 0, 0, 16, 32);
             }
@@ -3633,10 +3684,10 @@ class Tile {
             !this.nameUpper.contains("tree_planted") && 
             (this.name.contains("tree") || this.nameUpper.contains("tree") ||
              this.nameUpper.contains("house_gym") || this.nameUpper.contains("house_plant") ||
+             this.nameUpper.equals("cactus2") ||
              this.nameUpper.contains("house_shelf") || this.nameUpper.contains("house_wardrobe"))) {
             this.drawAsTree = true;
         }
-        
 
         this.sprite.setPosition(pos.x, pos.y);
         if (this.overSprite != null) {
