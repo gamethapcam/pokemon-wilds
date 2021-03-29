@@ -468,33 +468,37 @@ public class Pokemon {
     }
     
     public void updateSpecieInfo(String name) {
-    	this.name = name.toLowerCase();
-    	this.specie = Specie.species.get(name.toLowerCase());
-    	if(specie == null)
-    	{
-    		System.out.println("No such specie exists: " + name);
-    	}
-    	this.generation = specie.generation;
-    	
-    	//set sprites, backsprites, & intro animations
-    	if(isEgg) {
-    		this.name = "Egg";
-    		this.sprite = Specie.spriteEgg;
-    		this.backSprite = Specie.backSpriteEgg;
-    		this.introAnim = new ArrayList<SpriteProxy>();
-    	}
-    	else if(isShiny)
+        this.name = name.toLowerCase();
+
+        if (!Specie.species.containsKey(this.name)) {
+            Specie.species.put(name.toLowerCase(), new Specie(this.name));
+        }
+        this.specie = Specie.species.get(name.toLowerCase());
+        if(specie == null)
         {
-        	this.sprite = specie.spriteShiny;
-        	this.backSprite = specie.backSpriteShiny;
-        	this.introAnim = specie.introAnimShiny;
+            System.out.println("No such specie exists: " + name);
+        }
+        this.generation = specie.generation;
+
+        //set sprites, backsprites, & intro animations
+        if(isEgg) {
+            this.name = "Egg";
+            this.sprite = Specie.spriteEgg;
+            this.backSprite = Specie.backSpriteEgg;
+            this.introAnim = new ArrayList<SpriteProxy>();
+        }
+        else if(isShiny)
+        {
+            this.sprite = specie.spriteShiny;
+            this.backSprite = specie.backSpriteShiny;
+            this.introAnim = specie.introAnimShiny;
         }
         else {
-        	this.sprite = specie.sprite;
-        	this.backSprite = specie.backSprite;
-        	this.introAnim = specie.introAnim;
+            this.sprite = specie.sprite;
+            this.backSprite = specie.backSprite;
+            this.introAnim = specie.introAnim;
         }
-        
+
         this.learnSet = this.specie.learnSet;
         this.dexNumber = specie.dexNumber;
         this.baseStats = specie.baseStats;
@@ -503,41 +507,41 @@ public class Pokemon {
         this.eggGroups = specie.eggGroups;
         this.hms = specie.hms;
         this.loadOverworldSprites();
-     // stats formulas here
+        // stats formulas here
         calcMaxStats();
-        
+
         this.initHabitatValues();
     }
     /**
      * TODO: remove isShiny and eggHatchInto params, just set before calling init.
      */
     public void init(String name, int level, boolean isShiny, boolean isEgg) {
-    	// levels have to be >= 1
-    	if (level <= 0) {
-    		System.out.println("Bad level: " + String.valueOf(level));
-    		level = 1;
-    	}
-    	this.level = level;
-    	this.isEgg = isEgg;
-    	this.isShiny = isShiny;  //Pokemon.rand.nextInt(256) == 0;
-    	updateSpecieInfo(name);
-    	this.currentStats = new HashMap<String, Integer>(this.maxStats); // copy maxStats   
-    	
+        // levels have to be >= 1
+        if (level <= 0) {
+            System.out.println("Bad level: " + String.valueOf(level));
+            level = 1;
+        }
+        this.level = level;
+        this.isEgg = isEgg;
+        this.isShiny = isShiny;  //Pokemon.rand.nextInt(256) == 0;
+        updateSpecieInfo(name);
+        this.currentStats = new HashMap<String, Integer>(this.maxStats); // copy maxStats   
+
 
         // init vars
         this.angry = 0;
         this.eating = 0;
 
         this.attacks = new String[]{null, null, null, null};
-        
+
 
         // TODO: individual avatars
         // TODO: remove if unused
-//        Texture avatarText = new Texture(Gdx.files.internal("pokemon_menu/avatars1.png"));
-//        this.avatarSprites = new ArrayList<Sprite>();
-//        this.avatarSprites.add(new Sprite(avatarText, 16*0, 16*0, 16, 16));
-//        this.avatarSprites.add(new Sprite(avatarText, 16*1, 16*0, 16, 16));
-      
+        //        Texture avatarText = new Texture(Gdx.files.internal("pokemon_menu/avatars1.png"));
+        //        this.avatarSprites = new ArrayList<Sprite>();
+        //        this.avatarSprites.add(new Sprite(avatarText, 16*0, 16*0, 16, 16));
+        //        this.avatarSprites.add(new Sprite(avatarText, 16*1, 16*0, 16, 16));
+
         //set gender of this pokemon based on GenderRatio of the specie
         // source: https://github.com/pret/pokecrystal/wiki/Add-a-new-Pok%C3%A9mon
         // GENDER_F0: 100% male
@@ -576,23 +580,23 @@ public class Pokemon {
         }
         //set hapiness level
         this.happiness = specie.baseHappiness;
-        
-    
-        
-        
-//        // if it is in original 251, load from crystal
-//        if (this.name.equals("egg") ||
-//            Specie.nuukPokemon.contains(this.name.toLowerCase()) ||
-//            (Integer.valueOf(this.dexNumber) <= 251 && Integer.valueOf(this.dexNumber) > 0)) {
-////            this.loadCrystalPokemon(name);
-//        // else try loading from prism
-//        } else {
-////            this.loadPrismPokemon(name);
-//        }
-       
+
+
+
+
+        //        // if it is in original 251, load from crystal
+        //        if (this.name.equals("egg") ||
+        //            Specie.nuukPokemon.contains(this.name.toLowerCase()) ||
+        //            (Integer.valueOf(this.dexNumber) <= 251 && Integer.valueOf(this.dexNumber) > 0)) {
+        ////            this.loadCrystalPokemon(name);
+        //        // else try loading from prism
+        //        } else {
+        ////            this.loadPrismPokemon(name);
+        //        }
+
         getCurrentAttacks(); // fill this.attacks with what it can currently know
         this.exp = gen2CalcExpForLevel(this.level);
-      
+
     }
 
     // TODO - this doesn't take IV's or EV's into account.
@@ -760,73 +764,73 @@ public class Pokemon {
      * Turn off egg flag & reset overworld textures
      * */
     void hatch() {
-    	this.isEgg = false;
-    	this.loadOverworldSprites();
-    	this.name = this.specie.name;
-    	if(isShiny)
+        this.isEgg = false;
+        this.loadOverworldSprites();
+        this.name = this.specie.name;
+        if(isShiny)
         {
-        	this.sprite = specie.spriteShiny;
-        	this.backSprite = specie.backSpriteShiny;
-        	this.introAnim = specie.introAnimShiny;
+            this.sprite = specie.spriteShiny;
+            this.backSprite = specie.backSpriteShiny;
+            this.introAnim = specie.introAnimShiny;
         }
         else {
-        	this.sprite = specie.sprite;
-        	this.backSprite = specie.backSprite;
-        	this.introAnim = specie.introAnim;
+            this.sprite = specie.sprite;
+            this.backSprite = specie.backSprite;
+            this.introAnim = specie.introAnim;
         }
     }
     /*
      * Called when setting up a Ghost encounter
      * */
     void spookify() {
-    	this.isGhost = true;
-    	this.name = "Ghost";
-    	this.sprite = Specie.spriteGhost;
-    	this.backSprite = null;
-    	this.introAnim = Specie.introAnimGhost;
+        this.isGhost = true;
+        this.name = "Ghost";
+        this.sprite = Specie.spriteGhost;
+        this.backSprite = null;
+        this.introAnim = Specie.introAnimGhost;
     }
     /*
      * Called when Silph Scope is used
      * */
     public Pokemon revealGhost() {
-    	this.isGhost = false;
-    	this.loadOverworldSprites();
-    	this.name = this.specie.name;
-    	//need to store these as the Sprite will be reset once the ghost is revealed
-    	float x = this.sprite.getX();
-    	float y = this.sprite.getY();
-    	if(isShiny)
+        this.isGhost = false;
+        this.loadOverworldSprites();
+        this.name = this.specie.name;
+        //need to store these as the Sprite will be reset once the ghost is revealed
+        float x = this.sprite.getX();
+        float y = this.sprite.getY();
+        if(isShiny)
         {
-        	this.sprite = specie.spriteShiny;
-        	this.backSprite = specie.backSpriteShiny;
-        	this.introAnim = specie.introAnimShiny;
+            this.sprite = specie.spriteShiny;
+            this.backSprite = specie.backSpriteShiny;
+            this.introAnim = specie.introAnimShiny;
         }
         else {
-        	this.sprite = specie.sprite;
-        	this.backSprite = specie.backSprite;
-        	this.introAnim = specie.introAnim;
+            this.sprite = specie.sprite;
+            this.backSprite = specie.backSprite;
+            this.introAnim = specie.introAnim;
         }
-    	//reset the new sprite to the correct place in the Battle
-    	this.sprite.setPosition(x, y);
-    	return this;
+        //reset the new sprite to the correct place in the Battle
+        this.sprite.setPosition(x, y);
+        return this;
     }
     /**
      * Compute changes required by evolution.
      */
     void evolveTo(String targetName) {
-    	updateSpecieInfo(targetName);
-    	
+        updateSpecieInfo(targetName);
+
         // Update base stats and various values.
         // Don't modify attacks, current hp, etc.
         // TODO: current hp is probably compensated in the real game
-//        if (Specie.nuukPokemon.contains(this.name.toLowerCase()) ||
-//            (Integer.valueOf(this.dexNumber) <= 251 && Integer.valueOf(this.dexNumber) > 0)) {
-//            this.loadCrystalPokemon(this.name);
-//        }
-//        else {
-//            this.loadPrismPokemon(this.name);
-//        }
-      
+        //        if (Specie.nuukPokemon.contains(this.name.toLowerCase()) ||
+        //            (Integer.valueOf(this.dexNumber) <= 251 && Integer.valueOf(this.dexNumber) > 0)) {
+        //            this.loadCrystalPokemon(this.name);
+        //        }
+        //        else {
+        //            this.loadPrismPokemon(this.name);
+        //        }
+
         // restore hp to full
         this.currentStats.put("hp", this.maxStats.get("hp"));
 
