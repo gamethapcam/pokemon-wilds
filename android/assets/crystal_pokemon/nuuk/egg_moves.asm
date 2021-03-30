@@ -128,3 +128,9 @@ CutieflyEggMoves:
 BeheeyemEggMoves:
 
 SandileEggMoves:
+
+ZigzagoonEggMoves:
+
+CombeeEggMoves:
+
+AexeggutorEggMoves:

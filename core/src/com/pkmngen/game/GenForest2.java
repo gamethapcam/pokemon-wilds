@@ -2032,6 +2032,8 @@ class GenIsland1 extends Action {
         //  int newSize = maxDist - this.rand.nextInt((int)Math.ceil(maxDist/4f)); // was doing
         int newSize = maxDist - this.rand.nextInt((int)Math.ceil(maxDist/4f)) - maxDist/4;
         //  System.out.println(prevTile.position);
+        int doneOasis = maxDist;
+
 
         while (!edgeTiles.isEmpty()) {
             for (Tile tile : new ArrayList<Tile>(edgeTiles.values())) {
@@ -2087,12 +2089,40 @@ class GenIsland1 extends Action {
                                 else if (this.rand.nextInt(maxDist) < 3) {
                                     newTile = new Tile("cactus10", edge, true, currRoute);
                                 }
+                                // TODO: not sure if should limit to 1. definitely want minimum of one
+                                else if (distance > maxDist/8 && doneOasis > 0 && this.rand.nextInt(doneOasis) < 1) {
+//                                    int nextSize = 300 + this.rand.nextInt(100);
+                                    int nextSize = 250 + this.rand.nextInt(50);
+                                    HashMap<Vector2, Tile> newTiles = new HashMap<Vector2, Tile>();
+                                    ApplyBlotch(game, "oasis1", newTile, nextSize, newTiles, 0, true, currRoute);
+                                    HashMap<Vector2, Tile> newTiles2 = new HashMap<Vector2, Tile>();
+                                    nextSize = nextSize/2;
+                                    ApplyBlotch(game, "pond1", newTile, nextSize, newTiles2, 0, true, currRoute);
+                                    newTiles.putAll(newTiles2);
+                                    
+
+                                    for (Tile tile2 : new ArrayList<Tile>(newTiles.values())) {
+                                        if (tile2.nameUpper.equals("aloe_large1")) {
+                                            newTiles.put(tile2.position.cpy().add(16, 0), new Tile("green1", "solid", tile2.position.cpy().add(16, 0)));
+                                            newTiles.put(tile2.position.cpy().add(0, 16), new Tile("green1", "solid", tile2.position.cpy().add(0, 16)));
+                                            newTiles.put(tile2.position.cpy().add(16,16), new Tile("green1", "solid", tile2.position.cpy().add(16,16)));
+                                        }
+                                    }
+
+                                    grassTiles.putAll(newTiles);
+                                    tilesToAdd.putAll(newTiles);
+//                                    doneOasis = maxDist*12;
+                                    doneOasis= 0;
+                                }
 
 
                                 tilesToAdd.put(newTile.position.cpy(), newTile);
                                 edgeTiles.put(newTile.position.cpy(), newTile);
                                 if (GenIsland1.doneDesert < 2) {
                                     GenIsland1.doneDesert = 2;
+                                }
+                                if (doneOasis > 0) {
+                                    doneOasis--;
                                 }
                             }
 
@@ -2353,7 +2383,7 @@ class GenIsland1 extends Action {
                             // grass blotch
                             } else if (type.equals("grass")) {
                                 String name = "grass2";
-                                if (currRoute.name.contains("savanna")) {
+                                if (currRoute.name.contains("savanna") || currRoute.name.contains("oasis")) {
                                     name = "grass4";
                                 }
                                 Tile newTile = new Tile(name, edge, false, currRoute);
@@ -2393,7 +2423,83 @@ class GenIsland1 extends Action {
                                     
                                 }
                                 tilesToAdd.put(newTile.position.cpy(), newTile);
-                                edgeTiles.put(newTile.position.cpy(), newTile);}
+                                edgeTiles.put(newTile.position.cpy(), newTile);
+                            }
+                            else if (type.equals("pond1")) {
+                                Tile newTile = new Tile("water2", edge);
+                                tilesToAdd.put(newTile.position.cpy(), newTile);
+                                edgeTiles.put(newTile.position.cpy(), newTile);
+                            }
+                            else if (type.equals("oasis1")) {
+
+//                                Route blotchRoute = new Route("oasis1", 30);  // debug, revert
+                                Route blotchRoute = new Route("", 30);
+                                blotchRoute.name = "oasis1";
+                                
+                                Tile newTile = new Tile("sand1", "", edge);
+                                int isGrass = this.rand.nextInt(maxDist/8) + (int)distance;
+                                if (isGrass < 1*maxDist/2) {
+                                    if ((int)distance < 3*maxDist/8) {
+                                        if (this.rand.nextInt(24) == 0) {
+                                            newTile = new Tile("flower4", edge, true, currRoute);
+                                        }
+                                        else {
+                                            newTile = new Tile("green1", edge, true, currRoute);
+                                        }
+                                    }
+                                    else {
+                                        newTile = new Tile("green1", edge, true, currRoute);
+                                    }
+                                }
+//                                if (this.rand.nextInt(110) < 1) {
+                                boolean putGrass = this.rand.nextInt(90) < 1;
+                                if (distance < maxDist/2) {
+                                    putGrass = this.rand.nextInt(40) < 1;
+                                }
+                                boolean putRock = false;
+                                if (distance > maxDist/2) {
+                                    putRock = this.rand.nextInt(10) < 1;
+                                }
+                                
+                                if (putGrass) {
+                                    int nextSize = 40;
+                                    ApplyBlotch(game, "grass", newTile, nextSize, grassTiles, 0, false, blotchRoute);
+                                }
+                                else if (this.rand.nextInt(10) < 1) {
+                                    Route tempRoute = null;
+                                    int randInt = this.rand.nextInt(2);
+                                    if (randInt == 0) {
+                                        tempRoute = new Route("", 22);
+                                        tempRoute.allowedPokemon.clear();
+                                        tempRoute.pokemon.clear();
+                                        String[] pokemon = new String[]{"aexeggutor"};
+                                        randInt = this.rand.nextInt(pokemon.length);
+                                        tempRoute.allowedPokemon.add(pokemon[randInt]);
+                                        tempRoute.genPokemon(256);
+                                    }
+                                    newTile = new Tile("tree5", edge, true, tempRoute);
+                                }
+                                else if (this.rand.nextInt(110) < 1) {
+                                    newTile = new Tile("green1", "aloe_large1", edge, true, blotchRoute);
+                                }
+                                else if (putRock) {
+                                    Route tempRoute = null;
+                                    int randInt = this.rand.nextInt(2);
+                                    if (randInt == 0) {
+                                        tempRoute = new Route("", 22);
+                                        tempRoute.allowedPokemon.clear();
+                                        tempRoute.pokemon.clear();
+                                        String[] pokemon = new String[]{"shellder", "krabby", "staryu", "dwebble"};
+                                        randInt = this.rand.nextInt(pokemon.length);
+                                        tempRoute.allowedPokemon.add(pokemon[randInt]);
+                                        tempRoute.genPokemon(256);
+                                    }
+                                    newTile = new Tile(newTile.name, "rock1_color", edge.cpy(), true, tempRoute);
+                                }
+
+                                tilesToAdd.put(newTile.position.cpy(), newTile);
+                                edgeTiles.put(newTile.position.cpy(), newTile);
+                            }
                             // Cactus and/or deadbrush
                             else if (type.equals("desert_cacti1")) {
 //                                Tile newTile = new Tile("sand1", edge);
@@ -2727,11 +2833,20 @@ class GenIsland1 extends Action {
         if (prevTiles.size() < randInt) {
             randInt = prevTiles.size();
         }
+        
+        if (type.equals("oasis1")) {
+            vals = new int[]{3, 3, 4, 4, 5, 5};
+            randInt = vals[this.rand.nextInt(vals.length)];
+            if (prevTiles.size() < randInt) {
+                randInt = prevTiles.size();
+            }
+            newSize += maxDist/10;
+        }
 
 //        remove/fix this logic
         HashMap<Vector2, Tile> nextIslandTiles = new HashMap<Vector2, Tile>();
         int next=0;
-        if ((type.equals("island") || type.equals("desert")) && doNext) {
+        if ((type.equals("island") || type.equals("desert") || type.equals("oasis1")) && doNext) {
             for (int i=0; i < randInt; i++) {
 
                 if (GenIsland1.doneDesert == 1) {
@@ -2744,7 +2859,11 @@ class GenIsland1 extends Action {
                 
                 tilesToAdd.put(prevTiles.get(next).position.cpy(), prevTiles.get(next));
                 // TODO: remove once tested
-                ApplyBlotch(game, "island", prevTiles.get(next), newSize, nextIslandTiles, 1, true, currRoute);
+                String newType = "island";
+                if (!type.equals("desert")) {
+                    newType = type;
+                }
+                ApplyBlotch(game, newType, prevTiles.get(next), newSize, nextIslandTiles, 1, true, currRoute);
 //                int level = currRoute.level - (int)(10*(1f-(newSize/maxDist)));
 //                if (level <= 5) {
 //                    level = 5;
@@ -2785,11 +2904,24 @@ class GenIsland1 extends Action {
                     tilesToAdd.put(tile.position.cpy().add(0,16), new Tile("tree_large1_noSprite", tile.position.cpy().add(0,16)));
                     tilesToAdd.put(tile.position.cpy().add(16,16), new Tile("tree_large1_noSprite", tile.position.cpy().add(16,16)));
                 }
+
             }
             else {
                 tilesToAdd.put(tile.position.cpy(), tile);
             }
         }
+        
+        // TODO: remove
+//        if (type.equals("oasis1")) {
+//            for (Tile tile2 : tilesToAdd.values()) {
+//                if (tile2.nameUpper.equals("aloe_large1")) {
+//                    tilesToAdd.put(tile2.position.cpy().add(16, 0), new Tile("green1", "solid", tile2.position.cpy().add(16, 0)));
+//                    tilesToAdd.put(tile2.position.cpy().add(0, 16), new Tile("green1", "solid", tile2.position.cpy().add(0, 16)));
+//                    tilesToAdd.put(tile2.position.cpy().add(16,16), new Tile("green1", "solid", tile2.position.cpy().add(16,16)));
+//                }
+//            }
+//        }
+
     }
 
     public ArrayList<Tile> ApplyBlotchMountain(Game game, Tile originTile, int maxDist, HashMap<Vector2, Tile> tilesToAdd) {

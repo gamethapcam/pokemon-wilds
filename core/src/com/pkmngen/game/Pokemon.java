@@ -128,6 +128,8 @@ public class Pokemon {
                                      "ralts", "taillow", "swellow", "whismur", "poochyena", "mightyena",
                                      "wingull", "pelipper", "shroomish", "breloom", "surskit", "masquerain",
                                      "sableye",
+                                     "aexeggutor",  // Gmerc
+                                     "zigzagoon", "linoone", // TODO: need ow sprite
                                      "dwebble",  // overworld 
                                      "crustle",  // overworld 
                                      "litwick", "lampent", "chandelure",  // overworld Goose (discord)
@@ -141,7 +143,8 @@ public class Pokemon {
                                      "darumaka",  // Goose on discord
                                      "elgyem", "beheeyem",  // Goose on discord
                                      "sandile", "krokorok", "krookodile",  // Goose and Sadfish on discord
-                                     "cutiefly", "ribombee", // TerraTerraCotta on discord
+                                     "cutiefly", "ribombee",  // TerraTerraCotta on discord
+                                     "combee",  // TerraTerraCotta on discord
                                      "snover"};  // TODO: sep loading method
         for (String t : temp) {
             nuukPokemon.add(t);
@@ -254,6 +257,11 @@ public class Pokemon {
         if (name.equals("egg")) {
             return "999";
         }
+        // TODO: handle all alolan forms here
+        if (name.equals("aexeggutor")) {
+            name = "exeggutor";
+        }
+
         int lineNum = 1;
         try {
             FileHandle file = Gdx.files.internal("crystal_pokemon/pokemon_to_index.txt");
@@ -2187,6 +2195,7 @@ public class Pokemon {
                 if (name.equals("poochyena")) {
                     i = 312;
                     found = true;
+                    flip = false;
                 }
                 else if (name.equals("mightyena")) {
                     i = 313;
@@ -3941,6 +3950,7 @@ public class Pokemon {
 //            Pokemon.this.currOwSprite = Pokemon.this.standingSprites.get(Pokemon.this.dirFacing);
             Pokemon.this.currOwSprite = this.trapinchSprite;
             game.insertAction(this.new DrawUpper());
+            Pokemon.this.standingAction = this;
         }
         
         @Override
@@ -4698,7 +4708,7 @@ class SpecialMewtwo1 extends Pokemon {
 
         this.baseStats.put("catchRate", 55);
         this.initHabitatValues();
-        
+
 //        // stats formulas here
 //        calcMaxStats();
 //        this.currentStats = new HashMap<String, Integer>(this.maxStats); // copy maxStats

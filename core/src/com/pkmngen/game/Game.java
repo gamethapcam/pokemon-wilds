@@ -445,16 +445,33 @@ public class Game extends ApplicationAdapter {
                     }
                     Pixmap currPixmap = temp.consumePixmap();
                     pixmap.drawPixmap(currPixmap, (int)(currPos.x-tl.x), (int)(tl.y-currPos.y)+(16-(int)currPixmap.getHeight()));
+                }
+
+                // Draw all tiles onto the pixmap from top-left to bottom-right
+                for (Vector2 currPos = tl.cpy(); currPos.y >= br.y-16; currPos.x += 16) {
+                    if (currPos.x > br.x+16) {
+                        currPos.x = tl.x-16;
+                        currPos.y -= 16;
+                        continue;
+                    }
+                    Tile currTile = this.map.tiles.get(currPos);
+                    if (currTile == null) {
+                        continue;
+                    }
+                    if (currTile.nameUpper.equals("solid")) {  // this gets drawn over oversprites
+                        continue;
+                    }
                     if (currTile.overSprite == null) {
                         continue;
                     }
-                    temp = currTile.overSprite.getTexture().getTextureData();
+                    TextureData temp = currTile.overSprite.getTexture().getTextureData();
                     if (!temp.isPrepared()) {
                         temp.prepare();
                     }
-                    currPixmap = temp.consumePixmap();
+                    Pixmap currPixmap = temp.consumePixmap();
                     pixmap.drawPixmap(currPixmap, (int)(currPos.x-tl.x), (int)(tl.y-currPos.y)+(16-(int)currPixmap.getHeight()));
                 }
+
                 FileHandle file = new FileHandle("screenshot1.png");
                 PixmapIO.writePNG(file, pixmap);
                 System.out.println("Done.");
@@ -702,22 +719,27 @@ public class Game extends ApplicationAdapter {
 //        this.uiBatch.draw(this.frameBuffer.getColorBufferTexture(), 0, 0);  // TODO: test
         // Iterate through the action stack and call the step() fn of each Action.
         for (Action action : new ArrayList<Action>(this.actionStack)) {
-            if (action.getCamera().equals("gui")) {
-                try {
+            // TODO: what is causing this?
+            if (action == null) {
+                continue;
+            }
+            try {
+                if (action.getCamera().equals("gui")) {
                     if (action.firstStep) {
                         action.firstStep(this);
                         action.firstStep = false;
                     }
                     action.step(this);
                 }
-                catch (Exception e) {
-                    e.printStackTrace();
-                    if (this.logFile != null) {
-                        try {
-                            this.logFile.append(e.toString());
-                        } catch (IOException e1) {
-                            e1.printStackTrace();
-                        }
+            }
+            catch (Exception e) {
+                e.printStackTrace();
+                System.out.println(action);
+                if (this.logFile != null) {
+                    try {
+                        this.logFile.append(e.toString());
+                    } catch (IOException e1) {
+                        e1.printStackTrace();
                     }
                 }
             }
@@ -854,15 +876,11 @@ public class Game extends ApplicationAdapter {
 //            this.player.pokemon.add(new Pokemon("masquerain", 60, Pokemon.Generation.CRYSTAL));
             this.player.pokemon.add(new Pokemon("lotad", 70, Pokemon.Generation.CRYSTAL));
             this.player.pokemon.add(new Pokemon("parasect", 46, Pokemon.Generation.CRYSTAL));
-            this.player.pokemon.add(new Pokemon("ampharos", 46, Pokemon.Generation.CRYSTAL));
-            this.player.pokemon.add(new Pokemon("krookodile", 46, Pokemon.Generation.CRYSTAL));
+            this.player.pokemon.add(new Pokemon("poochyena", 46, Pokemon.Generation.CRYSTAL));
+            this.player.pokemon.add(new Pokemon("ursaring", 46, Pokemon.Generation.CRYSTAL));
             this.player.pokemon.get(2).attacks[0] = "false swipe";
 
 
-            this.player.pokemon.get(0).attacks[0] = "false swipe";
-            this.player.pokemon.get(0).attacks[1] = "false swipe";
-            this.player.pokemon.get(0).attacks[2] = "false swipe";
-            this.player.pokemon.get(0).attacks[3] = "false swipe";
 
             // TODO: remove
 //            this.player.pokemon.add(new Pokemon("charizard", 60, Pokemon.Generation.CRYSTAL));

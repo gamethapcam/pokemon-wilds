@@ -1854,6 +1854,7 @@ class DrawSetupMenu extends Action {
                                     }
                                 });
                                 // TODO: uncomment
+                                thread.setPriority(Thread.MIN_PRIORITY);
                                 thread.start();
                                 
                                 

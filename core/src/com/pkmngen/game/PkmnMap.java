@@ -2197,11 +2197,16 @@ class Route {
             this.allowedPokemon.add("mankey");
             this.allowedPokemon.add("shroomish");  // nuuk
 //            this.allowedPokemon.add("girafarig");  // TODO: enable when decent overworld sprite
-            for (int i = 0; i < 2; i++) {
-                this.allowedPokemon.add("bulbasaur");
-                this.allowedPokemon.add("charmander");
-                this.allowedPokemon.add("chikorita");
-            }
+
+            // TODO: test with these removed
+            // TODO: make sure there are still roaming bulbasaur
+//            for (int i = 0; i < 2; i++) {
+//                this.allowedPokemon.add("bulbasaur");
+//                this.allowedPokemon.add("charmander");
+//                this.allowedPokemon.add("chikorita");
+//            }
+
+
             // TODO: remove
 //            this.music = Gdx.audio.newMusic(Gdx.files.internal("route1_1.ogg"));
 //            this.music.setLooping(true);
@@ -2253,11 +2258,11 @@ class Route {
             this.allowedPokemon.add("staryu");
             this.allowedPokemon.add("marill");  // this guy never spawns as Azumarill
             this.allowedPokemon.add("slowpoke");
-            this.allowedPokemon.add("poliwag");
+//            this.allowedPokemon.add("poliwag");
             //
             this.allowedPokemon.add("wingull");  // nuuk
-            this.allowedPokemon.add("surskit");  // nuuk
-            this.allowedPokemon.add("lotad");  // nuuk
+//            this.allowedPokemon.add("surskit");  // nuuk
+//            this.allowedPokemon.add("lotad");  // nuuk
             //
             this.allowedPokemon.add("corphish");  // sir-feralipogchamp discord
             //
@@ -2287,6 +2292,15 @@ class Route {
 //            this.allowedPokemon.add("drapion");    // high-level
 //            this.allowedPokemon.add("trapinch");  // TODO: was prism, remove
 //            this.allowedPokemon.add("vibrava");
+        }
+        else if (name.equals("oasis1")) {
+            this.allowedPokemon.add("surskit");
+            this.allowedPokemon.add("poliwag");
+            this.allowedPokemon.add("lotad");
+            this.allowedPokemon.add("lombre");
+            this.allowedPokemon.add("zigzagoon");  // TODO: need ow sprite
+            this.allowedPokemon.add("sandshrew");
+            this.allowedPokemon.add("exeggcute");
         }
         else if (name.equals("snow1")) {
             this.allowedPokemon.add("larvitar");
@@ -3376,7 +3390,7 @@ class Tile {
             Texture playerText = TextureCache.get(Gdx.files.internal("tiles/aloe_large1.png"));
             this.sprite = new Sprite(playerText, 0, 0, 32, 32);
             this.attrs.put("solid", true);
-            
+
         } else if (tileName.contains("cactus")) {
 //            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/sand1.png"));
 //            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/desert4.png")); 

@@ -6003,7 +6003,22 @@ class CatchPokemonWobblesThenCatch extends Action {
                 game.actionStack.remove(game.battle.oppPokemon.standingAction);
                 game.battle.oppPokemon.standingAction = null;
                 // ... and remove it from game.map.pokemon.
-                game.map.pokemon.remove(game.battle.oppPokemon.position);  // TODO: may not work if pkmn is frozen
+                // If pokemon was burrowed, remove it from it's tile's items
+                // (burrowed mon is contained in items)
+                if (game.battle.oppPokemon.isTrapping) {
+                    Tile tile = game.map.tiles.get(game.battle.oppPokemon.position);
+                    tile.items.remove(game.battle.oppPokemon.name.toLowerCase());
+                }
+                // else it's in the overworld so remove
+                else {
+                    game.map.pokemon.remove(game.battle.oppPokemon.position);  // TODO: may not work if pkmn is frozen
+                }
+            }
+            // If pokemon was burrowed, remove it from it's tile's items
+            // (burrowed mon is contained in items)
+            if (game.battle.oppPokemon.isTrapping) {
+                Tile tile = game.map.tiles.get(game.battle.oppPokemon.position);
+                tile.items.remove(game.battle.oppPokemon.name.toLowerCase());
             }
             // Since pkmn was caught, add to players pokemon
             Action newAction = new PokemonCaughtEvents(game,
@@ -6403,7 +6418,16 @@ class DepleteEnemyHealth extends Action {
                     // it gets garbage collected :O
                     game.actionStack.remove(game.battle.oppPokemon.standingAction);
                     game.battle.oppPokemon.standingAction = null;
-                    game.map.pokemon.remove(game.battle.oppPokemon.position);
+                    // If pokemon was burrowed, remove it from it's tile's items
+                    // (burrowed mon is contained in items)
+                    if (game.battle.oppPokemon.isTrapping) {
+                        Tile tile = game.map.tiles.get(game.battle.oppPokemon.position);
+                        tile.items.remove(game.battle.oppPokemon.name.toLowerCase());
+                    }
+                    // else it's in the overworld so remove
+                    else {
+                        game.map.pokemon.remove(game.battle.oppPokemon.position);
+                    }
                 }
                 nextAction.append(new SetField(game, "playerCanMove", true, null));
                 game.insertAction(nextAction);
