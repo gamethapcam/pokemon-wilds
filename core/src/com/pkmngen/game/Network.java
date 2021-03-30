@@ -881,11 +881,9 @@ public class Network {
      */
     static public class PokemonData extends PokemonDataV04 {
         public String gender = null;
-//        public String eggHatchInto = null;
+        public String eggHatchInto = null;
         public int friendliness = 0;  // mistakenly didn't include this in v0.4
         public boolean aggroPlayer = false;
-		public boolean isEgg = false;
-		public boolean isGhost = false;
 
         public PokemonData() {
             super();
@@ -894,7 +892,10 @@ public class Network {
         public PokemonData(Pokemon pokemon) {
             super(pokemon);
             this.gender = pokemon.gender;
-            this.isEgg = pokemon.isEgg;
+            if (pokemon.isEgg) {
+                this.eggHatchInto = pokemon.specie.name;
+                this.name = "egg";
+            }
             this.friendliness = pokemon.happiness;
             this.aggroPlayer = pokemon.aggroPlayer;
         }
@@ -902,7 +903,10 @@ public class Network {
         public PokemonData(Pokemon pokemon, int index) {
             super(pokemon, index);
             this.gender = pokemon.gender;
-            this.isEgg = pokemon.isEgg;
+            if (pokemon.isEgg) {
+                this.eggHatchInto = pokemon.specie.name;
+                this.name = "egg";
+            }
             this.friendliness = pokemon.happiness;
             this.aggroPlayer = pokemon.aggroPlayer;
         }
@@ -1978,7 +1982,8 @@ class ServerBroadcast extends Action {
                             // ideally, need to handle ghost spawning from the server side.
                             else if (object instanceof Network.BattleData) {
                                 Network.BattleData battleData = (Network.BattleData) object;
-                                if (!battleData.pokemonData.isGhost) {
+                                // TODO: this is broken now
+                                if (!battleData.pokemonData.name.equals("ghost")) {
                                     System.out.println("BattleData: Invalid encounter for " + battleData.pokemonData.name + ", sent by: " + connection.getRemoteAddressTCP().toString());
                                     throw new Exception();
                                 }

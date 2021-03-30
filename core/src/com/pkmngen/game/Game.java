@@ -835,7 +835,7 @@ public class Game extends ApplicationAdapter {
 //            this.player.pokemon.add(new Pokemon("egg", 1, Pokemon.Generation.CRYSTAL, false, "skarmory"));
 //            this.player.pokemon.add(new Pokemon("registeel", 40, Pokemon.Generation.CRYSTAL, true));
 //            this.player.pokemon.add(new Pokemon("masquerain", 60, Pokemon.Generation.CRYSTAL));
-            this.player.pokemon.add(new Pokemon("lotad", 5, false, true));
+            this.player.pokemon.add(new Pokemon("lotad", 5, Pokemon.Generation.CRYSTAL, false, true));
             this.player.pokemon.add(new Pokemon("parasect", 46));
             this.player.pokemon.add(new Pokemon("ampharos", 46));
             this.player.pokemon.add(new Pokemon("whismur", 46));

@@ -399,10 +399,13 @@ public class Pokemon {
         // TODO: I guess I will have to rename this to Network.PokemonDataV05 when moving to v0.6
         // TODO: if I don't rename this, it will introduce a bug. I can't think of a better way to do it tho.
         if (Network.PokemonData.class.isInstance(pokemonData)) {
-            this.isEgg = ((Network.PokemonData)pokemonData).isEgg;
+            this.isEgg = ((Network.PokemonData)pokemonData).name.equals("egg");
+            if (((Network.PokemonData)pokemonData).eggHatchInto != null) {
+                pokemonData.name = ((Network.PokemonData)pokemonData).eggHatchInto;
+            }
         }
 
-        this.init(pokemonData.name, pokemonData.level, pokemonData.isShiny, this.isEgg);
+        this.init(pokemonData.name, pokemonData.level, pokemonData.generation, pokemonData.isShiny, this.isEgg);
 //        this.isShiny = pokemonData.isShiny;
         this.currentStats.put("hp", pokemonData.hp);
         this.attacks[0] = pokemonData.attacks[0];
@@ -449,22 +452,20 @@ public class Pokemon {
         }
     }
 
-//    public Pokemon (String name, int level) {
-//        // generation defaults to RED
-//        this(name, level);
-//    }
-    
     public Pokemon (String name, int level) {
-        this(name, level, Pokemon.rand.nextInt(256) == 0);
-//        System.out.println("here3");
+        this(name, level, Generation.CRYSTAL);
     }
 
-    public Pokemon (String name, int level, boolean isShiny) {
-        this(name, level, isShiny, false);
+    public Pokemon (String name, int level, Generation generation) {
+        this(name, level, generation, Pokemon.rand.nextInt(256) == 0);
+    }
+    
+    public Pokemon (String name, int level, Generation generation, boolean isShiny) {
+        this(name, level, generation, isShiny, false);
     }
 
-    public Pokemon (String name, int level, boolean isShiny, boolean isEgg) {
-        this.init(name, level, isShiny, isEgg);
+    public Pokemon (String name, int level, Generation generation, boolean isShiny, boolean isEgg) {
+        this.init(name, level, generation, isShiny, isEgg);
     }
     
     public void updateSpecieInfo(String name) {
@@ -504,7 +505,6 @@ public class Pokemon {
         {
             System.out.println("No such specie exists: " + name);
         }
-        this.generation = specie.generation;
 
         //set sprites, backsprites, & intro animations
         if(isEgg) {
@@ -531,28 +531,29 @@ public class Pokemon {
         this.types = specie.types;
         this.growthRateGroup = specie.growthRateGroup;
         this.eggGroups = specie.eggGroups;
-        this.hms = specie.hms;
+        if (!this.isEgg) {
+            this.hms = specie.hms;
+        }
         this.loadOverworldSprites();
-        // stats formulas here
+        // Stats formulas here
         calcMaxStats();
-
         this.initHabitatValues();
     }
     /**
      * TODO: remove isShiny and eggHatchInto params, just set before calling init.
      */
-    public void init(String name, int level, boolean isShiny, boolean isEgg) {
+    public void init(String name, int level, Generation generation, boolean isShiny, boolean isEgg) {
         // levels have to be >= 1
         if (level <= 0) {
             System.out.println("Bad level: " + String.valueOf(level));
             level = 1;
         }
+        this.generation = generation;
         this.level = level;
         this.isEgg = isEgg;
         this.isShiny = isShiny;  //Pokemon.rand.nextInt(256) == 0;
         updateSpecieInfo(name);
         this.currentStats = new HashMap<String, Integer>(this.maxStats); // copy maxStats   
-
 
         // init vars
         this.angry = 0;
@@ -793,7 +794,8 @@ public class Pokemon {
         this.isEgg = false;
         this.loadOverworldSprites();
         this.name = this.specie.name;
-        if(isShiny)
+        this.hms = this.specie.hms;
+        if (this.isShiny)
         {
             this.sprite = specie.spriteShiny;
             this.backSprite = specie.backSpriteShiny;
@@ -1397,7 +1399,7 @@ public class Pokemon {
                 if (baseSpecies.equals("nidoran_f") && Game.rand.nextInt(256) < 128) {
                     baseSpecies = "nidoran_m";
                 }
-                Pokemon pokemonEgg = new Pokemon(baseSpecies, 5, Game.rand.nextInt(256) == 0, true);
+                Pokemon pokemonEgg = new Pokemon(baseSpecies, 5, Generation.CRYSTAL, Game.rand.nextInt(256) == 0, true);
                 // Find first empty attack slot in pokemon egg (first egg move is put here)
                 int currIndex = 0;
                 for (int i=0; i < pokemonEgg.attacks.length; i++) {

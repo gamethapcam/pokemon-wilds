@@ -1205,6 +1205,7 @@ public class Specie {
         int height = pokemonText.getWidth();
         this.sprite = new SpriteProxy(pokemonText, 0, 0, height, height);
         pokemonText = Specie.textures.get(name+"_front_shiny");
+        System.out.println(name);
         height = pokemonText.getWidth();
         this.spriteShiny = new SpriteProxy(pokemonText, 0, 0, height, height);
         //        if (!Specie.textures.containsKey(name+"_back")) {
