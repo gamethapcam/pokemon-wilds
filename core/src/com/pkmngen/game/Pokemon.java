@@ -22,7 +22,12 @@ import com.pkmngen.game.util.Direction;
 import com.pkmngen.game.util.SpriteProxy;
 import com.pkmngen.game.util.TextureCache;
 
+
+
+
 public class Pokemon {
+	
+	
 
     // TODO: eventually remove
     public static ArrayList<String> attacksNotImplemented = new ArrayList<String>();
@@ -223,19 +228,18 @@ public class Pokemon {
         if (name.contains("unown")) {
             name = "unown";
         }
-        if (name.equals("ghost")) {
-            return "000";
-        }
-        if (name.equals("egg")) {
-            return "999";
-        }
-        // TODO: revisit after nickname implemented
-//        if (name.equals("farfetch_d")){
-//        	name = "farfetch’d";
+//        if (name.equals("ghost")) {
+//            return "000";
 //        }
-//        if(name.equals("ho_oh")) {
-//        	name = "ho-oh";
+//        if (name.equals("egg")) {
+//            return "999";
 //        }
+        if (name.equals("farfetch_d")){
+        	name = "farfetch’d";
+        }
+        if(name.equals("ho_oh")) {
+        	name = "ho-oh";
+        }
         int lineNum = 1;
         try {
             FileHandle file = Gdx.files.internal("crystal_pokemon/pokemon_to_index.txt");
@@ -243,7 +247,7 @@ public class Pokemon {
             BufferedReader br = new BufferedReader(reader);
             String line;
             while ((line = br.readLine()) != null)   {
-                if (line.toLowerCase().equals(name)) {
+                if (line.equalsIgnoreCase(name)) {
                     break;
                 }
                 lineNum++;
@@ -350,7 +354,9 @@ public class Pokemon {
     // Egg is going to contain ivs, moves, etc of pokemon it evolves to
     // this isn't changed anyway via evolveTo() so should be able to use
     // that (?)
-    String eggHatchInto = null;  // Pokemon that egg hatches into.
+//    String eggHatchInto = null;  // Pokemon that egg hatches into. 
+    boolean isEgg = false;
+    boolean isGhost = false; //for Silph Scope. Set externally by the caller.
     Pokemon loveInterest = null;  // Which pokemon this pokemon may breed with.
     int layEggTimerMax = 3600*2;  // 3600*1
     int layEggTimer = layEggTimerMax;
@@ -393,10 +399,10 @@ public class Pokemon {
         // TODO: I guess I will have to rename this to Network.PokemonDataV05 when moving to v0.6
         // TODO: if I don't rename this, it will introduce a bug. I can't think of a better way to do it tho.
         if (Network.PokemonData.class.isInstance(pokemonData)) {
-            this.eggHatchInto = ((Network.PokemonData)pokemonData).eggHatchInto;
+            this.isEgg = ((Network.PokemonData)pokemonData).isEgg;
         }
 
-        this.init(pokemonData.name, pokemonData.level, pokemonData.generation, pokemonData.isShiny, this.eggHatchInto);
+        this.init(pokemonData.name, pokemonData.level, pokemonData.isShiny, this.isEgg);
 //        this.isShiny = pokemonData.isShiny;
         this.currentStats.put("hp", pokemonData.hp);
         this.attacks[0] = pokemonData.attacks[0];
@@ -442,21 +448,23 @@ public class Pokemon {
             this.aggroPlayer = ((Network.PokemonData)pokemonData).aggroPlayer;
         }
     }
+
+//    public Pokemon (String name, int level) {
+//        // generation defaults to RED
+//        this(name, level);
+//    }
     
     public Pokemon (String name, int level) {
-        this(name, level, Pokemon.Generation.CRYSTAL);
-    }
-    
-    public Pokemon (String name, int level, Generation generation) {
-        this(name, level, generation, Pokemon.rand.nextInt(256) == 0);
+        this(name, level, Pokemon.rand.nextInt(256) == 0);
+//        System.out.println("here3");
     }
 
-    public Pokemon (String name, int level, Generation generation, boolean isShiny) {
-        this(name, level, generation, isShiny, null);
+    public Pokemon (String name, int level, boolean isShiny) {
+        this(name, level, isShiny, false);
     }
 
-    public Pokemon (String name, int level, Generation generation, boolean isShiny, String eggHatchInto) {
-        this.init(name, level, generation, isShiny, eggHatchInto);
+    public Pokemon (String name, int level, boolean isShiny, boolean isEgg) {
+        this.init(name, level, isShiny, isEgg);
     }
     
     public void updateSpecieInfo(String name) {
@@ -466,12 +474,10 @@ public class Pokemon {
             // Very clunky looking, but I don't know of a better way
             if (Thread.currentThread() != Game.staticGame.gameThread) {
                 final String finalName = this.name;
-                final Generation finalGeneration = this.generation;
-                final String finalEgg = this.eggHatchInto;
                 Runnable runnable = new Runnable() {
                     public void run() {
                         try {
-                            Specie.species.put(finalName, new Specie(finalName, finalGeneration, finalEgg));
+                            Specie.species.put(finalName, new Specie(finalName));
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
@@ -490,7 +496,7 @@ public class Pokemon {
                 }
             }
             else {
-                Specie.species.put(this.name, new Specie(this.name, this.generation, this.eggHatchInto));
+                Specie.species.put(this.name, new Specie(this.name));
             }
         }
         this.specie = Specie.species.get(this.name);
@@ -498,9 +504,17 @@ public class Pokemon {
         {
             System.out.println("No such specie exists: " + name);
         }
+        this.generation = specie.generation;
 
-        // Set sprites, backsprites, & intro animations
-        if(isShiny) {
+        //set sprites, backsprites, & intro animations
+        if(isEgg) {
+            this.name = "Egg";
+            this.sprite = Specie.spriteEgg;
+            this.backSprite = Specie.backSpriteEgg;
+            this.introAnim = new ArrayList<SpriteProxy>();
+        }
+        else if(isShiny)
+        {
             this.sprite = specie.spriteShiny;
             this.backSprite = specie.backSpriteShiny;
             this.introAnim = specie.introAnimShiny;
@@ -527,16 +541,15 @@ public class Pokemon {
     /**
      * TODO: remove isShiny and eggHatchInto params, just set before calling init.
      */
-    public void init(String name, int level, Generation generation, boolean isShiny, String eggHatchInto) {
+    public void init(String name, int level, boolean isShiny, boolean isEgg) {
         // levels have to be >= 1
         if (level <= 0) {
             System.out.println("Bad level: " + String.valueOf(level));
             level = 1;
         }
         this.level = level;
-        this.eggHatchInto = eggHatchInto;
+        this.isEgg = isEgg;
         this.isShiny = isShiny;  //Pokemon.rand.nextInt(256) == 0;
-        this.generation = generation;
         updateSpecieInfo(name);
         this.currentStats = new HashMap<String, Integer>(this.maxStats); // copy maxStats   
 
@@ -701,7 +714,7 @@ public class Pokemon {
             }
 
             // Check for potential 'mates' (pokemon breeding mechanic)
-            if (!this.name.equals("egg") &&
+            if (!this.isEgg &&
                 this.loveInterest == null &&
                 game.map.pokemon.containsKey(currPos) &&
                 game.map.pokemon.get(currPos) != this &&
@@ -730,7 +743,7 @@ public class Pokemon {
                         }
                     }
                 }
-                if (!potentialMate.name.equals("egg") &&
+                if (!potentialMate.isEgg &&
                     genderCompatible && sameEggGroup &&
                     potentialMate.loveInterest == null) {
                     this.loveInterest = potentialMate;
@@ -773,6 +786,60 @@ public class Pokemon {
         }
     }
 
+    /*
+     * Turn off egg flag & reset overworld textures
+     * */
+    void hatch() {
+        this.isEgg = false;
+        this.loadOverworldSprites();
+        this.name = this.specie.name;
+        if(isShiny)
+        {
+            this.sprite = specie.spriteShiny;
+            this.backSprite = specie.backSpriteShiny;
+            this.introAnim = specie.introAnimShiny;
+        }
+        else {
+            this.sprite = specie.sprite;
+            this.backSprite = specie.backSprite;
+            this.introAnim = specie.introAnim;
+        }
+    }
+    /*
+     * Called when setting up a Ghost encounter
+     * */
+    void spookify() {
+        this.isGhost = true;
+        this.name = "Ghost";
+        this.sprite = Specie.spriteGhost;
+        this.backSprite = null;
+        this.introAnim = Specie.introAnimGhost;
+    }
+    /*
+     * Called when Silph Scope is used
+     * */
+    public Pokemon revealGhost() {
+        this.isGhost = false;
+        this.loadOverworldSprites();
+        this.name = this.specie.name;
+        //need to store these as the Sprite will be reset once the ghost is revealed
+        float x = this.sprite.getX();
+        float y = this.sprite.getY();
+        if(isShiny)
+        {
+            this.sprite = specie.spriteShiny;
+            this.backSprite = specie.backSpriteShiny;
+            this.introAnim = specie.introAnimShiny;
+        }
+        else {
+            this.sprite = specie.sprite;
+            this.backSprite = specie.backSprite;
+            this.introAnim = specie.introAnim;
+        }
+        //reset the new sprite to the correct place in the Battle
+        this.sprite.setPosition(x, y);
+        return this;
+    }
     /**
      * Compute changes required by evolution.
      */
@@ -922,24 +989,24 @@ public class Pokemon {
         }
     }
 
-
+   
 
     void loadOverworldSprites() {                
-        // If this is an egg, load special texture for the overworld sprite
-        if (this.name.equals("egg")) {
-            this.movingSprites = specie.movingSpritesEgg;
-            this.altMovingSprites = specie.altMovingSpritesEgg;
-            this.standingSprites = specie.standingSpritesEgg;
-            this.avatarSprites = specie.avatarSpritesEgg;
-        }
-        else //otherwise, set normal overworld textures
-        {
-            this.spriteOffsetY = specie.spriteOffsetY;
-            this.movingSprites = specie.movingSprites;
-            this.altMovingSprites = specie.altMovingSprites;
-            this.standingSprites = specie.standingSprites;
-            this.avatarSprites = specie.avatarSprites;
-        }       
+            // If this is an egg, load special texture for the overworld sprite
+            if (this.isEgg) {
+            	this.movingSprites = specie.movingSpritesEgg;
+                this.altMovingSprites = specie.altMovingSpritesEgg;
+                this.standingSprites = specie.standingSpritesEgg;
+                this.avatarSprites = specie.avatarSpritesEgg;
+            }
+            else //otherwise, set normal overworld textures
+            {
+            	this.spriteOffsetY = specie.spriteOffsetY;
+                this.movingSprites = specie.movingSprites;
+                this.altMovingSprites = specie.altMovingSprites;
+                this.standingSprites = specie.standingSprites;
+                this.avatarSprites = specie.avatarSprites;
+            }       
     }
 
     
@@ -1011,7 +1078,7 @@ public class Pokemon {
                 return;
             }
             Action newAction;
-            if (Pokemon.this.name.equals("egg") && Pokemon.this.previousOwner != game.player) {
+            if (Pokemon.this.isEgg && Pokemon.this.previousOwner != game.player) {
                 newAction = //new SetField(game, "playerCanMove", false,
                             new DisplayText(game, game.player.name+" received an EGG.", "Berry_Get.ogg", null,
                             //new SetField(game, "playerCanMove", true,
@@ -1035,7 +1102,7 @@ public class Pokemon {
                     if (pokemon == null) {
                         continue;
                     }
-                    if (pokemon.name.equals("egg")) {
+                    if (pokemon.isEgg) {
                         continue;
                     }
                     // Pokemon that are friendly to the player don't aggro
@@ -1114,7 +1181,7 @@ public class Pokemon {
 
         @Override
         public void firstStep(Game game) {
-            this.isEgg = Pokemon.this.name.equals("egg");
+            this.isEgg = Pokemon.this.isEgg;
         }
 
         @Override
@@ -1330,7 +1397,7 @@ public class Pokemon {
                 if (baseSpecies.equals("nidoran_f") && Game.rand.nextInt(256) < 128) {
                     baseSpecies = "nidoran_m";
                 }
-                Pokemon pokemonEgg = new Pokemon("egg", 5, Generation.CRYSTAL, Game.rand.nextInt(256) == 0, baseSpecies);
+                Pokemon pokemonEgg = new Pokemon(baseSpecies, 5, Game.rand.nextInt(256) == 0, true);
                 // Find first empty attack slot in pokemon egg (first egg move is put here)
                 int currIndex = 0;
                 for (int i=0; i < pokemonEgg.attacks.length; i++) {
@@ -1718,7 +1785,7 @@ public class Pokemon {
             // Right now, if pokemon hatches from egg in overworld
             // this will remain frozen. But that's okay b/c they
             // can't hatch in the overworld.
-            this.isEgg = Pokemon.this.name.equals("egg");
+            this.isEgg = Pokemon.this.isEgg;
         }
 
         public void localStep(Game game) {
@@ -2248,6 +2315,7 @@ class SpecialMewtwo1 extends Pokemon {
 
     public SpecialMewtwo1(int level, Tile tile) {
         // initialize variables
+//        super("Mewtwo", level);
         super("Mewtwo", level);
         this.tile = tile;
         // gen I properties
