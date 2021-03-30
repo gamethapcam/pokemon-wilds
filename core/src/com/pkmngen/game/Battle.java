@@ -45,7 +45,7 @@ class AfterFriendlyFaint extends Action {
         game.actionStack.remove(this);
         boolean hasAlivePokemon = false;
         for (Pokemon pokemon : game.player.pokemon) {
-            if (pokemon.currentStats.get("hp") > 0 && !pokemon.isEgg) {
+            if (pokemon.currentStats.get("hp") > 0 && !pokemon.name.equals("egg")) {
                 hasAlivePokemon = true;
                 break;
             }
@@ -61,7 +61,7 @@ class AfterFriendlyFaint extends Action {
         }
         // Restore hp to half for each pokemon if player whites out.
         for (Pokemon pokemon : game.player.pokemon) {
-            if (pokemon.isEgg) {
+            if (pokemon.name.equals("egg")) {
                 continue;
             }
             pokemon.currentStats.put("hp", pokemon.maxStats.get("hp")/2);
@@ -4171,21 +4171,29 @@ public class Battle {
                     }
                 }
                 else if (itemName.equals("silph scope")) {
-
+                    // Replace oppPokemon with a random ghost
+                    // and play the fade in/out animation
+                    String[] pokemon = new String[]{"litwick", "lampent", "chandelure",
+                                                    "mimikyu", "misdreavus", "sableye",
+                                                    "gastly", "haunter", "gengar"};
+                    Pokemon ghost = new Pokemon(pokemon[Game.rand.nextInt(pokemon.length)],
+                                                game.battle.oppPokemon.level);
+                    ghost.sprite.setPosition(game.battle.oppPokemon.sprite.getX(),
+                                             game.battle.oppPokemon.sprite.getY());
                     playerAction = new DisplayText(game, game.player.name+" used "+itemName.toUpperCase()+"!",
                                                    null, true, false,
                                    new SplitAction(
                                        new WaitFrames(game, 96,
-                                       new CallMethod(game.battle.oppPokemon, "revealGhost", new Object[] {},
+                                       new SetField(game.battle, "oppPokemon", ghost,
                                        null)),
                                    new FadeAnim(game, 8,
                                    new SplitAction(new WaitFrames(game, 4,
-                                                   new PlaySound(new Pokemon(game.battle.oppPokemon.specie.name,10),
+                                                   new PlaySound(ghost,
                                                    null)),
                                    new PokemonIntroAnim(
                                    new DisplayText.Clear(game,
                                    new WaitFrames(game, 3,
-                                   new DisplayText(game, "Enemy "+game.battle.oppPokemon.specie.name.toUpperCase()+" was revealed!",
+                                   new DisplayText(game, "Enemy "+ghost.name.toUpperCase()+" was revealed!",
                                                    null, null,
                                    null))))))));
                 }
@@ -7568,7 +7576,7 @@ class DrawEnemyHealth extends Action {
             }
             // Draw gender icon if the enemy pokemon is male or female
 //            int nameOffset = game.battle.oppPokemon.name.length() > 8 ? game.battle.oppPokemon.name.length()-8 : 0;
-            if (!game.battle.oppPokemon.isGhost) {
+            if (!game.battle.oppPokemon.name.equals("ghost")) {
                 if (game.battle.oppPokemon.gender.equals("male")) {
                     game.uiBatch.draw(TextureCache.maleSymbol, 72 +this.translateAmt.x, 136 -8);
                 }
@@ -8370,7 +8378,7 @@ class DrawPokemonMenu extends MenuAction {
                 letterSprite = game.textDict.get(textArray[j]);
                 game.uiBatch.draw(letterSprite, 24 +8*j, 136 -16*i);
             }
-            if (currPokemon.isEgg) {
+            if (currPokemon.name.equals("egg")) {
                 continue;
             }
 
@@ -8571,7 +8579,7 @@ class DrawPokemonMenu extends MenuAction {
             // TODO: wouldn't need this if had yield, could insert yield in DrawUseTossMenu
             if (this.item != null) {
                 // Items can't be used on eggs
-                if (currPokemon.isEgg) {
+                if (currPokemon.name.equals("egg")) {
                     game.insertAction(new DisplayText(game, "It wonì have any effect.", null, null,
                                       new SetField(this, "goAway", true,
                                       new DrawPokemonMenu.Outro(
@@ -8818,7 +8826,7 @@ class DrawPokemonMenu extends MenuAction {
                            null)));
                 }
                 // Don't allow switch to fainted pokemon or egg
-                else if (currPokemon.currentStats.get("hp") <= 0 || currPokemon.isEgg) {
+                else if (currPokemon.currentStats.get("hp") <= 0 || currPokemon.name.equals("egg")) {
                     this.disabled = true;
                     game.insertAction(this.prevMenu);
                     return new PlaySound("error1",
@@ -8885,7 +8893,7 @@ class DrawPokemonMenu extends MenuAction {
                     if (pokemon == otherPokemon) {
                         continue;
                     }
-                    if (otherPokemon.currentStats.get("hp") > 0 && !otherPokemon.isEgg) {
+                    if (otherPokemon.currentStats.get("hp") > 0 && !otherPokemon.name.equals("egg")) {
                         hasOneHealthyPokemon = true;
                         break;
                     }
@@ -10082,7 +10090,7 @@ class DrawUseTossMenu extends MenuAction {
             return;
         }
         // Silph scope must be used on a ghost
-        if (itemName.equals("silph scope") && !game.battle.oppPokemon.isGhost) {
+        if (itemName.equals("silph scope") && !game.battle.oppPokemon.name.equals("ghost")) {
             game.insertAction(this.prevMenu);
             game.insertAction(new PlaySound("error1",
                               new SetField(this.prevMenu, "disabled", false,
@@ -10090,7 +10098,7 @@ class DrawUseTossMenu extends MenuAction {
             return;
         }
         // Not allowed to catch ghosts (for now)
-        if (itemName.contains("ball") && game.battle.oppPokemon.isGhost) {
+        if (itemName.contains("ball") && game.battle.oppPokemon.name.equals("ghost")) {
             game.insertAction(new DisplayText(game, game.battle.oppPokemon.name.toUpperCase()+" canì be caught!", null, null,
                               new SetField(this.prevMenu, "disabled", false,
                               this.prevMenu)));
@@ -10594,7 +10602,8 @@ class EggHatchAnim extends Action {
         EggHatchAnim.drawSprite = false;
         EggHatchAnim.isDone = false;
 
-        this.pokemon.hatch();
+        this.pokemon.evolveTo(this.pokemon.eggHatchInto);
+        this.pokemon.eggHatchInto = null;
         
         // set oppPokemon to hatching pokemon in order to play intro animation
         game.battle.oppPokemon = this.pokemon;

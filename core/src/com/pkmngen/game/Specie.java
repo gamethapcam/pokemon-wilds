@@ -49,11 +49,7 @@ public class Specie {
         }
     }
 
-
     public static HashMap<String, Specie> species = new HashMap<String, Specie>();
-
-
-
 
     String name;
     String dexNumber;
@@ -68,96 +64,14 @@ public class Specie {
     Map<String, Integer> baseStats = new HashMap<String, Integer>();
 
     Generation generation;
+    String eggHatchInto;
 
     SpriteProxy sprite;
     SpriteProxy backSprite;
     SpriteProxy spriteShiny;
     SpriteProxy backSpriteShiny;
-    static SpriteProxy spriteGhost;
-    static SpriteProxy spriteEgg;
-    static SpriteProxy backSpriteEgg;
     ArrayList<SpriteProxy> introAnim;
     ArrayList<SpriteProxy> introAnimShiny;
-    static ArrayList<SpriteProxy> introAnimGhost;
-    static {
-        Texture text = null;
-
-        // Load sprite and animation data (cached)
-        if (!Specie.textures.containsKey("egg_front")) {
-            // Load front sprite
-            text = TextureCache.get(Gdx.files.internal("crystal_pokemon/pokemon/egg/front.png"));
-            Specie.textures.put("egg_front", text);
-            // back sprites
-            text = TextureCache.get(Gdx.files.internal("crystal_pokemon/pokemon/egg/back.png"));
-            Specie.textures.put("egg_back", text);
-
-        }
-
-        // Load sprite and animation data (cached)
-        if (!Specie.textures.containsKey("ghost_front")) {
-            // Load front sprite
-            text = TextureCache.get(Gdx.files.internal("crystal_pokemon/prism/pics/ghost/front.png"));
-            Specie.textures.put("ghost_front", text);
-        }
-
-        Texture pokemonText = Specie.textures.get("egg_front");
-        // height and width are the same for these sprites
-        int height = pokemonText.getWidth();
-        spriteEgg = new SpriteProxy(pokemonText, 0, 0, height, height);
-        pokemonText = Specie.textures.get("egg_back");
-        backSpriteEgg = new SpriteProxy(pokemonText, 0, 0, 48, 48);
-
-        pokemonText = Specie.textures.get("ghost_front");
-        height = pokemonText.getWidth();
-        spriteGhost = new SpriteProxy(pokemonText, 0, 0, height, height);
-
-
-        //Ghost intro animation
-        // Load animation(s) from file
-        introAnimGhost = new ArrayList<SpriteProxy>();
-
-        try {
-            FileHandle file = Gdx.files.internal("crystal_pokemon/prism/pics/ghost/anim0.asm");
-            Reader reader = file.reader();
-            BufferedReader br = new BufferedReader(reader);
-            String line;
-            int setrepeat = 0;
-            ArrayList<String> lines = new ArrayList<String>();
-            while ((line = br.readLine()) != null)   {
-                lines.add(line);
-            }
-            for (int i=0; i < lines.size(); ) {
-                line = lines.get(i);
-                if (line.contains("setrepeat")) {
-                    setrepeat = Integer.valueOf(line.split("setrepeat ")[1]);
-                } else if (line.contains("frame")) {
-                    String vals[] = line.split("frame ")[1].split(", ");
-                    int numFrames = Integer.valueOf(vals[1].trim());
-                    int frame = Integer.valueOf(vals[0]);
-                    for (int j=0; j < numFrames; j++) {
-                        //                        pokemonText = new Texture(Gdx.files.internal("crystal_pokemon/pokemon/" + name + "/front.png"));
-                        pokemonText = Specie.textures.get("ghost_front");
-                        SpriteProxy sprite = new SpriteProxy(pokemonText, 0, height*frame, height, height);
-                        introAnimGhost.add(sprite);
-                    }
-                } else if (line.contains("dorepeat")) {
-                    if (setrepeat != 0) {
-                        i = Integer.valueOf(line.split("dorepeat ")[1]);
-                        setrepeat--;
-                        continue;
-                    }
-                }
-                i++;
-            }
-            reader.close();
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-    }
-
 
     public int spriteOffsetY = 0;
 
@@ -182,30 +96,27 @@ public class Specie {
         habitats.add("green");
     }
 
-
-
-
     Specie(String name){
         //Defaults to generation RED 	
         this(name, Generation.CRYSTAL);
     }
 
     Specie(String name, Generation gen){
-        this.init(name, gen);
+        this(name, gen, null);
     }
 
-    public void init(String n, Generation generation) {
+    Specie(String name, Generation gen, String eggHatchInto){
+        this.init(name, gen, eggHatchInto);
+    }
+
+    public void init(String n, Generation generation, String eggHatchInto) {
 
         this.name = n.toLowerCase();
 
         //        this.eggHatchInto = eggHatchInto;
 
-
-        if (this.name.equals("unown")) {  // TODO: this was to fix a bug, remove
-            this.name = "unown_w";
-        }
-
         this.generation = generation;
+        this.eggHatchInto = eggHatchInto;
 
         this.types = new ArrayList<String>();
 
@@ -231,12 +142,6 @@ public class Specie {
                 this.loadPrismPokemon();
             }
             this.loadOverworldSprites();
-
-            // Custom attributes - better way to handle this?
-            //            if (name.equals("machop")) {
-            //                this.hms.add("CUT");  // TODO: debug, remove
-            ////                this.hms.add("BUILD");
-            //            }
 
             // Custom attributes - better way to handle this?
             if (name.equals("sneasel") || 
@@ -347,15 +252,11 @@ public class Specie {
             }
 
         }
-
         else {
             return;
         }
 
-
         this.initHabitatValues();
-
-        
     }
 
 
@@ -364,8 +265,6 @@ public class Specie {
      * Load pokemon sprites and data from crystal_pokemon files.
      */
     void loadCrystalPokemon() {
-
-
         String newName = name;
         if (name.contains("unown")) {
             newName = "unown";
@@ -754,8 +653,6 @@ public class Specie {
 
 
     void loadOverworldSprites() {
-
-
         // Load overworld sprites from file
         try {
             FileHandle file = Gdx.files.internal("crystal_pokemon/prism/pokemon_names.asm");
@@ -769,8 +666,10 @@ public class Specie {
             boolean found = false;
             boolean flip = true;  // some up/down animations are 2 frame
 
-            for (int i=0; i < lines.size(); ) {
-
+            for (int i=0; i < lines.size(); ) { 
+                if (name.equals("egg")) {   
+                    break;  
+                }
                 line = lines.get(i);
 
                 // TODO: no overworld sprites for some pokemon
@@ -924,47 +823,102 @@ public class Specie {
             }
             reader.close();
 
-
-            // If this is an egg, load special texture for the overworld sprite
-            // If cached egg texture doesn't exist in TextureCache.eggTextures, make
-            // a new pixmap with colors replaced.
-            String path = "";
-            if (Specie.nuukPokemon.contains(this.name)) {
-                path = "nuuk/";
-            }
-
-            loadEggTextures("crystal_pokemon/"+path+"pokemon/" + this.name + "/back.png");
-            //            }
             if (found) {
                 return;
             }
+
+            // If this is an egg, load special texture for the overworld sprite
+            if (this.name.equals("egg")) {
+//                Texture text = TextureCache.get(Gdx.files.internal("crystal_pokemon/egg1.png"));
+                // If cached egg texture doesn't exist in TextureCache.eggTextures, make
+                // a new pixmap with colors replaced.
+                String path = "";
+                if (Specie.nuukPokemon.contains(this.eggHatchInto)) {
+                    path = "nuuk/";
+                }
+
+                Texture text;
+                if (!TextureCache.eggTextures.containsKey(this.eggHatchInto)) {
+                    // TODO: won't work for prism pokemon
+                    text = TextureCache.get(Gdx.files.internal("crystal_pokemon/"+path+"pokemon/" + this.eggHatchInto + "/back.png"));
+                    int height = text.getWidth();
+                    SpriteProxy tempSprite = new SpriteProxy(text, 0, 0, height, height);
+//                    System.out.println(tempSprite.color1);
+//                    System.out.println(tempSprite.color2);
+                    // Replace colors in egg icon
+                    text = TextureCache.get(Gdx.files.internal("crystal_pokemon/egg1.png"));
+                    SpriteProxy tempEggSprite = new SpriteProxy(text, 0, 0, text.getWidth(), text.getHeight());
+                    //
+                    TextureData temp = text.getTextureData();
+                    if (!temp.isPrepared()) {
+                        temp.prepare();
+                    }
+                    Pixmap currPixmap = temp.consumePixmap();
+                    Pixmap newPixmap = new Pixmap(text.getWidth(), text.getHeight(), Pixmap.Format.RGBA8888);
+                    newPixmap.setColor(new Color(0, 0, 0, 0));
+                    newPixmap.fill();
+                    for (int i=0, j=0; j < text.getHeight(); i++) {
+                        if (i > text.getWidth()) {
+                            i=-1;
+                            j++;
+                            continue;
+                        }
+                        Color color = new Color(currPixmap.getPixel(i, j));
+                        // color 1
+                        if (color.r == tempEggSprite.color1.r && color.g == tempEggSprite.color1.g && color.b == tempEggSprite.color1.b) {
+                            color.r = tempSprite.color1.r;
+                            color.g = tempSprite.color1.g;
+                            color.b = tempSprite.color1.b;
+                        }
+                        // color 2
+                        else if (color.r == tempEggSprite.color2.r && color.g == tempEggSprite.color2.g && color.b == tempEggSprite.color2.b) {
+                            color.r = tempSprite.color2.r;
+                            color.g = tempSprite.color2.g;
+                            color.b = tempSprite.color2.b;
+                        }
+                        newPixmap.drawPixel(i, j, Color.rgba8888(color.r, color.g, color.b, color.a));
+                    }
+                    TextureCache.eggTextures.put(this.eggHatchInto, TextureCache.get(newPixmap));
+                }
+                text = TextureCache.eggTextures.get(this.eggHatchInto);
+                for (String dir : new String[]{"up", "down", "left", "right"}) {
+                    this.standingSprites.put(dir, new Sprite(text, 0, 0, 16, 16));
+                    this.movingSprites.put(dir, new Sprite(text, 0, 32, 16, 16));
+                    this.altMovingSprites.put(dir, new Sprite(text, 0, 48, 16, 16));
+                }
+                Sprite hopSprite = new Sprite(text, 0, 16, 16, 16);
+                this.avatarSprites.add(this.standingSprites.get("down"));
+                this.avatarSprites.add(hopSprite);
+                this.avatarSprites.add(this.standingSprites.get("down"));
+                this.avatarSprites.add(hopSprite);
+            }
             // else, load from crystal overworld sprite sheet
-            //            else {
-            // If failed to load from prism animations, load from crystal
-            Texture text = TextureCache.get(Gdx.files.internal("crystal_pokemon/crystal-overworld-sprites1.png"));
-            int dexNumber = Integer.valueOf(this.dexNumber)-1;
-            // TODO: no honchkrow o/w sprite that I know of, just make it equal to murkrow's for now
-            // TODO: could check  C:\cygwin64\home\Evan\polishedcrystal\gfx\icon if that exists
-            // fun fact - polishedcrystal honchkrow uses identical pallete to houndoom.
-            if (name.equals("honchkrow")) {
-                dexNumber = 197;
+            else {
+                // If failed to load from prism animations, load from crystal
+                Texture text = TextureCache.get(Gdx.files.internal("crystal_pokemon/crystal-overworld-sprites1.png"));
+                int dexNumber = Integer.valueOf(this.dexNumber)-1;
+                // TODO: no honchkrow o/w sprite that I know of, just make it equal to murkrow's for now
+                // TODO: could check  C:\cygwin64\home\Evan\polishedcrystal\gfx\icon if that exists
+                // fun fact - polishedcrystal honchkrow uses identical pallete to houndoom.
+                if (name.equals("honchkrow")) {
+                    dexNumber = 197;
+                }
+//                if (dexNumber > 123) {
+//                    dexNumber += 3;
+//                }
+                int col = (dexNumber % 15) * 2;
+                int row = (int)((dexNumber) / 15);
+                this.spriteOffsetY = 31 +row*25;
+                for (String dir : new String[]{"up", "down", "left", "right"}) {
+                    this.standingSprites.put(dir, new Sprite(text, 1 +col*17, 31 +row*25, 16, 16));
+                    this.movingSprites.put(dir, new Sprite(text, 1 +col*17 +17, 31 +row*25, 16, 16));
+                    this.altMovingSprites.put(dir, new Sprite(text, 1 +col*17 +17, 31 +row*25, 16, 16));
+                }
+                this.avatarSprites.add(this.standingSprites.get("down"));
+                this.avatarSprites.add(this.movingSprites.get("down"));
+                this.avatarSprites.add(this.standingSprites.get("down"));
+                this.avatarSprites.add(this.movingSprites.get("down"));
             }
-            //                if (dexNumber > 123) {
-            //                    dexNumber += 3;
-            //                }
-            int col = (dexNumber % 15) * 2;
-            int row = (int)((dexNumber) / 15);
-            this.spriteOffsetY = 31 +row*25;
-            for (String dir : new String[]{"up", "down", "left", "right"}) {
-                this.standingSprites.put(dir, new Sprite(text, 1 +col*17, 31 +row*25, 16, 16));
-                this.movingSprites.put(dir, new Sprite(text, 1 +col*17 +17, 31 +row*25, 16, 16));
-                this.altMovingSprites.put(dir, new Sprite(text, 1 +col*17 +17, 31 +row*25, 16, 16));
-            }
-            this.avatarSprites.add(this.standingSprites.get("down"));
-            this.avatarSprites.add(this.movingSprites.get("down"));
-            this.avatarSprites.add(this.standingSprites.get("down"));
-            this.avatarSprites.add(this.movingSprites.get("down"));
-            //            }
 
             for (String key : new ArrayList<String>(this.standingSprites.keySet())) {
                 this.standingSprites.put(key+"_running", this.standingSprites.get(key));
@@ -977,7 +931,6 @@ public class Specie {
             }
 
             // TODO: load ghost overworld sprite from ghost sheet.
-
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {
@@ -988,10 +941,9 @@ public class Specie {
 
     void loadPrismPokemon() {
 
-
-        //        if (this.name.equals("egg")) {
-        //            name = this.eggHatchInto;
-        //        }
+        if (this.name.equals("egg")) {
+            name = this.eggHatchInto;
+        }
 
         // TODO: if can't find prism path, check other paths
         //        String path = "crystal_pokemon/prism/";
@@ -1048,7 +1000,7 @@ public class Specie {
                     }
 
                     // Egg cycles to hatch
-                } else if (lineNum == 9) {
+                } else if (lineNum == 9 && this.name.equals("egg")) {
                     String eggCycles = line.split("db ")[1].split(" ;")[0];
                     this.baseHappiness = Integer.valueOf(eggCycles);
                 } else if (lineNum == 14) {
@@ -1162,10 +1114,6 @@ public class Specie {
 
             // Back sprites
             text = TextureCache.get(Gdx.files.internal("crystal_pokemon/prism/pics/" + name + "/back.png"));
-
-            //also try to load Egg textures
-            loadEggTextures("crystal_pokemon/prism/pics/" + name + "/back.png");
-
 
             Specie.textures.put(name+"_back_shiny", text);
             temp = text.getTextureData();
@@ -1328,63 +1276,6 @@ public class Specie {
             Specie.gen2Evos.put(name, evos);
         }
         this.learnSet = Specie.gen2Attacks.get(name);
-    }
-
-    void loadEggTextures(String path) {
-        Texture text;
-        if (!TextureCache.eggTextures.containsKey(this.name)) {
-            // TODO: won't work for prism pokemon
-            text = TextureCache.get(Gdx.files.internal(path));
-            int height = text.getWidth();
-            SpriteProxy tempSprite = new SpriteProxy(text, 0, 0, height, height);
-            //            System.out.println(tempSprite.color1);
-            //            System.out.println(tempSprite.color2);
-            // Replace colors in egg icon
-            text = TextureCache.get(Gdx.files.internal("crystal_pokemon/egg1.png"));
-            SpriteProxy tempEggSprite = new SpriteProxy(text, 0, 0, text.getWidth(), text.getHeight());
-            //
-            TextureData temp = text.getTextureData();
-            if (!temp.isPrepared()) {
-                temp.prepare();
-            }
-            Pixmap currPixmap = temp.consumePixmap();
-            Pixmap newPixmap = new Pixmap(text.getWidth(), text.getHeight(), Pixmap.Format.RGBA8888);
-            newPixmap.setColor(new Color(0, 0, 0, 0));
-            newPixmap.fill();
-            for (int i=0, j=0; j < text.getHeight(); i++) {
-                if (i > text.getWidth()) {
-                    i=-1;
-                    j++;
-                    continue;
-                }
-                Color color = new Color(currPixmap.getPixel(i, j));
-                // color 1
-                if (color.r == tempEggSprite.color1.r && color.g == tempEggSprite.color1.g && color.b == tempEggSprite.color1.b) {
-                    color.r = tempSprite.color1.r;
-                    color.g = tempSprite.color1.g;
-                    color.b = tempSprite.color1.b;
-                }
-                // color 2
-                else if (color.r == tempEggSprite.color2.r && color.g == tempEggSprite.color2.g && color.b == tempEggSprite.color2.b) {
-                    color.r = tempSprite.color2.r;
-                    color.g = tempSprite.color2.g;
-                    color.b = tempSprite.color2.b;
-                }
-                newPixmap.drawPixel(i, j, Color.rgba8888(color.r, color.g, color.b, color.a));
-            }
-            TextureCache.eggTextures.put(this.name, TextureCache.get(newPixmap));
-        }
-        text = TextureCache.eggTextures.get(this.name);
-        for (String dir : new String[]{"up", "down", "left", "right"}) {
-            this.standingSpritesEgg.put(dir, new Sprite(text, 0, 0, 16, 16));
-            this.movingSpritesEgg.put(dir, new Sprite(text, 0, 32, 16, 16));
-            this.altMovingSpritesEgg.put(dir, new Sprite(text, 0, 48, 16, 16));
-        }
-        Sprite hopSprite = new Sprite(text, 0, 16, 16, 16);
-        this.avatarSpritesEgg.add(this.standingSpritesEgg.get("down"));
-        this.avatarSpritesEgg.add(hopSprite);
-        this.avatarSpritesEgg.add(this.standingSpritesEgg.get("down"));
-        this.avatarSpritesEgg.add(hopSprite);
     }
 
     void initHabitatValues() {

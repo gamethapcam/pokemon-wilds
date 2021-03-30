@@ -191,7 +191,7 @@ class DrawMap extends Action {
                 // TODO: doing in drawmap
                 // Play sounds for nearby pokemon eggs
                 if (pokemon.standingAction != null &&
-                    pokemon.isEgg &&
+                    pokemon.name.equals("egg") &&
                     pokemon.mapTiles == game.map.tiles &&
                     Pokemon.Standing.class.isInstance(pokemon.standingAction)) {
                     Pokemon.Standing standingAction = ((Pokemon.Standing)pokemon.standingAction);
@@ -3838,7 +3838,7 @@ class Tile {
 
             Action emote;
             // If it's an egg, display the '...' emote
-            if (pokemon.isEgg) {
+            if (pokemon.name.equals("egg")) {
                 emote = pokemon.new Emote("...", null);
             }
             else if (pokemon.previousOwner != game.player) {
@@ -3860,7 +3860,7 @@ class Tile {
                          new PlaySound(pokemon,
                          null)))));
 
-            if (pokemon.isEgg) {
+            if (pokemon.name.equals("egg")) {
                 String[] huhs = new String[]{"Neat!", "Hey!", "Look!", "Wow!", "Huh?", "Hmm..."};
                 nextAction.append(//new WaitFrames(game, 60,  // use if no cry for egg
                                   new DisplayText(game, huhs[Game.rand.nextInt(huhs.length)]+" A POKÈMON egg!", null, false, true,
@@ -3879,7 +3879,7 @@ class Tile {
                 nextAction.append(new DisplayText(game, pokemon.name.toUpperCase()+" seems happy. ", null, false, true, null));
             }
 //                              new DisplayText(game, "Put "+pokemon.name.toUpperCase()+" in it' POKÈBALL?", null, true, false,
-            String text = pokemon.isEgg ? "Pick it up?" : "Add "+pokemon.name.toUpperCase()+" to your party?";
+            String text = pokemon.name.equals("egg") ? "Pick it up?" : "Add "+pokemon.name.toUpperCase()+" to your party?";
             game.player.displayedMaxPartyText = false; // tODO: debug, remove
             nextAction.append(new DisplayText(game, text, null, true, false,
                               new DrawYesNoMenu(null,
