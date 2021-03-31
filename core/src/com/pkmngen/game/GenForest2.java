@@ -1349,7 +1349,7 @@ public class GenForest2 extends Action {
                                 int randInt = this.rand.nextInt(3);
                                 if (randInt == 2) {
                                     randInt = this.rand.nextInt(pokemon.length);
-                                    tempRoute.pokemon.add(new Pokemon(pokemon[randInt], 10+this.rand.nextInt(4), Pokemon.Generation.CRYSTAL));
+                                    tempRoute.pokemon.add(new Pokemon(pokemon[randInt], 10+this.rand.nextInt(4)));
                                 }
                                 this.tilesToAdd.put(temp.position.cpy().add(0,0), new Tile("bush1", temp.position.cpy().add(0,0), this.color, tempRoute));
                             }
@@ -1436,41 +1436,41 @@ class GenIsland1 extends Action {
         Tile originTile = new Tile("sand1", this.origin.cpy());
         this.tilesToAdd.put(originTile.position.cpy(), originTile);
 
-        Route blotchRoute = new Route("desert1", 40);
-        ApplyBlotch(game, "desert", originTile, maxDist/36, this.tilesToAdd, 1, false, blotchRoute);
+//        Route blotchRoute = new Route("desert1", 40);
+//        ApplyBlotch(game, "desert", originTile, maxDist/36, this.tilesToAdd, 1, false, blotchRoute);
         
         
         // TODO: uncomment this for just giant island
 //        ApplyBlotch(game, "island", originTile, maxDist, this.tilesToAdd, 1, false, new Route("forest1", 22));
         HashMap<Vector2, Tile> mtnTiles = new HashMap<Vector2, Tile>();
         
-//        // TODO: debug, revert
-//        ArrayList<Tile> endPoints = ApplyBlotchMountain(game, originTile, maxDist, mtnTiles);
-//        System.out.println("endPoints size");
-//        System.out.println(endPoints.size());
-//        for (Tile tile : endPoints) {
-//
-//            if (GenIsland1.doneDesert == 1) {
-//                // TODO: seems to be happening near middle of mountain, would like it to be elsewhere.
-//                Route blotchRoute = new Route("desert1", 40);
-//                ApplyBlotch(game, "desert", tile, maxDist/18 +maxDist/4, this.tilesToAdd, 1, true, blotchRoute);
-//                continue;
-//            }
-//            else {
-//                GenIsland1.doneDesert++;
-//            }
-//            
-//              // TODO: this might be fixed, test
-//            Route blotchRoute = new Route("forest1", 40); // TODO: mem usage too high
-//            // TODO: maxDist/6 is too big I think for some islands.
-//            // maxDist/6 for 100x100 island, it looked pretty good.
-//            // maxDist/10 for 100x180 island
-//            // maxDist/14 for 100x350 island
-//            // maxDist/18 for 100x500 island
-//            // TODO: could try adding more layers to mountains for larger islands.
-//            // TODO: maxDist/18 is actually working pretty well for most sizes.
-//            ApplyBlotch(game, "island", tile, maxDist/18, this.tilesToAdd, 1, true, blotchRoute); 
-//        }
+        // TODO: debug, revert
+        ArrayList<Tile> endPoints = ApplyBlotchMountain(game, originTile, maxDist, mtnTiles);
+        System.out.println("endPoints size");
+        System.out.println(endPoints.size());
+        for (Tile tile : endPoints) {
+
+            if (GenIsland1.doneDesert == 1) {
+                // TODO: seems to be happening near middle of mountain, would like it to be elsewhere.
+                Route blotchRoute = new Route("desert1", 40);
+                ApplyBlotch(game, "desert", tile, maxDist/18 +maxDist/4, this.tilesToAdd, 1, true, blotchRoute);
+                continue;
+            }
+            else {
+                GenIsland1.doneDesert++;
+            }
+            
+              // TODO: this might be fixed, test
+            Route blotchRoute = new Route("forest1", 40); // TODO: mem usage too high
+            // TODO: maxDist/6 is too big I think for some islands.
+            // maxDist/6 for 100x100 island, it looked pretty good.
+            // maxDist/10 for 100x180 island
+            // maxDist/14 for 100x350 island
+            // maxDist/18 for 100x500 island
+            // TODO: could try adding more layers to mountains for larger islands.
+            // TODO: maxDist/18 is actually working pretty well for most sizes.
+            ApplyBlotch(game, "island", tile, maxDist/18, this.tilesToAdd, 1, true, blotchRoute); 
+        }
 
         // TODO: this probably will tack on even more processing time.
         // TODO: doesn't really work, bleeds into upper mountain area
@@ -1503,11 +1503,9 @@ class GenIsland1 extends Action {
                 continue;
             }
             for (Pokemon pokemon : new ArrayList<Pokemon>(tile.routeBelongsTo.pokemon)) {
-                if (Pokemon.baseSpecies.get(pokemon.name) == null) {
-                    System.out.println(pokemon.name);  // TODO: debug, remove
-                }
-                boolean isBaseSpecies = Pokemon.baseSpecies.get(pokemon.name).equals(pokemon.name);
-                boolean hasEvo = !Pokemon.gen2Evos.get(pokemon.name).isEmpty();
+                boolean isBaseSpecies = Pokemon.baseSpecies.get(pokemon.name.toLowerCase()).equalsIgnoreCase(pokemon.name);
+                boolean hasEvo = !Specie.gen2Evos.get(pokemon.name).isEmpty();
+
                 if (tile.routeBelongsTo.name.contains("beach")) {
                     hasEvo = !hasEvo;  // want wartortle, croconaw, etc to walk around
                 }
@@ -1937,7 +1935,6 @@ class GenIsland1 extends Action {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
-        
     }
 
     public void AddMtnLayer(HashMap<Vector2, Tile> levelTiles,
@@ -2051,7 +2048,7 @@ class GenIsland1 extends Action {
                         if (type.equals("desert")) {
                             shouldPut = ((int)distance < 8*maxDist/16);
                         }
-                        
+
                         // TODO: remove
 //                        if (putTile < maxDist) {  // TODO: remove
 //
@@ -2204,10 +2201,10 @@ class GenIsland1 extends Action {
                                     tempRoute.pokemon.clear();
                                     int randInt = this.rand.nextInt(5);
                                     if (randInt == 4) {
-                                        tempRoute.pokemon.add(new Pokemon("Exeggutor", 10+this.rand.nextInt(4), Pokemon.Generation.CRYSTAL));
+                                        tempRoute.pokemon.add(new Pokemon("Exeggutor", 10+this.rand.nextInt(4)));
                                     }
                                     else if (randInt > 1) {
-                                        tempRoute.pokemon.add(new Pokemon("Exeggcute", 10+this.rand.nextInt(4), Pokemon.Generation.CRYSTAL));
+                                        tempRoute.pokemon.add(new Pokemon("Exeggcute", 10+this.rand.nextInt(4)));
                                     }
                                     // TODO: probably will just make puddles spawn pokemon, not sure
                                     if (this.rand.nextInt(2) == 0) {
@@ -2271,7 +2268,7 @@ class GenIsland1 extends Action {
                                     // Add mates for some pokemon (at same position)
                                     if (GenForest2.mates2.containsKey(pokemon.name)) {
                                         String oppGender = pokemon.gender.equals("male") ? "female" : "male";
-                                        Pokemon mate = new Pokemon(GenForest2.mates2.get(pokemon.name), pokemon.level, Pokemon.Generation.CRYSTAL);
+                                        Pokemon mate = new Pokemon(GenForest2.mates2.get(pokemon.name), pokemon.level);
                                         mate.gender = oppGender;
                                         mate.position = pokemon.position.cpy().add(16, 0);
                                         mate.mapTiles = game.map.overworldTiles;
@@ -2293,13 +2290,13 @@ class GenIsland1 extends Action {
                                         level = 4;
                                     }
                                     String name = new ArrayList<String>(GenForest2.mates.keySet()).get(Game.rand.nextInt(GenForest2.mates.keySet().size()));
-                                    Pokemon pokemon = new Pokemon(name, level, Pokemon.Generation.CRYSTAL);
+                                    Pokemon pokemon = new Pokemon(name, level);
                                     pokemon.position = edge.cpy();
                                     pokemon.mapTiles = game.map.overworldTiles;
                                     pokemon.standingAction = pokemon.new Standing();
                                     this.pokemonToAdd.put(pokemon.position.cpy(), pokemon);
                                     String oppGender = pokemon.gender.equals("male") ? "female" : "male";
-                                    Pokemon mate = new Pokemon(GenForest2.mates.get(pokemon.name), pokemon.level, Pokemon.Generation.CRYSTAL);
+                                    Pokemon mate = new Pokemon(GenForest2.mates.get(pokemon.name), pokemon.level);
                                     mate.gender = oppGender;
                                     mate.position = pokemon.position.cpy().add(16, 0);
                                     mate.mapTiles = game.map.overworldTiles;
@@ -2604,7 +2601,7 @@ class GenIsland1 extends Action {
 //                                                                            "ledyba", "hoothoot", "zubat", "pidgey", "spearow", "forretress",
                                                                             "snover"};
                                             randInt = this.rand.nextInt(pokemon.length);
-                                            tempRoute.pokemon.add(new Pokemon(pokemon[randInt], 20+this.rand.nextInt(4), Pokemon.Generation.CRYSTAL));
+                                            tempRoute.pokemon.add(new Pokemon(pokemon[randInt], 20+this.rand.nextInt(4)));
                                         }
                                         newTile = new Tile("tree4", edge, true, tempRoute);
                                     }
@@ -2618,7 +2615,7 @@ class GenIsland1 extends Action {
                                             String[] pokemon = new String[]{"pineco", "aipom", "kakuna", "metapod", "spinarak", "heracross",
                                                                             "ledyba", "hoothoot", "zubat", "pidgey", "spearow", "forretress"};
                                             randInt = this.rand.nextInt(pokemon.length);
-                                            tempRoute.pokemon.add(new Pokemon(pokemon[randInt], 20+this.rand.nextInt(4), Pokemon.Generation.CRYSTAL));
+                                            tempRoute.pokemon.add(new Pokemon(pokemon[randInt], 20+this.rand.nextInt(4)));
                                         }
                                         newTile = new Tile("tree2", edge, true, tempRoute);
                                     }

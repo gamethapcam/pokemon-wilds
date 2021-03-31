@@ -892,7 +892,10 @@ public class Network {
         public PokemonData(Pokemon pokemon) {
             super(pokemon);
             this.gender = pokemon.gender;
-            this.eggHatchInto = pokemon.eggHatchInto;
+            if (pokemon.isEgg) {
+                this.eggHatchInto = pokemon.specie.name;
+                this.name = "egg";
+            }
             this.friendliness = pokemon.happiness;
             this.aggroPlayer = pokemon.aggroPlayer;
         }
@@ -900,7 +903,10 @@ public class Network {
         public PokemonData(Pokemon pokemon, int index) {
             super(pokemon, index);
             this.gender = pokemon.gender;
-            this.eggHatchInto = pokemon.eggHatchInto;
+            if (pokemon.isEgg) {
+                this.eggHatchInto = pokemon.specie.name;
+                this.name = "egg";
+            }
             this.friendliness = pokemon.happiness;
             this.aggroPlayer = pokemon.aggroPlayer;
         }
@@ -1217,7 +1223,7 @@ class ServerBroadcast extends Action {
 
                                     // TODO: Debug, remove
                                     // TODO: A bunch of animations and code required for having no pokemon.
-                                    player.currPokemon = new Pokemon("machop", 6, Pokemon.Generation.CRYSTAL);
+                                    player.currPokemon = new Pokemon("machop", 6);
 //                                    player.currPokemon = new Pokemon("machop", 2, Pokemon.Generation.CRYSTAL);
 //                                    player.currPokemon.attacks[0] = "Ice Beam";
 //                                    player.currPokemon.attacks[1] = "Hydro Pump";
@@ -1491,8 +1497,8 @@ class ServerBroadcast extends Action {
                                             // Check if pokemon evolves or not
                                             // TODO: handle when player cancels evolution
                                             for (int i=1; i <= player.currPokemon.level; i++) {
-                                                if (Pokemon.gen2Evos.get(player.currPokemon.name.toLowerCase()).containsKey(String.valueOf(i))) {
-                                                    String evolveTo = Pokemon.gen2Evos.get(player.currPokemon.name.toLowerCase()).get(String.valueOf(i));
+                                                if (Specie.gen2Evos.get(player.currPokemon.name.toLowerCase()).containsKey(String.valueOf(i))) {
+                                                    String evolveTo = Specie.gen2Evos.get(player.currPokemon.name.toLowerCase()).get(String.valueOf(i));
                                                     player.currPokemon.evolveTo(evolveTo);
                                                     break;
                                                 }
@@ -1538,8 +1544,8 @@ class ServerBroadcast extends Action {
                                             // Check if pokemon evolves or not
                                             // TODO: handle when player cancels evolution
                                             for (int i=1; i <= player.currPokemon.level; i++) {
-                                                if (Pokemon.gen2Evos.get(player.currPokemon.name.toLowerCase()).containsKey(String.valueOf(i))) {
-                                                    String evolveTo = Pokemon.gen2Evos.get(player.currPokemon.name.toLowerCase()).get(String.valueOf(i));
+                                                if (Specie.gen2Evos.get(player.currPokemon.name.toLowerCase()).containsKey(String.valueOf(i))) {
+                                                    String evolveTo = Specie.gen2Evos.get(player.currPokemon.name.toLowerCase()).get(String.valueOf(i));
                                                     player.currPokemon.evolveTo(evolveTo);
                                                     break;
                                                 }
@@ -1976,7 +1982,8 @@ class ServerBroadcast extends Action {
                             // ideally, need to handle ghost spawning from the server side.
                             else if (object instanceof Network.BattleData) {
                                 Network.BattleData battleData = (Network.BattleData) object;
-                                if (!battleData.pokemonData.name.toLowerCase().equals("ghost")) {
+                                // TODO: this is broken now
+                                if (!battleData.pokemonData.name.equals("ghost")) {
                                     System.out.println("BattleData: Invalid encounter for " + battleData.pokemonData.name + ", sent by: " + connection.getRemoteAddressTCP().toString());
                                     throw new Exception();
                                 }

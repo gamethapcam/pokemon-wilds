@@ -1853,11 +1853,9 @@ class DrawSetupMenu extends Action {
                                         }
                                     }
                                 });
-                                // TODO: uncomment
                                 thread.setPriority(Thread.MIN_PRIORITY);
                                 thread.start();
-                                
-                                
+
 //                                System.out.println("Generating map...");
 //                                System.out.println(java.time.LocalTime.now());
 //
@@ -1875,7 +1873,6 @@ class DrawSetupMenu extends Action {
                                 // TODO: uncomment
                                 game.insertAction(new DisplayText(game, "Generating... please wait...", null, true, false, null));
                                 game.insertAction(drawControls);
-
                                 
                                 //
 //                                game.map = new PkmnMap("default"); // TODO: ideally shouldn't have to do this.
@@ -2782,12 +2779,21 @@ class PlaySound extends Action {
         this.music = null;
         this.cached = cached;
         // Don't play cry if this is an egg
-        if (pokemon.name.equals("egg")) {
+        if (pokemon.isEgg) {
             this.music = Gdx.audio.newMusic(Gdx.files.internal("egg_noise1.ogg"));
             this.music.setLooping(false);
         }
         // if it's crystal pokemon, load from crystal dir
         else if (pokemon.generation == Pokemon.Generation.CRYSTAL) {
+        	if(pokemon.isGhost)
+        	{
+        		this.music = Gdx.audio.newMusic(Gdx.files.internal("crystal_pokemon/cries/000.ogg"));
+        		this.music.setVolume(0.9f);
+        	}
+        	else {
+        		this.music = Gdx.audio.newMusic(Gdx.files.internal("crystal_pokemon/cries/" + pokemon.dexNumber + ".ogg"));
+        		this.music.setVolume(0.5f);        		
+        	}
 
             if (cached) {
                 if (!Game.staticGame.loadedMusic.containsKey(sound)) {
@@ -2801,11 +2807,14 @@ class PlaySound extends Action {
             }
 
             this.music = Gdx.audio.newMusic(Gdx.files.internal("crystal_pokemon/cries/" + pokemon.dexNumber + ".ogg"));
-            if (pokemon.dexNumber.equals("000")) {
+            if(pokemon.isGhost)
+            {
+                this.music = Gdx.audio.newMusic(Gdx.files.internal("crystal_pokemon/cries/000.ogg"));
                 this.music.setVolume(0.9f);
             }
             else {
-                this.music.setVolume(0.5f);
+                this.music = Gdx.audio.newMusic(Gdx.files.internal("crystal_pokemon/cries/" + pokemon.dexNumber + ".ogg"));
+                this.music.setVolume(0.5f);             
             }
             this.music.setLooping(false);
         }

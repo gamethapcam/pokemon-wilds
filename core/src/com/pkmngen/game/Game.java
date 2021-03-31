@@ -844,13 +844,13 @@ public class Game extends ApplicationAdapter {
         this.insertAction(new CycleDayNight(this));
 
         // If you join a game as a Client, these go away, so only affects local play.
-        this.player.pokemon.add(new Pokemon("Machop", 6, Pokemon.Generation.CRYSTAL));
+        this.player.pokemon.add(new Pokemon("Machop", 6));
         if (this.debugInputEnabled) {
             // Some starting pokemon used for debugging
 //            this.player.pokemon.get(0).currentStats.put("hp", 1);
 //            this.player.pokemon.get(0).attacks[2] = "recover";
 //            this.player.pokemon.get(0).attacks[3] = "slash";
-            this.player.pokemon.add(new Pokemon("rapidash", 60, Pokemon.Generation.CRYSTAL));
+            this.player.pokemon.add(new Pokemon("rapidash", 60));
 //            this.player.pokemon.get(1).attacks[0] = "crush grip";
 //            this.player.pokemon.get(1).attacks[1] = "dragon energy";
 //            this.player.pokemon.get(1).attacks[2] = "thunder cage";
@@ -874,13 +874,11 @@ public class Game extends ApplicationAdapter {
 //            this.player.pokemon.add(new Pokemon("egg", 1, Pokemon.Generation.CRYSTAL, false, "skarmory"));
 //            this.player.pokemon.add(new Pokemon("registeel", 40, Pokemon.Generation.CRYSTAL, true));
 //            this.player.pokemon.add(new Pokemon("masquerain", 60, Pokemon.Generation.CRYSTAL));
-            this.player.pokemon.add(new Pokemon("lotad", 70, Pokemon.Generation.CRYSTAL));
-            this.player.pokemon.add(new Pokemon("nosepass", 46, Pokemon.Generation.CRYSTAL));
-            this.player.pokemon.add(new Pokemon("poochyena", 46, Pokemon.Generation.CRYSTAL));
+            this.player.pokemon.add(new Pokemon("swellow", 70, Pokemon.Generation.CRYSTAL, true, true));
+            this.player.pokemon.add(new Pokemon("nosepass", 46, Pokemon.Generation.CRYSTAL, true, true));
+            this.player.pokemon.add(new Pokemon("vespiquen", 46, Pokemon.Generation.CRYSTAL, true, true));
             this.player.pokemon.add(new Pokemon("ursaring", 46, Pokemon.Generation.CRYSTAL));
             this.player.pokemon.get(2).attacks[0] = "false swipe";
-
-
 
             // TODO: remove
 //            this.player.pokemon.add(new Pokemon("charizard", 60, Pokemon.Generation.CRYSTAL));
