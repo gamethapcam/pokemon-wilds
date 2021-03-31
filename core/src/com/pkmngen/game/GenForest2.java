@@ -1891,7 +1891,6 @@ class GenIsland1 extends Action {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
-        
     }
 
     public void AddMtnLayer(HashMap<Vector2, Tile> levelTiles,
