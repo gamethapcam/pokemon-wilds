@@ -18,6 +18,7 @@ import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.pkmngen.game.DrawPokemonMenu.SelectedMenu;
 import com.pkmngen.game.DrawPokemonMenu.SelectedMenu.Switch;
+import com.pkmngen.game.Pokemon.Burrowed;
 import com.pkmngen.game.Pokemon.LedgeJump;
 import com.pkmngen.game.Pokemon.Moving;
 import com.pkmngen.game.Pokemon.Standing;
@@ -192,6 +193,8 @@ class CycleDayNight extends Action {
 
     int signCounter;
     int day, night; // number of days/nights that has passed
+
+    int countDownToCacturne = 200;
     
     Vector2 startPos;
     Vector2 endPos;
@@ -353,6 +356,63 @@ class CycleDayNight extends Action {
                             Tile grass = new Tile("grass2", tile.position.cpy(), true, tile.routeBelongsTo);
                             game.map.overworldTiles.put(tile.position, grass);
                         }
+                        else if (tile.nameUpper.equals("cactus2_cacturne")) {
+                            tile.nameUpper = "";
+                            tile.overSprite = null;
+                            tile.attrs.put("solid", false);
+                        }
+                        else if (tile.name.equals("desert2_trapinch_spawn")) {
+
+                            Vector2 startPos = tile.position.cpy().add(-16*4, -16*4);
+                            startPos.x = (int)startPos.x - (int)startPos.x % 16;
+                            startPos.y = (int)startPos.y - (int)startPos.y % 16;
+                            Vector2 endPos = tile.position.cpy().add(16*4, 16*4);
+                            endPos.x = (int)endPos.x - (int)endPos.x % 16;
+                            endPos.y = (int)endPos.y - (int)endPos.y % 16;
+                            int numFound = 0;
+
+                            for (Vector2 currPos = new Vector2(startPos.x, startPos.y); currPos.y < endPos.y;) {
+                                Tile nextTile = game.map.overworldTiles.get(currPos);
+                                currPos.x += 16;
+                                if (currPos.x > endPos.x) {
+                                    currPos.x = startPos.x;
+                                    currPos.y += 16;
+                                }
+                                if (nextTile == null) {
+                                    continue;
+                                }
+                                if (!nextTile.name.contains("desert2")) {
+                                    continue;
+                                }
+                                if (nextTile.items().containsKey("trapinch")) {
+                                    numFound++;
+                                }
+                            }
+                            // Place the trapinch
+                            for (Vector2 currPos = new Vector2(startPos.x, startPos.y); currPos.y < endPos.y && numFound < 3;) {
+                                Tile nextTile = game.map.overworldTiles.get(currPos);
+                                currPos.x += 16;
+                                if (currPos.x > endPos.x) {
+                                    currPos.x = startPos.x;
+                                    currPos.y += 16;
+                                }
+                                if (nextTile == null) {
+                                    continue;
+                                }
+                                if (!nextTile.name.contains("desert2")) {
+                                    continue;
+                                }
+                                if (!nextTile.items().containsKey("trapinch") && Game.rand.nextInt(256) < 32) {
+                                    numFound++;
+                                    Pokemon trapinch = new Pokemon("trapinch", 22, Pokemon.Generation.CRYSTAL);
+                                    trapinch.isTrapping = true;
+                                    trapinch.position = nextTile.position.cpy();
+                                    game.insertAction(trapinch.new Burrowed());
+                                    nextTile.items().put("trapinch", 1);
+                                    System.out.println("hi42342");
+                                }
+                            }
+                        }
                         else if (tile.nameUpper.equals("rock1_color")) {
                             numRocks++;
                         }
@@ -444,6 +504,50 @@ class CycleDayNight extends Action {
                 game.map.timeOfDay = "night";
                 this.countDownToGhost = 150; // this.rand.nextInt(5000) + 150;  // debug: 150;
                 this.animContainer.index = 0;
+                this.countDownToCacturne = 200;
+                
+
+                for (Tile tile : game.map.overworldTiles.values()) {
+                    // Chance to spawn cacturne
+                    if (tile.name.equals("desert4") && Game.rand.nextInt(512) < 2) {
+                        if (game.cam.frustum.pointInFrustum(tile.position.x, tile.position.y-32, game.cam.position.z) ||
+                            game.cam.frustum.pointInFrustum(tile.position.x+tile.sprite.getWidth(), tile.position.y+tile.sprite.getHeight()+64, game.cam.position.z) ||
+                            game.cam.frustum.pointInFrustum(tile.position.x+tile.sprite.getWidth(), tile.position.y-32, game.cam.position.z) ||
+                            game.cam.frustum.pointInFrustum(tile.position.x, tile.position.y+tile.sprite.getHeight()+64, game.cam.position.z)) {
+                            continue;
+                        }
+                        Vector2 startPos = tile.position.cpy().add(-16*4, -16*4);
+                        startPos.x = (int)startPos.x - (int)startPos.x % 16;
+                        startPos.y = (int)startPos.y - (int)startPos.y % 16;
+                        Vector2 endPos = tile.position.cpy().add(16*4, 16*4);
+                        endPos.x = (int)endPos.x - (int)endPos.x % 16;
+                        endPos.y = (int)endPos.y - (int)endPos.y % 16;
+                        int numPlaced = 0;
+                        for (Vector2 currPos = new Vector2(startPos.x, startPos.y); currPos.y < endPos.y;) {
+                            Tile nextTile = game.map.overworldTiles.get(currPos);
+                            currPos.x += 16;
+                            if (currPos.x > endPos.x) {
+                                currPos.x = startPos.x;
+                                currPos.y += 16;
+                            }
+                            if (nextTile == null) {
+                                continue;
+                            }
+                            if (!nextTile.name.equals("desert4")) {
+                                continue;
+                            }
+                            if (Game.rand.nextInt(256) < 32) {
+                                Tile newTile = new Tile("desert4", "cactus2_cacturne", currPos.cpy(), true, nextTile.routeBelongsTo);
+                                game.map.overworldTiles.put(currPos, newTile);
+                                numPlaced++;
+                                if (numPlaced > 4) {
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+                
 
                 // TODO test
 //                game.currMusic.pause();
@@ -473,20 +577,75 @@ class CycleDayNight extends Action {
 
         // Check player can move so don't spawn in middle of battle or when looking at ghost
         // If player is near a campfire, don't deduct from ghost spawn timer
-        if (game.map.timeOfDay.equals("night") && game.playerCanMove == true && !game.player.isNearCampfire && game.map.currBiome.equals("deep_forest")) {
-            countDownToGhost--;
-            // TODO: not working?
-            System.out.println(this.countDownToGhost);
-            if (game.player.currState != "Running") {
+        if (game.map.timeOfDay.equals("night") && game.playerCanMove && !game.player.isNearCampfire) {
+            if (game.map.currBiome.equals("deep_forest")) {
                 countDownToGhost--;
-            }
+                // TODO: not working?
+                System.out.println(this.countDownToGhost);
+                if (game.player.currState != "Running") {
+                    countDownToGhost--;
+                }
 
-            if (countDownToGhost <= 0) {
-                Vector2 randPos = game.player.position.cpy().add(this.rand.nextInt(5)*16 - 48, this.rand.nextInt(5)*16 - 48);
-                game.insertAction(new SpawnGhost(game, new Vector2(randPos)) );
-                // TODO: mess with this.
-//                this.countDownToGhost = this.rand.nextInt(4000) + 1000; // debug: 1000;
-                this.countDownToGhost = this.rand.nextInt(2000) + 1000;
+                if (countDownToGhost <= 0) {
+                    Vector2 randPos = game.player.position.cpy().add(this.rand.nextInt(5)*16 - 48, this.rand.nextInt(5)*16 - 48);
+                    game.insertAction(new SpawnGhost(game, new Vector2(randPos)) );
+                    // TODO: mess with this.
+//                    this.countDownToGhost = this.rand.nextInt(4000) + 1000; // debug: 1000;
+                    this.countDownToGhost = this.rand.nextInt(2000) + 1000;
+                }
+            }
+            if (game.player.nearCacturne) {
+                this.countDownToCacturne--;
+                
+
+                System.out.println(this.countDownToCacturne);
+                if (countDownToCacturne <= 0) {
+                    this.countDownToCacturne = this.rand.nextInt(500) + 100;
+                    
+                    System.out.println("spawn cacturne");
+                    Pokemon cacturne = null;
+                    Vector2 startPos = game.player.position.cpy().add(-16*5, -16*5);
+                    startPos.x = (int)startPos.x - (int)startPos.x % 16;
+                    startPos.y = (int)startPos.y - (int)startPos.y % 16;
+                    Vector2 endPos = game.player.position.cpy().add(16*5, 16*5);
+                    endPos.x = (int)endPos.x - (int)endPos.x % 16;
+                    endPos.y = (int)endPos.y - (int)endPos.y % 16;
+
+                    for (Vector2 currPos = new Vector2(startPos.x, startPos.y); currPos.y < endPos.y;) {
+                        Tile nextTile = game.map.overworldTiles.get(currPos);
+                        currPos.x += 16;
+                        if (currPos.x > endPos.x) {
+                            currPos.x = startPos.x;
+                            currPos.y += 16;
+                        }
+                        if (nextTile == null) {
+                            continue;
+                        }
+                        if (nextTile.nameUpper.equals("cactus2_cacturne")) {
+                            Tile newTile = new Tile("desert4", nextTile.position.cpy(), true, nextTile.routeBelongsTo);
+                            game.map.tiles.put(newTile.position, newTile);
+
+                            cacturne = new Pokemon("cacturne", 22, Pokemon.Generation.CRYSTAL);
+                            cacturne.position = nextTile.position.cpy();
+                            cacturne.mapTiles = game.map.overworldTiles;
+                            cacturne.aggroPlayer = true;
+                            game.playerCanMove = false;
+                            game.insertAction(cacturne.new Cacturnt(null));
+                            game.insertAction(game.player.new Emote("!", null));
+                            game.insertAction(cacturne.new CactusSpawn(nextTile,
+                                              cacturne.new Emote("skull",
+                                              new WaitFrames(game, 60,
+                                              new SetField(game, "playerCanMove", true, 
+                                              new SetField(game.musicController, "startNightAlert", "night1_chase1", null))))));
+                        }
+                    }
+
+                    if (cacturne != null) {
+                        game.insertAction(new WaitFrames(game, 60,
+                                          new PlaySound(cacturne, null)));
+                        game.musicController.startNightAlert = "night1_alert1";
+                    }
+                }
             }
         }
 
@@ -1924,10 +2083,13 @@ class DrawPlayerUpper extends Action {
     Sprite spritePart;
     public static int offsetY = 0;
     public static int pokemonOffsetY = 0;
+    public static boolean desertGrass = false;
+    public static int timer = 0;
 
     public DrawPlayerUpper(Game game) {}
 
     public int getLayer(){return this.layer;}
+
 
     @Override
     public void step(Game game) {
@@ -2077,10 +2239,16 @@ class DrawPlayerUpper extends Action {
         // this.spritePart.setRegion(0,0,16,8);
         // this.spritePart.setRegionHeight(4);
         // this.spritePart.setSize(this.spritePart.getWidth(), 4);
-        this.spritePart.setRegionY(game.player.spriteOffsetY);
-        this.spritePart.setRegionHeight(8);
-
-        game.mapBatch.draw(this.spritePart, game.player.position.x, game.player.position.y+12+DrawPlayerUpper.pokemonOffsetY);
+        if (DrawPlayerUpper.desertGrass) {
+            this.spritePart.setRegionY(game.player.spriteOffsetY);
+            this.spritePart.setRegionHeight(13);
+            game.mapBatch.draw(this.spritePart, game.player.position.x, game.player.position.y+7+DrawPlayerUpper.pokemonOffsetY);
+        }
+        else {
+            this.spritePart.setRegionY(game.player.spriteOffsetY);
+            this.spritePart.setRegionHeight(8);
+            game.mapBatch.draw(this.spritePart, game.player.position.x, game.player.position.y+12+DrawPlayerUpper.pokemonOffsetY);
+        }
 
         if (game.player.isJumping && game.player.hmPokemon != null) {
             int offsetX = 0;
@@ -2162,6 +2330,40 @@ class DrawPlayerUpper extends Action {
                 this.spritePart.setRegionY(game.player.spriteOffsetY);
                 this.spritePart.setRegionHeight(8);
                 game.mapBatch.draw(this.spritePart, game.player.position.x, game.player.position.y+12+DrawPlayerUpper.pokemonOffsetY);
+            }
+        }
+        
+        
+        // Draw grass above player if applicable
+        if (DrawPlayerUpper.desertGrass) {
+            if (DrawPlayerUpper.timer < 6) {
+                if (DrawPlayerUpper.timer == 0) {
+                    Player.desertGrassSprite.setRegion(16, 0, 16, 16);
+//                    game.insertAction(new PlaySound("seed1", .5f, true, null));
+                    game.insertAction(new PlaySound("sounds/sand2", .4f, true, null));
+                }
+                game.mapBatch.draw(Player.desertGrassSprite,
+                                   game.player.position.x,
+                                   game.player.position.y +7);
+            }
+            else if (DrawPlayerUpper.timer < 12) {
+                if (DrawPlayerUpper.timer == 6) {
+                    Player.desertGrassSprite.setRegion(0, 0, 16, 16);
+                }
+                game.mapBatch.draw(Player.desertGrassSprite,
+                                   game.player.position.x,
+                                   game.player.position.y +7);
+            }
+            else if (DrawPlayerUpper.timer < 16) {
+                if (DrawPlayerUpper.timer == 12) {
+                    Player.desertGrassSprite.setRegion(16, 0, 16, 16);
+                }
+                game.mapBatch.draw(Player.desertGrassSprite,
+                                   game.player.position.x,
+                                   game.player.position.y +7);
+            }
+            if (DrawPlayerUpper.timer < 16) {
+                DrawPlayerUpper.timer++;
             }
         }
 
@@ -2491,6 +2693,7 @@ public class Player {
     
     public int eggStepTimer = 0;
     public boolean nearAggroPokemon = false;
+    public boolean nearCacturne = false;
 
     public String currPlanting = null;  // Which field move player is currently using
     public static Sprite sproutSprite;
@@ -2501,6 +2704,12 @@ public class Player {
         sproutSprite = new Sprite(text, 16*4, 0, 16, 16);
         text = new Texture(Gdx.files.internal("tiles/place_something1.png"));
         sproutSprite2 = new Sprite(text, 0, 0, 16, 16);
+    }
+
+    public static Sprite desertGrassSprite;
+    static {
+        Texture text = new Texture(Gdx.files.internal("grass_over_sheet3.png"));
+        desertGrassSprite = new Sprite(text, 0, 0, 16, 16);
     }
 
     ArrayList<String> alreadyDoneHarvestables = new ArrayList<String>();
@@ -2919,7 +3128,8 @@ public class Player {
     public boolean checkNearCampfire() {
         // true if player is near an aggro-d Pokemon
         // player can't use campfire in this case.
-        this.nearAggroPokemon = false;  
+        this.nearAggroPokemon = false;
+        this.nearCacturne = false;
         // Automatically near a campfire if the pokemon following the player knows flash
         boolean foundCampfire = this.hmPokemon != null && this.hmPokemon.hms.contains("FLASH");
         Vector2 startPos = this.position.cpy().add(-64, -64);
@@ -2944,6 +3154,9 @@ public class Player {
             else if (tile.items().containsKey("torch")) {
                 // TODO: probably only check if within small radius
                 foundCampfire = true;
+            }
+            else if (tile.nameUpper.equals("cactus2_cacturne")) {
+                this.nearCacturne = true;
             }
             else if (Game.staticGame.map.pokemon.containsKey(currPos)) {
                 Pokemon pokemon = Game.staticGame.map.pokemon.get(currPos);
@@ -4296,6 +4509,17 @@ class PlayerMoving extends Action {
             this.player.hmPokemon.moveDirs.add(this.player.dirFacing);
             this.player.hmPokemon.numMoves.add(1f);
         }
+        
+        if (game.map.tiles.containsKey(this.targetPos) && game.map.tiles.get(this.targetPos).name.contains("desert2")) {
+            DrawPlayerUpper.desertGrass = true;
+            DrawPlayerUpper.timer = 0;
+        }
+        else if (game.map.tiles.containsKey(this.initialPos) && game.map.tiles.get(this.initialPos).name.contains("desert2")) {
+            DrawPlayerUpper.desertGrass = true;
+        }
+        else {
+            DrawPlayerUpper.desertGrass = false;
+        }
     }
 
     // changed, was 130
@@ -4305,7 +4529,7 @@ class PlayerMoving extends Action {
 
     public void localStep(Game game) {
         // allows game to pause in middle of run
-        if (game.playerCanMove == false) {
+        if (!game.playerCanMove) {
             return;
         }
         // can consider doing skipping here if I need to slow down animation
@@ -4343,7 +4567,7 @@ class PlayerMoving extends Action {
          // movement that you don't want
         if ((this.yDist < 13 && this.yDist > 2)
             || (this.xDist < 13 && this.xDist > 2)) {
-            if (this.alternate == true) {
+            if (this.alternate) {
                 // game.batch.draw(game.player.altMovingSprites.get(game.player.dirFacing), game.player.position.x, game.player.position.y);
                 game.player.currSprite = game.player.altMovingSprites.get(game.player.dirFacing);
                 DrawPlayerUpper.offsetY = -1;
@@ -4402,7 +4626,7 @@ class PlayerMoving extends Action {
             }
             game.player.position.set(this.targetPos);
             game.player.isNearCampfire = game.player.checkNearCampfire();
-            game.cam.position.set(this.targetPos.x+16, this.targetPos.y,0);
+            game.cam.position.set(this.targetPos.x+16, this.targetPos.y, 0);
             game.actionStack.remove(this);
             game.insertAction(this.nextAction);
             this.nextAction.step(game); // decide where to move // doesn't actually seem to do much
@@ -4816,11 +5040,21 @@ class PlayerStanding extends Action {
         if (currTile != null && currTile.routeBelongsTo != null) {
             // If currently on grass
             if (currTile.attrs.get("grass")) {
+                
+                // Burrowed trapinch tiles have no wild encounters
+                if (currTile.items().containsKey("trapinch")) {
+                    return null;
+                }
+                
                 // Chance wild encounter
                 int randomNum = game.map.rand.nextInt(100) + 1; // rate determine by player? // 1 - 100
                 int rate = 10;
                 if (game.map.tiles == game.map.interiorTiles.get(game.map.interiorTilesIndex)) {
                     rate = 4;
+                }
+                // Sand pits
+                else if (currTile.name.contains("desert2")) {
+                    rate = 7;
                 }
                 if (randomNum < rate) { //  < 20
                     // disable player movement
@@ -4888,7 +5122,8 @@ class PlayerStanding extends Action {
 //                    pokemon.attacks[1] = "crush grip";
 //                    pokemon.attacks[2] = "crush grip";
 //                    pokemon.attacks[3] = "crush grip";
-                    
+                    // TODO: debug, remove
+//                    pokemon = new Pokemon("combee", 46, Pokemon.Generation.CRYSTAL);
                     return pokemon;
                 }
             }
@@ -5351,6 +5586,7 @@ class PlayerStanding extends Action {
                                                     new SetField(game, "playerCanMove", true,
                                                     null))))))))))))))));
 //                            // TODO: remove
+                              // This was just the evolve anim that functioned like egg hatch as debug
 //                            Action hatchAnimation = new WaitFrames(game, 61,
 //                                                   new WaitFrames(game, 3,
 //                                                   new DisplayText(game, "Oh?", null, true, false,
@@ -6280,7 +6516,8 @@ class PlayerStanding extends Action {
                 return;
             }
             // Check if player should be running
-            if (InputProcessor.bPressed) {
+            // Can't run thru desert 'sand pit' tile
+            if (InputProcessor.bPressed && !temp.name.contains("desert2")) {
                 game.insertAction(new PlayerRunning(game, this.alternate));
                 return;
             }

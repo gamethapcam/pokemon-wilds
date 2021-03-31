@@ -241,6 +241,9 @@ public class Game extends ApplicationAdapter {
         if(Gdx.input.isKeyJustPressed(Input.Keys.F)) {
             this.cam.zoom = 1;
         }
+        if(Gdx.input.isKeyJustPressed(Input.Keys.T)) {
+            CycleDayNight.dayTimer = 100;
+        }
         // Print action stack in layer-order
         if(Gdx.input.isKeyPressed(Input.Keys.P)) {
             System.out.println("Layer, Name");
@@ -409,7 +412,21 @@ public class Game extends ApplicationAdapter {
                     }
                 }
                 System.out.println("Creating screenshot of full map...");
-                Pixmap pixmap = new Pixmap((int)(br.x-tl.x)+16, (int)(tl.y-br.y)+16, Pixmap.Format.RGBA8888);
+                System.out.println((int)(br.x-tl.x)+16);
+                System.out.println((int)(tl.y-br.y)+16);
+                Pixmap pixmap;
+                while (true) {
+                    try {
+                        pixmap = new Pixmap((int)(br.x-tl.x)+16, (int)(tl.y-br.y)+16, Pixmap.Format.RGBA8888);
+                        break;
+                    }
+                    catch(Exception e) {
+                        br.x -= 16;
+                        br.y += 16;
+                        tl.x += 16;
+                        tl.y -= 16;
+                    }
+                }
                 // Draw all tiles onto the pixmap from top-left to bottom-right
                 for (Vector2 currPos = tl.cpy(); currPos.y >= br.y-16; currPos.x += 16) {
                     if (currPos.x > br.x+16) {
@@ -428,16 +445,33 @@ public class Game extends ApplicationAdapter {
                     }
                     Pixmap currPixmap = temp.consumePixmap();
                     pixmap.drawPixmap(currPixmap, (int)(currPos.x-tl.x), (int)(tl.y-currPos.y)+(16-(int)currPixmap.getHeight()));
+                }
+
+                // Draw all tiles onto the pixmap from top-left to bottom-right
+                for (Vector2 currPos = tl.cpy(); currPos.y >= br.y-16; currPos.x += 16) {
+                    if (currPos.x > br.x+16) {
+                        currPos.x = tl.x-16;
+                        currPos.y -= 16;
+                        continue;
+                    }
+                    Tile currTile = this.map.tiles.get(currPos);
+                    if (currTile == null) {
+                        continue;
+                    }
+                    if (currTile.nameUpper.equals("solid")) {  // this gets drawn over oversprites
+                        continue;
+                    }
                     if (currTile.overSprite == null) {
                         continue;
                     }
-                    temp = currTile.overSprite.getTexture().getTextureData();
+                    TextureData temp = currTile.overSprite.getTexture().getTextureData();
                     if (!temp.isPrepared()) {
                         temp.prepare();
                     }
-                    currPixmap = temp.consumePixmap();
+                    Pixmap currPixmap = temp.consumePixmap();
                     pixmap.drawPixmap(currPixmap, (int)(currPos.x-tl.x), (int)(tl.y-currPos.y)+(16-(int)currPixmap.getHeight()));
                 }
+
                 FileHandle file = new FileHandle("screenshot1.png");
                 PixmapIO.writePNG(file, pixmap);
                 System.out.println("Done.");
@@ -685,22 +719,27 @@ public class Game extends ApplicationAdapter {
 //        this.uiBatch.draw(this.frameBuffer.getColorBufferTexture(), 0, 0);  // TODO: test
         // Iterate through the action stack and call the step() fn of each Action.
         for (Action action : new ArrayList<Action>(this.actionStack)) {
-            if (action.getCamera().equals("gui")) {
-                try {
+            // TODO: what is causing this?
+            if (action == null) {
+                continue;
+            }
+            try {
+                if (action.getCamera().equals("gui")) {
                     if (action.firstStep) {
                         action.firstStep(this);
                         action.firstStep = false;
                     }
                     action.step(this);
                 }
-                catch (Exception e) {
-                    e.printStackTrace();
-                    if (this.logFile != null) {
-                        try {
-                            this.logFile.append(e.toString());
-                        } catch (IOException e1) {
-                            e1.printStackTrace();
-                        }
+            }
+            catch (Exception e) {
+                e.printStackTrace();
+                System.out.println(action);
+                if (this.logFile != null) {
+                    try {
+                        this.logFile.append(e.toString());
+                    } catch (IOException e1) {
+                        e1.printStackTrace();
                     }
                 }
             }
@@ -835,10 +874,10 @@ public class Game extends ApplicationAdapter {
 //            this.player.pokemon.add(new Pokemon("egg", 1, Pokemon.Generation.CRYSTAL, false, "skarmory"));
 //            this.player.pokemon.add(new Pokemon("registeel", 40, Pokemon.Generation.CRYSTAL, true));
 //            this.player.pokemon.add(new Pokemon("masquerain", 60, Pokemon.Generation.CRYSTAL));
-            this.player.pokemon.add(new Pokemon("lotad", 5, Pokemon.Generation.CRYSTAL, false, true));
-            this.player.pokemon.add(new Pokemon("parasect", 46));
-            this.player.pokemon.add(new Pokemon("ampharos", 46));
-            this.player.pokemon.add(new Pokemon("whismur", 46));
+            this.player.pokemon.add(new Pokemon("lotad", 70, Pokemon.Generation.CRYSTAL));
+            this.player.pokemon.add(new Pokemon("nosepass", 46, Pokemon.Generation.CRYSTAL));
+            this.player.pokemon.add(new Pokemon("poochyena", 46, Pokemon.Generation.CRYSTAL));
+            this.player.pokemon.add(new Pokemon("ursaring", 46, Pokemon.Generation.CRYSTAL));
             this.player.pokemon.get(2).attacks[0] = "false swipe";
 
             // TODO: remove

@@ -2147,7 +2147,6 @@ public class Battle {
         int damage = (int)Math.floor(Math.floor(Math.floor(2 * source.level / 5 + 2) * attackStat * power / defenseStat) / 50) + 2;
         if (source.types.contains(attack.type.toUpperCase())) {
             damage = (int)(damage * 1.5f);
-            System.out.println("STAB applied.");  // TODO: debug, remove
         }  // STAB
         // Factor in type effectiveness
         float multiplier = 1f;
@@ -3360,6 +3359,11 @@ public class Battle {
                     new DisplayText(game, "Wild "+game.battle.oppPokemon.name.toUpperCase()+" appeared!", null, null,
                     null));
             }
+
+            if (game.battle.oppPokemon.isTrapping) {
+                introAction.append(new DisplayText(game, "It' holding your leg! You canì flee!", null, null, null));
+            }
+
             introAction.append(
                    new SplitAction(new WaitFrames(game, 1,
                                    new DrawEnemyHealth(game)),
@@ -5988,7 +5992,22 @@ class CatchPokemonWobblesThenCatch extends Action {
                 game.actionStack.remove(game.battle.oppPokemon.standingAction);
                 game.battle.oppPokemon.standingAction = null;
                 // ... and remove it from game.map.pokemon.
-                game.map.pokemon.remove(game.battle.oppPokemon.position);  // TODO: may not work if pkmn is frozen
+                // If pokemon was burrowed, remove it from it's tile's items
+                // (burrowed mon is contained in items)
+                if (game.battle.oppPokemon.isTrapping) {
+                    Tile tile = game.map.tiles.get(game.battle.oppPokemon.position);
+                    tile.items.remove(game.battle.oppPokemon.name.toLowerCase());
+                }
+                // else it's in the overworld so remove
+                else {
+                    game.map.pokemon.remove(game.battle.oppPokemon.position);  // TODO: may not work if pkmn is frozen
+                }
+            }
+            // If pokemon was burrowed, remove it from it's tile's items
+            // (burrowed mon is contained in items)
+            if (game.battle.oppPokemon.isTrapping) {
+                Tile tile = game.map.tiles.get(game.battle.oppPokemon.position);
+                tile.items.remove(game.battle.oppPokemon.name.toLowerCase());
             }
             // Since pkmn was caught, add to players pokemon
             Action newAction = new PokemonCaughtEvents(game,
@@ -6388,7 +6407,16 @@ class DepleteEnemyHealth extends Action {
                     // it gets garbage collected :O
                     game.actionStack.remove(game.battle.oppPokemon.standingAction);
                     game.battle.oppPokemon.standingAction = null;
-                    game.map.pokemon.remove(game.battle.oppPokemon.position);
+                    // If pokemon was burrowed, remove it from it's tile's items
+                    // (burrowed mon is contained in items)
+                    if (game.battle.oppPokemon.isTrapping) {
+                        Tile tile = game.map.tiles.get(game.battle.oppPokemon.position);
+                        tile.items.remove(game.battle.oppPokemon.name.toLowerCase());
+                    }
+                    // else it's in the overworld so remove
+                    else {
+                        game.map.pokemon.remove(game.battle.oppPokemon.position);
+                    }
                 }
                 nextAction.append(new SetField(game, "playerCanMove", true, null));
                 game.insertAction(nextAction);
@@ -6704,7 +6732,8 @@ class DrawAttacksMenu extends Action {
                 game.insertAction(new DisplayText.Clear(game,
                                   new WaitFrames(game, 3,
                                   new DisplayText(game, "Replace "+this.pokemon.attacks[DrawAttacksMenu.curr].toUpperCase()+"?",
-                                                  null, true, false,
+//                                                  null, true, false,
+                                                  null, true, true,  // <-- this was a requested fix
                                   new DrawYesNoMenu(null,
                                       new DisplayText.Clear(game,
                                       new WaitFrames(game, 3,
@@ -6719,7 +6748,8 @@ class DrawAttacksMenu extends Action {
                                   new DisplayText.Clear(game,
                                   new WaitFrames(game, 3,                                      
                                   new DisplayText(game, "Which move should be forgotten?",
-                                                  null, true, false,
+//                                                  null, true, false,
+                                                  null, true, true,
                                   this))))))));
 //                this.pokemon.attacks[DrawAttacksMenu.curr] = this.attackLearning;
 //                if (game.type == Game.Type.CLIENT) {
@@ -6774,7 +6804,8 @@ class DrawAttacksMenu extends Action {
                 game.insertAction(new DisplayText.Clear(game,
                                   new WaitFrames(game, 3,
                                   new DisplayText(game, "Give up on learning "+this.attackLearning.toUpperCase()+"?",
-                                                  null, true, false,
+//                                                  null, true, false,
+                                                  null, true, true,  // <-- this was a requested fix
                                   new DrawYesNoMenu(null,
                                       new DisplayText.Clear(game,
                                       new WaitFrames(game, 3,
@@ -6784,7 +6815,8 @@ class DrawAttacksMenu extends Action {
                                   new DisplayText.Clear(game,
                                   new WaitFrames(game, 3,
                                   new DisplayText(game, "Which move should be forgotten?",
-                                                  null, true, false,
+//                                                  null, true, false,
+                                                  null, true, true,
                                   this))))))));
                 return;
             }
@@ -6812,6 +6844,7 @@ class DrawAttacksMenu extends Action {
         Sprite letterSprite;
         for (int m=0; m < textArray.length; m++) {
             letterSprite = game.textDict.get(textArray[m]);
+            game.uiBatch.draw(letterSprite, 16 +8*m, this.offset.y+56);
             game.uiBatch.draw(letterSprite, this.offset.x+16 +8*m, this.offset.y+56);
         }
         // Draw arrow
@@ -7139,6 +7172,12 @@ class DrawBattleMenuNormal extends MenuAction {
 //                game.insertAction(new PlaySound("click1", null));
 //                game.insertAction(runAction);
                 Action runAction = new SplitAction(new PlaySound("click1", null), null);
+                if (game.battle.oppPokemon.isTrapping) {
+                    runAction.append(new DisplayText(game, "Canì escape!", null, null, this));
+                    game.actionStack.remove(this);
+                    game.insertAction(runAction);
+                    return;
+                }
                 if (game.type == Game.Type.CLIENT) {
                     runAction.append(new Battle.WaitTurnData(game, null));
                     game.client.sendTCP(new com.pkmngen.game.Network.DoBattleAction(game.player.network.id, Battle.DoTurn.Type.RUN, ""));
@@ -11168,7 +11207,8 @@ class GainExpAnimation extends Action {
                                       new DisplayText(game, pokemon.name.toUpperCase() + " is trying to learn " + attack.toUpperCase()+".",
                                                       null, null,
                                       new DisplayText(game, "Which move should be forgotten?",
-                                                      null, true, false,
+//                                                      null, true, false,
+                                                      null, true, true,   // <-- this was a requested fix
                                       new DrawAttacksMenu(attack, pokemon,
                                       null))))));
                     }

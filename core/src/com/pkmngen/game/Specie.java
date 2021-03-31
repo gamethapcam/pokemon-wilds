@@ -34,6 +34,8 @@ public class Specie {
                                      "ralts", "taillow", "swellow", "whismur", "poochyena", "mightyena",
                                      "wingull", "pelipper", "shroomish", "breloom", "surskit", "masquerain",
                                      "sableye",
+                                     "aexeggutor",  // Gmerc
+                                     "zigzagoon", "linoone", // TODO: need ow sprite
                                      "dwebble",  // overworld 
                                      "crustle",  // overworld 
                                      "litwick", "lampent", "chandelure",  // overworld Goose (discord)
@@ -43,6 +45,13 @@ public class Specie {
                                      "scorbunny",  // Internet_Goblin on discord
                                      "raboot",  // Internet_Goblin on discord
                                      "regieleki", "regidrago", "registeel", "regirock", "regice", "regigigas", // Mr Dustman and Sadfish on discord
+                                     "bronzor", "bronzong",  // SkwovetSquire on discord
+                                     "darumaka",  // Goose on discord
+                                     "elgyem", "beheeyem",  // Goose on discord
+                                     "sandile", "krokorok", "krookodile",  // Goose and Sadfish on discord
+                                     "cutiefly", "ribombee",  // TerraTerraCotta on discord
+                                     "combee",  // TerraTerraCotta on discord
+                                     "nosepass",  // nuuk, ow sadfish on discord
                                      "snover"};  // TODO: sep loading method
         for (String t : temp) {
             nuukPokemon.add(t);
@@ -774,9 +783,11 @@ public class Specie {
                 line = lines.get(i);
 
                 // TODO: no overworld sprites for some pokemon
+                // TODO: no overworld sprites for some pokemon
                 if (name.equals("poochyena")) {
                     i = 312;
                     found = true;
+                    flip = false;
                 }
                 else if (name.equals("mightyena")) {
                     i = 313;
@@ -869,6 +880,60 @@ public class Specie {
                 else if (name.equals("regigigas")) {
                     i = 333;
                     found = true;
+                }
+                else if (name.equals("cacturne")) {
+                    i = 336;
+                    found = true;
+                }
+                else if (name.equals("elgyem")) {
+                    i = 339;
+                    found = true;
+                }
+                else if (name.equals("elgyem")) {
+                    i = 339;
+                    found = true;
+                    flip = false;
+                }
+                else if (name.equals("hippopotas")) {
+                    i = 340;
+                    found = true;
+                    flip = false;
+                }
+                else if (name.equals("cutiefly")) {
+                    i = 341;
+                    found = true;
+                    flip = false;
+                }
+                else if (name.equals("ribombee")) {
+                    i = 342;
+                    found = true;
+                    flip = false;
+                }
+                else if (name.equals("sandile")) {
+                    i = 344;
+                    found = true;
+                    flip = false;
+                }
+                else if (name.equals("krokorok")) {
+                    i = 345;
+                    found = true;
+                    flip = false;
+                }
+                else if (name.equals("krookodile")) {
+                    i = 346;
+                    found = true;
+                    flip = false;
+                }
+                else if (name.equals("nosepass")) {
+                    i = 347;
+                    found = true;
+                    flip = false;
+                }
+                // TODO: debug, remove
+                else if (name.equals("whismur")) {
+                    i = 343;
+                    found = true;
+                    flip = false;
                 }
                 String currName = line.split("db \"")[1].split("\"")[0].toLowerCase().replace("@", "");
                 if (currName.equals(name) || found) {
