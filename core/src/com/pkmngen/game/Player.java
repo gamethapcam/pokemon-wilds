@@ -5123,7 +5123,7 @@ class PlayerStanding extends Action {
 //                    pokemon.attacks[2] = "crush grip";
 //                    pokemon.attacks[3] = "crush grip";
                     // TODO: debug, remove
-//                    pokemon = new Pokemon("combee", 46, Pokemon.Generation.CRYSTAL);
+//                    pokemon = new Pokemon("vespiquen", 46, Pokemon.Generation.CRYSTAL);
                     return pokemon;
                 }
             }

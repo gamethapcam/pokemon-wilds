@@ -50,7 +50,7 @@ public class Specie {
                                      "elgyem", "beheeyem",  // Goose on discord
                                      "sandile", "krokorok", "krookodile",  // Goose and Sadfish on discord
                                      "cutiefly", "ribombee",  // TerraTerraCotta on discord
-                                     "combee",  // TerraTerraCotta on discord
+                                     "combee", "vespiquen",  // TerraTerraCotta on discord
                                      "nosepass",  // nuuk, ow sadfish on discord
                                      "snover"};  // TODO: sep loading method
         for (String t : temp) {
@@ -58,11 +58,7 @@ public class Specie {
         }
     }
 
-
     public static HashMap<String, Specie> species = new HashMap<String, Specie>();
-
-
-
 
     String name;
     String dexNumber;
@@ -926,6 +922,11 @@ public class Specie {
                 }
                 else if (name.equals("nosepass")) {
                     i = 347;
+                    found = true;
+                    flip = false;
+                }
+                else if (name.equals("vespiquen")) {
+                    i = 348;
                     found = true;
                     flip = false;
                 }

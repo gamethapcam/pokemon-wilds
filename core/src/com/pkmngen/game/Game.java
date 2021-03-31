@@ -874,9 +874,9 @@ public class Game extends ApplicationAdapter {
 //            this.player.pokemon.add(new Pokemon("egg", 1, Pokemon.Generation.CRYSTAL, false, "skarmory"));
 //            this.player.pokemon.add(new Pokemon("registeel", 40, Pokemon.Generation.CRYSTAL, true));
 //            this.player.pokemon.add(new Pokemon("masquerain", 60, Pokemon.Generation.CRYSTAL));
-            this.player.pokemon.add(new Pokemon("lotad", 70, Pokemon.Generation.CRYSTAL));
-            this.player.pokemon.add(new Pokemon("nosepass", 46, Pokemon.Generation.CRYSTAL));
-            this.player.pokemon.add(new Pokemon("poochyena", 46, Pokemon.Generation.CRYSTAL));
+            this.player.pokemon.add(new Pokemon("swellow", 70, Pokemon.Generation.CRYSTAL, true, true));
+            this.player.pokemon.add(new Pokemon("nosepass", 46, Pokemon.Generation.CRYSTAL, true, true));
+            this.player.pokemon.add(new Pokemon("vespiquen", 46, Pokemon.Generation.CRYSTAL, true, true));
             this.player.pokemon.add(new Pokemon("ursaring", 46, Pokemon.Generation.CRYSTAL));
             this.player.pokemon.get(2).attacks[0] = "false swipe";
 
