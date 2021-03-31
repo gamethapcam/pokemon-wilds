@@ -134,3 +134,5 @@ ZigzagoonEggMoves:
 CombeeEggMoves:
 
 AexeggutorEggMoves:
+
+NosepassEggMoves:

@@ -875,7 +875,7 @@ public class Network {
             super(pokemon, index);
         }
     }
-    
+
     /**
      * Fields added in v0.5
      */

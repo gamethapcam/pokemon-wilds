@@ -145,6 +145,7 @@ public class Pokemon {
                                      "sandile", "krokorok", "krookodile",  // Goose and Sadfish on discord
                                      "cutiefly", "ribombee",  // TerraTerraCotta on discord
                                      "combee",  // TerraTerraCotta on discord
+                                     "nosepass",  // nuuk, ow sadfish on discord
                                      "snover"};  // TODO: sep loading method
         for (String t : temp) {
             nuukPokemon.add(t);
@@ -2329,6 +2330,11 @@ public class Pokemon {
                 }
                 else if (name.equals("krookodile")) {
                     i = 346;
+                    found = true;
+                    flip = false;
+                }
+                else if (name.equals("nosepass")) {
+                    i = 347;
                     found = true;
                     flip = false;
                 }
