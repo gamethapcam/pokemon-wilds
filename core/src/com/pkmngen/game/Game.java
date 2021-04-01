@@ -836,10 +836,10 @@ public class Game extends ApplicationAdapter {
 //            this.player.pokemon.add(new Pokemon("registeel", 40, Pokemon.Generation.CRYSTAL, true));
 //            this.player.pokemon.add(new Pokemon("masquerain", 60, Pokemon.Generation.CRYSTAL));
             this.player.pokemon.add(new Pokemon("lotad", 70, Pokemon.Generation.CRYSTAL));
-            this.player.pokemon.add(new Pokemon("parasect", 46, Pokemon.Generation.CRYSTAL));
-            this.player.pokemon.add(new Pokemon("ampharos", 46, Pokemon.Generation.CRYSTAL));
-            this.player.pokemon.add(new Pokemon("whismur", 46, Pokemon.Generation.CRYSTAL));
-            this.player.pokemon.get(2).attacks[0] = "false swipe";
+            this.player.pokemon.add(new Pokemon("unown", 46, Pokemon.Generation.CRYSTAL, true));
+            this.player.pokemon.add(new Pokemon("venusaur", 46, Pokemon.Generation.CRYSTAL, true));
+            this.player.pokemon.add(new Pokemon("charizard", 46, Pokemon.Generation.CRYSTAL, true));
+            this.player.pokemon.get(2).attacks[0] = "night shade";
 
             // TODO: remove
 //            this.player.pokemon.add(new Pokemon("charizard", 60, Pokemon.Generation.CRYSTAL));

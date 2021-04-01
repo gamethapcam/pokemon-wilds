@@ -1854,7 +1854,7 @@ class DrawSetupMenu extends Action {
                                     }
                                 });
                                 // TODO: uncomment
-//                                thread.start();
+                                thread.start();
                                 
                                 
 //                                System.out.println("Generating map...");
@@ -1872,12 +1872,12 @@ class DrawSetupMenu extends Action {
 //                                System.out.println(java.time.LocalTime.now());
                                 
                                 // TODO: uncomment
-//                                game.insertAction(new DisplayText(game, "Generating... please wait...", null, true, false, null));
-//                                game.insertAction(drawControls);
+                                game.insertAction(new DisplayText(game, "Generating... please wait...", null, true, false, null));
+                                game.insertAction(drawControls);
 
-                                game.map = new PkmnMap("default"); // TODO: ideally shouldn't have to do this.
-                                game.start();
-                                game.insertAction(new TileEditor());
+//                                game.map = new PkmnMap("default"); // TODO: ideally shouldn't have to do this.
+//                                game.start();
+//                                game.insertAction(new TileEditor());
 
                                 // Set player name
                                 String name = "";
@@ -1932,7 +1932,7 @@ class DrawSetupMenu extends Action {
                                 game.insertAction(enterBuilding);
                                 
                                 // TODO: remove
-                                game.insertAction(new TileEditor());
+//                                game.insertAction(new TileEditor());
                             }
                             // periodically save game in both host/local cases
                             // TODO: this lags too much for large maps, which causes server desync.

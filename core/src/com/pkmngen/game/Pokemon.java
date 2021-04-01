@@ -97,7 +97,7 @@ public class Pokemon {
         attacksNotImplemented.add("rollout");
         attacksNotImplemented.add("safeguard");
         attacksNotImplemented.add("sandstorm");
-        attacksNotImplemented.add("seismic toss");
+//        attacksNotImplemented.add("seismic toss");
 //        attacksNotImplemented.add("selfdestruct");  // TODO: remove
         attacksNotImplemented.add("sketch");
         attacksNotImplemented.add("skull bash");
@@ -1346,6 +1346,7 @@ public class Pokemon {
     void evolveTo(String targetName) {
         this.name = targetName;
         this.dexNumber = Pokemon.nameToIndex(this.name);
+        String prevGender = this.gender;  // TODO: don't merge this code with master.
         // Update base stats and various values.
         // Don't modify attacks, current hp, etc.
         // TODO: current hp is probably compensated in the real game
@@ -1356,6 +1357,7 @@ public class Pokemon {
         else {
             this.loadPrismPokemon(this.name);
         }
+        this.gender = prevGender;
         this.standingSprites.clear();
         this.movingSprites.clear();
         this.altMovingSprites.clear();
@@ -1905,36 +1907,36 @@ public class Pokemon {
                     path = "";  // all egg sprites loaded from crystal
                 }
 
-                if (name.contains("unown")) {
-                    file = Gdx.files.internal("crystal_pokemon/"+path+"pokemon/" + newName + "/normal.pal");
-                }
-                else {
-                    file = Gdx.files.internal("crystal_pokemon/"+path+"pokemon/" + name + "/front.pal");
-                }
-                // TODO: don't really need anymore b/c SpriteProxy knows color1/color2
-                if (file.exists()) {
-                    reader = file.reader();
-                    br = new BufferedReader(reader);
-                    while ((line = br.readLine()) != null)   {
-                        if (line.contains("RGB")) {
-                            String[] vals = line.split("\tRGB ")[1].split(", ");
-                            if (normalColor1 == null) {
-                                // TODO: this is wrong, these values range from 0-32 but .r .g .b should be floats.
-                                normalColor1 = new Color();
-                                normalColor1.r = Integer.valueOf(vals[0]);
-                                normalColor1.g = Integer.valueOf(vals[1]);
-                                normalColor1.b = Integer.valueOf(vals[2]);
-                            }
-                            else {
-                                normalColor2.r = Integer.valueOf(vals[0]);
-                                normalColor2.g = Integer.valueOf(vals[1]);
-                                normalColor2.b = Integer.valueOf(vals[2]);
-                            }
-                        }
-                    }
-                    reader.close();
-                }
-                else {
+//                if (name.contains("unown")) {
+//                    file = Gdx.files.internal("crystal_pokemon/"+path+"pokemon/" + newName + "/normal.pal");
+//                }
+//                else {
+//                    file = Gdx.files.internal("crystal_pokemon/"+path+"pokemon/" + name + "/front.pal");
+//                }
+//                // TODO: don't really need anymore b/c SpriteProxy knows color1/color2
+//                if (file.exists()) {
+//                    reader = file.reader();
+//                    br = new BufferedReader(reader);
+//                    while ((line = br.readLine()) != null)   {
+//                        if (line.contains("RGB")) {
+//                            String[] vals = line.split("\tRGB ")[1].split(", ");
+//                            if (normalColor1 == null) {
+//                                // TODO: this is wrong, these values range from 0-32 but .r .g .b should be floats.
+//                                normalColor1 = new Color();
+//                                normalColor1.r = Integer.valueOf(vals[0]);
+//                                normalColor1.g = Integer.valueOf(vals[1]);
+//                                normalColor1.b = Integer.valueOf(vals[2]);
+//                            }
+//                            else {
+//                                normalColor2.r = Integer.valueOf(vals[0]);
+//                                normalColor2.g = Integer.valueOf(vals[1]);
+//                                normalColor2.b = Integer.valueOf(vals[2]);
+//                            }
+//                        }
+//                    }
+//                    reader.close();
+//                }
+//                else {
                     SpriteProxy tempSprite = new SpriteProxy(Pokemon.textures.get(name+"_front"),
                                                              0, 0, text.getWidth(), text.getWidth());
 //                    normalColor1 = tempSprite.color1;
@@ -1948,7 +1950,7 @@ public class Pokemon {
                     normalColor2.r = tempSprite.color2.r*32f;
                     normalColor2.g = tempSprite.color2.g*32f;
                     normalColor2.b = tempSprite.color2.b*32f;
-                }
+//                }
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
             } catch (IOException e) {

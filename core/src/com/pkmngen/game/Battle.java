@@ -2142,6 +2142,9 @@ public class Battle {
             power = 1 + ((120 * target.currentStats.get("hp"))/target.maxStats.get("hp"));
             System.out.println(power);
         }
+        else if (attack.name.equals("night shade") || attack.name.equals("seismic toss")) {
+            return source.level;
+        }
         int attackStat = attack.isPhysical ? source.currentStats.get("attack") : source.currentStats.get("specialAtk");
         int defenseStat = attack.isPhysical ? target.currentStats.get("defense") : target.currentStats.get("specialDef");
         int damage = (int)Math.floor(Math.floor(Math.floor(2 * source.level / 5 + 2) * attackStat * power / defenseStat) / 50) + 2;
@@ -3006,13 +3009,16 @@ public class Battle {
                     accuracy = (attack.effectChance*255)/100;
                     attackMisses = accuracy < 255 && game.map.rand.nextInt(256) >= accuracy;
                 }
-                // TODO: Technically should also check that move type == electric I believe
                 // Electric types cannot be paralyzed (this covers HIT and non-HIT moves)
                 if (attack.type.equals("electric") && enemyPokemon.types.contains("ELECTRIC") && status.equals("paralyze")) {
                     attackMisses = true;
                 }
                 // Ground types not affected by electric moves
                 if (attack.type.equals("electric") && enemyPokemon.types.contains("ELECTRIC")) {
+                    attackMisses = true;
+                }
+                // Steel types cannot be poisoned by poison moves (in gen3+ they can't be poisoned at all)
+                if (attack.type.equals("poison") && enemyPokemon.types.contains("STEEL") && (status.equals("poison") || status.equals("toxic"))) {
                     attackMisses = true;
                 }
 
@@ -4130,10 +4136,12 @@ public class Battle {
                     // currently it just ignores nextAction.
                     Action catchAction;
                     if (numWobbles == 0) {
-                        catchAction = new CatchPokemonMiss(game,
-//                                      new PrintAngryEating(game,
-//                                      new ChanceToRun(game,
-                                      null);
+//                        catchAction = new CatchPokemonMiss(game,
+////                                      new PrintAngryEating(game,
+////                                      new ChanceToRun(game,
+//                                      null);
+                        catchAction = new CatchPokemonWobbles0Times(game,
+                                                                    null);
                     }
                     else if (numWobbles == 1) {
                         catchAction = new CatchPokemonWobbles1Time(game,
@@ -5309,6 +5317,141 @@ class CatchPokemonMiss extends Action {
 
         game.actionStack.remove(this);
         return;
+    }
+}
+
+
+class CatchPokemonWobbles0Times extends Action {
+    ArrayList<Vector2> positions;
+    Vector2 position;
+    ArrayList<Sprite> sprites;
+    Sprite sprite;
+    ArrayList<Integer> repeats;
+    String sound;
+    ArrayList<String> sounds;
+    ArrayList<Float> alphas;
+    public int layer = 120;
+
+    public CatchPokemonWobbles0Times(Game game, Action nextAction) {
+        this.nextAction = nextAction;
+      Texture text = new Texture(Gdx.files.internal("throw_pokeball_anim/pokeball1_color.png"));
+
+      // initial sprite position
+      this.position = new Vector2(114,88); // post scaling change
+      this.positions = new ArrayList<Vector2>();
+      this.positions.add(new Vector2(0, 0)); // wait 13
+      this.positions.add(new Vector2(-19, -16));
+      for (int i = 0; i < 6; i++) {
+          this.positions.add(new Vector2(0,0)); // filler
+      }
+      // 11 total
+
+      // Wiggle anim
+      this.sprites =  new ArrayList<Sprite>();
+      this.sprites.add(null); // draw nothing for 13 frames
+
+      text = new Texture(Gdx.files.internal("throw_pokeball_anim/pokeball_wiggleSheet1_color.png"));
+      this.sprites.add(new Sprite(text, 12*0, 0, 12, 12)); // middle
+      text = new Texture(Gdx.files.internal("throw_pokeball_anim/poof_sheet1.png"));
+      this.sprites.add(new Sprite(text, 48*0, 0, 48, 48)); // poof1
+      this.sprites.add(new Sprite(text, 48*1, 0, 48, 48)); // poof2
+      this.sprites.add(new Sprite(text, 48*2, 0, 48, 48)); // poof3
+      this.sprites.add(new Sprite(text, 48*3, 0, 48, 48)); // poof4
+      this.sprites.add(new Sprite(text, 48*4, 0, 48, 48)); // poof5
+      this.sprites.add(null); // draw nothing for 4 frames // done at this point
+
+      // 11 total events
+      this.repeats = new ArrayList<Integer>();
+
+      this.repeats.add(13-1); // 13 frames before pokeball appears on ground
+      this.repeats.add(44-1); // first middle sprite has 44 frames
+      for (int i = 0; i < 4; i++) { // each poof has 5 frames
+          this.repeats.add(5-1);
+      }
+      this.repeats.add(10-1); // final poof has 10 frames
+      this.repeats.add(4-1); // 4 frames of nothing (before text box change)
+      // 11 total
+
+      // sounds to play
+      this.sounds = new ArrayList<String>();
+      this.sounds.add(null);
+      this.sounds.add("pokeball_wiggle1");
+      this.sounds.add("poof1");
+      for (int i = 0; i < 5; i++) {
+          this.sounds.add(null);
+      }
+      // 11 total events
+
+      // opposing pkmn sprite alphas
+      this.alphas = new ArrayList<Float>();
+      for (int i = 0; i < 7; i++) {
+          this.alphas.add(0f);
+      }
+      this.alphas.add(1f);
+      // 11 total events
+    }
+
+
+    public String getCamera() {return "gui";}
+
+    public int getLayer(){return this.layer;}
+
+    @Override
+    public void step(Game game) {
+        // set sprite position
+        // if done with anim, do nextAction
+        if (positions.isEmpty() || sprites.isEmpty()) {
+            String textString = "Darn! The POKéMON broke free!";
+            // nextAction will be a battle menu draw action here
+            game.insertAction(new DisplayText(game, textString, null, null, this.nextAction));
+            // newAction.step(game);// need to draw the pokeball
+
+            game.actionStack.remove(this);
+            return;
+        }
+
+        // control alpha of opposing pkmn
+        float currAlpha = this.alphas.get(0);
+        if (currAlpha == 0f) {
+            DrawBattle.shouldDrawOppPokemon = false;
+        }
+        else {
+            DrawBattle.shouldDrawOppPokemon = true; 
+        }
+
+        // get next sound, play it
+        this.sound = this.sounds.get(0);
+        if (this.sound != null) {
+            game.insertAction(new PlaySound(this.sound, null));
+            this.sounds.set(0, null); // don't play same sound over again
+        }
+
+        // get next frame
+        this.sprite = sprites.get(0);
+
+        // debug
+        // this.helperSprite.draw(game.floatingBatch); // debug
+
+        // draw current sprite
+        if (this.sprite != null) {
+            // this.sprite.setScale(3); // post scaling change
+            this.sprite.setPosition(position.x, position.y);
+            this.sprite.draw(game.uiBatch);
+        }
+
+        // repeat sprite/pos for current object for 'frames[0]' number of frames.
+        if (this.repeats.get(0) > 0) {
+            this.repeats.set(0, this.repeats.get(0) - 1);
+        }
+        else {
+            // since position is relative, only update once each time period
+            this.position = this.position.add(positions.get(0));
+            positions.remove(0);
+            sprites.remove(0);
+            repeats.remove(0);
+            sounds.remove(0);
+            alphas.remove(0);
+        }
     }
 }
 
@@ -12504,6 +12647,7 @@ class SpecialBattleMewtwo extends Action {
 
         @Override
         public void step(Game game) {
+            ShaderProgram.pedantic = false;
 //            if (this.timer < 60 || this.timer > 700) {
 //            }
             if (!moves_relative.isEmpty()) {

@@ -4866,6 +4866,10 @@ class PlayerStanding extends Action {
                         if (averageLevel > 50) {
                             averageLevel = 50;
                         }
+                        // Don't allow anything below level 2
+                        if (averageLevel < 2) {
+                            averageLevel = 2;
+                        }
                         // Reset all of the Pokemon's stat values (including health).
                         // TODO: not sure if I'm evolving mons here or not
                         //       would be cool in the beach biome.
@@ -4882,7 +4886,7 @@ class PlayerStanding extends Action {
 //                    pokemon.attacks[1] = "crush grip";
 //                    pokemon.attacks[2] = "crush grip";
 //                    pokemon.attacks[3] = "crush grip";
-                    
+
                     return pokemon;
                 }
             }

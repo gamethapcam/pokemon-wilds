@@ -2052,6 +2052,7 @@ class Route {
         this.musics.add("national_park1");
         this.musics.add("viridian_forest_gs");
         this.musics.add("route_3_gs");
+        this.musics.add("route_3_rb");
         this.musics.add("route_1");
         this.musics.add("route_idk1");
 //        this.musics.add("littleroot_town");  // TODO: doesnt really fit
