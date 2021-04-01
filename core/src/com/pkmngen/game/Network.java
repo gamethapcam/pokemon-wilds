@@ -404,9 +404,10 @@ public class Network {
         kryo.register(OverworldPokemonData.class);
         
         // Any new 'versioned' classes need to be added at bottom (I think)
-        kryo.register(PlayerData.class);  // rename to PlayerDataV05 when moving to v0.6
+        kryo.register(PlayerDataV06.class);  // rename to PlayerDataV05 when moving to v0.6
         kryo.register(PokemonDataV04.class);
         kryo.register(PokemonData.class);  // rename to PokemonDataV05 when moving to v0.6
+        kryo.register(PlayerData.class);
     }
 
     static public class ActionData {
@@ -732,22 +733,23 @@ public class Network {
 
         public PlayerDataBase(){}
 
-        public PlayerDataBase(PlayerDataBase base) {
-            this.position = base.position;
-            this.name = base.name;
-            this.pokemon = base.pokemon;
-            this.currPokemon = base.currPokemon;
-            this.itemsDict = base.itemsDict;
-            this.id = base.id;
-            this.number = base.number;
-            this.color = base.color;
-            this.dirFacing = base.dirFacing;
-            this.spawnLoc = base.spawnLoc;
-            this.isInterior = base.isInterior;
-            this.displayedMaxPartyText = base.displayedMaxPartyText;
-            this.isFlying = base.isFlying;
-            this.flyingIndex = base.flyingIndex;
-        }
+        // TODO: deprecated, remove
+//        public PlayerDataBase(PlayerDataBase base) {
+//            this.position = base.position;
+//            this.name = base.name;
+//            this.pokemon = base.pokemon;
+//            this.currPokemon = base.currPokemon;
+//            this.itemsDict = base.itemsDict;
+//            this.id = base.id;
+//            this.number = base.number;
+//            this.color = base.color;
+//            this.dirFacing = base.dirFacing;
+//            this.spawnLoc = base.spawnLoc;
+//            this.isInterior = base.isInterior;
+//            this.displayedMaxPartyText = base.displayedMaxPartyText;
+//            this.isFlying = base.isFlying;
+//            this.flyingIndex = base.flyingIndex;
+//        }
 
         public PlayerDataBase(Player player) {
             this.position = player.position.cpy();
@@ -776,35 +778,60 @@ public class Network {
     }
 
     /**
+     * Unsure when this was introduced tbh.
+     */
+    static public class PlayerDataV06 extends PlayerDataBase {
+        public int spawnIndex = -1;
+
+        // TODO: deprecated, remove
+//        public PlayerDataV6(PlayerDataBase base) {
+//            super(base);
+//        }
+
+        // Note - kyro deserilization uses the no arg constructor,
+        // so if you need to init anything can put it here?
+        public PlayerDataV06() {
+            super();
+        }
+
+        public PlayerDataV06(Player player) {
+            super(player);
+            this.spawnIndex = player.spawnIndex;
+        }
+    }
+
+    /**
      * Data associated with the Player to be sent over the network.
      *
      * Used to initialize a Player instance.
+     * 
+     * Introduced in V0.7
      */
-    static public class PlayerData extends PlayerDataBase {
-        public int spawnIndex = -1;
+    static public class PlayerData extends PlayerDataV06 {
 
-        public static PlayerData get(PlayerDataBase base) {
-            if (PlayerData.class.isInstance(base)) {
-                return (PlayerData)base;
-            }
-            // else, assume it's PlayerDataBase (?)
-            return new PlayerData(base);
-        }
+        // gold, kris, red, green
+        String character = "gold";
+        Color skinColor = new Color(1f, 0.8078431372549019607843137254902f, 0.28235294117647058823529411764706f, 1f);
 
-        public PlayerData(PlayerDataBase base) {
-            super(base);
-        }
+        // TODO: deprecated, remove
+//        public static PlayerData get(PlayerDataBase base) {
+//            if (PlayerData.class.isInstance(base)) {
+//                return (PlayerData)base;
+//            }
+//            // else, assume it's PlayerDataBase (?)
+//            return new PlayerData(base);
+//        }
 
         public PlayerData() {
-            // Note - kyro deserilization uses the no arg constructor,
-            // so if you need to init anything can put it here?
             super();
         }
 
         public PlayerData(Player player) {
             super(player);
-            this.spawnIndex = player.spawnIndex;
+            this.character = player.character;
+            this.skinColor = player.skinColor;
         }
+        
     }
 
     /**

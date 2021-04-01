@@ -18,6 +18,8 @@ import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.pkmngen.game.DrawPokemonMenu.SelectedMenu;
 import com.pkmngen.game.DrawPokemonMenu.SelectedMenu.Switch;
+import com.pkmngen.game.Network.PlayerDataBase;
+import com.pkmngen.game.Network.PlayerDataV06;
 import com.pkmngen.game.Pokemon.Burrowed;
 import com.pkmngen.game.Pokemon.LedgeJump;
 import com.pkmngen.game.Pokemon.Moving;
@@ -759,6 +761,24 @@ class DrawBuildRequirements extends Action {
         namesMap.put("house_carpet6", "Carpet");
         namesMap.put("house_carpet7", "Carpet");
         namesMap.put("house_carpet8", "Carpet");
+        namesMap.put("house_clock1", "Clock");
+        namesMap.put("house_picture1", "Picture");
+        namesMap.put("house_picture2", "Picture");
+        namesMap.put("house_picture3", "Picture");
+        namesMap.put("house_picture4", "Picture");
+        namesMap.put("house_picture5", "Picture");
+        namesMap.put("house_picture6", "Picture");
+        namesMap.put("house_picture7", "Picture");
+        namesMap.put("house_picture8", "Picture");
+        namesMap.put("house_picture9", "Picture");
+        namesMap.put("house_picture10", "Picture");
+        namesMap.put("house_picture11", "Picture");
+        namesMap.put("house_picture12", "Picture");
+        namesMap.put("house_picture13", "Picture");
+        namesMap.put("house_picture14", "Picture");
+        namesMap.put("house_picture15", "Picture");
+        namesMap.put("house_picture16", "Picture");
+        namesMap.put("house_picture17", "Picture");
     }
 
     public String getCamera() {return "gui";}
@@ -2127,7 +2147,9 @@ class DrawPlayerUpper extends Action {
             sprite.setAlpha(0.8f);
             sprite.setPosition(pos.x, pos.y);
             Tile nextTile = game.map.tiles.get(pos);
-            boolean isTorch = nextTile != null && game.player.currBuildTile.name.contains("torch");
+            boolean isTorch = nextTile != null && (game.player.currBuildTile.name.contains("torch") ||
+                                                   game.player.currBuildTile.name.equals("house_clock1") ||
+                                                   game.player.currBuildTile.name.contains("picture"));
             if ((isTorch && !nextTile.attrs.get("solid")) ||
                 (nextTile != null && nextTile.attrs.get("solid"))) {
                 sprite.setColor(1f, 0.7f, 0.7f, 0.8f);
@@ -2695,6 +2717,10 @@ public class Player {
     public boolean nearAggroPokemon = false;
     public boolean nearCacturne = false;
 
+    // gold, kris, red, green
+    String character = "gold";
+    Color skinColor = new Color(1f, 0.8078431372549019607843137254902f, 0.28235294117647058823529411764706f, 1f);
+
     public String currPlanting = null;  // Which field move player is currently using
     public static Sprite sproutSprite;
     public static Sprite sproutSprite2;
@@ -2788,15 +2814,19 @@ public class Player {
         Player.crafts.add(craft);
         //
         craft = new Craft("poké ball", 1);
-        craft.requirements.add(new Craft("metal coat", 1));
-        craft.requirements.add(new Craft("psi energy", 1));
+        craft.requirements.add(new Craft("magnet", 1));
+        craft.requirements.add(new Craft("hard shell", 1));
         Player.crafts.add(craft);
         craft = new Craft("great ball", 1);
         craft.requirements.add(new Craft("poké ball", 1));
-        craft.requirements.add(new Craft("hard shell", 1));
+        craft.requirements.add(new Craft("metal coat", 1));
         Player.crafts.add(craft);
         craft = new Craft("ultra ball", 1);
         craft.requirements.add(new Craft("great ball", 1));
+        craft.requirements.add(new Craft("psi energy", 1));  // dusk ball? nugget + dark energy? idk.
+        Player.crafts.add(craft);
+        craft = new Craft("dusk ball", 1);
+        craft.requirements.add(new Craft("ultra ball", 1));
         craft.requirements.add(new Craft("dark energy", 1));  // dusk ball? nugget + dark energy? idk.
         Player.crafts.add(craft);
         //
@@ -2810,6 +2840,10 @@ public class Player {
         //
         craft = new Craft("binding band", 1);
         craft.requirements.add(new Craft("grass", 3));
+        Player.crafts.add(craft);
+        //
+        craft = new Craft("thin paper", 1);
+        craft.requirements.add(new Craft("log", 1));
         Player.crafts.add(craft);
     }
 
@@ -2952,6 +2986,26 @@ public class Player {
         this.indoorBuildTiles.add(new Tile("house_carpet6", new Vector2(0,0)));
         this.indoorBuildTiles.add(new Tile("house_carpet7", new Vector2(0,0)));
         this.indoorBuildTiles.add(new Tile("house_carpet8", new Vector2(0,0)));
+        
+        // 
+        this.indoorBuildTiles.add(new Tile("house_clock1", new Vector2(0,0)));
+        this.indoorBuildTiles.add(new Tile("house_picture1", new Vector2(0,0)));
+        this.indoorBuildTiles.add(new Tile("house_picture2", new Vector2(0,0)));
+        this.indoorBuildTiles.add(new Tile("house_picture3", new Vector2(0,0)));
+        this.indoorBuildTiles.add(new Tile("house_picture4", new Vector2(0,0)));
+        this.indoorBuildTiles.add(new Tile("house_picture5", new Vector2(0,0)));
+        this.indoorBuildTiles.add(new Tile("house_picture6", new Vector2(0,0)));
+        this.indoorBuildTiles.add(new Tile("house_picture7", new Vector2(0,0)));
+        this.indoorBuildTiles.add(new Tile("house_picture8", new Vector2(0,0)));
+        this.indoorBuildTiles.add(new Tile("house_picture9", new Vector2(0,0)));
+        this.indoorBuildTiles.add(new Tile("house_picture10", new Vector2(0,0)));
+        this.indoorBuildTiles.add(new Tile("house_picture11", new Vector2(0,0)));
+        this.indoorBuildTiles.add(new Tile("house_picture12", new Vector2(0,0)));
+        this.indoorBuildTiles.add(new Tile("house_picture13", new Vector2(0,0)));
+        this.indoorBuildTiles.add(new Tile("house_picture14", new Vector2(0,0)));
+        this.indoorBuildTiles.add(new Tile("house_picture15", new Vector2(0,0)));
+        this.indoorBuildTiles.add(new Tile("house_picture16", new Vector2(0,0)));
+        this.indoorBuildTiles.add(new Tile("house_picture17", new Vector2(0,0)));
 
         // TODO: remove
 //        this.buildTiles.add(new Tile("sleeping_bag1", new Vector2(0,0)));
@@ -2995,6 +3049,15 @@ public class Player {
             }
             else if (tile.name.contains("carpet")) {
                 requirements.put("grass", 1);
+                continue;
+            }
+            else if (tile.name.contains("picture")) {
+                requirements.put("thin paper", 1);
+                continue;
+            }
+            else if (tile.name.contains("clock")) {
+                requirements.put("log", 1);
+                requirements.put("clear glass", 1);
                 continue;
             }
             else if (tile.name.contains("house_")) {
@@ -3058,6 +3121,9 @@ public class Player {
             this.itemsDict.put("soft bedding", 99);;
             this.itemsDict.put("miracle seed", 99);
             this.itemsDict.put("great ball", 99);
+            this.itemsDict.put("ultra ball", 99);
+            this.itemsDict.put("dark energy", 99);
+            this.itemsDict.put("thin paper", 99);
         }
 
         this.network = new Network(this.position);
@@ -3067,10 +3133,12 @@ public class Player {
     /**
      * Constructor to load from serialized class (ie data sent over network or loaded from file).
      */
-    public Player(com.pkmngen.game.Network.PlayerData playerData) {
+    public Player(PlayerDataBase playerData) {
         this();
+        if (playerData instanceof PlayerDataV06) {
+            this.spawnIndex = ((PlayerDataV06)playerData).spawnIndex;
+        }
         this.spawnLoc = playerData.spawnLoc;
-        this.spawnIndex = playerData.spawnIndex;
         this.dirFacing = playerData.dirFacing;
         this.position = playerData.position;
         this.name = playerData.name;
@@ -3598,7 +3666,16 @@ public class Player {
     }
 
     public void setColor(Color newColor) {
-        this.color = newColor;
+        this.setColor(newColor, false);
+    }
+
+    public void setColor(Color newColor, boolean skinColor) {
+        if (skinColor) {
+            this.skinColor = newColor;
+        }
+        else {
+            this.color = newColor;
+        }
 
         // Colorize the sheet based on this.color
         Texture playerText = new Texture(Gdx.files.internal("player1_sheet1_color.png"));
@@ -3607,14 +3684,22 @@ public class Player {
         }
         Pixmap pixmap = playerText.getTextureData().consumePixmap();
         Color clearColor = new Color(0, 0, 0, 0);
-        Pixmap coloredPixmap = new Pixmap(playerText.getWidth(), playerText.getHeight(), Pixmap.Format.RGBA8888);
+        Pixmap coloredPixmap = new Pixmap(playerText.getWidth(),
+                                          playerText.getHeight(),
+                                          Pixmap.Format.RGBA8888);
         coloredPixmap.setColor(clearColor);
         coloredPixmap.fill();
+        Color replaceColor = new Color(0.9137255f, 0.5294118f, 0.1764706f, 1f);
+        Color replaceWith = this.color;
+        if (skinColor) {
+            replaceColor = new Color(1f, 0.8078431372549019607843137254902f, 0.28235294117647058823529411764706f, 1f);
+            replaceWith = this.skinColor;
+        }
         for (int i = 0; i < playerText.getWidth(); i++) {
             for (int j = 0; j < playerText.getHeight(); j++) {
                 Color color = new Color(pixmap.getPixel(i, j));
-                if (color.equals(new Color(0.9137255f, 0.5294118f, 0.1764706f, 1f))) {
-                    color = this.color;
+                if (color.equals(replaceColor)) {
+                    color = replaceWith;
                 }
                 coloredPixmap.drawPixel(i, j, Color.rgba8888(color));
             }
@@ -3649,8 +3734,8 @@ public class Player {
         for (int i = 0; i < playerText.getWidth(); i++) {
             for (int j = 0; j < playerText.getHeight(); j++) {
                 Color color = new Color(pixmap.getPixel(i, j));
-                if (color.equals(new Color(0.9137255f, 0.5294118f, 0.1764706f, 1f))) {
-                    color = this.color;
+                if (color.equals(replaceColor)) {
+                    color = replaceWith;
                 }
                 coloredPixmap.drawPixel(i, j, Color.rgba8888(color));
 
@@ -3672,28 +3757,7 @@ public class Player {
         this.altMovingSprites.put("left_running", new Sprite(playerText, 96, 0, 16, 16));
         this.altMovingSprites.put("right_running", new Sprite(playerText, 112, 0, 16, 16));
 
-        playerText = new Texture(Gdx.files.internal("battle/player_back_color1.png"));
-        if (!playerText.getTextureData().isPrepared()) {
-            playerText.getTextureData().prepare();
-        }
-        pixmap = playerText.getTextureData().consumePixmap();
-        clearColor = new Color(0, 0, 0, 0);
-        coloredPixmap = new Pixmap(playerText.getWidth(), playerText.getHeight(), Pixmap.Format.RGBA8888);
-        coloredPixmap.setColor(clearColor);
-        coloredPixmap.fill();
-        for (int i = 0; i < playerText.getWidth(); i++) {
-            for (int j = 0; j < playerText.getHeight(); j++) {
-                Color color = new Color(pixmap.getPixel(i, j));
-                if (color.equals(new Color(0.6901961f, 0.28235295f, 0.15686275f, 1f))) {
-                    color = this.color;
-                }
-                coloredPixmap.drawPixel(i, j, Color.rgba8888(color));
-            }
-        }
-        playerText = new Texture(coloredPixmap);
-        this.battleSprite = new SpriteProxy(playerText, 0, 0, 45, 46);
-
-        // recolor sleeping bag sprite
+        // Recolor sleeping bag sprite
         playerText = new Texture(Gdx.files.internal("tiles/sleeping_bag1_using.png"));
         if (!playerText.getTextureData().isPrepared()) {
             playerText.getTextureData().prepare();
@@ -3706,14 +3770,42 @@ public class Player {
         for (int i = 0; i < playerText.getWidth(); i++) {
             for (int j = 0; j < playerText.getHeight(); j++) {
                 Color color = new Color(pixmap.getPixel(i, j));
-                if (color.equals(new Color(0.9137255f, 0.5294118f, 0.1764706f, 1f))) {
-                    color = this.color;
+                if (color.equals(replaceColor)) {
+                    color = replaceWith;
                 }
                 coloredPixmap.drawPixel(i, j, Color.rgba8888(color));
             }
         }
         playerText = new Texture(coloredPixmap);
         this.sleepingSprite = new Sprite(playerText, 0, 0, 24, 16);
+
+        // Recolor battle sprite
+        // TODO: this probably looks bad
+        playerText = new Texture(Gdx.files.internal("battle/player_back_color1.png"));
+        if (!playerText.getTextureData().isPrepared()) {
+            playerText.getTextureData().prepare();
+        }
+        pixmap = playerText.getTextureData().consumePixmap();
+        clearColor = new Color(0, 0, 0, 0);
+        coloredPixmap = new Pixmap(playerText.getWidth(), playerText.getHeight(), Pixmap.Format.RGBA8888);
+        coloredPixmap.setColor(clearColor);
+        coloredPixmap.fill();
+
+        replaceColor = new Color(0.6901961f, 0.28235295f, 0.15686275f, 1f);
+        if (skinColor) {
+            replaceColor = new Color(0.97254901960784313725490196078431f, 0.97254901960784313725490196078431f, 0.97254901960784313725490196078431f, 1f);
+        }
+        for (int i = 0; i < playerText.getWidth(); i++) {
+            for (int j = 0; j < playerText.getHeight(); j++) {
+                Color color = new Color(pixmap.getPixel(i, j));
+                if (color.equals(replaceColor)) {
+                    color = replaceWith;
+                }
+                coloredPixmap.drawPixel(i, j, Color.rgba8888(color));
+            }
+        }
+        playerText = new Texture(coloredPixmap);
+        this.battleSprite = new SpriteProxy(playerText, 0, 0, 45, 46);
     }
     
     /**
@@ -4980,6 +5072,8 @@ class PlayerStanding extends Action {
     // TODO: doesn't need to be public-static when local PlayerStanding keeps track of this.player
     public static int moveTimer = 0;  // used to prevent player from moving until held down key long enough
     public static int bTimer = 0;
+    public int cTimer = 0;
+    public int vTimer = 0;
 
     /*
      * TODO: correct constructors, ie this one should call this(game, something); instead.
@@ -5123,7 +5217,7 @@ class PlayerStanding extends Action {
 //                    pokemon.attacks[2] = "crush grip";
 //                    pokemon.attacks[3] = "crush grip";
                     // TODO: debug, remove
-//                    pokemon = new Pokemon("vespiquen", 46, Pokemon.Generation.CRYSTAL);
+                    pokemon = new Pokemon("sigilyph", 46, Pokemon.Generation.CRYSTAL);
                     return pokemon;
                 }
             }
@@ -5849,8 +5943,28 @@ class PlayerStanding extends Action {
             PlayerStanding.moveTimer = 0;
         }
 
+        // Hold c/v for 1 sec to scroll rapidly
+        if (game.player.isBuilding) {
+            if (Gdx.input.isKeyPressed(Input.Keys.C)) {
+                if (this.cTimer < 30) {
+                    this.cTimer++;
+                }
+            }
+            else {
+                this.cTimer = 0;
+            }
+            if (Gdx.input.isKeyPressed(Input.Keys.V)) {
+                if (this.vTimer < 30) {
+                    this.vTimer++;
+                }
+            }
+            else {
+                this.vTimer = 0;
+            }
+        }
+
         // Check if input pressed
-        if (Gdx.input.isKeyJustPressed(Input.Keys.C) && game.player.isBuilding) {
+        if ((Gdx.input.isKeyJustPressed(Input.Keys.C) || this.cTimer >= 30) && game.player.isBuilding) {
             game.player.buildTileIndex -= 1;
             if (game.player.buildTileIndex < 0) {
                 game.player.buildTileIndex = game.player.buildTiles.size() - 1;
@@ -5859,7 +5973,7 @@ class PlayerStanding extends Action {
             // TODO: remove
 //            game.insertAction(new RequirementNotify(game, game.player.currBuildTile.name));
         }
-        if (Gdx.input.isKeyJustPressed(Input.Keys.V) && game.player.isBuilding) {
+        if ((Gdx.input.isKeyJustPressed(Input.Keys.V) || this.vTimer >= 30) && game.player.isBuilding) {
             game.player.buildTileIndex += 1;
             if (game.player.buildTileIndex >= game.player.buildTiles.size()) {
                 game.player.buildTileIndex = 0;
@@ -6123,7 +6237,9 @@ class PlayerStanding extends Action {
                     Tile upTile = game.map.interiorTiles.get(game.map.interiorTilesIndex).get(currTile.position.cpy().add(0, 16));
                     requirementsMet = requirementsMet && (upTile == null || upTile.name.contains("house"));
                 }
-                boolean isTorch = game.player.currBuildTile.name.contains("torch");
+                boolean isTorch = game.player.currBuildTile.name.contains("torch") ||
+                                  game.player.currBuildTile.name.equals("house_clock1") ||
+                                  game.player.currBuildTile.name.contains("picture");
                 if (isTorch) {
                     requirementsMet = requirementsMet &&
                                       !currTile.items().containsKey("torch") &&

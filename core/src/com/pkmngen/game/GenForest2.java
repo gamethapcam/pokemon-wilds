@@ -1436,41 +1436,41 @@ class GenIsland1 extends Action {
         Tile originTile = new Tile("sand1", this.origin.cpy());
         this.tilesToAdd.put(originTile.position.cpy(), originTile);
 
-//        Route blotchRoute = new Route("desert1", 40);
-//        ApplyBlotch(game, "desert", originTile, maxDist/36, this.tilesToAdd, 1, false, blotchRoute);
+        Route blotchRoute = new Route("desert1", 40);
+        ApplyBlotch(game, "desert", originTile, maxDist/36, this.tilesToAdd, 1, false, blotchRoute);
         
         
         // TODO: uncomment this for just giant island
 //        ApplyBlotch(game, "island", originTile, maxDist, this.tilesToAdd, 1, false, new Route("forest1", 22));
         HashMap<Vector2, Tile> mtnTiles = new HashMap<Vector2, Tile>();
         
-        // TODO: debug, revert
-        ArrayList<Tile> endPoints = ApplyBlotchMountain(game, originTile, maxDist, mtnTiles);
-        System.out.println("endPoints size");
-        System.out.println(endPoints.size());
-        for (Tile tile : endPoints) {
-
-            if (GenIsland1.doneDesert == 1) {
-                // TODO: seems to be happening near middle of mountain, would like it to be elsewhere.
-                Route blotchRoute = new Route("desert1", 40);
-                ApplyBlotch(game, "desert", tile, maxDist/18 +maxDist/4, this.tilesToAdd, 1, true, blotchRoute);
-                continue;
-            }
-            else {
-                GenIsland1.doneDesert++;
-            }
-            
-              // TODO: this might be fixed, test
-            Route blotchRoute = new Route("forest1", 40); // TODO: mem usage too high
-            // TODO: maxDist/6 is too big I think for some islands.
-            // maxDist/6 for 100x100 island, it looked pretty good.
-            // maxDist/10 for 100x180 island
-            // maxDist/14 for 100x350 island
-            // maxDist/18 for 100x500 island
-            // TODO: could try adding more layers to mountains for larger islands.
-            // TODO: maxDist/18 is actually working pretty well for most sizes.
-            ApplyBlotch(game, "island", tile, maxDist/18, this.tilesToAdd, 1, true, blotchRoute); 
-        }
+//        // TODO: debug, revert
+//        ArrayList<Tile> endPoints = ApplyBlotchMountain(game, originTile, maxDist, mtnTiles);
+//        System.out.println("endPoints size");
+//        System.out.println(endPoints.size());
+//        for (Tile tile : endPoints) {
+//
+//            if (GenIsland1.doneDesert == 1) {
+//                // TODO: seems to be happening near middle of mountain, would like it to be elsewhere.
+//                Route blotchRoute = new Route("desert1", 40);
+//                ApplyBlotch(game, "desert", tile, maxDist/18 +maxDist/4, this.tilesToAdd, 1, true, blotchRoute);
+//                continue;
+//            }
+//            else {
+//                GenIsland1.doneDesert++;
+//            }
+//            
+//              // TODO: this might be fixed, test
+//            Route blotchRoute = new Route("forest1", 40); // TODO: mem usage too high
+//            // TODO: maxDist/6 is too big I think for some islands.
+//            // maxDist/6 for 100x100 island, it looked pretty good.
+//            // maxDist/10 for 100x180 island
+//            // maxDist/14 for 100x350 island
+//            // maxDist/18 for 100x500 island
+//            // TODO: could try adding more layers to mountains for larger islands.
+//            // TODO: maxDist/18 is actually working pretty well for most sizes.
+//            ApplyBlotch(game, "island", tile, maxDist/18, this.tilesToAdd, 1, true, blotchRoute); 
+//        }
 
         // TODO: this probably will tack on even more processing time.
         // TODO: doesn't really work, bleeds into upper mountain area
@@ -1514,6 +1514,10 @@ class GenIsland1 extends Action {
                     int baseChance = 192;
                     if (tile.routeBelongsTo.name.contains("forest")) {
                         baseChance = 224;  // 1/8 chance if it's forest biome
+                    }
+                    // Oasis was packed with evos
+                    if (tile.routeBelongsTo.name.contains("oasis")) {
+                        baseChance = 248;
                     }
                     // 25% chance to yeet it out to the overworld
                     // TODO: Jynx and Piloswine are very prolific.. maybe have to
@@ -1642,9 +1646,9 @@ class GenIsland1 extends Action {
                         this.tilesToAdd.put(tile.position, new Tile("sand1", tile.position.cpy(), true, tile.routeBelongsTo));
                     }
                 }
-                else if (tile.name.equals("cactus10")) {
+                else if (tile.nameUpper.equals("cactus10")) {
                     // TODO: not working.
-                    tilesToAdd.put(tile.position.cpy().add(16,0), new Tile("solid", "solid", tile.position.cpy().add(16, 0), true, tile.routeBelongsTo));
+                    tilesToAdd.put(tile.position.cpy().add(16,0), new Tile("desert4", "solid", tile.position.cpy().add(16, 0), true, tile.routeBelongsTo));
                 }
                 // Remove overworld pokemon that are currently inside something solid
                 //  Hard to remove them when they are being placed initially, this issue
@@ -1856,18 +1860,19 @@ class GenIsland1 extends Action {
                 if (nextTile.name.equals("water2")) {
 //                    this.edges.add(tile);
                     // Add a 'ring' of sand around the island
-                    // This will unfortunately delete some water tiles near middle of island
                     Tile newTile = new Tile("sand3", nextTile.position.cpy(), true, tempRoute);
                     this.tilesToAdd.put(newTile.position.cpy(), newTile);
-                    this.edges.add(newTile);
-//                    break;
+                    // Don't place edges next to desert or in oasis
+                    
+                    // TODO: re-enable
+//                    if (!tile.name.contains("desert") && (tile.routeBelongsTo == null || !tile.routeBelongsTo.name.equals("oasis1"))) {
+                        this.edges.add(newTile);
+//                    }
                 }
             }
         }
         System.out.println("End post-process: " + String.valueOf(System.currentTimeMillis()-startTime));
-        
 
-        
 //        this.edges.add(this.tilesToAdd.get(new Vector2(0,0)));
         
 //        // place pokemon mansion
@@ -2084,7 +2089,7 @@ class GenIsland1 extends Action {
                                     grassTiles.putAll(newTiles);
                                 }
                                 else if (this.rand.nextInt(maxDist) < 3) {
-                                    newTile = new Tile("cactus10", edge, true, currRoute);
+                                    newTile = new Tile("desert4", "cactus10", edge, true, currRoute);
                                 }
                                 // TODO: not sure if should limit to 1. definitely want minimum of one
                                 else if (distance > maxDist/8 && doneOasis > 0 && this.rand.nextInt(doneOasis) < 1) {
@@ -2100,9 +2105,9 @@ class GenIsland1 extends Action {
 
                                     for (Tile tile2 : new ArrayList<Tile>(newTiles.values())) {
                                         if (tile2.nameUpper.equals("aloe_large1")) {
-                                            newTiles.put(tile2.position.cpy().add(16, 0), new Tile("green1", "solid", tile2.position.cpy().add(16, 0)));
-                                            newTiles.put(tile2.position.cpy().add(0, 16), new Tile("green1", "solid", tile2.position.cpy().add(0, 16)));
-                                            newTiles.put(tile2.position.cpy().add(16,16), new Tile("green1", "solid", tile2.position.cpy().add(16,16)));
+                                            newTiles.put(tile2.position.cpy().add(16, 0), new Tile("green1", "solid", tile2.position.cpy().add(16, 0), true, tile2.routeBelongsTo));
+                                            newTiles.put(tile2.position.cpy().add(0, 16), new Tile("green1", "solid", tile2.position.cpy().add(0, 16), true, tile2.routeBelongsTo));
+                                            newTiles.put(tile2.position.cpy().add(16,16), new Tile("green1", "solid", tile2.position.cpy().add(16,16), true, tile2.routeBelongsTo));
                                         }
                                     }
 
@@ -2429,23 +2434,22 @@ class GenIsland1 extends Action {
                             }
                             else if (type.equals("oasis1")) {
 
-//                                Route blotchRoute = new Route("oasis1", 30);  // debug, revert
-                                Route blotchRoute = new Route("", 30);
-                                blotchRoute.name = "oasis1";
+                                Route blotchRoute = new Route("oasis1", 30);
+//                                blotchRoute.genPokemon(0, false);
                                 
-                                Tile newTile = new Tile("sand1", "", edge);
+                                Tile newTile = new Tile("sand1", "", edge, true, blotchRoute);
                                 int isGrass = this.rand.nextInt(maxDist/8) + (int)distance;
                                 if (isGrass < 1*maxDist/2) {
                                     if ((int)distance < 3*maxDist/8) {
                                         if (this.rand.nextInt(24) == 0) {
-                                            newTile = new Tile("flower4", edge, true, currRoute);
+                                            newTile = new Tile("flower4", edge, true, blotchRoute);
                                         }
                                         else {
-                                            newTile = new Tile("green1", edge, true, currRoute);
+                                            newTile = new Tile("green1", edge, true, blotchRoute);
                                         }
                                     }
                                     else {
-                                        newTile = new Tile("green1", edge, true, currRoute);
+                                        newTile = new Tile("green1", edge, true, blotchRoute);
                                     }
                                 }
 //                                if (this.rand.nextInt(110) < 1) {
@@ -2463,12 +2467,11 @@ class GenIsland1 extends Action {
                                     ApplyBlotch(game, "grass", newTile, nextSize, grassTiles, 0, false, blotchRoute);
                                 }
                                 else if (this.rand.nextInt(10) < 1) {
-                                    Route tempRoute = null;
+                                    Route tempRoute = new Route("oasis1", 22);
+                                    tempRoute.allowedPokemon.clear();
+                                    tempRoute.pokemon.clear();
                                     int randInt = this.rand.nextInt(2);
                                     if (randInt == 0) {
-                                        tempRoute = new Route("", 22);
-                                        tempRoute.allowedPokemon.clear();
-                                        tempRoute.pokemon.clear();
                                         String[] pokemon = new String[]{"aexeggutor"};
                                         randInt = this.rand.nextInt(pokemon.length);
                                         tempRoute.allowedPokemon.add(pokemon[randInt]);
@@ -2483,7 +2486,7 @@ class GenIsland1 extends Action {
                                     Route tempRoute = null;
                                     int randInt = this.rand.nextInt(2);
                                     if (randInt == 0) {
-                                        tempRoute = new Route("", 22);
+                                        tempRoute = new Route("oasis1", 22);
                                         tempRoute.allowedPokemon.clear();
                                         tempRoute.pokemon.clear();
                                         String[] pokemon = new String[]{"shellder", "krabby", "staryu", "dwebble"};
@@ -2526,10 +2529,10 @@ class GenIsland1 extends Action {
                                 if (doCactus) {
                                     Route tempRoute = null;
                                     if (distance < maxDist/4) {
-                                        newTile = new Tile("cactus9", edge, true, tempRoute);
+                                        newTile = new Tile("desert6", "cactus9", edge, true, tempRoute);
                                     }
                                     else {
-                                        newTile = new Tile("cactus8", edge, true, tempRoute);
+                                        newTile = new Tile("desert6", "cactus8", edge, true, tempRoute);
                                     }
                                 }
                                 tilesToAdd.put(newTile.position.cpy(), newTile);

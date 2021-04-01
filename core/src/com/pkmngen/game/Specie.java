@@ -52,6 +52,7 @@ public class Specie {
                                      "cutiefly", "ribombee",  // TerraTerraCotta on discord
                                      "combee", "vespiquen",  // TerraTerraCotta on discord
                                      "nosepass",  // nuuk, ow sadfish on discord
+                                     "sigilyph",  // sadfish on discord, ow dustman on discord
                                      "snover"};  // TODO: sep loading method
         for (String t : temp) {
             nuukPokemon.add(t);
@@ -424,9 +425,9 @@ public class Specie {
                     // GENDER_F100: 100% female
                     // GENDER_UNKNOWN: genderless
                     genderRatio = line.split("db ")[1].split(" ;")[0];
-
                     // Egg cycles to hatch
                 } else if (lineNum == 11) {
+                    // TODO: I think need to have sep variable this.eggCycles here.
                     String eggCycles = line.split("db ")[1].split(" ;")[0];
                     this.baseHappiness = Integer.valueOf(eggCycles);
                 } else if (lineNum == 15) {
@@ -512,36 +513,38 @@ public class Specie {
                 }
                 reader.close();
 
-                if (name.contains("unown")) {
-                    file = Gdx.files.internal("crystal_pokemon/"+path+"pokemon/" + newName + "/normal.pal");
-                }
-                else {
-                    file = Gdx.files.internal("crystal_pokemon/"+path+"pokemon/" + name + "/front.pal");
-                }
-                // TODO: don't really need anymore b/c SpriteProxy knows color1/color2
-                if (file.exists()) {
-                    reader = file.reader();
-                    br = new BufferedReader(reader);
-                    while ((line = br.readLine()) != null)   {
-                        if (line.contains("RGB")) {
-                            String[] vals = line.split("\tRGB ")[1].split(", ");
-                            if (normalColor1 == null) {
-                                // TODO: this is wrong, these values range from 0-32 but .r .g .b should be floats.
-                                normalColor1 = new Color();
-                                normalColor1.r = Integer.valueOf(vals[0]);
-                                normalColor1.g = Integer.valueOf(vals[1]);
-                                normalColor1.b = Integer.valueOf(vals[2]);
-                            }
-                            else {
-                                normalColor2.r = Integer.valueOf(vals[0]);
-                                normalColor2.g = Integer.valueOf(vals[1]);
-                                normalColor2.b = Integer.valueOf(vals[2]);
-                            }
-                        }
-                    }
-                    reader.close();
-                }
-                else {
+                // TODO: there were occasoinally bugs with this (charizard, charmander)
+                // TODO: remove
+//                if (name.contains("unown")) {
+//                    file = Gdx.files.internal("crystal_pokemon/"+path+"pokemon/" + newName + "/normal.pal");
+//                }
+//                else {
+//                    file = Gdx.files.internal("crystal_pokemon/"+path+"pokemon/" + name + "/front.pal");
+//                }
+//                // TODO: don't really need anymore b/c SpriteProxy knows color1/color2
+//                if (file.exists()) {
+//                    reader = file.reader();
+//                    br = new BufferedReader(reader);
+//                    while ((line = br.readLine()) != null)   {
+//                        if (line.contains("RGB")) {
+//                            String[] vals = line.split("\tRGB ")[1].split(", ");
+//                            if (normalColor1 == null) {
+//                                // TODO: this is wrong, these values range from 0-32 but .r .g .b should be floats.
+//                                normalColor1 = new Color();
+//                                normalColor1.r = Integer.valueOf(vals[0]);
+//                                normalColor1.g = Integer.valueOf(vals[1]);
+//                                normalColor1.b = Integer.valueOf(vals[2]);
+//                            }
+//                            else {
+//                                normalColor2.r = Integer.valueOf(vals[0]);
+//                                normalColor2.g = Integer.valueOf(vals[1]);
+//                                normalColor2.b = Integer.valueOf(vals[2]);
+//                            }
+//                        }
+//                    }
+//                    reader.close();
+//                }
+//                else {
                     SpriteProxy tempSprite = new SpriteProxy(Specie.textures.get(name+"_front"),
                                                              0, 0, text.getWidth(), text.getWidth());
                     //                    normalColor1 = tempSprite.color1;
@@ -555,7 +558,7 @@ public class Specie {
                     normalColor2.r = tempSprite.color2.r*32f;
                     normalColor2.g = tempSprite.color2.g*32f;
                     normalColor2.b = tempSprite.color2.b*32f;
-                }
+//                }
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
             } catch (IOException e) {
@@ -902,6 +905,11 @@ public class Specie {
                 }
                 else if (name.equals("ribombee")) {
                     i = 342;
+                    found = true;
+                    flip = false;
+                }
+                else if (name.equals("sigilyph")) {
+                    i = 343;
                     found = true;
                     flip = false;
                 }

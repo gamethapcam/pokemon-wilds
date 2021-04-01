@@ -612,11 +612,8 @@ public class Pokemon {
                 this.gender = "male";
             }
         }
-        //set hapiness level
+        // Set hapiness level
         this.happiness = specie.baseHappiness;
-
-
-
 
         //        // if it is in original 251, load from crystal
         //        if (this.name.equals("egg") ||
@@ -630,7 +627,6 @@ public class Pokemon {
 
         getCurrentAttacks(); // fill this.attacks with what it can currently know
         this.exp = gen2CalcExpForLevel(this.level);
-
     }
 
     // TODO - this doesn't take IV's or EV's into account.
@@ -868,7 +864,6 @@ public class Pokemon {
 
         // restore hp to full
         this.currentStats.put("hp", this.maxStats.get("hp"));
-
     }
 
     /**

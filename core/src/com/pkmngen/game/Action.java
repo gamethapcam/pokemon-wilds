@@ -1932,7 +1932,7 @@ class DrawSetupMenu extends Action {
                                 game.insertAction(enterBuilding);
                                 
                                 // TODO: remove
-                                game.insertAction(new TileEditor());  // TODO: formally handle somehow, maybe command line arg
+//                                game.insertAction(new TileEditor());  // TODO: formally handle somehow, maybe command line arg
                             }
                             // periodically save game in both host/local cases
                             // TODO: this lags too much for large maps, which causes server desync.

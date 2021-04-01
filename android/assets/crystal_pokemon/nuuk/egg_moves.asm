@@ -136,3 +136,5 @@ CombeeEggMoves:
 AexeggutorEggMoves:
 
 NosepassEggMoves:
+
+SigilyphEggMoves:

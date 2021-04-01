@@ -693,6 +693,11 @@ public class Game extends ApplicationAdapter {
         this.mapBatch.begin();
         // Iterate through the action stack and call the step() fn of each Action.
         for (Action action : new ArrayList<Action>(this.actionStack)) {
+            // TODO: what is causing this?
+            /// Something to do with displaytext.
+            if (action == null) {
+                continue;
+            }
             if (action.getCamera().equals("map")) {
                 try {
                     if (action.firstStep) {
@@ -874,8 +879,8 @@ public class Game extends ApplicationAdapter {
 //            this.player.pokemon.add(new Pokemon("egg", 1, Pokemon.Generation.CRYSTAL, false, "skarmory"));
 //            this.player.pokemon.add(new Pokemon("registeel", 40, Pokemon.Generation.CRYSTAL, true));
 //            this.player.pokemon.add(new Pokemon("masquerain", 60, Pokemon.Generation.CRYSTAL));
-            this.player.pokemon.add(new Pokemon("swellow", 70, Pokemon.Generation.CRYSTAL, true, true));
-            this.player.pokemon.add(new Pokemon("nosepass", 46, Pokemon.Generation.CRYSTAL, true, true));
+            this.player.pokemon.add(new Pokemon("sigilyph", 70, Pokemon.Generation.CRYSTAL));
+            this.player.pokemon.add(new Pokemon("unown", 46, Pokemon.Generation.CRYSTAL, true, false));
             this.player.pokemon.add(new Pokemon("vespiquen", 46, Pokemon.Generation.CRYSTAL, true, true));
             this.player.pokemon.add(new Pokemon("ursaring", 46, Pokemon.Generation.CRYSTAL));
             this.player.pokemon.get(2).attacks[0] = "false swipe";

@@ -1751,12 +1751,14 @@ public class PkmnMap {
             this.edges = saveData.mapTiles.edges;
             // Load players
             for (Network.PlayerDataBase playerData : saveData.players) {
-                Player player = new Player(Network.PlayerData.get(playerData));  //(Network.PlayerData)
+//                Player player = new Player(Network.PlayerData.get(playerData));  // TODO: remove if unused
+                Player player = new Player(playerData); 
                 player.type = Player.Type.REMOTE;  // TODO: store in playerData?
                 game.players.put(playerData.id, player);
             }
             // Load game.player
-            game.player = new Player(Network.PlayerData.get(saveData.playerData));
+//            game.player = new Player(Network.PlayerData.get(saveData.playerData));  // TODO: remove if unused
+            game.player = new Player(saveData.playerData);
             for (Pokemon pokemon : game.player.pokemon) {
                 // not sure what to do; game.player doesn't exist before
                 // the line above
@@ -3405,7 +3407,8 @@ class Tile {
                 this.overSprite = new Sprite(playerText, 0, 0, 32, 16);
             }
             if (!tileName.equals("cactus10") && !tileName.equals("cactus7") && !tileName.equals("cactus8") && !tileName.equals("cactus9")) {
-                this.name = "sand1";
+//                this.name = "sand1";
+                this.name = "desert6";
                 this.nameUpper = tileName;
             }
             this.attrs.put("solid", true);
@@ -3619,6 +3622,9 @@ class Tile {
                 this.nameUpper.contains("cactus3") ||
                 this.nameUpper.contains("house_shelf1")) {
                 this.overSprite = new Sprite(text, 0, 0, 16, 32);
+            }
+            if (this.nameUpper.equals("cactus10")) {
+                this.overSprite = new Sprite(text, 0, 0, 32, 16);
             }
             if (this.nameUpper.equals("aloe_large1")) {
                 this.overSprite = new Sprite(text, 0, 0, 32, 32);
@@ -3934,6 +3940,10 @@ class Tile {
             }
             else if (pokemon.previousOwner != game.player) {
                 nextAction.append(new DisplayText(game, pokemon.name.toUpperCase()+" seems friendly. ", null, false, true, null));
+            } 
+            // if pokemon is indoors, it will say it's happy but no items
+            else if (pokemon.mapTiles != game.map.overworldTiles) {
+                nextAction.append(new DisplayText(game, pokemon.name.toUpperCase()+" is enjoying itself.", null, false, true, null));
             }
             else if (!pokemon.inHabitat) {
                 nextAction.append(new DisplayText(game, pokemon.name.toUpperCase()+" seems uncomfortable in this environment. ", null, false, true, null));
