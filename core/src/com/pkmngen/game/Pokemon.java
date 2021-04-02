@@ -519,6 +519,8 @@ public class Pokemon {
             this.sprite = Specie.spriteEgg;
             this.backSprite = Specie.backSpriteEgg;
             this.introAnim = new ArrayList<SpriteProxy>();
+            //TODO temporary fix until animation restored
+            this.introAnim.add(this.sprite);
         }
         else if(isShiny)
         {
