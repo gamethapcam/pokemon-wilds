@@ -85,6 +85,7 @@ public class Specie {
     ArrayList<SpriteProxy> introAnim;
     ArrayList<SpriteProxy> introAnimShiny;
     static ArrayList<SpriteProxy> introAnimGhost;
+    static ArrayList<SpriteProxy> introAnimEgg;
     static {
         Texture text = null;
 
@@ -118,10 +119,10 @@ public class Specie {
         spriteGhost = new SpriteProxy(pokemonText, 0, 0, height, height);
 
 
-        //Ghost intro animation
+        //Ghost & egg intro animation
         // Load animation(s) from file
         introAnimGhost = new ArrayList<SpriteProxy>();
-
+        introAnimEgg = new ArrayList<SpriteProxy>();
         try {
             FileHandle file = Gdx.files.internal("crystal_pokemon/prism/pics/ghost/anim0.asm");
             Reader reader = file.reader();
@@ -141,10 +142,42 @@ public class Specie {
                     int numFrames = Integer.valueOf(vals[1].trim());
                     int frame = Integer.valueOf(vals[0]);
                     for (int j=0; j < numFrames; j++) {
-                        //                        pokemonText = new Texture(Gdx.files.internal("crystal_pokemon/pokemon/" + name + "/front.png"));
                         pokemonText = Specie.textures.get("ghost_front");
                         SpriteProxy sprite = new SpriteProxy(pokemonText, 0, height*frame, height, height);
                         introAnimGhost.add(sprite);
+                    }
+                } else if (line.contains("dorepeat")) {
+                    if (setrepeat != 0) {
+                        i = Integer.valueOf(line.split("dorepeat ")[1]);
+                        setrepeat--;
+                        continue;
+                    }
+                }
+                i++;
+            }
+            reader.close();
+            //Why yes, this *IS* kinda stupid
+            file = Gdx.files.internal("crystal_pokemon/pokemon/egg/anim.asm");
+            reader = file.reader();
+            br = new BufferedReader(reader);
+            setrepeat = 0;
+            lines = new ArrayList<String>();
+            while ((line = br.readLine()) != null)   {
+                lines.add(line);
+            }
+            for (int i=0; i < lines.size(); ) {
+                line = lines.get(i);
+                if (line.contains("setrepeat")) {
+                    setrepeat = Integer.valueOf(line.split("setrepeat ")[1]);
+                } else if (line.contains("frame")) {
+                    String vals[] = line.split("frame ")[1].split(", ");
+                    int numFrames = Integer.valueOf(vals[1]);
+                    int frame = Integer.valueOf(vals[0]);
+                    for (int j=0; j < numFrames; j++) {
+                        pokemonText = Specie.textures.get("egg_front");
+                        height = pokemonText.getWidth();
+                        SpriteProxy sprite = new SpriteProxy(pokemonText, 0, height*frame, height, height);
+                        introAnimEgg.add(sprite);
                     }
                 } else if (line.contains("dorepeat")) {
                     if (setrepeat != 0) {

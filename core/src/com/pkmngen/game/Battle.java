@@ -7912,28 +7912,28 @@ class DrawFriendlyHealth extends Action {
             int maxHealth = game.player.currPokemon.maxStats.get("hp");
             int hundredsPlace = maxHealth/100;
             if (hundredsPlace > 0) {
-                Sprite hudredsPlaceSprite = game.textDict.get(Character.forDigit(hundredsPlace,10));
+                SpriteProxy hudredsPlaceSprite = game.textDict.get(Character.forDigit(hundredsPlace,10));
                 game.uiBatch.draw(hudredsPlaceSprite, 120, 56);
             }
             int tensPlace = (maxHealth % 100) / 10;
             if (tensPlace > 0 || hundredsPlace > 0) {
-                Sprite tensPlaceSprite = game.textDict.get(Character.forDigit(tensPlace,10));
+            	SpriteProxy tensPlaceSprite = game.textDict.get(Character.forDigit(tensPlace,10));
                 game.uiBatch.draw(tensPlaceSprite, 120 +8, 56);
             }
             int onesPlace = maxHealth % 10;
-            Sprite onesPlaceSprite = game.textDict.get(Character.forDigit(onesPlace,10));
+            SpriteProxy onesPlaceSprite = game.textDict.get(Character.forDigit(onesPlace,10));
             game.uiBatch.draw(onesPlaceSprite, 120 +16, 56);
 
             // Draw pkmn current health text
             int currHealthRemaining = (this.currHealth*maxHealth)/48;
             hundredsPlace = currHealthRemaining/100;
             if (hundredsPlace > 0) {
-                Sprite hudredsPlaceSprite = game.textDict.get(Character.forDigit(hundredsPlace,10));
+            	SpriteProxy hudredsPlaceSprite = game.textDict.get(Character.forDigit(hundredsPlace,10));
                 game.uiBatch.draw(hudredsPlaceSprite, 88, 56);
             }
             tensPlace = (currHealthRemaining % 100) / 10;
             if (tensPlace > 0 || hundredsPlace > 0) {
-                Sprite tensPlaceSprite = game.textDict.get(Character.forDigit(tensPlace,10));
+            	SpriteProxy tensPlaceSprite = game.textDict.get(Character.forDigit(tensPlace,10));
                 game.uiBatch.draw(tensPlaceSprite, 88 +8, 56);
             }
             onesPlace = currHealthRemaining % 10;
