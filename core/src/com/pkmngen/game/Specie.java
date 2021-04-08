@@ -250,6 +250,14 @@ public class Specie {
                     name.equals("pinsir")) {
                 this.hms.add("CUT");
             }
+
+            //
+            if (this.types.contains("GROUND")) {
+                this.hms.add("DIG");
+            }
+            if (this.types.contains("ELECTRIC")) {
+                this.hms.add("POWER");
+            }
             // TODO: for now, all grass types can cut
             if (this.types.contains("GRASS")) {
                 this.hms.add("CUT");
@@ -1496,8 +1504,7 @@ public class Specie {
             this.harvestables.add("miracle seed");
         }
         if (this.types.contains("GROUND")) {
-            this.habitats.add("mountain|sand");
-            //            this.habitats.add("sand");  // not sure. probably needs to be either-or.
+            this.habitats.add("mountain|sand|desert");
             //            this.harvestables.add("soft clay");
             // used to make 'glass', required for silph scope
             // for now.

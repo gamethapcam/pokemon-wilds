@@ -6147,10 +6147,10 @@ class CatchPokemonWobblesThenCatch extends Action {
             }
             // Since pkmn was caught, add to players pokemon
             Action newAction = new PokemonCaughtEvents(game,
-                                new SplitAction(new BattleFadeOut(game, null),
-                                new BattleFadeOutMusic(game,
+                               new SplitAction(new BattleFadeOut(game, null),
+                               new BattleFadeOutMusic(game,
 //                                new SetField(game.musicController, "resumeOverworldMusic", true,  // TODO: remove
-                                null)));
+                               null)));
             if (!game.battle.oppPokemon.name.contains("regi")) {
                 newAction.append(new SetField(game.musicController, "resumeOverworldMusic", true, null));
             }
@@ -6179,6 +6179,9 @@ class CatchPokemonWobblesThenCatch extends Action {
                 tile.nameUpper = "";
                 tile.overSprite = null;
                 tile.attrs.put("solid", false);
+            }
+            else if (game.battle.oppPokemon.onTile != null && game.battle.oppPokemon.onTile.nameUpper.contains("revived_")) {
+                game.battle.oppPokemon.onTile.nameUpper = "";
             }
             else {
                 // Remove this pokemon from the map
@@ -9082,12 +9085,7 @@ class DrawPokemonMenu extends MenuAction {
                     game.player.swapSprites(game.player.hmPokemon);
                     game.actionStack.remove(game.player.hmPokemon.standingAction);
                     game.player.hmPokemon = null;
-                    game.player.isJumping = false;
-                    game.player.isBuilding = false;
-                    game.player.isCutting = false;
-                    game.player.isHeadbutting = false;
-                    game.player.isSmashing = false;
-                    game.player.isAttacking = false;
+                    game.player.currFieldMove = "";
                 }
                 return new SelectedMenu.ExitAfterActions(this.prevMenu,
                        new PlaySound(pokemon,
@@ -9096,12 +9094,7 @@ class DrawPokemonMenu extends MenuAction {
             // Don't allow player to use same Field Move as previous
             // TODO: use game.player.currFieldMove for this
             if (game.player.hmPokemon == game.player.pokemon.get(DrawPokemonMenu.currIndex)) {
-                if ((word.equals("BUILD") && game.player.isBuilding) ||
-                    (word.equals("HEADBUTT") && game.player.isHeadbutting) ||
-                    (word.equals("CUT") && game.player.isCutting) ||
-                    (word.equals("SMASH") && game.player.isSmashing) ||
-                    (word.equals("RIDE") && game.player.isJumping) ||
-                    (word.equals("ATTACK") && game.player.isAttacking)) {
+                if (word.equals(game.player.currFieldMove)) {
                     this.disabled = true;
                     game.insertAction(this.prevMenu);
                     return new PlaySound("error1",
@@ -9112,14 +9105,8 @@ class DrawPokemonMenu extends MenuAction {
             // If player is already using an hm, just swap sprites back from the pokemon
             // and remove it's standing action.
             if (game.player.hmPokemon != null) {
-                if (game.player.isBuilding || 
-                    game.player.isCutting ||
-                    game.player.isHeadbutting ||
-                    game.player.isSmashing ||
-                    game.player.isJumping ||
-                    game.player.isAttacking) {
+                if (!game.player.currFieldMove.equals("")) {
                     game.player.swapSprites(game.player.hmPokemon);
-                    
                     // TODO: this is currently just used to stop
                     //       player from planting or fertilizing
                     // No need to do this if pokemon is just following, though.
@@ -9127,12 +9114,7 @@ class DrawPokemonMenu extends MenuAction {
                 }
                 game.actionStack.remove(game.player.hmPokemon.standingAction);
                 game.player.hmPokemon = null;
-                game.player.isJumping = false;
-                game.player.isBuilding = false;
-                game.player.isCutting = false;
-                game.player.isHeadbutting = false;
-                game.player.isSmashing = false;
-                game.player.isAttacking = false;
+                game.player.currFieldMove = "";
             }
             if (word.equals("FLY")) {
                 if (game.map.tiles != game.map.overworldTiles) {
@@ -9152,13 +9134,7 @@ class DrawPokemonMenu extends MenuAction {
 //                game.player.standingAction = standingAction;
                 game.actionStack.remove(standingAction);  // TODO: what if not?
 //                game.cam.translate(0f, 16f);  // TODO: remove
-                game.player.isFlying = true;
-                game.player.isBuilding = false;
-                game.player.isCutting = false;
-                game.player.isSmashing = false;
-                game.player.isHeadbutting = false;
-                game.player.isJumping = false;
-                game.player.isAttacking = false;
+                game.player.currFieldMove = "FLY";
                 return new SelectedMenu.ExitAfterActions(this.prevMenu,
                        new PlaySound(pokemon,
                        // trick ExitAfterActions
@@ -9168,6 +9144,19 @@ class DrawPokemonMenu extends MenuAction {
                        null)));
                                          
             }
+
+            else if (word.equals("DIG")) {
+                Pokemon pokemon = game.player.pokemon.get(DrawPokemonMenu.currIndex);
+                game.player.swapSprites(pokemon);
+                game.insertAction(pokemon.new Follow(game.player));
+                game.player.currFieldMove = "DIG";
+                //
+                return new SelectedMenu.ExitAfterActions(this.prevMenu,
+                       new PlaySound(pokemon,
+                       new DisplayText(game, pokemon.name.toUpperCase()+" used DIG! Press C and V to select terrain.", null, null,
+                       null)));
+            }
+            
             // generate actions for HMs
             else if (word.equals("BUILD")) {
 //                if (game.type == Game.Type.CLIENT) {
@@ -9191,14 +9180,17 @@ class DrawPokemonMenu extends MenuAction {
                 Pokemon pokemon = game.player.pokemon.get(DrawPokemonMenu.currIndex);
                 game.player.swapSprites(pokemon);
                 game.insertAction(pokemon.new Follow(game.player));
-                game.player.isBuilding = true;  // tile to build appears in front of player
-                game.player.isCutting = false;
-                game.player.isSmashing = false;
-                game.player.isHeadbutting = false;
-                game.player.isJumping = false;
-                game.player.isAttacking = false;
+                game.player.currFieldMove = "BUILD";
+
+                Vector2 pos = game.player.facingPos();
+                Tile currTile = game.map.tiles.get(pos);
                 if (game.map.tiles == game.map.overworldTiles) {
-                    game.player.buildTiles = game.player.outdoorBuildTiles;
+                    if (currTile != null && currTile.name.contains("desert")) {
+                        game.player.buildTiles = game.player.desertBuildTiles;
+                    }
+                    else {
+                        game.player.buildTiles = game.player.outdoorBuildTiles;
+                    }
                 }
                 else {
                     game.player.buildTiles = game.player.indoorBuildTiles;
@@ -9207,6 +9199,8 @@ class DrawPokemonMenu extends MenuAction {
                     game.player.buildTileIndex--;
                 }
                 game.player.currBuildTile = game.player.buildTiles.get(game.player.buildTileIndex);
+                
+                
                 //
                 return new SelectedMenu.ExitAfterActions(this.prevMenu,
                        new PlaySound(pokemon,
@@ -9223,12 +9217,7 @@ class DrawPokemonMenu extends MenuAction {
                 Pokemon pokemon = game.player.pokemon.get(DrawPokemonMenu.currIndex);
                 game.player.swapSprites(pokemon);
                 game.insertAction(pokemon.new Follow(game.player));
-                game.player.isCutting = true;
-                game.player.isSmashing = false;
-                game.player.isBuilding = false;
-                game.player.isHeadbutting = false;
-                game.player.isJumping = false;
-                game.player.isAttacking = false;
+                game.player.currFieldMove = "CUT";
                 return new SelectedMenu.ExitAfterActions(this.prevMenu,
                        new PlaySound(pokemon,
                        new DisplayText(game, pokemon.name.toUpperCase()+" is using CUT!", null, null,
@@ -9238,15 +9227,20 @@ class DrawPokemonMenu extends MenuAction {
                 Pokemon pokemon = game.player.pokemon.get(DrawPokemonMenu.currIndex);
                 game.player.swapSprites(pokemon);
                 game.insertAction(pokemon.new Follow(game.player));
-                game.player.isCutting = false;
-                game.player.isSmashing = true;
-                game.player.isBuilding = false;
-                game.player.isHeadbutting = false;
-                game.player.isJumping = false;
-                game.player.isAttacking = false;
+                game.player.currFieldMove = "SMASH";
                 return new SelectedMenu.ExitAfterActions(this.prevMenu,
                        new PlaySound(pokemon,
                        new DisplayText(game, pokemon.name.toUpperCase()+" is using ROCK SMASH!", null, null,
+                       null)));
+            }
+            else if (word.equals("POWER")) {
+                Pokemon pokemon = game.player.pokemon.get(DrawPokemonMenu.currIndex);
+                game.player.swapSprites(pokemon);
+                game.insertAction(pokemon.new Follow(game.player));
+                game.player.currFieldMove = "POWER";
+                return new SelectedMenu.ExitAfterActions(this.prevMenu,
+                       new PlaySound(pokemon,
+                       new DisplayText(game, pokemon.name.toUpperCase()+" is using POWER! Power machinery by pressing Z.", null, null,
                        null)));
             }
             else if (word.equals("HEADBUTT")) {
@@ -9258,12 +9252,7 @@ class DrawPokemonMenu extends MenuAction {
                 Pokemon pokemon = game.player.pokemon.get(DrawPokemonMenu.currIndex);
                 game.player.swapSprites(pokemon);
                 game.insertAction(pokemon.new Follow(game.player));
-                game.player.isHeadbutting = true;
-                game.player.isBuilding = false;
-                game.player.isCutting = false;
-                game.player.isSmashing = false;
-                game.player.isJumping = false;
-                game.player.isAttacking = false;
+                game.player.currFieldMove = "HEADBUTT";
                 return new SelectedMenu.ExitAfterActions(this.prevMenu,
                        new PlaySound(pokemon,
                        new DisplayText(game, pokemon.name.toUpperCase()+" is using HEADBUTT!", null, null,
@@ -9277,12 +9266,7 @@ class DrawPokemonMenu extends MenuAction {
                 }
                 Pokemon pokemon = game.player.pokemon.get(DrawPokemonMenu.currIndex);
                 game.player.swapSprites(pokemon);
-                game.player.isHeadbutting = false;
-                game.player.isBuilding = false;
-                game.player.isCutting = false;
-                game.player.isSmashing = false;
-                game.player.isJumping = true;
-                game.player.isAttacking = false;
+                game.player.currFieldMove = "RIDE";
                 return new SelectedMenu.ExitAfterActions(this.prevMenu,
                        new PlaySound(pokemon,
                        new DisplayText(game, pokemon.name.toUpperCase()+" is using RIDE!", null, null,
@@ -9292,12 +9276,7 @@ class DrawPokemonMenu extends MenuAction {
                 Pokemon pokemon = game.player.pokemon.get(DrawPokemonMenu.currIndex);
                 game.player.swapSprites(pokemon);
                 game.insertAction(pokemon.new Follow(game.player));
-                game.player.isHeadbutting = false;
-                game.player.isBuilding = false;
-                game.player.isCutting = false;
-                game.player.isSmashing = false;
-                game.player.isJumping = false;
-                game.player.isAttacking = true;
+                game.player.currFieldMove = "ATTACK";
                 return new SelectedMenu.ExitAfterActions(this.prevMenu,
                        new PlaySound(pokemon,
                        new DisplayText(game, pokemon.name.toUpperCase()+" is using ATTACK!", null, null,
@@ -9912,12 +9891,7 @@ class DrawUseTossMenu extends MenuAction {
             }
             if (itemName.equals("sleeping bag")) {
                 // Can't use this while using a non-FOLLOW field move
-                if (game.player.isBuilding || 
-                    game.player.isCutting ||
-                    game.player.isHeadbutting ||
-                    game.player.isJumping ||
-                    game.player.isSmashing ||
-                    game.player.isAttacking) {
+                if (!game.player.currFieldMove.equals("")) {
                     this.disabled = true;
                     game.insertAction(this.prevMenu);
                     game.insertAction(new PlaySound("error1",
@@ -9945,7 +9919,10 @@ class DrawUseTossMenu extends MenuAction {
                                       this.prevMenu)));
                     return;
                 }
-                if (currTile.name.contains("stairs") || currTile.name.contains("mountain") || currTile.name.contains("snow")) {
+                if (currTile.name.contains("stairs") ||
+                    currTile.name.contains("mountain") ||
+                    currTile.name.contains("snow") ||
+                    currTile.name.contains("desert")) {
                     this.disabled = true;
                     game.actionStack.remove(this);
                     game.insertAction(new DisplayText(game, "Canì sleep on harsh terrain!", null, false, true,
@@ -9990,12 +9967,7 @@ class DrawUseTossMenu extends MenuAction {
             // TODO: test
             if (itemName.equals("escape rope")) {
                 // Can't use this while using a non-FOLLOW field move
-                if (game.player.isBuilding || 
-                    game.player.isCutting ||
-                    game.player.isHeadbutting ||
-                    game.player.isJumping ||
-                    game.player.isSmashing ||
-                    game.player.isAttacking) {
+                if (!game.player.currFieldMove.equals("")) {
                     this.disabled = true;
                     game.insertAction(this.prevMenu);
                     game.insertAction(new PlaySound("error1",
@@ -10096,28 +10068,18 @@ class DrawUseTossMenu extends MenuAction {
                 // TODO: migrate to use currFieldMove
                 // If player is using an hm, they aren't anymore
                 if (game.player.hmPokemon != null) {
-                    // Only remove hmPokemon if it's not followign
+                    // Only remove hmPokemon if it's not following
                     // TODO: use currFieldMove
-                    if (game.player.isBuilding || 
-                        game.player.isCutting ||
-                        game.player.isHeadbutting ||
-                        game.player.isSmashing ||
-                        game.player.isAttacking ||
-                        game.player.isJumping) {
+                    if (!game.player.currFieldMove.equals("")) {
                         game.player.swapSprites(game.player.hmPokemon);
                         game.actionStack.remove(game.player.hmPokemon.standingAction);
                         game.player.hmPokemon = null;
-                        game.player.isJumping = false;
-                        game.player.isBuilding = false;
-                        game.player.isCutting = false;
-                        game.player.isHeadbutting = false;
-                        game.player.isSmashing = false;
-                        game.player.isAttacking = false;
+                        game.player.currFieldMove = "";
                     }
                 }
-                String text = "Press X to plant seeds.";
+                String text = "Press Z to plant seeds.";
                 if (itemName.equals("manure")) {
-                    text = "Press X to fertilize saplings.";
+                    text = "Press Z to fertilize saplings.";
                 }
                 game.insertAction(new DisplayText(game, text, null, false, true,
                                   new WaitFrames(game, 10,

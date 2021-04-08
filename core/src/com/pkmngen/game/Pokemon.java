@@ -377,6 +377,7 @@ public class Pokemon {
     
     // Whether or not player can flee.
     public boolean isTrapping = false;
+    public Tile onTile;
     
     // TODO: if a pokemon is switched out in a trainer battle, does the game
     //       remember which Pokemon were used against the switched out pokemon?
@@ -1082,12 +1083,10 @@ public class Pokemon {
                 return;
             }
             Action newAction;
+            // Aggro any (potential) nearby parents
             if (Pokemon.this.isEgg && Pokemon.this.previousOwner != game.player) {
-                newAction = //new SetField(game, "playerCanMove", false,
-                            new DisplayText(game, game.player.name+" received an EGG.", "Berry_Get.ogg", null,
-                            //new SetField(game, "playerCanMove", true,
+                newAction = new DisplayText(game, game.player.name+" received an EGG.", "Berry_Get.ogg", null,
                             null);
-                // Aggro any (potential) nearby parents
                 boolean playedSound = false;  // Only play the '!' sound once
                 Vector2 startPos = Pokemon.this.position.cpy().add(-16*10, -16*10);
                 startPos.x = (int)startPos.x - (int)startPos.x % 16;
@@ -1146,6 +1145,7 @@ public class Pokemon {
                                  null));
             }
             Pokemon.this.previousOwner = game.player;
+            Pokemon.this.isRunning = false;  // if pokemon was trying to flee player, stop.
             // Break up relationship between this Pokemon and overworld Pokemon :'(
             if (Pokemon.this.loveInterest != null) {
                 Pokemon.this.loveInterest.loveInterest = null;  // Farewell, my love...
@@ -2514,7 +2514,7 @@ public class Pokemon {
 
                     // TODO: if haven't moved in a while, choose a different dir
                     // other than moveDir
-                    
+
                     // TODO: give up if enough time passed or haven't moved in a while.
 
                     return;

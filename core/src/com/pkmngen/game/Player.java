@@ -103,9 +103,29 @@ class CutTreeAnim extends Action {
             else if (name.equals("grass4")) {
                 name = "green1";
             }
+            else if (name.contains("bridge")) {
+                name = name.split("_")[1];
+                this.tile.overSprite = this.tile.sprite;  // hack to make anim work
+                // If tile below is drawing bridge supports, make it stop
+                Tile down = game.map.tiles.get(this.tile.position.cpy().add(0, -16));
+                if (down != null && down.belowBridge) {
+                    String[] tokens = down.name.split("_");
+                    String name2 = tokens[1];
+//                    for (int i=1; i < tokens.length-1; i++) {
+//                        name2 += "_"+tokens[i];
+//                    }
+                    down.name = name2;
+                    down.init(down.name, down.nameUpper, down.position, true, down.routeBelongsTo);
+                }
+                Tile up = game.map.tiles.get(this.tile.position.cpy().add(0, 16));
+                if (up != null && up.name.contains("bridge") && !up.belowBridge) {
+                    name = tile.name+"_lower";
+                }
+            }
             game.map.tiles.put(this.tile.position.cpy(),
                                new Tile(name, this.tile.position.cpy(),
                                         true, this.tile.routeBelongsTo));
+
 
             game.mapBatch.draw(this.tile.sprite, this.tile.sprite.getX(), this.tile.sprite.getY());
             game.mapBatch.draw(this.tile.overSprite, this.tile.overSprite.getX(), this.tile.overSprite.getY());
@@ -330,9 +350,21 @@ class CycleDayNight extends Action {
 //                    int maxRocks = game.map.edges.size()/10;
 //                    System.out.println(maxRocks);
                     // All planted trees become full size trees
+                    
+                    // Used to respawn fossils
+                    // TODO: do smthng similar for respawning rocks
+                    ArrayList<Tile> desertTiles = new ArrayList<Tile>();
+                    int numFossils = 0;
+                    
                     for (Tile tile : game.map.overworldTiles.values()) {
                         if (tile.nameUpper.contains("tree_planted")) {
-                            Tile tree = new Tile("bush1", "", tile.position.cpy(), true, tile.routeBelongsTo);
+                            Tile tree;
+                            if (tile.name.contains("desert")) {
+                                tree = new Tile(tile.name, "tree7", tile.position.cpy(), true, tile.routeBelongsTo);
+                            }
+                            else {
+                                tree = new Tile("bush1", "", tile.position.cpy(), true, tile.routeBelongsTo);
+                            }
                             game.map.overworldTiles.put(tile.position, tree);
                             // Just making planted trees yield 2 apricorns by default. 3 if fertilized.
                             // If fertilized, double existing apricorns. If no apricorns, place 1.
@@ -418,6 +450,14 @@ class CycleDayNight extends Action {
                         else if (tile.nameUpper.equals("rock1_color")) {
                             numRocks++;
                         }
+                        else if (tile.name.contains("desert")) {
+                            if (tile.nameUpper.equals("")) {
+                                desertTiles.add(tile);
+                            }
+                            else if (tile.nameUpper.equals("desert4_cracked")) {
+                                numFossils++;
+                            }
+                        }
                         // Respawn rocks randomly
                         else if (numRocks < 7 &&
                                  Game.rand.nextInt(200) >= 197 &&
@@ -437,6 +477,17 @@ class CycleDayNight extends Action {
                             numRocks++;
                         }
                     }
+                    // Respawns fossils
+                    for (; numFossils < 6 && desertTiles.size() > 0; numFossils++) {
+                        Tile fossilTile = desertTiles.remove(Game.rand.nextInt(desertTiles.size()));
+                        fossilTile.nameUpper = "desert4_cracked";
+                        Texture text = TextureCache.get(Gdx.files.internal("tiles/desert4_cracked.png"));
+                        fossilTile.overSprite = new Sprite(text, 0, 0, 16, 16);
+                        fossilTile.overSprite.setPosition(fossilTile.position.x, fossilTile.position.y);
+                        System.out.println("placed fossil");
+                        System.out.println(numFossils);
+                    }
+                    desertTiles.clear();
                     // Mewtwo respawns
                     for (HashMap<Vector2, Tile> interiorTiles : game.map.interiorTiles) {
                         if (interiorTiles == null) {
@@ -511,7 +562,7 @@ class CycleDayNight extends Action {
 
                 for (Tile tile : game.map.overworldTiles.values()) {
                     // Chance to spawn cacturne
-                    if (tile.name.equals("desert4") && Game.rand.nextInt(512) < 2) {
+                    if (tile.name.equals("desert4") && tile.nameUpper.equals("") && Game.rand.nextInt(512) < 2) {
                         if (game.cam.frustum.pointInFrustum(tile.position.x, tile.position.y-32, game.cam.position.z) ||
                             game.cam.frustum.pointInFrustum(tile.position.x+tile.sprite.getWidth(), tile.position.y+tile.sprite.getHeight()+64, game.cam.position.z) ||
                             game.cam.frustum.pointInFrustum(tile.position.x+tile.sprite.getWidth(), tile.position.y-32, game.cam.position.z) ||
@@ -535,7 +586,7 @@ class CycleDayNight extends Action {
                             if (nextTile == null) {
                                 continue;
                             }
-                            if (!nextTile.name.equals("desert4")) {
+                            if (!nextTile.name.equals("desert4") || !nextTile.nameUpper.equals("")) {
                                 continue;
                             }
                             if (Game.rand.nextInt(256) < 32) {
@@ -743,6 +794,14 @@ class DrawBuildRequirements extends Action {
         namesMap.put("house_bed1", "Bed");
         namesMap.put("house5_door1", "Door");
         namesMap.put("house5_middle1", "Wall");
+        namesMap.put("bridge1", "Bridge");
+        // Desert structures
+        namesMap.put("house6_NEW", "Wall");
+        namesMap.put("house6_roof_middle1", "Roof");
+        namesMap.put("house6_door1", "Door");
+        namesMap.put("fence2", "Fence");
+        namesMap.put("potted1", "Flower");
+        namesMap.put("potted2", "Flower");
         //
         namesMap.put("torch1", "Torch");
         //
@@ -789,7 +848,7 @@ class DrawBuildRequirements extends Action {
     @Override
     public void step(Game game) {
         // If player isn't building, don't draw anything
-        if (!game.player.isBuilding) {
+        if (!game.player.currFieldMove.equals("BUILD")) {
             return;
         }
         if (!game.playerCanMove) {
@@ -1071,7 +1130,7 @@ class DrawCraftsMenu extends MenuAction {
         this(game, Player.crafts, null);
         this.nextAction = nextAction;
     }
-    
+
     public DrawCraftsMenu(Game game, ArrayList<Player.Craft> crafts, Action nextAction) {
         this(game, crafts, null);
         this.nextAction = nextAction;
@@ -1291,6 +1350,9 @@ class DrawCraftsMenu extends MenuAction {
         }
         // Draw requirements of current item being crafted
         char[] textArray = "CRAFTING MENU".toCharArray();
+        if (this.crafts == game.player.fossilCrafts) {
+            textArray = "FOSSIL MENU".toCharArray();
+        }
         Sprite letterSprite;
         j=0;
         for (char letter : textArray) {
@@ -1419,13 +1481,12 @@ class DrawCraftsMenu extends MenuAction {
                 this.refresh = true;
                 this.disabled = true;
                 // Draw 'select amount' box
-                if (this.crafts != game.player.regiCrafts) {
-                    game.insertAction(new DrawCraftsMenu.SelectAmount(this.crafts, this));
-                }
-                else {
-//                    game.insertAction(new DrawCraftsMenu.SelectAmount(this.crafts, this));
+                if (this.crafts == game.player.regiCrafts || this.crafts == game.player.fossilCrafts) {
                     SelectAmount.amount = 1;  // Can only craft one regi
                     game.insertAction(new DrawCraftsMenu.Selected(this.crafts, this));
+                }
+                else {
+                    game.insertAction(new DrawCraftsMenu.SelectAmount(this.crafts, this));
                 }
             }
             return;
@@ -1592,7 +1653,12 @@ class DrawCraftsMenu extends MenuAction {
 
             this.getCoords = new HashMap<Integer, Vector2>();
             this.words = new ArrayList<String>();
-            this.words.add("CRAFT");
+            if (crafts == Game.staticGame.player.fossilCrafts) {
+                this.words.add("CREATE");
+            }
+            else {
+                this.words.add("CRAFT");
+            }
             this.words.add("CANCEL");
 
             this.getCoords.put(0, new Vector2(97, 40 +16));
@@ -1690,7 +1756,7 @@ class DrawCraftsMenu extends MenuAction {
                     game.insertAction(this.prevMenu);
                     return;
                 }
-                else if ("CRAFT".equals(word)) {
+                else if ("CRAFT".equals(word) || "CREATE".equals(word)) {
                     int index = DrawCraftsMenu.lastCurrIndex+DrawCraftsMenu.lastCursorPos;
                     if (game.type == Game.Type.CLIENT) {
                         game.client.sendTCP(new com.pkmngen.game.Network.Craft(game.player.network.id,
@@ -1713,7 +1779,7 @@ class DrawCraftsMenu extends MenuAction {
                             }
                             
                             // Remove that regicraft from the player (can only ever craft once)
-                            Player.Craft regiCraft = this.crafts.remove(index);  // TODO: test
+                            Player.Craft regiCraft = this.crafts.remove(index);  // TODO: this doesn't do anything anymore, remove (I think)
                             game.actionStack.remove(this);
                             game.actionStack.remove(this.prevMenu);
                             String dirFacing = game.player.dirFacing;
@@ -1725,6 +1791,36 @@ class DrawCraftsMenu extends MenuAction {
                                               new WaitFrames(game, 30,
                                               new SetField(game.player, "currSprite", game.player.standingSprites.get(game.player.dirFacing),
                                               new RegigigasIntroAnim(regiCraft.name, dirFacing, null))))));
+                            return;
+                        }
+
+                        // Special animation for reviving a fossil
+                        if (this.crafts == game.player.fossilCrafts) {
+                            Player.Craft craft = this.crafts.get(index);
+                            for (Player.Craft req : craft.requirements) {
+                                int newAmt = game.player.itemsDict.get(req.name)-(req.amount*SelectAmount.amount);
+                                game.player.itemsDict.put(req.name, newAmt);
+                                if (newAmt <= 0) {
+                                    game.player.itemsDict.remove(req.name);
+                                }
+                            }
+                            Player.Craft fossilCraft = this.crafts.get(index);
+                            game.actionStack.remove(this);
+                            game.actionStack.remove(this.prevMenu);
+                            game.player.dirFacing = "right";
+                            Action newAction = new WaitFrames(game, 20,
+                                               game.player.new Emote("!",
+                                               new WaitFrames(game, 30,
+                                               new SetField(game.player, "currSprite", game.player.standingSprites.get(game.player.dirFacing),
+                                                            null))));
+                            if (game.player.hmPokemon != null) {
+                                newAction.append(new SetField(game.player.hmPokemon, "dirFacing", "right", null));
+                            }
+                            game.insertAction(new WaitFrames(game, 20,
+                                              new PlaySound("sounds/computer1", .5f, false,
+                                              null)));
+                            game.insertAction(new FossilMachinePowerUp.DoRevive(fossilCraft.name, null));
+                            game.insertAction(newAction);
                             return;
                         }
                         
@@ -2139,7 +2235,7 @@ class DrawPlayerUpper extends Action {
                                game.player.sleepingBagSprite.getY());
         }
         // Draw building tile if building
-        if (game.player.isBuilding) {
+        if (game.player.currFieldMove.equals("BUILD")) {
             // Get direction facing
             Vector2 pos = game.player.facingPos();
             // Get game.player.currBuildTile and draw it in front of player
@@ -2182,6 +2278,12 @@ class DrawPlayerUpper extends Action {
                     requirementsMet = requirementsMet && !(nextTile.name.contains(name) || nextTile.nameUpper.contains(name));
                 }
             }
+            //
+            boolean isBridge = game.player.currBuildTile.name.contains("bridge");
+            if (isBridge) {
+                requirementsMet = requirementsMet && nextTile != null && nextTile.name.contains("water") && !nextTile.name.contains("bridge");
+            }
+
             if (!requirementsMet) {
                 sprite.setColor(1f, 0.7f, 0.7f, 0.8f);
             }
@@ -2205,6 +2307,22 @@ class DrawPlayerUpper extends Action {
 //                game.batch.draw(sprite, pos.x, pos.y);
             }
         }
+        
+        // Draw building tile if building
+        else if (game.player.currFieldMove.equals("DIG")) {
+            // Get direction facing
+            Vector2 pos = game.player.facingPos();
+            // Get game.player.currDigTile and draw it in front of player
+            Sprite sprite = new Sprite(game.player.currDigTile.sprite);
+            sprite.setAlpha(0.8f);
+            sprite.setPosition(pos.x, pos.y);
+            Tile nextTile = game.map.tiles.get(pos);
+            sprite.draw(game.mapBatch);
+            
+            // TODO: draw other things depending
+            // TODO: would be nice to move this to actual build logic
+            
+        }
 
         // Draw plant if planting apricorn
         //  && game.playerCanMove ?
@@ -2216,7 +2334,9 @@ class DrawPlayerUpper extends Action {
             Tile nextTile = game.map.tiles.get(pos);
             if (game.player.currPlanting.contains("apricorn")) {
                 if (nextTile != null &&
-                    (!(nextTile.name.equals("green1") || nextTile.name.contains("flower")) ||
+                    (!(nextTile.name.equals("green1") || 
+                       nextTile.name.contains("flower") || 
+                       nextTile.name.contains("desert")) ||
                      nextTile.nameUpper.contains("tree") ||
                      nextTile.attrs.get("solid"))) {
                     Player.sproutSprite.setColor(1f, .7f, .7f, .7f);
@@ -2272,7 +2392,7 @@ class DrawPlayerUpper extends Action {
             game.mapBatch.draw(this.spritePart, game.player.position.x, game.player.position.y+12+DrawPlayerUpper.pokemonOffsetY);
         }
 
-        if (game.player.isJumping && game.player.hmPokemon != null) {
+        if (game.player.currFieldMove.equals("RIDE") && game.player.hmPokemon != null) {
             int offsetX = 0;
             int offsetY = 0;
             if (game.player.dirFacing.equals("up")) {
@@ -2680,12 +2800,21 @@ public class Player {
     // Map<String, Integer> buttonPressed = new HashMap<String, Integer>();
 
     String currState; // need for ghost spawn
-    boolean isBuilding = false; // player has building tile in front of them
-    boolean isCutting = false; // player will try to cut tree on A press
-    boolean isSmashing = false; // rock smash
-    boolean isHeadbutting = false; // player will try to headbutt tree on A press
-    boolean isJumping = false; // player will jump up ledges using 'fast' ledge jump animation.
-    boolean isAttacking = false;
+
+    // TODO: remove after refactor
+//    boolean isBuilding = false; // player has building tile in front of them
+//    boolean isCutting = false; // player will try to cut tree on A press
+//    boolean isSmashing = false; // rock smash
+//    boolean isHeadbutting = false; // player will try to headbutt tree on A press
+//    boolean isJumping = false; // player will jump up ledges using 'fast' ledge jump animation.
+//    boolean isAttacking = false;
+    public String currFieldMove = "";
+    Tile currDigTile;
+    {
+        currDigTile = new Tile("hole1", new Vector2(0,0));
+    }
+    //
+
     public boolean isCrafting = false;
     public boolean isSleeping = false;
     public Vector2 sleepingDir = null;
@@ -2702,6 +2831,7 @@ public class Player {
     // the beginning of these lists, in the same order
     ArrayList<Tile> outdoorBuildTiles = new ArrayList<Tile>();
     ArrayList<Tile> indoorBuildTiles = new ArrayList<Tile>();
+    ArrayList<Tile> desertBuildTiles = new ArrayList<Tile>();
     HashMap<String, HashMap<String, Integer>> buildTileRequirements = new HashMap<String, HashMap<String, Integer>>();
     public boolean canMove = true;  // TODO: migrate to start using this
     int numFlees = 0;  // used in battle run away mechanic
@@ -2847,6 +2977,31 @@ public class Player {
         Player.crafts.add(craft);
     }
 
+    public ArrayList<Craft> fossilCrafts = new ArrayList<Craft>();
+    {
+        Craft craft = new Craft("AERODACTYL", 1);
+        craft.requirements.add(new Craft("old amber", 1));
+        fossilCrafts.add(craft);
+        craft = new Craft("OMANYTE", 1);
+        craft.requirements.add(new Craft("helix fossil", 1));
+        fossilCrafts.add(craft);
+        craft = new Craft("KABUTO", 1);
+        craft.requirements.add(new Craft("dome fossil", 1));
+        fossilCrafts.add(craft);
+        craft = new Craft("ANORITH", 1);
+        craft.requirements.add(new Craft("claw fossil", 1));
+        fossilCrafts.add(craft);
+        craft = new Craft("LILEEP", 1);
+        craft.requirements.add(new Craft("root fossil", 1));
+        fossilCrafts.add(craft);
+        craft = new Craft("SHIELDON", 1);
+        craft.requirements.add(new Craft("shield fossil", 1));
+        fossilCrafts.add(craft);
+        craft = new Craft("CRANIDOS", 1);
+        craft.requirements.add(new Craft("skull fossil", 1));
+        fossilCrafts.add(craft);
+    }
+
     // TODO: Needs to be loaded from save data.
     public ArrayList<Craft> regiCrafts = new ArrayList<Craft>();
     {
@@ -2967,8 +3122,20 @@ public class Player {
 //        this.buildTiles.add(new Tile("house5_roof_right1", new Vector2(0,0)));
         this.outdoorBuildTiles.add(new Tile("campfire1", new Vector2(0,0)));
         this.outdoorBuildTiles.add(new Tile("fence1", new Vector2(0,0)));
+        this.outdoorBuildTiles.add(new Tile("bridge1", new Vector2(0,0)));
 
-        // TODO: uncomment
+        // 
+        this.desertBuildTiles.add(new Tile("torch1", new Vector2(0,0)));
+        this.desertBuildTiles.add(new Tile("house6_door1", new Vector2(0,0)));
+        this.desertBuildTiles.add(new Tile("house6_NEW", new Vector2(0,0)));
+        this.desertBuildTiles.add(new Tile("house6_roof_middle1", new Vector2(0,0)));
+        this.desertBuildTiles.add(new Tile("campfire1", new Vector2(0,0)));
+        this.desertBuildTiles.add(new Tile("fence2", new Vector2(0,0)));
+        this.desertBuildTiles.add(new Tile("potted1", new Vector2(0,0)));
+        this.desertBuildTiles.add(new Tile("potted2", new Vector2(0,0)));
+        this.desertBuildTiles.add(new Tile("bridge1", new Vector2(0,0)));
+        
+        // 
         this.indoorBuildTiles.add(new Tile("torch1", new Vector2(0,0)));
         this.indoorBuildTiles.add(new Tile("house_plant1", new Vector2(0,0)));
         this.indoorBuildTiles.add(new Tile("house_plant2", new Vector2(0,0)));
@@ -3017,6 +3184,7 @@ public class Player {
         // TODO: convert this to static Player var.
         ArrayList<Tile> allTiles = new ArrayList<Tile>(this.outdoorBuildTiles);
         allTiles.addAll(this.indoorBuildTiles);
+        allTiles.addAll(this.desertBuildTiles);
         for (Tile tile : allTiles) {
             if (tile.nameUpper.equals("sleeping_bag1")) {
                 continue;
@@ -3033,6 +3201,11 @@ public class Player {
 //                this.buildTileRequirements.get(tile.name).put("hq bedding", 1);
 //                continue;
 //            }
+            else if (tile.name.contains("bridge")) {
+                requirements.put("log", 1);
+                requirements.put("hard stone", 1);
+                continue;
+            }
             else if (tile.name.equals("house_bed1")) {
                 requirements.put("log", 4);
                 requirements.put("soft bedding", 1);
@@ -3058,6 +3231,15 @@ public class Player {
             else if (tile.name.contains("clock")) {
                 requirements.put("log", 1);
                 requirements.put("clear glass", 1);
+                continue;
+            }
+            else if (tile.name.contains("house6_")) {
+                requirements.put("hard stone", 1);
+                continue;
+            }
+            else if (tile.name.contains("potted")) {
+                requirements.put("hard stone", 1);
+                requirements.put("miracle seed", 1);
                 continue;
             }
             else if (tile.name.contains("house_")) {
@@ -3124,6 +3306,14 @@ public class Player {
             this.itemsDict.put("ultra ball", 99);
             this.itemsDict.put("dark energy", 99);
             this.itemsDict.put("thin paper", 99);
+            this.itemsDict.put("hard stone", 99);
+            this.itemsDict.put("old amber", 99);
+            this.itemsDict.put("helix fossil", 99);
+            this.itemsDict.put("dome fossil", 99);
+            this.itemsDict.put("root fossil", 99);
+            this.itemsDict.put("claw fossil", 99);
+            this.itemsDict.put("shield fossil", 99);
+            this.itemsDict.put("skull fossil", 99);
         }
 
         this.network = new Network(this.position);
@@ -4685,9 +4875,10 @@ class PlayerMoving extends Action {
             // TODO: routes are persistent, ie never regenerate
             // TBD if that needs to change
             // TODO: that will be a problem if game has to load all pokemon sprites on the map
-            if (game.map.tiles.get(this.targetPos) != null && game.map.tiles.get(this.targetPos).routeBelongsTo != null) {
-                Route newRoute = game.map.tiles.get(this.targetPos).routeBelongsTo;
-                String newBiome = game.map.tiles.get(this.targetPos).biome;
+            Tile nextTile = game.map.tiles.get(this.targetPos);
+            if (nextTile != null && nextTile.routeBelongsTo != null) {
+                Route newRoute = nextTile.routeBelongsTo;
+                String newBiome = nextTile.biome;
                 if (game.map.currRoute != newRoute) {
                     // TODO: testing
                     // only fade to new music if route is different name
@@ -4715,6 +4906,25 @@ class PlayerMoving extends Action {
                 }
                 game.map.currBiome = newBiome;
 //                System.out.println("New Biome: " + newBiome);
+            }
+            // Change player building tiles depending on where they are located
+            // outdoors - outdoorBuildTiles, indoors - indoorBuildTiles, desert - desertBuildTiles
+            if (nextTile != null) {
+                if (game.map.tiles == game.map.overworldTiles) {
+                    if (nextTile.name.contains("desert")) {
+                        game.player.buildTiles = game.player.desertBuildTiles;
+                    }
+                    else {
+                        game.player.buildTiles = game.player.outdoorBuildTiles;
+                    }
+                }
+                else {
+                    game.player.buildTiles = game.player.indoorBuildTiles;
+                }
+                while (game.player.buildTileIndex > 0 && game.player.buildTileIndex >= game.player.buildTiles.size()) {
+                    game.player.buildTileIndex--;
+                }
+                game.player.currBuildTile = game.player.buildTiles.get(game.player.buildTileIndex);
             }
             game.player.position.set(this.targetPos);
             game.player.isNearCampfire = game.player.checkNearCampfire();
@@ -4843,7 +5053,7 @@ class PlayerRunning extends Action {
          // move in facing direction
 
         float speed = 1.6f; // this needs to add up to 16 for smoothness?
-        if (game.player.isJumping) {
+        if (game.player.currFieldMove.equals("RIDE")) {
             speed = 2f;
 //            speed = 1.6f;
         }
@@ -4900,13 +5110,13 @@ class PlayerRunning extends Action {
          // movement that you don't want
         String spriteString = String.valueOf(game.player.dirFacing+"_running");
         // System.out.println("spriteString: " + String.valueOf(spriteString)); // debug
-        if (!game.player.isJumping) {
+        if (!game.player.currFieldMove.equals("RIDE")) {
             if ((this.yDist < 13 && this.yDist > 2)
                 || (this.xDist < 13 && this.xDist > 2)) {
                 if (this.alternate) {
                     // game.batch.draw(game.player.altMovingSprites.get(game.player.dirFacing), game.player.position.x, game.player.position.y);
                     game.player.currSprite = game.player.altMovingSprites.get(spriteString);
-                    if (game.player.isJumping) {
+                    if (game.player.currFieldMove.equals("RIDE")) {
                         DrawPlayerUpper.offsetY = -1;
                         DrawPlayerUpper.pokemonOffsetY = 2;
                     }
@@ -4914,7 +5124,7 @@ class PlayerRunning extends Action {
                 else {
                     // game.batch.draw(game.player.movingSprites.get(game.player.dirFacing), game.player.position.x, game.player.position.y);
                     game.player.currSprite = game.player.movingSprites.get(spriteString);
-                    if (game.player.isJumping) {
+                    if (game.player.currFieldMove.equals("RIDE")) {
                         DrawPlayerUpper.offsetY = -1;
                         DrawPlayerUpper.pokemonOffsetY = 2;
                     }
@@ -5217,7 +5427,7 @@ class PlayerStanding extends Action {
 //                    pokemon.attacks[2] = "crush grip";
 //                    pokemon.attacks[3] = "crush grip";
                     // TODO: debug, remove
-                    pokemon = new Pokemon("sigilyph", 46, Pokemon.Generation.CRYSTAL);
+//                    pokemon = new Pokemon("sigilyph", 46, Pokemon.Generation.CRYSTAL);
                     return pokemon;
                 }
             }
@@ -5353,11 +5563,71 @@ class PlayerStanding extends Action {
         HashMap<Vector2, Tile> interiorTiles = game.map.interiorTiles.get(game.map.interiorTilesIndex);
 
         if (game.map.tiles == game.map.overworldTiles) {
-            if (currTile.nameUpper.contains("fence") && !currTile.nameUpper.contains("house")) {
-                // bend fences towards houses?
-                if (up.nameUpper.contains("house")) { //  && !up.nameUpper.contains("roof")
-                    touchUp = true;
+
+            if (currTile.nameUpper.contains("hole")) {
+
+                // TODO: this is clunky
+                touchUp = touchUp || (up != null && (up.name.contains("hole") || up.nameUpper.contains("hole")));
+                touchDown = touchDown || (down != null && (down.name.contains("hole") || down.nameUpper.contains("hole")));
+                touchRight = touchRight || (right != null && (right.name.contains("hole") || right.nameUpper.contains("hole")));
+                touchLeft = touchLeft || (left != null && (left.name.contains("hole") || left.nameUpper.contains("hole")));
+                
+                touchUp = touchUp || (up != null && (up.name.contains("water") || up.nameUpper.contains("water")));
+                touchDown = touchDown || (down != null && (down.name.contains("water") || down.nameUpper.contains("water")));
+                touchRight = touchRight || (right != null && (right.name.contains("water") || right.nameUpper.contains("water")));
+                touchLeft = touchLeft || (left != null && (left.name.contains("water") || left.nameUpper.contains("water")));
+                
+                // This is an attempt to make holes look better when touching diagonally
+                // 1 == NE, 2 == SE, 3 == SW, 4 == SW
+                Tile NE = game.map.tiles.get(currTile.position.cpy().add(16, 16));
+                Tile SE = game.map.tiles.get(currTile.position.cpy().add(16, -16));
+                Tile SW = game.map.tiles.get(currTile.position.cpy().add(-16, -16));
+                Tile NW = game.map.tiles.get(currTile.position.cpy().add(-16, 16));
+                boolean touchNE = (NE != null && (NE.name.contains("water") || NE.nameUpper.contains("water") || NE.nameUpper.contains("hole")));
+                boolean touchSE = (SE != null && (SE.name.contains("water") || SE.nameUpper.contains("water") || SE.nameUpper.contains("hole")));
+                boolean touchSW = (SW != null && (SW.name.contains("water") || SW.nameUpper.contains("water") || SW.nameUpper.contains("hole")));
+                boolean touchNW = (NW != null && (NW.name.contains("water") || NW.nameUpper.contains("water") || NW.nameUpper.contains("hole")));
+
+                if (touchUp) {
+                    ext += "N";
                 }
+                if (touchDown) {
+                    ext += "S";
+                }
+                if (touchRight) {
+                    ext += "E";
+                }
+                if (touchLeft) {
+                    ext += "W";
+                }
+                if (ext.equals("_")) {
+                    ext = "";
+                }
+                else {
+                    if (touchNE && touchUp && touchRight) {
+                        ext += "[NE]";
+                    }
+                    if (touchSE && touchDown && touchRight) {
+                        ext += "[SE]";
+                    }
+                    if (touchSW && touchDown && touchLeft) {
+                        ext += "[SW]";
+                    }
+                    if (touchNW && touchUp && touchLeft) {
+                        ext += "[NW]";
+                    }
+                }
+                Tile newTile = new Tile(currTile.name, name+ext, 
+                                        currTile.position.cpy(), true, currTile.routeBelongsTo);
+                newTile.items = currTile.items;
+                newTile.hasItem = currTile.hasItem;  // TODO: this needs to be done everywhere
+                // ideally just replace name and nameUpper and re-call tile init().
+                newTile.hasItemAmount = currTile.hasItemAmount;
+                game.map.tiles.put(currTile.position.cpy(), newTile);
+            }
+            else if (currTile.nameUpper.contains("fence") && !currTile.nameUpper.contains("house")) {
+
+                // bend fences towards houses?
                 if (down.nameUpper.contains("house")) {  // && !down.nameUpper.contains("roof")
                     touchDown = true;
                 }
@@ -5366,6 +5636,13 @@ class PlayerStanding extends Action {
                 }
                 if (right.nameUpper.contains("house") && !right.nameUpper.contains("roof")) {
                     touchRight = true;
+                }
+                // only applies to non-desert fence atm
+                if (!currTile.nameUpper.contains("fence2")) {
+                    // bend fences towards houses?
+                    if (up.nameUpper.contains("house")) { //  && !up.nameUpper.contains("roof")
+                        touchUp = true;
+                    }
                 }
                 if (!touchUp && !touchDown && !touchLeft && !touchRight) {
                     return;
@@ -5417,6 +5694,50 @@ class PlayerStanding extends Action {
                     }
                     return;
                 }
+
+                // TODO: unify this with house5
+                if (currTile.nameUpper.contains("house6")) {
+//                    name = currTile.nameUpper.split("_")[0];
+//                    System.out.println(name);
+                    touchUp = up != null && up.nameUpper.contains(name) && !up.nameUpper.contains("roof");
+                    touchDown = down != null && down.nameUpper.contains(name) && !down.nameUpper.contains("roof");
+                    touchRight = right != null && right.nameUpper.contains(name) && !right.nameUpper.contains("roof");
+                    touchLeft = left != null && left.nameUpper.contains(name) && !left.nameUpper.contains("roof");
+
+//                    if (!touchLeft && !touchRight) {
+//                        return;
+//                    }
+                    if (touchUp) {
+                        ext += "N";
+                    }
+                    if (touchDown) {
+                        ext += "S";
+                    }
+                    if (touchRight) {
+                        ext += "E";
+                    }
+                    if (touchLeft) {
+                        ext += "W";
+                    }
+                    if (touchLeft && touchRight && !touchUp && !touchDown) {
+                        ext = "_NEW";
+                    }
+                    if (ext.length() <= 2) {
+                        ext += "N";
+                    }
+                    Tile newTile = new Tile(currTile.name, name+ext, 
+                                            currTile.position.cpy(), true, currTile.routeBelongsTo);
+                    newTile.items = currTile.items;
+                    game.map.tiles.put(currTile.position.cpy(), newTile);
+
+                    // Add to interiors if nothing there currently
+                    if (!interiorTiles.containsKey(currTile.position)) {
+                        Tile interiorTile = new Tile("house5_floor1", currTile.position.cpy());
+                        interiorTiles.put(currTile.position.cpy(), interiorTile);
+                    }
+                    return;
+                }
+                
                 if (!touchLeft && !touchRight) {
                     return;
                 }
@@ -5426,7 +5747,7 @@ class PlayerStanding extends Action {
                 else if (touchRight && touchDown) {
                     ext += "E";
                 }
-                else if (touchLeft &&touchDown) {
+                else if (touchLeft && touchDown) {
                     ext += "W";
                 }
                 else if (touchRight) {
@@ -5944,7 +6265,7 @@ class PlayerStanding extends Action {
         }
 
         // Hold c/v for 1 sec to scroll rapidly
-        if (game.player.isBuilding) {
+        if (game.player.currFieldMove.equals("BUILD")) {
             if (Gdx.input.isKeyPressed(Input.Keys.C)) {
                 if (this.cTimer < 30) {
                     this.cTimer++;
@@ -5964,7 +6285,7 @@ class PlayerStanding extends Action {
         }
 
         // Check if input pressed
-        if ((Gdx.input.isKeyJustPressed(Input.Keys.C) || this.cTimer >= 30) && game.player.isBuilding) {
+        if ((Gdx.input.isKeyJustPressed(Input.Keys.C) || this.cTimer >= 30) && game.player.currFieldMove.equals("BUILD")) {
             game.player.buildTileIndex -= 1;
             if (game.player.buildTileIndex < 0) {
                 game.player.buildTileIndex = game.player.buildTiles.size() - 1;
@@ -5973,7 +6294,7 @@ class PlayerStanding extends Action {
             // TODO: remove
 //            game.insertAction(new RequirementNotify(game, game.player.currBuildTile.name));
         }
-        if ((Gdx.input.isKeyJustPressed(Input.Keys.V) || this.vTimer >= 30) && game.player.isBuilding) {
+        if ((Gdx.input.isKeyJustPressed(Input.Keys.V) || this.vTimer >= 30) && game.player.currFieldMove.equals("BUILD")) {
             game.player.buildTileIndex += 1;
             if (game.player.buildTileIndex >= game.player.buildTiles.size()) {
                 game.player.buildTileIndex = 0;
@@ -5993,7 +6314,7 @@ class PlayerStanding extends Action {
         if (InputProcessor.bPressed) {
             if (PlayerStanding.bTimer == 19) {
                 // TODO: this is broken, no idea what's going on.
-                if (game.type == Game.Type.CLIENT && (game.player.isBuilding || game.player.isCutting || game.player.isSmashing || game.player.isHeadbutting || game.player.isJumping)) {
+                if (game.type == Game.Type.CLIENT && !game.player.currFieldMove.equals("")) {
                     game.client.sendTCP(new com.pkmngen.game.Network.UseHM(game.player.network.id,
                                                                            DrawPokemonMenu.currIndex,
                                                                            "STOP"));
@@ -6006,10 +6327,10 @@ class PlayerStanding extends Action {
                 }
                 // Player wants to stop using field move
                 if (game.player.hmPokemon != null) {
-                    if (game.player.isJumping) {
-                        game.player.isJumping = false;
+                    if (game.player.currFieldMove.equals("RIDE")) {
                         game.player.swapSprites(game.player.hmPokemon);
                         game.player.hmPokemon = null;
+                        game.player.currFieldMove = "";
                     }
                     else {
                         game.playerCanMove = false;
@@ -6024,21 +6345,13 @@ class PlayerStanding extends Action {
                         }
                         // If not doing any of these, assume Pokemon is using FOLLOW
                         // in which case you shouldn't swap sprites
-                        if (game.player.isBuilding || 
-                            game.player.isCutting ||
-                            game.player.isHeadbutting ||
-                            game.player.isSmashing ||
-                            game.player.isAttacking) {
+                        if (!game.player.currFieldMove.equals("")) {
                             game.player.hmPokemon.standingAction.append(new CallMethod(game.player, "swapSprites", new Object[]{game.player.hmPokemon}, null));
                         }
                         game.player.hmPokemon.standingAction.append(new SetField(game.player, "hmPokemon", null,
                                                                     new SetField(game, "playerCanMove", true,
                                                                     null)));
-                        game.player.isBuilding = false;
-                        game.player.isCutting = false;
-                        game.player.isHeadbutting = false;
-                        game.player.isSmashing = false;
-                        game.player.isAttacking = false;
+                        game.player.currFieldMove = "";
                         game.insertAction(game.player.hmPokemon.standingAction);
                         return;
                     }
@@ -6182,7 +6495,9 @@ class PlayerStanding extends Action {
                     }
                 }
                 else if (game.player.currPlanting.contains("apricorn")) {
-                    if (!(currTile.name.equals("green1") || currTile.name.contains("flower")) ||
+                    if (!(currTile.name.equals("green1") || 
+                            currTile.name.contains("flower") ||
+                            currTile.name.contains("desert")) ||  // TODO: unsure
                         currTile.nameUpper.contains("tree") ||
                         currTile.attrs.get("solid")) {
                         // TODO: used to display hint text
@@ -6212,7 +6527,7 @@ class PlayerStanding extends Action {
                 }
                 return;
             }
-            else if (game.player.isBuilding) {
+            else if (game.player.currFieldMove.equals("BUILD")) {
 //                Tile newTile = new Tile(game.player.currBuildTile.name, pos.cpy());
 //                game.map.tiles.remove(pos);
 //                game.map.tiles.put(pos.cpy(), newTile);
@@ -6252,7 +6567,17 @@ class PlayerStanding extends Action {
                     }
                 }
                 boolean isCarpet = game.player.currBuildTile.name.contains("carpet");
-                if ((isTorch || isCarpet || !currTile.attrs.get("solid")) && !currTile.nameUpper.contains("door") && requirementsMet) {
+                if (isCarpet) {
+                    // Don't allow building over the house rug (which lets you out of the house)
+                    requirementsMet = requirementsMet && !(currTile.name.contains("rug"));
+                }
+                boolean isBridge = game.player.currBuildTile.name.contains("bridge");
+                if (isBridge) {
+                    // Can only be built on/over water
+                    requirementsMet = requirementsMet && currTile.name.contains("water") && (!currTile.name.contains("bridge") || currTile.name.contains("_lower"));
+                }
+
+                if ((isTorch || isCarpet || isBridge || !currTile.attrs.get("solid")) && !currTile.nameUpper.contains("door") && requirementsMet) {
                     // TODO: remove commented lines
 //                    currTile.overSprite = new Sprite(game.player.currBuildTile.sprite);
 //                    currTile.name = game.player.currBuildTile.name;
@@ -6279,11 +6604,31 @@ class PlayerStanding extends Action {
 //                        currTile.items().put("log", numLogs);
                     }
                     else {
-                        newTile = new Tile(currTile.name, game.player.currBuildTile.name,
-                                           currTile.position.cpy(), true, currTile.routeBelongsTo);
                         // Carpet replaces the lower tile
-                        if (game.player.currBuildTile.name.contains("carpet")) {
+                        if (isCarpet) {
                             newTile = new Tile(game.player.currBuildTile.name, currTile.nameUpper,
+                                               currTile.position.cpy(), true, currTile.routeBelongsTo);
+                        }
+                        else if (isBridge) {
+                            // Store water type on the end of name.
+                            String waterType = currTile.name;
+                            String[] tokens = currTile.name.split("_");
+                            if (tokens.length > 1) {
+                                waterType = tokens[1];
+                            }
+                            String name = game.player.currBuildTile.name + "_" + waterType;
+                            newTile = new Tile(name, currTile.nameUpper,
+                                               currTile.position.cpy(), true, currTile.routeBelongsTo);
+                            // If tile below is water, then make it a 'below bridge' water tile
+                            // used for drawing bridge supports
+                            Tile down = game.map.tiles.get(currTile.position.cpy().add(0, -16));
+                            if (down != null && down.name.contains("water") && !down.name.contains("bridge")) {
+                                down.name = name + "_lower";
+                                down.init(down.name, down.nameUpper, down.position, true, down.routeBelongsTo);
+                            }
+                        }
+                        else {
+                            newTile = new Tile(currTile.name, game.player.currBuildTile.name,
                                                currTile.position.cpy(), true, currTile.routeBelongsTo);
                         }
                         // Transfer items over
@@ -6340,7 +6685,58 @@ class PlayerStanding extends Action {
                     }
                 }
             }
-            else if (game.player.isHeadbutting) {
+            else if (game.player.currFieldMove.equals("DIG")) {
+                boolean requirementsMet = currTile.nameUpper.equals("") || currTile.nameUpper.equals("desert4_cracked");
+                requirementsMet = requirementsMet && !currTile.attrs.get("solid") && !currTile.name.contains("door");
+                if (requirementsMet) {
+                    Tile newTile = new Tile(currTile.name, game.player.currDigTile.name,
+                                            currTile.position.cpy(), true, currTile.routeBelongsTo);
+                    if (currTile.nameUpper.equals("desert4_cracked")) {
+                        // Different types of fossils, probably randomly pick here
+                        // TODO: technically player can save scum for fossils here. Not a huge deal tho.
+                        String[] fossilTypes = {"old amber", "dome fossil", "helix fossil",
+                                                "claw fossil", "root fossil", "shield fossil", "skull fossil"};
+                        newTile.hasItem = fossilTypes[Game.rand.nextInt(fossilTypes.length)];
+                        newTile.hasItemAmount = 1;
+                    }
+                    newTile.items = currTile.items;
+                    game.map.tiles.remove(currTile.position.cpy());
+                    game.map.tiles.put(currTile.position.cpy(), newTile);
+                    PlayerStanding.adjustSurroundingTiles(newTile);
+
+                    game.insertAction(new PlaySound("sounds/dig1", 1f, true, null));
+                    game.insertAction(new OverworldAnimation(game, "dig_overworld_gsc", currTile.position.cpy().add(-40 -64, -48 -4), true, null));
+//                    game.insertAction(new OverworldAnimation(game, "dig_overworld_gsc", currTile.position.cpy().add(-40 -64, -44 -6), true, null));
+                    game.insertAction(new OverworldAnimation(game, "dig_overworld_gsc", currTile.position.cpy().add(-40, -48 -4), false, null));
+//                    game.insertAction(new OverworldAnimation(game, "dig_overworld_gsc", currTile.position.cpy().add(-40, -44 -6), false, null));
+                    game.playerCanMove = false;
+                    game.player.currFieldMove = "";  // stop drawing hole
+                    // 
+                    game.player.currSprite = game.player.altMovingSprites.get(game.player.dirFacing);
+                    game.insertAction(new WaitFrames(game, 8,
+//                                      new PutTile(game, newTile,
+                                      new WaitFrames(game, 8,
+                                      new SetField(game.player, "currFieldMove", "DIG",
+                                      new SetField(game, "playerCanMove", true,                                
+//                                      new CallMethod(PlayerStanding, "adjustSurroundingTiles", new Object[]{newTile},
+                                      null)))));
+                    game.insertAction(new WaitFrames(game, 10,
+                                      new SetField(game.player, "currSprite", game.player.standingSprites.get(game.player.dirFacing),
+                                      null)));
+
+                    // TODO: deduct terrain materials
+                    // TODO: start terrain at either previously dug thing, or
+                    //       the name of the currTile.name
+                    
+                    return;
+                }
+                else {
+                    // Interact with tile (?)
+                    currTile.onPressA(game);
+                    return;
+                }
+            }
+            else if (game.player.currFieldMove.equals("HEADBUTT")) {
                 if (currTile.attrs.containsKey("headbuttable") && currTile.attrs.get("headbuttable")) {
                     // Choose if found anything
                     Action nextAction = new PlayerCanMove(game, null);  // TODO: use SetField
@@ -6364,7 +6760,7 @@ class PlayerStanding extends Action {
                     game.playerCanMove = false;
                 }
             }
-            else if (game.player.isCutting) {
+            else if (game.player.currFieldMove.equals("CUT")) {
                 if (currTile.attrs.containsKey("cuttable") && currTile.attrs.get("cuttable")) {
                     Action action = new CutTreeAnim(game, game.map.tiles.get(pos), null);
 //                    Tile interiorTile = new Tile("black1", currTile.position.cpy());
@@ -6441,7 +6837,7 @@ class PlayerStanding extends Action {
                 }
                 this.detectIsHouseBuilt(game, currTile);
             }
-            else if (game.player.isSmashing) {
+            else if (game.player.currFieldMove.equals("SMASH")) {
                 if (currTile.attrs.get("smashable")) {
                     Action action = new CutTreeAnim(game, game.map.tiles.get(pos), null);
                     game.playerCanMove = false;
@@ -6583,7 +6979,7 @@ class PlayerStanding extends Action {
                 game.insertAction(new PlayerBump(game));
                 return;
             }
-            if (game.player.isJumping) {
+            if (game.player.currFieldMove.equals("RIDE")) {
                 if (temp.attrs.get("ledge")){
                     if (temp.ledgeDir.equals("up") && !game.player.dirFacing.equals("down")) {
                     }
@@ -6854,7 +7250,7 @@ class PlayerStanding extends Action {
                 game.insertAction(new PlayerBump(game, this.player));
                 return;
             }
-            if (this.player.isJumping) {
+            if (game.player.currFieldMove.equals("RIDE")) {
                 if (temp.attrs.get("ledge")){
                     if (temp.ledgeDir.equals("up") && !this.player.dirFacing.equals("down")) {
                     }

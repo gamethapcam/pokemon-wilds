@@ -687,7 +687,7 @@ public class Game extends ApplicationAdapter {
 //        this.lightingBatch.end();
 //        this.frameBuffer.end();
         
-        
+
         this.mapBatch.setProjectionMatrix(cam.combined);
         // Iterate through this.actionStack twice, once for this.batch (map objects), once for this.uiBatch (ui objects)
         this.mapBatch.begin();
@@ -879,9 +879,9 @@ public class Game extends ApplicationAdapter {
 //            this.player.pokemon.add(new Pokemon("egg", 1, Pokemon.Generation.CRYSTAL, false, "skarmory"));
 //            this.player.pokemon.add(new Pokemon("registeel", 40, Pokemon.Generation.CRYSTAL, true));
 //            this.player.pokemon.add(new Pokemon("masquerain", 60, Pokemon.Generation.CRYSTAL));
-            this.player.pokemon.add(new Pokemon("sigilyph", 70, Pokemon.Generation.CRYSTAL));
-            this.player.pokemon.add(new Pokemon("unown", 46, Pokemon.Generation.CRYSTAL, true, false));
-            this.player.pokemon.add(new Pokemon("vespiquen", 46, Pokemon.Generation.CRYSTAL, true, true));
+            this.player.pokemon.add(new Pokemon("ampharos", 70, Pokemon.Generation.CRYSTAL));
+            this.player.pokemon.add(new Pokemon("rhydon", 46, Pokemon.Generation.CRYSTAL));
+            this.player.pokemon.add(new Pokemon("meganium", 46, Pokemon.Generation.CRYSTAL));
             this.player.pokemon.add(new Pokemon("ursaring", 46, Pokemon.Generation.CRYSTAL));
             this.player.pokemon.get(2).attacks[0] = "false swipe";
 

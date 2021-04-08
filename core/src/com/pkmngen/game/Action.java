@@ -1932,7 +1932,7 @@ class DrawSetupMenu extends Action {
                                 game.insertAction(enterBuilding);
                                 
                                 // TODO: remove
-//                                game.insertAction(new TileEditor());  // TODO: formally handle somehow, maybe command line arg
+                                game.insertAction(new TileEditor());  // TODO: formally handle somehow, maybe command line arg
                             }
                             // periodically save game in both host/local cases
                             // TODO: this lags too much for large maps, which causes server desync.
@@ -3327,6 +3327,13 @@ class TileEditor extends Action {
         underTiles.add("ruins1_SW");
         underTiles.add("ruins1_pillar1");
 
+        // Ruins
+        underTiles.add("ruins2_floor");
+        underTiles.add("ruins2_door");
+        underTiles.add("ruins2_wall1");
+        underTiles.add("black1");
+//        underTiles.add("cave1_floor1");
+//        underTiles.add("cave1_right1");
         
         // Trees
         overTiles.add("bush1");
@@ -3346,7 +3353,7 @@ class TileEditor extends Action {
     
     Tile currTile;
     int currIndex = 0;
-    
+
     public TileEditor() {
         
     }
@@ -3366,7 +3373,7 @@ class TileEditor extends Action {
             this.timer++;
         }
         else if (this.timer == 60) {
-            Gdx.gl.glClearColor(1, 1, 1, 1);
+//            Gdx.gl.glClearColor(1, 1, 1, 1);  // TODO: why?
         }
         
 

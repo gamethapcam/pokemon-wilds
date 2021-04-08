@@ -260,10 +260,7 @@ class ClientBroadcast extends Action {
                                 }
                                 Player player = game.players.get(useHM.playerId);
                                 if (useHM.hm.equals("STOP")) {
-                                    player.isBuilding = false;
-                                    player.isCutting = false;
-                                    player.isHeadbutting = false;
-                                    player.isJumping = false;
+                                    player.currFieldMove = "";
                                 }
                                 else if (useHM.hm.equals("CUT")) {
                                     Vector2 pos = player.facingPos(useHM.dirFacing);
@@ -275,10 +272,7 @@ class ClientBroadcast extends Action {
                                     }
                                 }
                                 else if (useHM.hm.equals("JUMP")) {
-                                    player.isHeadbutting = false;
-                                    player.isBuilding = false;
-                                    player.isCutting = false;
-                                    player.isJumping = true;
+                                    player.currFieldMove = "RIDE";
                                 }
                             }
                             else if (object instanceof Network.UseItem) {
@@ -1693,10 +1687,7 @@ class ServerBroadcast extends Action {
                                 }
                                 // Set appropriate flags for player
                                 if (useHM.hm.equals("STOP")) {
-                                    player.isBuilding = false;
-                                    player.isCutting = false;
-                                    player.isHeadbutting = false;
-                                    player.isJumping = false;
+                                    player.currFieldMove = "";
                                 }
                                 else if (useHM.hm.equals("SWITCH")) {
                                     Pokemon movePokemon = player.pokemon.get(useHM.pokemonIndex);
@@ -1742,16 +1733,10 @@ class ServerBroadcast extends Action {
                                     }
                                 }
                                 else if (useHM.hm.equals("HEADBUTT")) {
-                                    player.isHeadbutting = true;
-                                    player.isBuilding = false;
-                                    player.isCutting = false;
-                                    player.isJumping = false;
+                                    player.currFieldMove = "HEADBUTT";
                                 }
                                 else if (useHM.hm.equals("JUMP")) {
-                                    player.isHeadbutting = false;
-                                    player.isBuilding = false;
-                                    player.isCutting = false;
-                                    player.isJumping = true;
+                                    player.currFieldMove = "RIDE";
                                 }
                                 for (Player otherPlayer : game.players.values()) {
                                     if (player == otherPlayer) {

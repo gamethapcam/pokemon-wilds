@@ -1416,6 +1416,7 @@ class GenIsland1 extends Action {
     public static boolean donePkmnMansion = false;
     public static boolean donePkmnMansionKey = false;
     public static boolean doneRegiDungeon = false;
+    public static boolean doneFossilBuilding = false;
     public static int unownCounter = 0;
 
     public static int doneDesert = 0;
@@ -1761,6 +1762,118 @@ class GenIsland1 extends Action {
                     }
                     break;  // if you don't do this, then dungeon gets replaced by trees.
                 }
+                
+
+                if (!GenIsland1.doneFossilBuilding && tile.routeBelongsTo != null && tile.routeBelongsTo.name.equals("oasis1")) {
+                    GenIsland1.doneFossilBuilding = true;
+                    complete = false;
+                    HashMap<Vector2, Tile> exteriorTiles = new HashMap<Vector2, Tile>();
+                    ArrayList<HashMap<Vector2, Tile>> interiorTiles = new ArrayList<HashMap<Vector2, Tile>>();
+                    for (int i=0; i < 100; i++) {
+                        interiorTiles.add(null);
+                    }
+                    HashMap<Vector2, Tile> currLayer = new HashMap<Vector2, Tile>();
+                    Vector2 tl2 = tile.position.cpy();
+//                    String[][] names = new String[][]{{null, null, "building1_wall1", "building1_wall1"},
+//                                                      {"building1_pokecenter1", null, "building1_cables1", "building1_fossilreviver1"},
+//                                                      {"building1_floor2", "building1_floor2", "building1_floor1", "building1_floor2"},
+//                                                      {"building1_floor1", "rug2", "rug2", "building1_floor1"}
+//                                                      };
+//                    String[][] names = new String[][]{{"building1_wall1", "building1_wall1", "building1_wall1", "building1_wall1"},
+//                                                      {"building1_cables1", "building1_cables1", "building1_cables1", "pkmnmansion_shelf1"},
+//                                                      {"building1_fossilreviver1", "building1_floor1", null, null},
+//                                                      {"building1_floor2", "rug2", "building1_pokecenter1", null}
+//                                                      };
+                    String[][] names = new String[][]{{"building1_wall1", "building1_wall1", "building1_wall1", "building1_wall1", "building1_wall1", "building1_wall1"},
+                                                      {"building1_machine2", null, null, null, null, null},
+                                                      {"building1_fossilreviver1", "building1_cables1", "building1_cables1", "building1_cables1", "building1_pokecenter1", "building1_pokecenter1_right"},
+                                                      {"building1_floor2", "building1_floor1", "rug2", "building1_floor1", "building1_floor2", "building1_floor2"}
+                                                      };
+                    Route interiorRoute = new Route("fossil_lab1", 11);
+                    Vector2 pos2;
+                    for (int i=0; i < names.length; i++) {
+                        for (int j=0; j < names[i].length; j++) {
+                            if (names[i][j] == null) {
+                                continue;
+                            }
+                            pos2 = new Vector2(tl2.x -6*16 +j*16, tl2.y +5*16 -i*16);
+                            currLayer.put(pos2, new Tile(names[i][j], pos2, true, interiorRoute));
+                        }
+                    }
+                    interiorTiles.add(currLayer);
+//                    names = new String[][]{{"pkmnmansion_roof_NW", "pkmnmansion_roof_N", "pkmnmansion_roof_N", "pkmnmansion_roof_NE"},
+//                                           {"pkmnmansion_roof_SW", "pkmnmansion_roof_S", "pkmnmansion_roof_S", "pkmnmansion_roof_SE"},
+//                                           {"pkmnmansion_ext_W", "pkmnmansion_ext", "pkmnmansion_ext", "pkmnmansion_ext_E"},
+//                                           {"pkmnmansion_ext_SW", "pkmnmansion_ext_door", "pkmnmansion_ext_S", "pkmnmansion_ext_SE"},
+//                                           {"sand1", "sand1", "sand1", "sand1"},
+//                                           };
+                    // Non-damaged building
+//                    names = new String[][]{{"pkmnmansion_roof_NW", "pkmnmansion_roof_N", "pkmnmansion_roof_N", "pkmnmansion_roof_N", "pkmnmansion_roof_N", "pkmnmansion_roof_NE"},
+//                                           {"pkmnmansion_roof_SW", "pkmnmansion_roof_S", "pkmnmansion_roof_S", "pkmnmansion_roof_S", "pkmnmansion_roof_S", "pkmnmansion_roof_SE"},
+//                                           {"pkmnmansion_ext_W_window", "pkmnmansion_ext_windows", "pkmnmansion_ext_windows_W", "pkmnmansion_ext_windows_E", "pkmnmansion_ext_windows", "pkmnmansion_ext_E_window"},
+//                                           {"pkmnmansion_ext_SW", "pkmnmansion_ext_S", "pkmnmansion_ext_door", "pkmnmansion_ext_S_windows", "pkmnmansion_ext_S", "pkmnmansion_ext_SE"},
+//                                           {"sand1", "sand1", "sand1", "sand1", "sand1", "sand1"},
+//                                           };
+                    names = new String[][]{{"pkmnmansion_roof_NW", "pkmnmansion_roof_N", "pkmnmansion_roof_N", "pkmnmansion_roof_N_damaged", "pkmnmansion_roof_N", "pkmnmansion_roof_NE"},
+                                           {"pkmnmansion_roof_SW", "pkmnmansion_roof_S_damaged", "pkmnmansion_roof_S", "pkmnmansion_roof_S", "pkmnmansion_roof_S", "pkmnmansion_roof_SE"},
+                                           {"pkmnmansion_ext_W_window", "pkmnmansion_ext_windows", "pkmnmansion_ext_windows_W_damaged", "pkmnmansion_ext_windows_E_damaged", "pkmnmansion_ext_windows", "pkmnmansion_ext_E_window_damaged"},
+                                           {"pkmnmansion_ext_SW", "pkmnmansion_ext_S", "pkmnmansion_ext_door", "pkmnmansion_ext_S_windows_damaged", "pkmnmansion_ext_S", "pkmnmansion_ext_SE_damaged"},
+                                           {"sand1", "sand1", "sand1", "sand1", "sand1", "sand1"},
+                                           };
+                    for (int i=0; i < names.length; i++) {
+                        for (int j=0; j < names[i].length; j++) {
+                            if (names[i][j] == null) {
+                                continue;
+                            }
+                            pos2 = new Vector2(tl2.x -6*16 +j*16, tl2.y +5*16 -i*16);
+
+                            // Below block is to get rid of aloe plants
+                            Tile currTile = exteriorTiles.get(pos2);
+                            if (currTile != null && currTile.name.equals("aloe_large1")) {
+                                Vector2[] nexts = new Vector2[]{new Vector2(16, 0), new Vector2(0, 16), new Vector2(16, 16)};
+                                for (Vector2 next : nexts) {
+                                    Vector2 nextPos = pos2.cpy().add(next);
+                                    Tile nextTile = exteriorTiles.get(nextPos);
+                                    if (nextTile.nameUpper.equals("solid")) {
+                                        nextTile.nameUpper = "";
+                                        nextTile.attrs.put("solid", false);
+                                    }
+                                }
+                            }
+
+                            exteriorTiles.put(pos2, new Tile(names[i][j], pos2, true, tile.routeBelongsTo));
+                        }
+                    }
+                    for (Tile tile2 : exteriorTiles.values()) {
+                        Tile currTile = tilesToAdd.get(tile2.position);
+                        if (currTile != null && currTile.nameUpper.equals("pokemon_mansion_key")) {
+                            tilesToAdd.put(tile2.position.cpy(), new Tile(tile2.name, currTile.nameUpper, currTile.position, true, currTile.routeBelongsTo));
+                            continue;
+                        }
+                        tilesToAdd.put(tile2.position.cpy(), tile2);
+                    }
+                    for (int i=0; i < interiorTiles.size(); i++) {
+                        currLayer = interiorTiles.get(i);
+                        // TODO: uncomment, I think
+//                        if (currLayer == null) {
+//                            continue;
+//                        }
+                        if (i >= this.interiorTilesToAdd.size()) {
+                            this.interiorTilesToAdd.add(currLayer);
+                            continue;
+                        }
+                        if (this.interiorTilesToAdd.get(i) == null) {
+                            this.interiorTilesToAdd.remove(i);
+                            this.interiorTilesToAdd.add(i, currLayer);
+                            continue;
+                        }
+                        for (Vector2 key : currLayer.keySet()) {
+                            this.interiorTilesToAdd.get(i).put(key, currLayer.get(key));
+                        }
+                    }
+                    break;  // if you don't do this, then dungeon gets replaced by trees.
+                }
+                
             }
         }
 
@@ -2090,6 +2203,10 @@ class GenIsland1 extends Action {
                                 }
                                 else if (this.rand.nextInt(maxDist) < 3) {
                                     newTile = new Tile("desert4", "cactus10", edge, true, currRoute);
+                                }
+//                                else if (this.rand.nextInt(maxDist) < 1) {
+                                else if (this.rand.nextInt(maxDist) < 3) {
+                                    newTile = new Tile("desert4", "desert4_cracked", edge, true, currRoute);
                                 }
                                 // TODO: not sure if should limit to 1. definitely want minimum of one
                                 else if (distance > maxDist/8 && doneOasis > 0 && this.rand.nextInt(doneOasis) < 1) {
@@ -2496,7 +2613,6 @@ class GenIsland1 extends Action {
                                     }
                                     newTile = new Tile(newTile.name, "rock1_color", edge.cpy(), true, tempRoute);
                                 }
-
                                 tilesToAdd.put(newTile.position.cpy(), newTile);
                                 edgeTiles.put(newTile.position.cpy(), newTile);
                             }
