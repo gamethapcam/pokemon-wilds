@@ -7910,6 +7910,38 @@ class DrawFriendlyHealth extends Action {
             else if (game.player.currPokemon.gender.equals("female")) {
                 game.uiBatch.draw(TextureCache.femaleSymbol, 136, 72);
             }
+            
+         // Draw pkmn max health text 
+            int maxHealth = game.player.currPokemon.maxStats.get("hp");
+            int hundredsPlace = maxHealth/100;
+            if (hundredsPlace > 0) {
+                SpriteProxy hudredsPlaceSprite = game.textDict.get(Character.forDigit(hundredsPlace,10));
+                game.uiBatch.draw(hudredsPlaceSprite, 120, 56);
+            }
+            int tensPlace = (maxHealth % 100) / 10;
+            if (tensPlace > 0 || hundredsPlace > 0) {
+            	SpriteProxy tensPlaceSprite = game.textDict.get(Character.forDigit(tensPlace,10));
+                game.uiBatch.draw(tensPlaceSprite, 120 +8, 56);
+            }
+            int onesPlace = maxHealth % 10;
+            SpriteProxy onesPlaceSprite = game.textDict.get(Character.forDigit(onesPlace,10));
+            game.uiBatch.draw(onesPlaceSprite, 120 +16, 56);
+
+            // Draw pkmn current health text
+            int currHealthRemaining = (this.currHealth*maxHealth)/48;
+            hundredsPlace = currHealthRemaining/100;
+            if (hundredsPlace > 0) {
+            	SpriteProxy hudredsPlaceSprite = game.textDict.get(Character.forDigit(hundredsPlace,10));
+                game.uiBatch.draw(hudredsPlaceSprite, 88, 56);
+            }
+            tensPlace = (currHealthRemaining % 100) / 10;
+            if (tensPlace > 0 || hundredsPlace > 0) {
+            	SpriteProxy tensPlaceSprite = game.textDict.get(Character.forDigit(tensPlace,10));
+                game.uiBatch.draw(tensPlaceSprite, 88 +8, 56);
+            }
+            onesPlace = currHealthRemaining % 10;
+            onesPlaceSprite = game.textDict.get(Character.forDigit(onesPlace,10));
+            game.uiBatch.draw(onesPlaceSprite, 88 +16, 56);
         }
         // detect when battle is over,
         // object will remove itself from AS
@@ -14499,7 +14531,9 @@ class DrawStatsScreen extends MenuAction {
     Sprite helperSprite;
     public int currIndex = 0;
     Pokemon pokemon;
+    int pokeIndex;
     Sprite healthSprite;
+    PokemonIntroAnim intro;
 
     public DrawStatsScreen(Game game, Pokemon pokemon, MenuAction prevMenu) {
         this.prevMenu = prevMenu;
@@ -14508,10 +14542,12 @@ class DrawStatsScreen extends MenuAction {
             this.bgSprites[i] = new Sprite(text, 0, 0, 16*10, 16*9);
         }
         this.pokemon = pokemon;
+        this.pokeIndex = game.player.pokemon.indexOf(pokemon);
         Texture text = new Texture(Gdx.files.internal("battle/health1.png"));
         this.healthSprite = new Sprite(text, 0,0,1,2);
+        this.intro = new PokemonIntroAnim(null);
     }
-
+    
     public String getCamera() {return "gui";}
 
     public int getLayer(){return this.layer;}
@@ -14520,7 +14556,7 @@ class DrawStatsScreen extends MenuAction {
     public void firstStep(Game game) {
         game.battle.oppPokemon = this.pokemon;
         game.insertAction(new WaitFrames(game, 4, new PlaySound(this.pokemon, null)));
-        game.insertAction(new PokemonIntroAnim(null));
+        game.insertAction(intro);
     }
 
     @Override
@@ -14706,9 +14742,21 @@ class DrawStatsScreen extends MenuAction {
                 }
             }
         }
-        // TODO: up/down toggles pokemon
-        // Handle arrow input
-        if (InputProcessor.leftJustPressed) {
+       
+     // Handle arrow input
+        if (InputProcessor.upJustPressed && this.prevMenu != null) {
+            int newIndex = pokeIndex-1;
+        	newIndex = newIndex < 0 ? game.player.pokemon.size()-1 : newIndex;
+        	if(newIndex != pokeIndex)
+        		this.scrollToNewPokemon(game, newIndex);
+        }
+        else if (InputProcessor.downJustPressed && this.prevMenu != null) {
+        	int newIndex = pokeIndex+1;
+        	newIndex = newIndex >= game.player.pokemon.size() ? 0 : newIndex;
+        	if(newIndex != pokeIndex)
+        		this.scrollToNewPokemon(game, newIndex);
+        }
+        else if (InputProcessor.leftJustPressed) {
             if (this.currIndex > 0) {
                 this.currIndex -= 1;
             }
@@ -14724,7 +14772,20 @@ class DrawStatsScreen extends MenuAction {
             return;
         }
     }
-
+    
+    //added to reduce code repetition
+    private void scrollToNewPokemon(Game game, int newIndex) {	
+		//reset the animation if it's still playing
+		this.intro.currFrame = this.pokemon.introAnim.size();
+		//set Party menu to point at current pokemon
+		DrawPokemonMenu.currIndex = newIndex;
+		game.actionStack.remove(this);
+		DrawStatsScreen newScreen = new DrawStatsScreen(game,game.player.pokemon.get(newIndex),this.prevMenu);
+		//set the new screen to be on the same tab
+		newScreen.currIndex = this.currIndex;
+		game.insertAction(new DrawStatsScreen.Intro(newScreen));    	    
+    }
+    
     static class Intro extends Action {
         public int layer = 110;
         int duration = 30;

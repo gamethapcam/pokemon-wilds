@@ -519,7 +519,7 @@ public class Pokemon {
             this.name = "Egg";
             this.sprite = Specie.spriteEgg;
             this.backSprite = Specie.backSpriteEgg;
-            this.introAnim = new ArrayList<SpriteProxy>();
+            this.introAnim = Specie.introAnimEgg;
         }
         else if(isShiny)
         {
@@ -779,15 +779,18 @@ public class Pokemon {
      * Compute changes required by leveling up.
      */
     void gainLevel(int numLevels) {
+    	int prevMaxHp = this.maxStats.get("hp");
         this.level += numLevels;
         this.calcMaxStats();
         // TODO: remove when getting rid of currentStats.
 //        this.currentStats = new HashMap<String, Integer>(this.maxStats);
         for (String stat : this.maxStats.keySet()) {
             if (stat.equals("hp")) {
-                continue;
+            	int prevCurrentHp = this.currentStats.get("hp");
+                this.currentStats.put(stat, prevCurrentHp + (this.maxStats.get("hp")-prevMaxHp));
             }
-            this.currentStats.put(stat, this.maxStats.get(stat));
+            else
+            	this.currentStats.put(stat, this.maxStats.get(stat));
         }
     }
 
@@ -850,6 +853,8 @@ public class Pokemon {
      * Compute changes required by evolution.
      */
     void evolveTo(String targetName) {
+    	int prevMaxHp = this.maxStats.get("hp");
+    	int prevCurrentHp = this.currentStats.get("hp");
         updateSpecieInfo(targetName);
 
         // Update base stats and various values.
@@ -863,8 +868,11 @@ public class Pokemon {
         //            this.loadPrismPokemon(this.name);
         //        }
 
-        // restore hp to full
-        this.currentStats.put("hp", this.maxStats.get("hp"));
+        //TODO *possibly* need to account for Shedinja here since it actually loses HP when it evolves, but depends how it gets implemented
+        // add the HP difference to the pokmon's health
+        this.currentStats.put("hp", prevCurrentHp + (this.maxStats.get("hp") - prevMaxHp));
+        //clear status aliments
+        this.status = null;
     }
 
     /**
