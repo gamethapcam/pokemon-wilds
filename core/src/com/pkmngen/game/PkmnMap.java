@@ -73,7 +73,7 @@ class DrawMap extends Action {
 
     public DrawMap(Game game) {
         this.pixels = new Pixmap(Gdx.files.internal("tiles/blank2.png"));
-        this.texture = new Texture(this.pixels);
+        this.texture = TextureCache.get(this.pixels);
         this.blankSprite = new Sprite(TextureCache.get(Gdx.files.internal("tiles/blank2.png")), 0, 0, 16, 16);
         this.zSprite = new Sprite(TextureCache.get(Gdx.files.internal("tiles/zs1.png")), 0, 0, 16, 16);
         this.belowBridgeSprite = new Sprite(TextureCache.get(Gdx.files.internal("tiles/bridge1_lower.png")), 0, 0, 16, 16);
@@ -1113,7 +1113,7 @@ class MoveWater extends Action {
         
         this.roamingPixmap = new Pixmap(160*3, 144*3, Pixmap.Format.RGBA8888);
         this.roamingPixmap.setColor(new Color(0f, 0f, 0f, 1f));
-        this.roamingTexture = new Texture(this.roamingPixmap);
+        this.roamingTexture = TextureCache.get(this.roamingPixmap);
     }
 
     public int getLayer() {
@@ -1208,10 +1208,10 @@ class MoveWater extends Action {
             }
             else if (tile.name.contains("flower")) {
                 if (this.timer == 0) {
-                    tile.sprite.setRegionX(0);
+                    tile.sprite.setRegion(0, 0, 16, 16);
                 }
                 else if (this.timer == 26) {
-                    tile.sprite.setRegionX(16);
+                    tile.sprite.setRegion(16, 0, 16, 16);
                 }
             }
             // Animate campfires
@@ -1812,6 +1812,454 @@ public class PkmnMap {
         }
         else {
             this.currRoute = new Route("Demo_SteelRoute", 20);
+        }
+    }
+
+    /**
+     * Fix surrounding tiles based on the tile just added
+     * Ex: fence tile touching another fence above and below
+     */
+    public void adjustSurroundingTiles(Tile currTile) {
+        this.adjustSurroundingTiles(currTile, this.tiles);
+    }
+
+    public void adjustSurroundingTiles(Tile currTile, Map<Vector2, Tile> currTiles) {
+        Vector2 pos = new Vector2();
+        Tile tile;
+        for (int i = -16; i < 17; i+=16) {
+            for (int j = -16; j < 17; j+=16) {
+                pos.set(currTile.position.cpy().add(i, j));
+                tile = currTiles.get(pos);
+                if (tile == null) {
+                    continue;
+                }
+                this.adjustTile(tile, currTiles);
+            }
+        }
+    }
+
+    /**
+     * Find which sides surrounded on. Replace overSprite based on that.
+     * Ex: fence surrounded by 4 fence posts becomes a 4-cross fence.
+     */
+    public void adjustTile(Tile currTile, Map<Vector2, Tile> currTiles) {
+        Tile up = currTiles.get(currTile.position.cpy().add(0, 16));
+        Tile down = currTiles.get(currTile.position.cpy().add(0, -16));
+        Tile right = currTiles.get(currTile.position.cpy().add(16, 0));
+        Tile left = currTiles.get(currTile.position.cpy().add(-16, 0));
+//        String path = "tiles/";
+//        if (currTile.name.contains("house")) {
+//            path = "tiles/buildings/";
+//        }
+        String[] tokens = currTile.nameUpper.split("_");
+        String name;
+        name = tokens[0];
+        for (int i = 1; i < tokens.length-1; i++) {
+            name += "_" + tokens[i];
+        }
+//        String name = currTile.nameUpper.split("_", 2)[0];
+//        String name = currTile.nameUpper.split("_")[0];
+//        System.out.println(name);
+        boolean touchUp = up != null && up.nameUpper.contains(name);
+        boolean touchDown = down != null && down.nameUpper.contains(name);
+        boolean touchRight = right != null && right.nameUpper.contains(name);
+        boolean touchLeft = left != null && left.nameUpper.contains(name);
+        String ext = "_";
+        HashMap<Vector2, Tile> interiorTiles = this.interiorTiles.get(this.interiorTilesIndex);
+
+        if (currTiles == this.overworldTiles) {
+
+            if (currTile.nameUpper.contains("hole")) {
+                // TODO: this is clunky
+                touchUp = touchUp || (up != null && (up.name.contains("hole") || up.nameUpper.contains("hole")));
+                touchDown = touchDown || (down != null && (down.name.contains("hole") || down.nameUpper.contains("hole")));
+                touchRight = touchRight || (right != null && (right.name.contains("hole") || right.nameUpper.contains("hole")));
+                touchLeft = touchLeft || (left != null && (left.name.contains("hole") || left.nameUpper.contains("hole")));
+                
+                touchUp = touchUp || (up != null && (up.name.contains("water") || up.nameUpper.contains("water")));
+                touchDown = touchDown || (down != null && (down.name.contains("water") || down.nameUpper.contains("water")));
+                touchRight = touchRight || (right != null && (right.name.contains("water") || right.nameUpper.contains("water")));
+                touchLeft = touchLeft || (left != null && (left.name.contains("water") || left.nameUpper.contains("water")));
+                
+                // This is an attempt to make holes look better when touching diagonally
+                // 1 == NE, 2 == SE, 3 == SW, 4 == SW
+                Tile NE = currTiles.get(currTile.position.cpy().add(16, 16));
+                Tile SE = currTiles.get(currTile.position.cpy().add(16, -16));
+                Tile SW = currTiles.get(currTile.position.cpy().add(-16, -16));
+                Tile NW = currTiles.get(currTile.position.cpy().add(-16, 16));
+                boolean touchNE = (NE != null && (NE.name.contains("water") || NE.nameUpper.contains("water") || NE.nameUpper.contains("hole")));
+                boolean touchSE = (SE != null && (SE.name.contains("water") || SE.nameUpper.contains("water") || SE.nameUpper.contains("hole")));
+                boolean touchSW = (SW != null && (SW.name.contains("water") || SW.nameUpper.contains("water") || SW.nameUpper.contains("hole")));
+                boolean touchNW = (NW != null && (NW.name.contains("water") || NW.nameUpper.contains("water") || NW.nameUpper.contains("hole")));
+
+                if (touchUp) {
+                    ext += "N";
+                }
+                if (touchDown) {
+                    ext += "S";
+                }
+                if (touchRight) {
+                    ext += "E";
+                }
+                if (touchLeft) {
+                    ext += "W";
+                }
+                if (ext.equals("_")) {
+                    ext = "";
+                }
+                else {
+                    if (touchNE && touchUp && touchRight) {
+                        ext += "[NE]";
+                    }
+                    if (touchSE && touchDown && touchRight) {
+                        ext += "[SE]";
+                    }
+                    if (touchSW && touchDown && touchLeft) {
+                        ext += "[SW]";
+                    }
+                    if (touchNW && touchUp && touchLeft) {
+                        ext += "[NW]";
+                    }
+                }
+                Tile newTile = new Tile(currTile.name, name+ext, 
+                                        currTile.position.cpy(), true, currTile.routeBelongsTo);
+                newTile.items = currTile.items;
+                newTile.hasItem = currTile.hasItem;  // TODO: this needs to be done everywhere
+                // ideally just replace name and nameUpper and re-call tile init().
+                newTile.hasItemAmount = currTile.hasItemAmount;
+                currTiles.put(currTile.position.cpy(), newTile);
+            }
+            else if (currTile.nameUpper.contains("fence") && !currTile.nameUpper.contains("house")) {
+
+                // bend fences towards houses?
+                if (down.nameUpper.contains("house")) {  // && !down.nameUpper.contains("roof")
+                    touchDown = true;
+                }
+                if (left.nameUpper.contains("house") && !left.nameUpper.contains("roof")) {
+                    touchLeft = true;
+                }
+                if (right.nameUpper.contains("house") && !right.nameUpper.contains("roof")) {
+                    touchRight = true;
+                }
+                // only applies to non-desert fence atm
+                if (!currTile.nameUpper.contains("fence2")) {
+                    // bend fences towards houses?
+                    if (up.nameUpper.contains("house")) { //  && !up.nameUpper.contains("roof")
+                        touchUp = true;
+                    }
+                }
+                if (!touchUp && !touchDown && !touchLeft && !touchRight) {
+                    return;
+                }
+                if (touchUp) {
+                    ext += "N";
+                }
+                if (touchDown) {
+                    ext += "S";
+                }
+                if (touchRight) {
+                    ext += "E";
+                }
+                if (touchLeft) {
+                    ext += "W";
+                }
+                if (touchLeft && touchRight && !touchUp && !touchDown) {
+                    ext = "";
+                }
+                if ((touchUp || touchDown) && !touchLeft && !touchRight) {
+                    ext = "_NS";
+                }
+                if (ext.length() == 2) {
+                    ext = "";
+                }
+                Tile newTile = new Tile(currTile.name, name+ext, 
+                                        currTile.position.cpy(), true, currTile.routeBelongsTo);
+                newTile.items = currTile.items;  // TODO: problems? idk
+                currTiles.put(currTile.position.cpy(), newTile);
+        //        text = TextureCache.get(Gdx.files.internal(path+currTile.nameUpper+ext+".png"));
+        //        Vector2 pos = new Vector2(currTile.overSprite.getX(), currTile.overSprite.getY());
+        //        currTile.overSprite = new Sprite(text, 0, 0, 16, 16);
+        //        currTile.overSprite.setPosition(pos.x, pos.y);
+            }
+            else if (currTile.nameUpper.contains("house")
+                     && !currTile.nameUpper.contains("roof")
+                     && !currTile.nameUpper.contains("door")) {
+                if (currTile.nameUpper.equals("house5_middle1") && down.nameUpper.contains("fence1") &&
+                    !(touchUp ^ touchDown)) {
+                    Tile newTile = new Tile(currTile.name, "house5_middle1_fence1", 
+                                            currTile.position.cpy(), true, currTile.routeBelongsTo);
+                    newTile.items = currTile.items;
+                    currTiles.put(currTile.position.cpy(), newTile);
+                    // Add to interiors
+                    // TODO: test
+                    if (!interiorTiles.containsKey(currTile.position)) {
+                        Tile interiorTile = new Tile("house5_floor1", currTile.position.cpy());
+                        interiorTiles.put(currTile.position.cpy(), interiorTile);
+                    }
+                    return;
+                }
+
+                // TODO: unify this with house5
+                if (currTile.nameUpper.contains("house6")) {
+//                    name = currTile.nameUpper.split("_")[0];
+//                    System.out.println(name);
+                    touchUp = up != null && up.nameUpper.contains(name) && !up.nameUpper.contains("roof");
+                    touchDown = down != null && down.nameUpper.contains(name) && !down.nameUpper.contains("roof");
+                    touchRight = right != null && right.nameUpper.contains(name) && !right.nameUpper.contains("roof");
+                    touchLeft = left != null && left.nameUpper.contains(name) && !left.nameUpper.contains("roof");
+
+//                    if (!touchLeft && !touchRight) {
+//                        return;
+//                    }
+                    if (touchUp) {
+                        ext += "N";
+                    }
+                    if (touchDown) {
+                        ext += "S";
+                    }
+                    if (touchRight) {
+                        ext += "E";
+                    }
+                    if (touchLeft) {
+                        ext += "W";
+                    }
+                    if (touchLeft && touchRight && !touchUp && !touchDown) {
+                        ext = "_NEW";
+                    }
+                    if (ext.length() <= 2) {
+                        ext += "N";
+                    }
+                    Tile newTile = new Tile(currTile.name, name+ext, 
+                                            currTile.position.cpy(), true, currTile.routeBelongsTo);
+                    newTile.items = currTile.items;
+                    currTiles.put(currTile.position.cpy(), newTile);
+
+                    // Add to interiors if nothing there currently
+                    if (!interiorTiles.containsKey(currTile.position)) {
+                        Tile interiorTile = new Tile("house5_floor1", currTile.position.cpy());
+                        interiorTiles.put(currTile.position.cpy(), interiorTile);
+                    }
+                    return;
+                }
+                
+                if (!touchLeft && !touchRight) {
+                    return;
+                }
+                if (touchRight && touchLeft) {
+                    ext += "middle1";
+                }
+                else if (touchRight && touchDown) {
+                    ext += "E";
+                }
+                else if (touchLeft && touchDown) {
+                    ext += "W";
+                }
+                else if (touchRight) {
+                    ext += "left1";
+                }
+                else if (touchLeft) {
+                    ext += "right1";
+                }
+                Tile newTile = new Tile(currTile.name, name+ext, 
+                                        currTile.position.cpy(), true, currTile.routeBelongsTo);
+                newTile.items = currTile.items;
+                currTiles.put(currTile.position.cpy(), newTile);
+
+                // Add to interiors if nothing there currently
+                if (!interiorTiles.containsKey(currTile.position)) {
+                    Tile interiorTile = new Tile("house5_floor1", currTile.position.cpy());
+                    interiorTiles.put(currTile.position.cpy(), interiorTile);
+                }
+            }
+            else if (currTile.nameUpper.contains("house") && currTile.nameUpper.contains("roof")) {
+                if (!touchUp && !touchDown && !touchLeft && !touchRight) {
+                    return;
+                }
+                if (touchUp) {
+                    ext += "N";
+                }
+                if (touchDown) {
+                    ext += "S";
+                }
+                if (touchRight) {
+                    ext += "E";
+                }
+                if (touchLeft) {
+                    ext += "W";
+                }
+                if (touchLeft && touchRight && !touchUp && !touchDown) {
+                    ext = "_middle1";
+                }
+                if ((touchUp || touchDown) && !touchLeft && !touchRight) {
+                    ext = "_NSEW";
+                }
+                if (ext.length() == 2) {
+                    ext = "";
+                    if (touchLeft) {
+                        ext = "_right1";
+                    }
+                    else if (touchRight) {
+                        ext = "_left1";
+                    }
+                }
+                Tile newTile = new Tile(currTile.name, name+ext, 
+                                        currTile.position.cpy(), true,
+                                        currTile.routeBelongsTo);
+                newTile.items = currTile.items;
+                currTiles.put(currTile.position.cpy(), newTile);
+                // Add to interiors
+//                HashMap<Vector2, Tile> currInterior = game.map.interiorTiles.get(game.map.interiorTilesIndex);
+                // Allowed to overwrite house back walls.
+                if (!interiorTiles.containsKey(currTile.position) ||
+                    interiorTiles.get(currTile.position).name.contains("wall")) {
+                    Tile interiorTile = new Tile("house5_floor1", currTile.position.cpy());
+                    interiorTiles.put(currTile.position.cpy(), interiorTile);
+                }
+                if (!interiorTiles.containsKey(up.position) || interiorTiles.get(up.position) == null) {
+                    interiorTiles.put(up.position.cpy(), new Tile("house5_wall1", up.position.cpy()));
+                }
+            }
+            else if (currTile.nameUpper.contains("door")) {
+                // handle case where player puts a door on the roof, which should
+                // make a 'back door' (red carpet on back of house that acts as door).
+                if ((left.nameUpper.contains("roof") || left.nameUpper.contains("door")) &&
+                    (right.nameUpper.contains("roof") || right.nameUpper.contains("door")) &&
+                    !(left.nameUpper.contains("door") && right.nameUpper.contains("door"))) {
+                    Tile newTile =  new Tile(currTile.name, "house5_roof_middle1", 
+                                             currTile.position.cpy(), true,
+                                             currTile.routeBelongsTo);
+                    newTile.items = currTile.items;
+                    currTiles.put(currTile.position.cpy(), newTile);
+                    this.adjustSurroundingTiles(currTile, currTiles);
+                    if (!up.attrs.get("solid")) {
+                        currTiles.put(up.position.cpy(),
+                                           new Tile("rug2", "", up.position.cpy(), true, up.routeBelongsTo));
+                        // Add to interiors
+                        if (!interiorTiles.containsKey(up) ||
+                            interiorTiles.get(up).name.contains("wall")) {
+                            Tile interiorTile = new Tile("house5_door1", up.position.cpy());
+                            interiorTiles.put(up.position.cpy(), interiorTile);
+                        }
+                    }
+                    // Remove indoor rug if it exists
+                    if (interiorTiles.containsKey(currTile.position) &&
+                        interiorTiles.get(currTile.position).name.contains("rug")) {
+                        Tile interiorTile = new Tile("house5_floor1", currTile.position.cpy());
+                        interiorTiles.put(currTile.position.cpy(), interiorTile);
+                    }
+                    return;
+                }
+                // TODO: this was for side doors, not doing atm
+//                if ((up.nameUpper.contains("roof") || up.nameUpper.contains("wall") || up.nameUpper.contains("door")) &&
+//                    (down.nameUpper.contains("roof") || up.nameUpper.contains("wall") || down.nameUpper.contains("door")) &&
+//                    !(up.nameUpper.contains("door") && down.nameUpper.contains("door"))) {
+//
+//                    Tile newTile =  new Tile(currTile.name, "house5_middle1", 
+//                                             currTile.position.cpy(), true,
+//                                             currTile.routeBelongsTo);
+//                    newTile.items = currTile.items;
+//                    game.map.tiles.put(currTile.position.cpy(), newTile);
+//                    PlayerStanding.adjustSurroundingTiles(currTile);
+//
+//                    if (!left.attrs.get("solid")) {
+//                        game.map.tiles.put(up.position.cpy(),
+//                                           new Tile("rug2", "", up.position.cpy(), true, up.routeBelongsTo));
+//                        // Add to interiors
+//                        if (!interiorTiles.containsKey(up) ||
+//                            interiorTiles.get(up).name.contains("wall")) {
+//                            Tile interiorTile = new Tile("house5_door1", up.position.cpy());
+//                            interiorTiles.put(up.position.cpy(), interiorTile);
+//                        }
+//                    }
+//                    
+//                    return;
+//                }
+                // Add to interiors
+                if (!interiorTiles.containsKey(currTile.position)) {
+                    Tile interiorTile = new Tile("house5_floor_rug1", currTile.position.cpy());
+                    interiorTiles.put(currTile.position.cpy(), interiorTile);
+                }
+            }
+        }
+        else {
+            
+            // TODO: tables for now
+            if (currTile.nameUpper.contains("table")) {
+                if (!touchUp && !touchDown && !touchLeft && !touchRight) {
+                    return;
+                }
+                if (touchUp) {
+                    ext += "N";
+                }
+                if (touchDown) {
+                    ext += "S";
+                }
+                if (touchRight) {
+                    ext += "E";
+                }
+                if (touchLeft) {
+                    ext += "W";
+                }
+                if (ext.equals("_E")) {
+                    ext = "_left1";
+                }
+                else if (ext.equals("_W")) {
+                    ext = "_right1";
+                }
+                else if (ext.equals("_EW")) {
+                    ext = "_middle1";
+                }
+                else if (ext.equals("_NS")) {
+                    ext = "_middle2";
+                }
+                else if (ext.equals("_N")) {
+                    ext = "_down1";
+                }
+                else if (ext.equals("_S")) {
+                    ext = "_up1";
+                }
+                Tile newTile = new Tile(currTile.name, name+ext, 
+                                        currTile.position.cpy(), true,
+                                        currTile.routeBelongsTo);
+                newTile.items = currTile.items;
+                currTiles.put(currTile.position.cpy(), newTile);
+            }
+
+            // TODO: move to exteriors, maybe
+            else if (currTile.name.contains("ruins1")) {
+                
+                if (currTile.name.contains("pillar")) {
+                    return;
+                }
+
+                // TODO: have to use name instead of nameUpper
+                tokens = currTile.name.split("_");
+                name = tokens[0];
+                for (int i = 1; i < tokens.length-1; i++) {
+                    name += "_" + tokens[i];
+                }
+
+                touchUp = up != null && up.name.contains(name);
+                touchDown = down != null && down.name.contains(name);
+                touchRight = right != null && right.name.contains(name);
+                touchLeft = left != null && left.name.contains(name);
+
+                if (touchUp) {
+                    ext += "N";
+                }
+                if (touchDown) {
+                    ext += "S";
+                }
+                if (touchRight) {
+                    ext += "E";
+                }
+                if (touchLeft) {
+                    ext += "W";
+                }
+                Tile newTile = new Tile(name+ext, currTile.position.cpy(), true, currTile.routeBelongsTo);
+                newTile.items = currTile.items;
+                currTiles.put(currTile.position.cpy(), newTile);
+            }
         }
     }
 
@@ -2455,6 +2903,19 @@ class Route {
             this.allowedPokemon.add("zigzagoon");  // TODO: need ow sprite
             this.allowedPokemon.add("sandshrew");
             this.allowedPokemon.add("exeggcute");
+        }
+        else if (name.equals("ruins1_outer")) {
+            this.allowedPokemon.add("sigilyph");
+            this.allowedPokemon.add("natu");
+            this.allowedPokemon.add("nosepass");
+//            this.allowedPokemon.add("beldum");  // TODO: basespecies is broken for this one
+//            this.allowedPokemon.add("metang");
+            this.allowedPokemon.add("smeargle");
+//            this.allowedPokemon.add("solrock");  // TODO: basespecies is broken for this one
+        }
+        else if (name.equals("ruins1_inner")) {
+            // TODO
+            this.allowedPokemon.add("lunatone");  // TODO: day/night spawns
         }
         else if (name.equals("snow1")) {
             this.allowedPokemon.add("larvitar");
@@ -3189,7 +3650,14 @@ class Tile {
             this.ledgeDir = "down";
 
             // this.sprite.setColor(new Color(1f, 1f, 1f, 1f)); // debug
-        } else if (tileName.equals("ledge1_left")) {
+        } 
+        else if (tileName.contains("ledge2")) {
+            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/"+tileName+".png"));
+            this.sprite = new Sprite(playerText, 0, 0, 16, 16);
+            this.attrs.put("ledge", true);
+//            this.ledgeDir = "down";  // TODO
+        }
+        else if (tileName.equals("ledge1_left")) {
             Texture playerText;
             if (color) {
                 playerText = TextureCache.get(Gdx.files.internal("ledge1_left_color.png"));
@@ -3485,7 +3953,8 @@ class Tile {
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
         } else if (tileName.contains("flower")) {
             Texture playerText = TextureCache.get(Gdx.files.internal("tiles/"+tileName+".png"));
-            this.sprite = new Sprite(playerText, 0, 0, 32, 16);
+//            this.sprite = new Sprite(playerText, 0, 0, 32, 16);  // TODO: test
+            this.sprite = new Sprite(playerText, 0, 0, 16, 16);
         } else if (tileName.contains("snow")) {
             Texture playerText = TextureCache.get(Gdx.files.internal("tiles/"+tileName+".png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
@@ -3591,10 +4060,38 @@ class Tile {
             this.attrs.put("headbuttable", true);
 
         } else if (tileName.contains("ruins")) {
-            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/"+tileName+".png"));
-            this.sprite = new Sprite(playerText, 0, 0, 16, 16);
+            // TODO: remove
+//            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/"+tileName+".png"));
+//            this.sprite = new Sprite(playerText, 0, 0, 16, 16);
             if (tileName.contains("pillar")) {
+                Texture playerText = TextureCache.get(Gdx.files.internal("tiles/desert4.png"));
+                this.sprite = new Sprite(playerText, 0, 0, 16, 16);
+                playerText = TextureCache.get(Gdx.files.internal("tiles/"+tileName+".png"));
                 this.overSprite = new Sprite(playerText, 0, 0, 16, 32);
+                this.attrs.put("solid", true);  // TODO: not working
+                this.drawAsTree = true;
+            }
+            else if (tileName.contains("floor")) {
+                Texture playerText = TextureCache.get(Gdx.files.internal("tiles/"+tileName+".png"));
+                this.sprite = new Sprite(playerText, 0, 0, 16, 16);
+            }
+            else {
+                Texture text = TextureCache.get(Gdx.files.internal("tiles/ruins1_all.png"));
+                int offsetX = 8;
+                int offsetY = 8;
+                if (this.name.contains("E")) {
+                    offsetX -= 8;
+                }
+                if (this.name.contains("W")) {
+                    offsetX += 8;
+                }
+                if (this.name.contains("N")) {
+                    offsetY += 8;
+                }
+                if (this.name.contains("S")) {
+                    offsetY -= 8;
+                }
+                this.sprite = new Sprite(text, offsetX, offsetY, 16, 16);
             }
         } else if (tileName.equals("tree_plant1")) {
             Texture playerText = TextureCache.get(Gdx.files.internal("tiles/green1.png"));
@@ -4198,8 +4695,9 @@ class Tile {
                     }
                 }
                 game.insertAction(new DisplayText(game, "Found "+number+" "+this.hasItem.toUpperCase()+plural+"!", "fanfare1.ogg", null,
+                                  new WaitFrames(game, 6,
                                   new SetField(game, "playerCanMove", true,
-                                  null)));
+                                  null))));
                 this.pickUpItem(game.player);
             }
         }
@@ -4213,12 +4711,42 @@ class Tile {
                                                              true));
                 return;
             }
-            
-            
+            Action nextAction = new Action() {
+                public String getCamera() {
+                    return "gui";
+                }
+            };
+            game.playerCanMove = false;
+
+            // Special case for the zen-darmanitan interaction
+            // TODO: special name or something for zen mode?
+            if (pokemon.specie.name.equals("darmanitanzen") && pokemon.previousOwner == null) {
+                game.battle.oppPokemon = pokemon;  // Have to do b/c of Battle.getIntroAction() init stuff
+                nextAction.append(new DisplayText(game, "A statue of an ancient Pokemon.", null, null, null));
+                if (game.player.itemsDict.containsKey("ragecandybar")) {
+                    nextAction.append(new DisplayText(game, "Give it a RageCandyBar?", null, true, false,
+                                      new DrawYesNoMenu(null,
+                                          new DisplayText.Clear(game,
+                                          new WaitFrames(game, 6,
+                                          game.player.new RemoveFromInventory("ragecandybar", 1,
+                                          new DisplayText(game, "The statue responded to the RageCandyBar...", null, null,
+                                          new DisplayText(game, "The awakened DARMANITAN attacked!", null, null,
+                                          new SetField(game.battle, "oppPokemon", pokemon,
+                                          new CallMethod(game.player, "setCurrPokemon", new Object[]{},
+                                          new SetField(game.musicController, "startBattle", "wild",
+                                          Battle.getIntroAction(game))))))))),
+                                      new DisplayText.Clear(game,
+                                      new WaitFrames(game, 6,
+                                      new SetField(game, "playerCanMove", true, 
+                                      new SetField(pokemon, "canMove", true,
+                                      null)))))));
+                }
+                game.insertAction(nextAction);
+                return;
+            }
 
 //            game.map.pokemon.get(this.position)
             // TODO: play animation
-            game.playerCanMove = false;
             pokemon.canMove = false;
             String oppDir = "down";  // TODO: need a map for this.
             if (game.player.dirFacing.equals("up")) {
@@ -4233,11 +4761,6 @@ class Tile {
             else if (game.player.dirFacing.equals("left")) {
                 oppDir = "right";
             }
-            Action nextAction = new Action() {
-                public String getCamera() {
-                    return "gui";
-                }
-            };
             boolean isBaseSpecies = true;
             if (Pokemon.baseSpecies.get(pokemon.name) != null) {
                 isBaseSpecies = Pokemon.baseSpecies.get(pokemon.name).equals(pokemon.name);

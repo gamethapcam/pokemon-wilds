@@ -2176,11 +2176,16 @@ public class Battle {
         int c = 0;
         // TODO: focus energy (use boolean in pokemon class)
         // If attack is Aero Blast, Crab Hammer, Cross Chop, Karate Chop, Razor Leaf, or Slash, add 2 to C. 
-        if (attack.name.equals("aero blast") || attack.name.equals("crab hammer") || attack.name.equals("cross chop") ||
+        // TODO this results in a 1/4 crit ratio, which is different than other generations
+        if (attack.name.equals("aero blast") || attack.name.equals("crabhammer") || attack.name.equals("cross chop") ||
             attack.name.equals("karate chop") || attack.name.equals("razor leaf") || attack.name.equals("slash")) {
 //        if (attack != null && critAttacks.contains(attack));
             c += 2;
         }
+        // TODO: using gen 8 mechanics here, I think
+        else if (attack.name.equals("air cutter"))  {
+            c += 1;
+        } 
         if (c == 0) {
             c = 17;
         }
@@ -3148,7 +3153,8 @@ public class Battle {
             // Recover/Heal effects
             if (attack.effect.equals("EFFECT_HEAL") ||
                 attack.effect.equals("EFFECT_SYNTHESIS") ||
-                attack.effect.equals("EFFECT_LEECH_HIT")) {
+                attack.effect.equals("EFFECT_LEECH_HIT") ||
+                attack.effect.equals("EFFECT_DRAINING_KISS")) {
                 // Default value for Recover
                 int amount = friendlyPokemon.maxStats.get("hp")/2;
                 // Synthesis effect notes:
@@ -3166,6 +3172,12 @@ public class Battle {
                 }
                 else if (attack.effect.equals("EFFECT_LEECH_HIT")) {
                     amount = attack.damage/2;
+                    if (amount < 1) {
+                        amount = 1;
+                    }
+                }
+                else if (attack.effect.equals("EFFECT_DRAINING_KISS")) {
+                    amount = (3*attack.damage)/4;
                     if (amount < 1) {
                         amount = 1;
                     }
@@ -3846,24 +3858,32 @@ public class Battle {
             Reader reader = file.reader();
             BufferedReader br = new BufferedReader(reader);
             String line;
-            int lineNum = 1;
+//            int lineNum = 1;  // TODO: remove
             while ((line = br.readLine()) != null)   {
                 // TODO: using table to look up number now
 //                if (lineNum == 0) {
 //                    this.dexNumber = line.split(" ; ")[1];
 //                } else
-                if (lineNum > 14 && lineNum < 269) {
-                    String[] attrs = line.split("\tmove ")[1].split(",\\s+");
-                    Attack attack = new Attack(attrs[0].toLowerCase().replace('_', ' '), attrs[1], 
-                                               Integer.valueOf(attrs[2]), attrs[3].toLowerCase(), Integer.valueOf(attrs[4]),
-                                               Integer.valueOf(attrs[5]), Integer.valueOf(attrs[6]));
-                    if (gen2PhysicalTypes.contains(attack.type.toLowerCase())) {
-                        attack.isPhysical = true;
-                    }
-                    this.attacks.put(attack.name, attack);
-//                    System.out.println(attack.name + " " + attack.type);
+//                if (lineNum > 14 && lineNum < 269) {
+                if (!line.contains("\tmove ")) {
+                    continue;
                 }
-                lineNum++;
+                if (line.contains(";")) {
+                    continue;
+                }
+                String[] attrs = line.split("\tmove ")[1].split(",\\s+");
+                String attackType = attrs[3].toLowerCase();
+                if (!Game.fairyTypeEnabled && attackType.equals("FAIRY")) {
+                    attackType = "NORMAL";
+                }
+                Attack attack = new Attack(attrs[0].toLowerCase().replace('_', ' '), attrs[1], 
+                                           Integer.valueOf(attrs[2]), attackType, Integer.valueOf(attrs[4]),
+                                           Integer.valueOf(attrs[5]), Integer.valueOf(attrs[6]));
+                if (gen2PhysicalTypes.contains(attack.type.toLowerCase())) {
+                    attack.isPhysical = true;
+                }
+                this.attacks.put(attack.name, attack);
+//                lineNum++;  // TODO: remove
             }
             reader.close();
         } catch (FileNotFoundException e) {
@@ -7976,6 +7996,8 @@ class DrawItemMenu extends MenuAction {
     Sprite downArrow;
     int downArrowTimer;
     boolean refresh = false;
+    public int upTimer = 0;
+    public int downTimer = 0;
 
     public DrawItemMenu(Game game, MenuAction prevMenu) {
         this.prevMenu = prevMenu;
@@ -8104,10 +8126,27 @@ class DrawItemMenu extends MenuAction {
             this.firstStep(game);
             this.refresh = false;
         }
+
+        // Scroll fast if button is held for a while.
+        if (InputProcessor.upPressed) {
+            if (this.upTimer < 20) {
+                this.upTimer++;
+            }
+        }
+        else if (InputProcessor.downPressed) {
+            if (this.downTimer < 20) {
+                this.downTimer++;
+            }
+        }
+        else {
+            this.upTimer = 0;
+            this.downTimer = 0;
+        }
+        
         // Check user input
          //'tl' = top left, etc.
          // modify position by modifying curr to tl, tr, bl or br
-        if (InputProcessor.upJustPressed) {
+        if (InputProcessor.upJustPressed || this.upTimer >= 20) {
             if (cursorPos > 0) {
                 cursorPos -= 1;
                 newPos = arrowCoords.get(cursorPos);
@@ -8117,7 +8156,7 @@ class DrawItemMenu extends MenuAction {
             }
 
         }
-        else if (InputProcessor.downJustPressed) {
+        else if (InputProcessor.downJustPressed || this.downTimer >= 20) {
             if (this.cursorPos < 2 && this.currIndex+this.cursorPos+1 < this.itemsList.size()) {
                 this.cursorPos += 1;
                 newPos = arrowCoords.get(this.cursorPos);
@@ -9182,6 +9221,12 @@ class DrawPokemonMenu extends MenuAction {
                 game.player.swapSprites(pokemon);
                 game.insertAction(pokemon.new Follow(game.player));
                 game.player.currFieldMove = "DIG";
+                // Update which tiles currently building
+                game.player.buildTiles = game.player.terrainTiles;
+                while (game.player.buildTileIndex > 0 && game.player.buildTileIndex >= game.player.buildTiles.size()) {
+                    game.player.buildTileIndex--;
+                }
+                game.player.currBuildTile = game.player.buildTiles.get(game.player.buildTileIndex);
                 //
                 return new SelectedMenu.ExitAfterActions(this.prevMenu,
                        new PlaySound(pokemon,

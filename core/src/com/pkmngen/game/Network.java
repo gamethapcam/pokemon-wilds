@@ -206,7 +206,7 @@ class ClientBroadcast extends Action {
                                 newTile.hasItem = tileData.hasItem;
                                 newTile.hasItemAmount = tileData.hasItemAmount;
                                 game.map.tiles.put(tileData.pos.cpy(), newTile);
-                                PlayerStanding.adjustSurroundingTiles(newTile);
+                                game.map.adjustSurroundingTiles(newTile);
                             }
                             else if (object instanceof Network.OverworldPokemonData) {
                                 Network.OverworldPokemonData pokemonData = (Network.OverworldPokemonData) object;
@@ -1659,7 +1659,7 @@ class ServerBroadcast extends Action {
                                 newTile.hasItem = tileData.hasItem;
                                 newTile.hasItemAmount = tileData.hasItemAmount;
                                 game.map.tiles.put(tileData.pos.cpy(), newTile);
-                                PlayerStanding.adjustSurroundingTiles(newTile);  // TODO: test
+                                game.map.adjustSurroundingTiles(newTile);  // TODO: test
                                 // Send the change to clients (including the one that requested the change.)
                                 // Only send to clients that have this tile in their loading zone
 

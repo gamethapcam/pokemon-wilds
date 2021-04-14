@@ -1834,6 +1834,10 @@ class DrawSetupMenu extends Action {
                                             final Action genIsland = new GenIsland1(Game.staticGame, new Vector2(0, 0), size);
                                             System.out.println("Done.");
                                             System.out.println(java.time.LocalTime.now());
+                                            
+                                            // TODO: remove, gets around null action issue.
+                                            Thread.sleep(4000);
+
                                             Runnable runnable = new Runnable() {
                                                 public void run() {
                                                     Game.staticGame.start();
@@ -3326,11 +3330,22 @@ class TileEditor extends Action {
         underTiles.add("ruins1_NW");
         underTiles.add("ruins1_SW");
         underTiles.add("ruins1_pillar1");
+        underTiles.add("ruins_floor2");
+        //
+        underTiles.add("ledge2_down");
+        underTiles.add("ledge2_br");
+        underTiles.add("ledge2_bl");
+        underTiles.add("ledge2_tr");
+        underTiles.add("ledge2_tl");
+        underTiles.add("ledge2_left");
+        underTiles.add("ledge2_right");
+        underTiles.add("ledge2_top");
 
         // Ruins
         underTiles.add("ruins2_floor");
         underTiles.add("ruins2_door");
         underTiles.add("ruins2_wall1");
+        underTiles.add("cave1_ramp1");
         underTiles.add("black1");
 //        underTiles.add("cave1_floor1");
 //        underTiles.add("cave1_right1");

@@ -181,6 +181,13 @@ public class Pokemon {
                     }
                 }
                 reader.close();
+                
+                // TODO: if abilities are ever implemented, this needs to be removed.
+                // Right now Darminitan Zen form is a fully-separate pokemon (as 
+                // requested by people on discord)
+                Pokemon.baseSpecies.put("darmanitanzen", "darumaka");
+                
+                
                 // Load egg moves
                 file = Gdx.files.internal("crystal_pokemon/"+path+"egg_moves.asm");
                 reader = file.reader();
@@ -242,6 +249,9 @@ public class Pokemon {
         // TODO: handle all alolan forms here
         if (name.equals("aexeggutor")) {
             name = "exeggutor";
+        }
+        if (name.equals("darmanitanzen")) {
+            name = "darmanitan";
         }
 
         int lineNum = 1;
@@ -2736,6 +2746,92 @@ public class Pokemon {
 //            game.mapBatch.draw(Pokemon.this.standingSprites.get(Pokemon.this.dirFacing),
 //                               Pokemon.this.position.x, Pokemon.this.position.y+4);
             if (this.moveTimer <= 0) {
+                // Sigilyph moves in a square when wild
+                if (Pokemon.this.previousOwner == null && Pokemon.this.specie.name.equals("sigilyph")) {
+                    // Check modulus for new dir
+//                    System.out.println("here");
+//                    Vector2 newPos = Pokemon.this.facingPos();
+                    if (Pokemon.this.dirFacing.equals("up") && Pokemon.this.position.y % 64 == 0) {
+                        if (Pokemon.this.position.x % 128 == 0) {
+                            Pokemon.this.dirFacing = "left";
+                        }
+                        else {
+                            Pokemon.this.dirFacing = "right";
+                        }
+                    }
+                    else if (Pokemon.this.dirFacing.equals("left") && Pokemon.this.position.x % 64 == 0) {
+                        if (Pokemon.this.position.y % 128 == 64) {
+                            Pokemon.this.dirFacing = "down";
+                        }
+                        else {
+                            Pokemon.this.dirFacing = "up";
+                        }
+                    }
+                    else if (Pokemon.this.dirFacing.equals("down") && Pokemon.this.position.y % 64 == 0) {
+                        if (Pokemon.this.position.x % 128 == 0) {
+                            Pokemon.this.dirFacing = "left";
+                        }
+                        else {
+                            Pokemon.this.dirFacing = "right";
+                        }
+                    }
+                    else if (Pokemon.this.dirFacing.equals("right") && Pokemon.this.position.x % 64 == 0) {
+                        if (Pokemon.this.position.y % 128 == 64) {
+                            Pokemon.this.dirFacing = "down";
+                        }
+                        else {
+                            Pokemon.this.dirFacing = "up";
+                        }
+                    }
+                    Pokemon.this.currOwSprite = Pokemon.this.standingSprites.get(Pokemon.this.dirFacing);
+                    Vector2 newPos = Pokemon.this.facingPos();
+                    // If collides with something, head the opposite dir
+                    Tile temp = Pokemon.this.mapTiles.get(newPos);
+                    boolean collidesWithPlayer = false;
+                    for (Player player : game.players.values()) {
+                        if (newPos.equals(player.position)) {
+                            collidesWithPlayer = true;
+                            break;
+                        }
+                    }
+                    Tile currTile = Pokemon.this.mapTiles.get(Pokemon.this.position);
+                    boolean isLedge = (temp != null && temp.attrs.get("ledge")) ||
+                                      (currTile != null && currTile.attrs.get("ledge") && currTile.ledgeDir.equals("up") && Pokemon.this.dirFacing.equals("up"));
+                    if (temp == null ||
+                        temp.attrs.get("solid") || 
+                        isLedge ||
+                        temp.name.contains("door") || 
+                        temp.nameUpper.contains("door") || 
+                        game.map.pokemon.containsKey(newPos) ||
+                        // TODO: an indoor player will mess with an outdoor pokemon here
+                        // technically doesn't matter for now b/c indoor tiles won't
+                        // overlap with non-solid overworld areas.
+                        game.player.position.equals(newPos) ||
+                        collidesWithPlayer) {
+                        if (Pokemon.this.dirFacing.equals("up")) {
+                            Pokemon.this.dirFacing = "down";
+                        }
+                        else if (Pokemon.this.dirFacing.equals("left")) {
+                            Pokemon.this.dirFacing = "right";
+                        }
+                        else if (Pokemon.this.dirFacing.equals("down")) {
+                            Pokemon.this.dirFacing = "up";
+                        }
+                        else if (Pokemon.this.dirFacing.equals("right")) {
+                            Pokemon.this.dirFacing = "left";
+                        }
+                        return;
+                    }
+                    game.actionStack.remove(this);
+                    Action action = Pokemon.this.new Moving(2, 1, true, null);
+                    action.append(this);
+                    game.insertAction(action);
+                    Pokemon.this.standingAction = action;
+                    return;
+                }
+                else if (Pokemon.this.previousOwner == null && Pokemon.this.specie.name.equals("darmanitanzen")) {
+                    return;
+                }
                 this.moveTimer = game.map.rand.nextInt(180) + 60;
                 String[] dirs = new String[]{"up", "down", "left", "right"};
                 Pokemon.this.dirFacing = dirs[game.map.rand.nextInt(dirs.length)];

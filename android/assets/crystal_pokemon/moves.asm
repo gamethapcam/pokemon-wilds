@@ -263,6 +263,13 @@ Moves:
 	move ROCK_SMASH,   EFFECT_DEFENSE_DOWN_HIT,   20, FIGHTING, 100, 15,  50
 	move WHIRLPOOL,    EFFECT_TRAP_TARGET,        15, WATER,     70, 15,   0
 	move BEAT_UP,      EFFECT_BEAT_UP,            10, DARK,     100, 10,   0
+	; below are added moves
 	move DRAGON_ENERGY, EFFECT_DRAGON_ENERGY,    150, DRAGON,   100,  5,   0
 	move THUNDER_CAGE,  EFFECT_TRAP_TARGET,       80, ELECTRIC, 90,  15,   0
 	move CRUSH_GRIP,    EFFECT_CRUSH_GRIP,         1, NORMAL,   100,  5,   0
+	;
+	move DAZZLING_GLEAM, EFFECT_NORMAL_HIT,       80, FAIRY,    100, 10,   0
+	move DRAINING_KISS, EFFECT_DRAINING_KISS,     50, FAIRY,    100, 10,   0
+	move STRUGGLE_BUG,  EFFECT_SP_ATK_DOWN,       50, BUG,      100, 20,   0
+	move FAIRY_WIND,    EFFECT_NORMAL_HIT,        40, FAIRY,    100, 30,   0
+	move AIR_CUTTER,    EFFECT_NORMAL_HIT,        60, FLYING,   95,  25,   0

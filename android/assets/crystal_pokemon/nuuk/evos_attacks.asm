@@ -220,7 +220,7 @@ GardevoirEvosAttacks:
 	db 32, HYPNOSIS
 	db 37, ZEN_HEADBUTT
 	db 42, ENCORE
-	; db 47, MOONBLAST
+	db 47, MOONBLAST
 	; db 52, CALM_MIND
 	db 57, PSYCHIC
 	db 62, HEAL_BELL
@@ -861,93 +861,110 @@ BronzongEvosAttacks:
 	db 0 ; no more level-up moves
 
 DarumakaEvosAttacks:
-	; db EVOLVE_LEVEL, 33, BRONZONG
+	db EVOLVE_LEVEL, 35, DARMANITAN
 	db 0 ; no more evolutions
+	db 1, EMBER
 	db 1, TACKLE
-	db 4, DISABLE
-	db 7, CONFUSION
-	db 10, HYPNOSIS
-	db 13, FUTURE_SIGHT
-	db 17, FEINT_ATTACK
-	db 20, PSYBEAM
-	db 23, CONFUSE_RAY
-	db 26, FLASH_CANNON
-	db 32, ZEN_HEADBUTT
-	db 38, IRON_HEAD
-	db 41, IRON_DEFENSE
-	db 44, PSYCHIC
+	db 4, TAUNT
+	db 8, BITE
+	; db 12, INCINERATE
+	; db 16, WORK_UP
+	; db 20, FIRE_FANG
+	db 24, HEADBUTT
+	db 28, FIRE_PUNCH
+	; db 32, UPROAR
+	; db 36, BELLY_DRUM
+	; db 40, FLARE_BLITZ
+	db 44, THRASH
+	; db 48, SUPERPOWER
+	db 0 ; no more level-up moves
+
+DarmanitanEvosAttacks:
+	db 0 ; no more evolutions
+	db 1, BITE
+	; db 1, HAMMER_ARM
+	db 1, EMBER
+	db 1, TACKLE
+	db 1, TAUNT
+	; db 12, INCINERATE
+	; db 16, WORK_UP
+	; db 20, FIRE_FANG
+	db 24, HEADBUTT
+	db 28, FIRE_PUNCH
+	; db 32, UPROAR
+	; db 38, BELLY_DRUM
+	; db 44, FLARE_BLITZ
+	db 50, THRASH
+	; db 56, SUPERPOWER
 	db 0 ; no more level-up moves
 
 ElgyemEvosAttacks:
-	; db EVOLVE_LEVEL, 33, BRONZONG
+	db EVOLVE_LEVEL, 42, BEHEEYEM
 	db 0 ; no more evolutions
-	db 1, TACKLE
-	db 4, DISABLE
-	db 7, CONFUSION
-	db 10, HYPNOSIS
-	db 13, FUTURE_SIGHT
-	db 17, FEINT_ATTACK
-	db 20, PSYBEAM
-	db 23, CONFUSE_RAY
-	db 26, FLASH_CANNON
-	db 32, ZEN_HEADBUTT
-	db 38, IRON_HEAD
-	db 41, IRON_DEFENSE
-	db 44, PSYCHIC
-	db 0 ; no more level-up moves
-
-CutieflyEvosAttacks:
-	; db EVOLVE_LEVEL, 33, BRONZONG
-	db 0 ; no more evolutions
-	db 1, TACKLE
-	db 4, DISABLE
-	db 7, CONFUSION
-	db 10, HYPNOSIS
-	db 13, FUTURE_SIGHT
-	db 17, FEINT_ATTACK
-	db 20, PSYBEAM
-	db 23, CONFUSE_RAY
-	db 26, FLASH_CANNON
-	db 32, ZEN_HEADBUTT
-	db 38, IRON_HEAD
-	db 41, IRON_DEFENSE
-	db 44, PSYCHIC
-	db 0 ; no more level-up moves
-
-RibombeeEvosAttacks:
-	; db EVOLVE_LEVEL, 33, BRONZONG
-	db 0 ; no more evolutions
-	db 1, TACKLE
-	db 4, DISABLE
-	db 7, CONFUSION
-	db 10, HYPNOSIS
-	db 13, FUTURE_SIGHT
-	db 17, FEINT_ATTACK
-	db 20, PSYBEAM
-	db 23, CONFUSE_RAY
-	db 26, FLASH_CANNON
-	db 32, ZEN_HEADBUTT
-	db 38, IRON_HEAD
-	db 41, IRON_DEFENSE
-	db 44, PSYCHIC
+	db 1, CONFUSION
+	db 1, GROWL
+	; db 6, IMPRISON
+	db 12, TELEPORT
+	db 18, PSYBEAM
+	;db 24, GUARD_SPLIT
+	;db 24, POWER_SPLIT
+	db 30, HEADBUTT
+	db 36, ZEN_HEADBUTT
+	db 43, RECOVER
+	db 48, CALM_MIND
+	; db 54, WONDER_ROOM
+	db 60, PSYCHIC
 	db 0 ; no more level-up moves
 
 BeheeyemEvosAttacks:
-	; db EVOLVE_LEVEL, 33, BRONZONG
 	db 0 ; no more evolutions
-	db 1, TACKLE
-	db 4, DISABLE
-	db 7, CONFUSION
-	db 10, HYPNOSIS
-	db 13, FUTURE_SIGHT
-	db 17, FEINT_ATTACK
-	db 20, PSYBEAM
-	db 23, CONFUSE_RAY
-	db 26, FLASH_CANNON
-	db 32, ZEN_HEADBUTT
-	db 38, IRON_HEAD
-	db 41, IRON_DEFENSE
-	db 44, PSYCHIC
+	db 1, CONFUSION
+	db 1, GROWL
+	; db 1, IMPRISON
+	db 1, PSYCHIC_TERRAIN
+	db 1, TELEPORT
+	db 18, PSYBEAM
+	;db 24, GUARD_SPLIT
+	;db 24, POWER_SPLIT
+	db 30, HEADBUTT
+	db 36, ZEN_HEADBUTT
+	db 45, RECOVER
+	db 52, CALM_MIND
+	; db 60, WONDER_ROOM
+	db 68, PSYCHIC
+	db 0 ; no more level-up moves
+
+CutieflyEvosAttacks:
+	db EVOLVE_LEVEL, 25, RIBOMBEE
+	db 0 ; no more evolutions
+	db 1, ABSORB
+	db 1, FAIRY_WIND
+	db 6, STUN_SPORE
+	db 12, SWEET_SCENT
+	db 18, DRAINING_KISS
+	db 24, STRUGGLE_BUG
+	; db 30, AROMATHERAPY
+	; db 36, SWITCHAROO
+	db 42, DAZZLING_GLEAM
+	db 48, BUG_BUZZ
+	; db 54, QUIVER_DANCE
+	db 0 ; no more level-up moves
+
+RibombeeEvosAttacks:
+	db 0 ; no more evolutions
+	db 1, ABSORB
+	; db 1, COVET
+	db 1, FAIRY_WIND
+	; db 1, POLLEN_PUFF
+	db 1, STUN_SPORE
+	db 1, SWEET_SCENT
+	db 18, DRAINING_KISS
+	db 24, STRUGGLE_BUG
+	; db 32, AROMATHERAPY
+	; db 40, SWITCHAROO
+	db 48, DAZZLING_GLEAM
+	db 56, BUG_BUZZ
+	; db 64, QUIVER_DANCE
 	db 0 ; no more level-up moves
 
 SandileEvosAttacks:
@@ -1092,34 +1109,58 @@ AexeggutorEvosAttacks:
 NosepassEvosAttacks:
 	db 0 ; no more evolutions
 	db 1, TACKLE
-	db 4, DISABLE
-	db 7, CONFUSION
-	db 10, HYPNOSIS
-	db 13, FUTURE_SIGHT
-	db 17, FEINT_ATTACK
-	db 20, PSYBEAM
-	db 23, CONFUSE_RAY
-	db 26, FLASH_CANNON
-	db 32, ZEN_HEADBUTT
-	db 38, IRON_HEAD
-	db 41, IRON_DEFENSE
-	db 44, PSYCHIC
+	db 4, HARDEN
+	; db 7, BLOCK
+	db 10, ROCK_THROW
+	db 13, THUNDER_WAVE
+	db 16, REST
+	db 19, SPARK
+	db 22, ROCK_SLIDE
+	; db 25, POWER_GEM
+	; db 28, ROCK_BLAST
+	; db 31, DISCHARGE
+	db 34, SANDSTORM
+	; db 37, EARTH_POWER
+	; db 40, STONE_EDGE
+	db 43, LOCK_ON
+	db 46, ZAP_CANNON
 	db 0 ; no more level-up moves
 
 SigilyphEvosAttacks:
 	db 0 ; no more evolutions
-	db 1, TACKLE
-	db 4, DISABLE
-	db 7, CONFUSION
+	db 1, CONFUSION
+	db 1, GUST
+	; db 5, GRAVITY
 	db 10, HYPNOSIS
-	db 13, FUTURE_SIGHT
-	db 17, FEINT_ATTACK
+	db 15, AIR_CUTTER
 	db 20, PSYBEAM
-	db 23, CONFUSE_RAY
-	db 26, FLASH_CANNON
-	db 32, ZEN_HEADBUTT
-	db 38, IRON_HEAD
-	db 41, IRON_DEFENSE
-	db 44, PSYCHIC
+	db 25, WHIRLWIND
+	; db 30, COSMIC_POWER
+	db 35, AIR_SLASH
+	db 40, PSYCHIC
+	; db 45, TAILWIND
+	db 50, LIGHT_SCREEN
+	db 50, REFLECT
+	db 55, SKY_ATTACK
+	; db 60, SKILL_SWAP
+	db 0 ; no more level-up moves
+
+DarmanitanzenEvosAttacks:
+	db 0 ; no more evolutions
+	db 1, BITE
+	; db 1, HAMMER_ARM
+	db 1, EMBER
+	db 1, TACKLE
+	db 1, TAUNT
+	; db 12, INCINERATE
+	; db 16, WORK_UP
+	; db 20, FIRE_FANG
+	db 24, HEADBUTT
+	db 28, FIRE_PUNCH
+	; db 32, UPROAR
+	; db 38, BELLY_DRUM
+	; db 44, FLARE_BLITZ
+	db 50, THRASH
+	; db 56, SUPERPOWER
 	db 0 ; no more level-up moves
 

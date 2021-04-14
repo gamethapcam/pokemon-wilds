@@ -1,16 +1,16 @@
-	db BRONZONG
+	db BRONZOR
 
-	db 67, 89, 116, 33, 79, 116
+	db 57, 24, 86, 23, 24, 86
   ;  hp  atk  def  spd sat sdf
 
-	db STEEL, PSYCHIC
-	db 90 ;catch rate
-	db 188 ;exp rate
+	db FIRE, PSYCHIC
+	db 255 ;catch rate
+	db 72 ;exp rate
 	db NO_ITEM, METAL_COAT
-	db GENDER_UNKNOWN ;gender
+	db GENDER_F50 ; gender
 	db 100 ;unknown
 	db 21 ;egg cycles
-	db 80 ;unknown
+	db 5 ;unknown
 	dn 7, 7 ;picture dimensions
 	db 0, 0 ;padding
 	db MEDIUM_FAST ;growth rate

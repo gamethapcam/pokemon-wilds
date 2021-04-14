@@ -120,10 +120,23 @@ SurskitEggMoves:
 BronzorEggMoves:
 
 DarumakaEggMoves:
+	; db EXTRASENSORY
+	db FLAME_WHEEL
+	; db FOCUS_PUNCH
+	; db HAMMER_ARM
+	db TAKE_DOWN
+	; db YAWN
 
 ElgyemEggMoves:
+	; db ASTONISH
+	db DESTINY_BOND
+	db DISABLE
+	db PSYCH_UP
 
 CutieflyEggMoves:
+	; db AROMATIC_MIST
+	db MOONBLAST
+	; db STICKY_WEB
 
 BeheeyemEggMoves:
 
@@ -136,5 +149,15 @@ CombeeEggMoves:
 AexeggutorEggMoves:
 
 NosepassEggMoves:
+	; db BLOCK
+	db DOUBLE_EDGE
+	db ENDURE
+	db MAGNITUDE
+	db ROLLOUT
+	; db STEALTH_ROCK
+	; db WIDE_GUARD
 
 SigilyphEggMoves:
+	db ANCIENTPOWER
+	; db PSYCHO_SHIFT
+	; db ROOST

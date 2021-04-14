@@ -47,6 +47,7 @@ public class Specie {
                                      "regieleki", "regidrago", "registeel", "regirock", "regice", "regigigas", // Mr Dustman and Sadfish on discord
                                      "bronzor", "bronzong",  // SkwovetSquire on discord
                                      "darumaka",  // Goose on discord
+                                     "darmanitanzen",
                                      "elgyem", "beheeyem",  // Goose on discord
                                      "sandile", "krokorok", "krookodile",  // Goose and Sadfish on discord
                                      "cutiefly", "ribombee",  // TerraTerraCotta on discord
@@ -447,8 +448,25 @@ public class Specie {
                     this.baseStats.put("specialDef", Integer.valueOf((stats[5].replace(" ", ""))));
                 } else if (lineNum == 5) {
                     String types[] = line.split("db ")[1].split(" ; ")[0].split(", ");
-                    this.types.add(types[0]);
-                    this.types.add(types[1]);
+                    String prevType = "NORMAL";
+                    for (String type : types) {
+                        // TODO: pure fairy types won't be supported here.
+                        if (!Game.fairyTypeEnabled && type.equals("FAIRY")) {
+                            continue;
+                        }
+                        prevType = type;
+                        this.types.add(type);
+                    }
+                    // This adds support for pure fairy types
+                    // and fills in empty types with same type
+                    if (this.types.isEmpty()) {
+                        this.types.add("NORMAL");
+                    }
+                    if (this.types.size() < 2) {
+                        this.types.add(prevType);
+                    }
+//                    this.types.add(types[0]);  // TODO: remove
+//                    this.types.add(types[1]);
                 } else if (lineNum == 6) {
                     String catchRate = line.split("db ")[1].split(" ;")[0];
                     this.baseStats.put("catchRate", Integer.valueOf(catchRate));
@@ -465,15 +483,15 @@ public class Specie {
                     // GENDER_F75: 1/4 male, 3/4 female
                     // GENDER_F100: 100% female
                     // GENDER_UNKNOWN: genderless
-                    genderRatio = line.split("db ")[1].split(" ;")[0];
-                    // Egg cycles to hatch
+                    this.genderRatio = line.split("db ")[1].split(" ;")[0];
+                // Egg cycles to hatch
                 } else if (lineNum == 11) {
                     // TODO: I think need to have sep variable this.eggCycles here.
                     String eggCycles = line.split("db ")[1].split(" ;")[0];
                     this.baseHappiness = Integer.valueOf(eggCycles);
                 } else if (lineNum == 15) {
                     this.growthRateGroup = line.split("db ")[1].split(" ;")[0];
-                    // Egg groups this pokemon belongs to
+                // Egg groups this pokemon belongs to
                 } else if (lineNum == 16) {
                     String groups = line.split("dn ")[1].split(" ;")[0];
                     this.eggGroups = groups.split(", ");
@@ -921,12 +939,13 @@ public class Specie {
                     i = 333;
                     found = true;
                 }
+                else if (name.equals("darmanitanzen")) {
+                    i = 335;
+                    found = true;
+                    flip = false;
+                }
                 else if (name.equals("cacturne")) {
                     i = 336;
-                    found = true;
-                }
-                else if (name.equals("elgyem")) {
-                    i = 339;
                     found = true;
                 }
                 else if (name.equals("elgyem")) {
@@ -976,6 +995,11 @@ public class Specie {
                 }
                 else if (name.equals("vespiquen")) {
                     i = 348;
+                    found = true;
+                    flip = false;
+                }
+                else if (name.equals("beheeyem")) {
+                    i = 349;
                     found = true;
                     flip = false;
                 }
@@ -1155,11 +1179,16 @@ public class Specie {
                     else if (numericRatio == 127) {
                         this.genderRatio = "GENDER_F50";
                     }
-                    else if (numericRatio == 155) {
+                    else if (numericRatio == 191) {
                         this.genderRatio = "GENDER_F75";
                     }
-                    else if (numericRatio == 255) {
+                    // Ex: illumise
+                    else if (numericRatio == 254) {
                         this.genderRatio = "GENDER_F100";
+                    }
+                    // For some reason 255 denotes genderless
+                    else if (numericRatio == 255) {
+                        this.genderRatio = "GENDER_UNKNOWN";
                     }
 
                     // Egg cycles to hatch
