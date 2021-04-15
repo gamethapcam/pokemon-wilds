@@ -144,7 +144,7 @@ ENDM
 	move DUST_DEVIL,    EFFECT_TORNADO,            80, ROCK,     SPECIAL,   100,    10,    30 
 	move FLASH_CANNON,  EFFECT_SP_DEF_DOWN_HIT,    80, STEEL,    SPECIAL,   100,    10,    10
 	move AMNESIA,       EFFECT_SP_DEF_UP_2,         0, PSYCHIC,  STATUS,    100,    20,     0
-	move WILL_O_WISP,   EFFECT_WILL_O_WISP,        25, FIRE,     PHYSICAL,  100,    15,     0
+	move WILL_O_WISP,   EFFECT_BURN,                0, FIRE,     PHYSICAL,   85,    15,     0 ;was EFFECT_WILL_O_WISP, 25
 	move SOFTBOILED,    EFFECT_HEAL,                0, NORMAL,   STATUS,    100,    10,     0
 	move HI_JUMP_KICK,  EFFECT_JUMP_KICK,         130, FIGHTING, PHYSICAL,   90,    10,     0
 	move MUSTARD_GAS,   EFFECT_BURN_HIT,           90, GAS,      PHYSICAL,  100,    25,    30 ;new
@@ -168,7 +168,7 @@ ENDM
 	move SIGNAL_BEAM,   EFFECT_CONFUSE_HIT,        75, BUG,      SPECIAL,   100,    15,    10
 	move REST,          EFFECT_HEAL,                0, PSYCHIC,  STATUS,    100,    10,     0
 	move ROCK_SLIDE,    EFFECT_FLINCH_HIT,         75, ROCK,     PHYSICAL,   90,    10,    30
-	move METEOR_MASH,   EFFECT_METEOR_MASH,        90, STEEL,    PHYSICAL,   90,   100,    20
+	move METEOR_MASH,   EFFECT_ATTACK_UP,          90, STEEL,    PHYSICAL,   90,   100,    20 ;was EFFECT_METEOR_MASH
 	move VOID_SPHERE,   EFFECT_NORMAL_HIT,         85, NORMAL,   SPECIAL,   100,    20,     0
 	move CONVERSION,    EFFECT_CONVERSION,          0, NORMAL,   STATUS,    100,    30,     0
 	move TRI_ATTACK,    EFFECT_TRI_ATTACK,         80, TRI_T,    SPECIAL,   100,    10,    20
@@ -256,7 +256,7 @@ ENDM
 	move BOIL,          EFFECT_NORMAL_HIT,         75, FIRE,     SPECIAL,   100,    20,     0 ;new the boil effect is handled in BattleCommand_Stab
 	move SHADOW_CLAW,   EFFECT_NORMAL_HIT,         70, GHOST,    PHYSICAL,  100,    15,     0
 	move EXTREMESPEED,  EFFECT_PRIORITY_HIT,       80, NORMAL,   PHYSICAL,  100,     5,     0
-	move ANCIENTPOWER,  EFFECT_ANCIENTPOWER,       60, ROCK,     SPECIAL,   100,     5,    10
+	move ANCIENTPOWER,  EFFECT_ALL_UP_HIT,         60, ROCK,     SPECIAL,   100,     5,    10
 	move SHADOW_BALL,   EFFECT_SP_DEF_DOWN_HIT,    80, GHOST,    SPECIAL,   100,    15,    20
 	move FUTURE_SIGHT,  EFFECT_FUTURE_SIGHT,      100, PSYCHIC,  SPECIAL,   100,    10,     0
 	move ROCK_SMASH,    EFFECT_DEFENSE_DOWN_HIT,   20, FIGHTING, PHYSICAL,  100,    15,    50

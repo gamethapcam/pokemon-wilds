@@ -27,104 +27,301 @@ import com.pkmngen.game.util.TextureCache;
 
 public class Pokemon {
 	
-	
 
     // TODO: eventually remove
-    public static ArrayList<String> attacksNotImplemented = new ArrayList<String>();
+    public static ArrayList<String> attacksImplemented = new ArrayList<String>();
     static {
-    	
-//        attacksNotImplemented.add("absorb");  // TODO: remove
-        attacksNotImplemented.add("barrage");
-        attacksNotImplemented.add("baton pass");
-        attacksNotImplemented.add("beat Up");
-        attacksNotImplemented.add("belly drum");
-        attacksNotImplemented.add("bide");
-        attacksNotImplemented.add("bind");
-        attacksNotImplemented.add("bone rush");
-        attacksNotImplemented.add("bonemerang");
-        attacksNotImplemented.add("charm");
-        attacksNotImplemented.add("comet punch");
-        attacksNotImplemented.add("conversion");
-        attacksNotImplemented.add("conversion 2");
-        attacksNotImplemented.add("counter");
-        attacksNotImplemented.add("curse");
-        attacksNotImplemented.add("protect");
-        attacksNotImplemented.add("destiny bond");
-        attacksNotImplemented.add("detect");
-        attacksNotImplemented.add("dig");
-        attacksNotImplemented.add("double edge");
-        attacksNotImplemented.add("double kick");
-        attacksNotImplemented.add("double slap");
-        attacksNotImplemented.add("dragon rage");
-        attacksNotImplemented.add("dream eater");
-        attacksNotImplemented.add("encore");
-        attacksNotImplemented.add("endure");
-//        attacksNotImplemented.add("explosion");  // TODO: remove
-        attacksNotImplemented.add("fissure");
-        attacksNotImplemented.add("flail");
-        attacksNotImplemented.add("flame wheel");
-        attacksNotImplemented.add("fly");
-        attacksNotImplemented.add("focus energy");
-        attacksNotImplemented.add("foresight");
-        attacksNotImplemented.add("frustration");
-        attacksNotImplemented.add("fury attack");
-        attacksNotImplemented.add("fury swipes");
-        attacksNotImplemented.add("future sight");
-//        attacksNotImplemented.add("giga drain");  // TODO: remove
-        attacksNotImplemented.add("guillotine");
-        attacksNotImplemented.add("haze");
-        attacksNotImplemented.add("heal bell");
-        attacksNotImplemented.add("horn drill");
-//        attacksNotImplemented.add("leech life");  // TODO: remove
-        attacksNotImplemented.add("leech seed");
-        attacksNotImplemented.add("light screen");
-        attacksNotImplemented.add("lock on");
-        attacksNotImplemented.add("magnitude");
-        attacksNotImplemented.add("mean look");
-//        attacksNotImplemented.add("mega drain");  // TODO: remove
-        attacksNotImplemented.add("metronome");
-        attacksNotImplemented.add("mimic");
-        attacksNotImplemented.add("mind reader");
-        attacksNotImplemented.add("mirror coat");
-        attacksNotImplemented.add("mirror move");
-        attacksNotImplemented.add("mist");
-        attacksNotImplemented.add("nightmare");
-        attacksNotImplemented.add("pain split");
-        attacksNotImplemented.add("perish song");
-        attacksNotImplemented.add("petal dance");
-        attacksNotImplemented.add("pin missile");
-        attacksNotImplemented.add("present");
-        attacksNotImplemented.add("rage");
-        attacksNotImplemented.add("rain dance");
-        attacksNotImplemented.add("reflect");
-        attacksNotImplemented.add("rest");
-        attacksNotImplemented.add("reversal");
-        attacksNotImplemented.add("roar");
-        attacksNotImplemented.add("rollout");
-        attacksNotImplemented.add("safeguard");
-        attacksNotImplemented.add("sandstorm");
-        attacksNotImplemented.add("seismic toss");
-//        attacksNotImplemented.add("selfdestruct");  // TODO: remove
-        attacksNotImplemented.add("sketch");
-        attacksNotImplemented.add("skull bash");
-        attacksNotImplemented.add("sky attack");
-        attacksNotImplemented.add("sleep talk");
-        attacksNotImplemented.add("snore");
-        attacksNotImplemented.add("solar beam");
-        attacksNotImplemented.add("spider web");
-        attacksNotImplemented.add("spike cannon");
-        attacksNotImplemented.add("spikes");
-        attacksNotImplemented.add("spite");
-        attacksNotImplemented.add("substitute");
-        attacksNotImplemented.add("sunny day");
-        attacksNotImplemented.add("swagger");
-        attacksNotImplemented.add("teleport");
-        attacksNotImplemented.add("thrash");
-        attacksNotImplemented.add("transform");
-        attacksNotImplemented.add("triple kick");
-        attacksNotImplemented.add("twineedle");
-        attacksNotImplemented.add("whirlwind");
+        attacksImplemented.add("absorb");
+        attacksImplemented.add("acid");
+        attacksImplemented.add("acid armor");
+        attacksImplemented.add("aeroblast");
+        attacksImplemented.add("amnesia");
+        attacksImplemented.add("ancientpower");
+        attacksImplemented.add("attract");
+        attacksImplemented.add("aurora beam");
+        attacksImplemented.add("barrier");
+        attacksImplemented.add("bind");
+        attacksImplemented.add("bite");
+        attacksImplemented.add("blizzard");
+        attacksImplemented.add("body slam");
+        attacksImplemented.add("bone club");
+        attacksImplemented.add("bubble");
+        attacksImplemented.add("bubblebeam");
+        attacksImplemented.add("clamp");
+        attacksImplemented.add("confuse ray");
+        attacksImplemented.add("constrict");
+        attacksImplemented.add("cotton spore");
+        attacksImplemented.add("crabhammer");
+        attacksImplemented.add("cross chop");
+        attacksImplemented.add("crunch");
+        attacksImplemented.add("cut");
+        attacksImplemented.add("defense curl");
+        attacksImplemented.add("disable");
+        attacksImplemented.add("dizzy punch");
+        attacksImplemented.add("double team");
+        attacksImplemented.add("dragonbreath");
+        attacksImplemented.add("drill peck");
+        attacksImplemented.add("dynamicpunch");
+        attacksImplemented.add("earthquake");
+        attacksImplemented.add("egg bomb");
+        attacksImplemented.add("ember");
+        attacksImplemented.add("explosion");
+        attacksImplemented.add("extreme speed");
+        attacksImplemented.add("faint attack");
+        attacksImplemented.add("false swipe");
+        attacksImplemented.add("fire blast");
+        attacksImplemented.add("fire punch");
+        attacksImplemented.add("fire spin");
+        attacksImplemented.add("flamethrower");
+        attacksImplemented.add("flash");
+        attacksImplemented.add("giga drain");
+        attacksImplemented.add("glare");
+        attacksImplemented.add("growl");
+        attacksImplemented.add("growth");
+        attacksImplemented.add("gust");
+        attacksImplemented.add("harden");
+        attacksImplemented.add("headbutt");
+        attacksImplemented.add("hi jump kick");
+        attacksImplemented.add("hidden power");
+        attacksImplemented.add("horn attack");
+        attacksImplemented.add("hydro pump");
+        attacksImplemented.add("hyper beam");
+        attacksImplemented.add("hyper fang");
+        attacksImplemented.add("hypnosis");
+        attacksImplemented.add("ice beam");
+        attacksImplemented.add("ice punch");
+        attacksImplemented.add("icy wind");
+        attacksImplemented.add("iron tail");
+        attacksImplemented.add("jump kick");
+        attacksImplemented.add("karate chop");
+        attacksImplemented.add("kinesis");
+        attacksImplemented.add("leech life");
+        attacksImplemented.add("leer");
+        attacksImplemented.add("lick");
+        attacksImplemented.add("lovely kiss");
+        attacksImplemented.add("low kick");
+        attacksImplemented.add("mach punch");
+        attacksImplemented.add("meditate");
+        attacksImplemented.add("mega drain");
+        attacksImplemented.add("mega horn");
+        attacksImplemented.add("mega kick");
+        attacksImplemented.add("mega punch");
+        attacksImplemented.add("metal claw");
+        attacksImplemented.add("milk drink");
+        attacksImplemented.add("minimize");
+        attacksImplemented.add("moonlight");
+        attacksImplemented.add("morning sun");
+        attacksImplemented.add("mud slap");
+        attacksImplemented.add("night shade");
+        attacksImplemented.add("octazooka");
+        attacksImplemented.add("outrage");
+        attacksImplemented.add("payday");
+        attacksImplemented.add("peck");
+        attacksImplemented.add("poison gas");
+        attacksImplemented.add("poison powder");
+        attacksImplemented.add("poison sting");
+        attacksImplemented.add("pound");
+        attacksImplemented.add("powder snow");
+        attacksImplemented.add("psybeam");
+        attacksImplemented.add("psych up");
+        attacksImplemented.add("psychic");
+        attacksImplemented.add("psywave");
+        attacksImplemented.add("pursuit");
+        attacksImplemented.add("quick attack");
+        attacksImplemented.add("rapid spin");
+        attacksImplemented.add("razor leaf");
+        attacksImplemented.add("razor wind");
+        attacksImplemented.add("recover");
+        attacksImplemented.add("return");
+        attacksImplemented.add("rock slide");
+        attacksImplemented.add("rock smash");
+        attacksImplemented.add("rock throw");
+        attacksImplemented.add("rolling kick");
+        attacksImplemented.add("sacred fire");
+        attacksImplemented.add("sand attack");
+        attacksImplemented.add("scary face");
+        attacksImplemented.add("scratch");
+        attacksImplemented.add("screech");
+        attacksImplemented.add("selfdestruct");
+        attacksImplemented.add("shadow ball");
+        attacksImplemented.add("sharpen");
+        attacksImplemented.add("sing");
+        attacksImplemented.add("slam");
+        attacksImplemented.add("slash");
+        attacksImplemented.add("sleep powder");
+        attacksImplemented.add("sludge");
+        attacksImplemented.add("sludge bomb");
+        attacksImplemented.add("smog");
+        attacksImplemented.add("smokescreen");
+        attacksImplemented.add("softboiled");
+        attacksImplemented.add("sonicboom");
+        attacksImplemented.add("spark");
+        attacksImplemented.add("splash");
+        attacksImplemented.add("spore");
+        attacksImplemented.add("steel wing");
+        attacksImplemented.add("stomp");
+        attacksImplemented.add("strength");
+        attacksImplemented.add("string shot");
+        attacksImplemented.add("struggle");
+        attacksImplemented.add("stun spore");
+        attacksImplemented.add("submission");
+        attacksImplemented.add("super fang");
+        attacksImplemented.add("supersonic");
+        attacksImplemented.add("surf");
+        attacksImplemented.add("sweet kiss");
+        attacksImplemented.add("sweet scent");
+        attacksImplemented.add("swift");
+        attacksImplemented.add("swords dance");
+        attacksImplemented.add("synthesis");
+        attacksImplemented.add("tackle");
+        attacksImplemented.add("tail whip");
+        attacksImplemented.add("take down");
+        attacksImplemented.add("thief");
+        attacksImplemented.add("thunder");
+        attacksImplemented.add("thunder punch");
+        attacksImplemented.add("thunderbolt");
+        attacksImplemented.add("thundershock");
+        attacksImplemented.add("thunderwave");
+        attacksImplemented.add("toxic");
+        attacksImplemented.add("tri attack");
+        attacksImplemented.add("twister");
+        attacksImplemented.add("vice grip");
+        attacksImplemented.add("vine whip");
+        attacksImplemented.add("vital throw");
+        attacksImplemented.add("water gun");
+        attacksImplemented.add("waterfall");
+        attacksImplemented.add("whirlpool");
+        attacksImplemented.add("wing attack");
+        attacksImplemented.add("withdraw");
+        attacksImplemented.add("wrap");
+        attacksImplemented.add("zap cannon");
+        //
+        attacksImplemented.add("dragon energy");
+        attacksImplemented.add("thunder cage");
+        attacksImplemented.add("crush grip");
+        attacksImplemented.add("dazzling gleam");
+        attacksImplemented.add("draining kiss");
+        attacksImplemented.add("struggle bug");
+        attacksImplemented.add("fairy wind");
+        attacksImplemented.add("air cutter");
+
+        // 'prism' attacks
+        attacksImplemented.add("zen headbutt");
+        attacksImplemented.add("iron defense");
+        attacksImplemented.add("bug buzz");
+        attacksImplemented.add("dragon pulse");
+        attacksImplemented.add("drain punch");
+        attacksImplemented.add("hyper voice");
+        attacksImplemented.add("nasty plot");
+        attacksImplemented.add("energy ball");
+        attacksImplemented.add("astonish");
+        attacksImplemented.add("flash cannon");
+        attacksImplemented.add("will o wisp");
+        attacksImplemented.add("seed bomb");
+        attacksImplemented.add("night slash");
+        attacksImplemented.add("poison jab");
+        attacksImplemented.add("signal beam");
+        attacksImplemented.add("meteor mash");
+        attacksImplemented.add("dragon claw");
+        attacksImplemented.add("iron head");
+        attacksImplemented.add("power gem");
+        attacksImplemented.add("air slash");
+        attacksImplemented.add("dark pulse");
+        attacksImplemented.add("earth power");
+        attacksImplemented.add("psycho cut");
+        attacksImplemented.add("shadow claw");
+        attacksImplemented.add("play rough");
     }
+
+    // TODO: remove
+//    public static ArrayList<String> attacksNotImplemented = new ArrayList<String>();
+//    static {
+//        attacksNotImplemented.add("barrage");
+//        attacksNotImplemented.add("baton pass");
+//        attacksNotImplemented.add("beat Up");
+//        attacksNotImplemented.add("belly drum");
+//        attacksNotImplemented.add("bide");
+//        attacksNotImplemented.add("bind");
+//        attacksNotImplemented.add("bone rush");
+//        attacksNotImplemented.add("bonemerang");
+//        attacksNotImplemented.add("charm");
+//        attacksNotImplemented.add("comet punch");
+//        attacksNotImplemented.add("conversion");
+//        attacksNotImplemented.add("conversion 2");
+//        attacksNotImplemented.add("counter");
+//        attacksNotImplemented.add("curse");
+//        attacksNotImplemented.add("protect");
+//        attacksNotImplemented.add("destiny bond");
+//        attacksNotImplemented.add("detect");
+//        attacksNotImplemented.add("dig");
+//        attacksNotImplemented.add("double edge");
+//        attacksNotImplemented.add("double kick");
+//        attacksNotImplemented.add("double slap");
+//        attacksNotImplemented.add("dragon rage");
+//        attacksNotImplemented.add("dream eater");
+//        attacksNotImplemented.add("encore");
+//        attacksNotImplemented.add("endure");
+//        attacksNotImplemented.add("fissure");
+//        attacksNotImplemented.add("flail");
+//        attacksNotImplemented.add("flame wheel");
+//        attacksNotImplemented.add("fly");
+//        attacksNotImplemented.add("focus energy");
+//        attacksNotImplemented.add("foresight");
+//        attacksNotImplemented.add("frustration");
+//        attacksNotImplemented.add("fury attack");
+//        attacksNotImplemented.add("fury swipes");
+//        attacksNotImplemented.add("future sight");
+//        attacksNotImplemented.add("guillotine");
+//        attacksNotImplemented.add("haze");
+//        attacksNotImplemented.add("heal bell");
+//        attacksNotImplemented.add("horn drill");
+//        attacksNotImplemented.add("leech seed");
+//        attacksNotImplemented.add("light screen");
+//        attacksNotImplemented.add("lock on");
+//        attacksNotImplemented.add("magnitude");
+//        attacksNotImplemented.add("mean look");
+//        attacksNotImplemented.add("metronome");
+//        attacksNotImplemented.add("mimic");
+//        attacksNotImplemented.add("mind reader");
+//        attacksNotImplemented.add("mirror coat");
+//        attacksNotImplemented.add("mirror move");
+//        attacksNotImplemented.add("mist");
+//        attacksNotImplemented.add("nightmare");
+//        attacksNotImplemented.add("pain split");
+//        attacksNotImplemented.add("perish song");
+//        attacksNotImplemented.add("petal dance");
+//        attacksNotImplemented.add("pin missile");
+//        attacksNotImplemented.add("present");
+//        attacksNotImplemented.add("rage");
+//        attacksNotImplemented.add("rain dance");
+//        attacksNotImplemented.add("reflect");
+//        attacksNotImplemented.add("rest");
+//        attacksNotImplemented.add("reversal");
+//        attacksNotImplemented.add("roar");
+//        attacksNotImplemented.add("rollout");
+//        attacksNotImplemented.add("safeguard");
+//        attacksNotImplemented.add("sandstorm");
+//        attacksNotImplemented.add("seismic toss");
+//        attacksNotImplemented.add("sketch");
+//        attacksNotImplemented.add("skull bash");
+//        attacksNotImplemented.add("sky attack");
+//        attacksNotImplemented.add("sleep talk");
+//        attacksNotImplemented.add("snore");
+//        attacksNotImplemented.add("solar beam");
+//        attacksNotImplemented.add("spider web");
+//        attacksNotImplemented.add("spike cannon");
+//        attacksNotImplemented.add("spikes");
+//        attacksNotImplemented.add("spite");
+//        attacksNotImplemented.add("substitute");
+//        attacksNotImplemented.add("sunny day");
+//        attacksNotImplemented.add("swagger");
+//        attacksNotImplemented.add("teleport");
+//        attacksNotImplemented.add("thrash");
+//        attacksNotImplemented.add("transform");
+//        attacksNotImplemented.add("triple kick");
+//        attacksNotImplemented.add("twineedle");
+//        attacksNotImplemented.add("whirlwind");
+//    }
 
     // Contains all loaded pkmn textures, so that only one is used for each pkmn. ie don't load duplicate textures.
     public static HashMap<String, Texture> textures = new HashMap<String, Texture>();
@@ -186,7 +383,7 @@ public class Pokemon {
                 // Right now Darminitan Zen form is a fully-separate pokemon (as 
                 // requested by people on discord)
                 Pokemon.baseSpecies.put("darmanitanzen", "darumaka");
-                
+                Pokemon.baseSpecies.put("aexeggutor", "exeggcute");
                 
                 // Load egg moves
                 file = Gdx.files.internal("crystal_pokemon/"+path+"egg_moves.asm");
@@ -462,7 +659,7 @@ public class Pokemon {
 
         // Fields added in v0.5
         // TODO: I guess I will have to rename this to Network.PokemonDataV05 when moving to v0.6
-        // TODO: if I don't rename this, it will introduce a bug. I can't think of a better way to do it tho.
+        // TODO: if I don't rename this, it will introduce a bug. I can't think of a better way to do it though.
         if (Network.PokemonData.class.isInstance(pokemonData)) {
             this.gender = ((Network.PokemonData)pokemonData).gender;
             this.happiness = ((Network.PokemonData)pokemonData).friendliness;
@@ -485,7 +682,7 @@ public class Pokemon {
     public Pokemon (String name, int level, Generation generation, boolean isShiny, boolean isEgg) {
         this.init(name, level, generation, isShiny, isEgg);
     }
-    
+
     public void updateSpecieInfo(String name) {
         this.name = name.toLowerCase();
 
@@ -519,20 +716,18 @@ public class Pokemon {
             }
         }
         this.specie = Specie.species.get(this.name);
-        if(specie == null)
-        {
+        if (specie == null) {
             System.out.println("No such specie exists: " + name);
         }
 
-        //set sprites, backsprites, & intro animations
-        if(isEgg) {
+        // Set sprites, backsprites, & intro animations
+        if (isEgg) {
             this.name = "Egg";
             this.sprite = Specie.spriteEgg;
             this.backSprite = Specie.backSpriteEgg;
             this.introAnim = Specie.introAnimEgg;
         }
-        else if(isShiny)
-        {
+        else if (isShiny) {
             this.sprite = specie.spriteShiny;
             this.backSprite = specie.backSpriteShiny;
             this.introAnim = specie.introAnimShiny;
@@ -652,6 +847,7 @@ public class Pokemon {
         this.maxStats.put("speed", (((this.baseStats.get("speed")) * this.level) / 50) + 10);
 
         // catchRate for the sake of including everything
+        // TODO: should probably remove, don't need this.
         this.maxStats.put("catchRate", this.baseStats.get("catchRate"));
         
         // TODO: remove
@@ -929,6 +1125,15 @@ public class Pokemon {
      * return false if stat stage is already at max or min value.
      */
     boolean gen2ApplyStatStage(String stat, int stage) {
+        // Currently Ancientpower is the only attack that boosts all stats.
+        if (stat.equals("all")) {
+            boolean succeeded = false;
+            String[] statNames = new String[]{"attack", "defense", "specialAtk", "specialDef", "speed"};
+            for (String statName : statNames) {
+                succeeded = succeeded || this.gen2ApplyStatStage(statName, stage, false);
+            }
+            return succeeded;
+        }
         return this.gen2ApplyStatStage(stat, stage, false);
     }
 

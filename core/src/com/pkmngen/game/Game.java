@@ -880,17 +880,17 @@ public class Game extends ApplicationAdapter {
 //            this.player.pokemon.add(new Pokemon("egg", 1, Pokemon.Generation.CRYSTAL, false, "skarmory"));
 //            this.player.pokemon.add(new Pokemon("registeel", 40, Pokemon.Generation.CRYSTAL, true));
 //            this.player.pokemon.add(new Pokemon("masquerain", 60, Pokemon.Generation.CRYSTAL));
-            
-            
+
             this.player.pokemon.add(new Pokemon("ampharos", 70, Pokemon.Generation.CRYSTAL));
             this.player.pokemon.add(new Pokemon("rhydon", 46, Pokemon.Generation.CRYSTAL));
             this.player.pokemon.add(new Pokemon("meganium", 46, Pokemon.Generation.CRYSTAL));
-//            this.player.pokemon.add(new Pokemon("ursaring", 46, Pokemon.Generation.CRYSTAL));
-            
+            this.player.pokemon.add(new Pokemon("ursaring", 46, Pokemon.Generation.CRYSTAL));
+
 //            this.player.pokemon.add(new Pokemon("mimikyu", 46, Pokemon.Generation.CRYSTAL, true, false));
 //            this.player.pokemon.add(new Pokemon("ribombee", 46, Pokemon.Generation.CRYSTAL, true, false));
-            this.player.pokemon.add(new Pokemon("sigilyph", 46, Pokemon.Generation.CRYSTAL, true, false));
-            this.player.pokemon.get(2).attacks[0] = "false swipe";
+//            this.player.pokemon.add(new Pokemon("darmanitan", 46, Pokemon.Generation.CRYSTAL, true, false));
+//            this.player.pokemon.add(new Pokemon("darmanitanzen", 46, Pokemon.Generation.CRYSTAL, true, false));
+            this.player.pokemon.get(2).attacks[0] = "ancientpower";
 
             // TODO: remove
 //            this.player.pokemon.add(new Pokemon("charizard", 60, Pokemon.Generation.CRYSTAL));

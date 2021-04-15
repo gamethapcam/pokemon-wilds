@@ -2893,6 +2893,10 @@ public class Battle {
             else if (attack.effect.contains("EFFECT_EVASION")) {
                 stat = "evasion";
             }
+            // Only Ancientpower atm, I think
+            else if (attack.effect.contains("EFFECT_ALL")) {
+                stat = "all";
+            }
             if (stat != null) {
                 // If this is a side-effect of an attack, then use effect chance instead of accuracy.
                 if (attack.effect.contains("HIT")) {
@@ -2922,7 +2926,10 @@ public class Battle {
                     // If this comes as a side-effect to a damaging move,
                     // then the stat change is applied to the opposing pokemon.
                     // Or if it just targets the other pokemon.
-                    if (attack.effect.contains("HIT") || 
+                    if (attack.name.equals("ancientpower")) {
+                        // Do nothing, target stays as friendly
+                    }
+                    else if (attack.effect.contains("HIT") || 
                         attack.name.equals("growl") || attack.name.equals("leer") ||
                         attack.name.equals("screech") || attack.name.equals("spider web") ||
                         attack.name.equals("string shot") || attack.name.equals("tail whip") ||
@@ -2930,6 +2937,7 @@ public class Battle {
                         attack.name.equals("kinesis") || attack.name.equals("flash") ||
                         attack.name.equals("mud slap") || attack.name.equals("octazooka") ||
                         attack.name.equals("cotton spore") ||
+                        attack.name.equals("play rough") ||
                         attack.name.equals("sweet scent") || attack.name.equals("scary face")) {
                         target = enemyPokemon;
                     }
@@ -2942,7 +2950,10 @@ public class Battle {
                         }
                     }
                     else {
-                        if (stage == 2) {
+                        if (stat.equals("all")) {
+                            text = target.name.toUpperCase()+"' stats went up!";
+                        }
+                        else if (stage == 2) {
                             text = target.name.toUpperCase()+"' "+stat.toUpperCase()+" went way up!";
                         }
                         else if (stage == 1) {
@@ -11357,7 +11368,7 @@ class GainExpAnimation extends Action {
             if (pokemon.learnSet.containsKey(pokemon.level)) {
                 for (String attack : pokemon.learnSet.get(pokemon.level)) {
                     // TODO: eventually remove this check
-                    if (Pokemon.attacksNotImplemented.contains(attack.toLowerCase())) {
+                    if (!Pokemon.attacksImplemented.contains(attack.toLowerCase())) {
                         continue;
                     }
                     boolean learned = false;

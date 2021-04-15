@@ -143,6 +143,9 @@ BeheeyemEggMoves:
 SandileEggMoves:
 
 ZigzagoonEggMoves:
+	db EXTREMESPEED
+	; db SIMPLE_BEAM
+	; db TICKLE
 
 CombeeEggMoves:
 

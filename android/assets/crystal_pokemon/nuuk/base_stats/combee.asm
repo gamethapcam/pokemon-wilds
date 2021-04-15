@@ -1,18 +1,18 @@
-	db BRONZOR
+	db COMBEE
 
-	db 57, 24, 86, 23, 24, 86
+	db 30, 30, 42, 70, 30, 42
   ;  hp  atk  def  spd sat sdf
 
-	db STEEL, PSYCHIC
-	db 255 ;catch rate
-	db 72 ;exp rate
-	db NO_ITEM, METAL_COAT
-	db GENDER_UNKNOWN ; gender
+	db BUG, FLYING
+	db 120 ;catch rate
+	db 49 ;exp rate
+	db NO_ITEM, NO_ITEM
+	db GENDER_F12_5 ; gender
 	db 100 ;unknown
-	db 21 ;egg cycles
+	db 15 ;egg cycles
 	db 5 ;unknown
 	dn 7, 7 ;picture dimensions
 	db 0, 0 ;padding
-	db MEDIUM_FAST ;growth rate
-	dn EGG_MINERAL, EGG_MINERAL ;egg groups
+	db MEDIUM_SLOW ;growth rate
+	dn EGG_BUG, EGG_BUG ;egg groups
 

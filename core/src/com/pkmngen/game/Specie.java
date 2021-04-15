@@ -47,7 +47,7 @@ public class Specie {
                                      "regieleki", "regidrago", "registeel", "regirock", "regice", "regigigas", // Mr Dustman and Sadfish on discord
                                      "bronzor", "bronzong",  // SkwovetSquire on discord
                                      "darumaka",  // Goose on discord
-                                     "darmanitanzen",
+                                     "darmanitan", "darmanitanzen",
                                      "elgyem", "beheeyem",  // Goose on discord
                                      "sandile", "krokorok", "krookodile",  // Goose and Sadfish on discord
                                      "cutiefly", "ribombee",  // TerraTerraCotta on discord
@@ -222,11 +222,7 @@ public class Specie {
         habitats.add("green");
     }
 
-
-
-
     Specie(String name){
-        //Defaults to generation RED 	
         this(name, Generation.CRYSTAL);
     }
 
@@ -793,7 +789,7 @@ public class Specie {
                         // TODO: eventually remove attacksNotImplemented check
                         // Prevent loading moves like Metronome, Mimic etc that arent
                         // implemented
-                        if (!Pokemon.attacksNotImplemented.contains(attack)) {
+                        if (Pokemon.attacksImplemented.contains(attack)) {
                             int level = Integer.valueOf(vals[0].split(" ")[1]);
                             String[] attacksArray = new String[]{attack};
                             if (attacks.containsKey(level)) {
@@ -938,6 +934,11 @@ public class Specie {
                 else if (name.equals("regigigas")) {
                     i = 333;
                     found = true;
+                }
+                else if (name.equals("darmanitan")) {
+                    i = 334;
+                    found = true;
+                    flip = false;
                 }
                 else if (name.equals("darmanitanzen")) {
                     i = 335;
