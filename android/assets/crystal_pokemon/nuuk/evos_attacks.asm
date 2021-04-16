@@ -1062,7 +1062,7 @@ LinooneEvosAttacks:
 	db 0 ; no more level-up moves
 
 CombeeEvosAttacks:
-	db EVOLVE_LEVEL, 21, VESPIQUEEN
+	db EVOLVE_LEVEL, 21, VESPIQUEN
 	db 0 ; no more evolutions
 	db 1, BUG_BITE
 	db 1, GUST
@@ -1072,19 +1072,25 @@ CombeeEvosAttacks:
 
 VespiquenEvosAttacks:
 	db 0 ; no more evolutions
-	db 1, TACKLE
-	db 4, DISABLE
-	db 7, CONFUSION
-	db 10, HYPNOSIS
-	db 13, FUTURE_SIGHT
-	db 17, FEINT_ATTACK
-	db 20, PSYBEAM
-	db 23, CONFUSE_RAY
-	db 26, FLASH_CANNON
-	db 32, ZEN_HEADBUTT
-	db 38, IRON_HEAD
-	db 41, IRON_DEFENSE
-	db 44, PSYCHIC
+	db 1, BUG_BITE
+	db 1, CONFUSE_RAY
+	db 1, GUST
+	db 1, POISON_STING
+	db 1, SLASH
+	db 1, STRUGGLE_BUG
+	db 1, SWEET_SCENT
+	db 4, FURY_CUTTER
+	db 8, AROMATIC_MIST
+	db 12, FELL_STINGER
+	db 16, FURY_SWIPES
+	db 20, SWAGGER
+	db 24, AROMATHERAPY
+	db 28, AIR_SLASH
+	db 32, POWER_GEM
+	db 36, TOXIC
+	db 40, ATTACK_ORDER
+	db 40, DEFEND_ORDER
+	db 44, DESTINY_BOND
 	db 0 ; no more level-up moves
 
 AexeggutorEvosAttacks:

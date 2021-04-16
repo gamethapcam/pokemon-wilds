@@ -51,7 +51,7 @@ public class Specie {
                                      "elgyem", "beheeyem",  // Goose on discord
                                      "sandile", "krokorok", "krookodile",  // Goose and Sadfish on discord
                                      "cutiefly", "ribombee",  // TerraTerraCotta on discord
-                                     "combee", "vespiquen",  // TerraTerraCotta on discord
+                                     "combee", "combee_female", "vespiquen",  // TerraTerraCotta on discord
                                      "nosepass",  // nuuk, ow sadfish on discord
                                      "sigilyph",  // sadfish on discord, ow dustman on discord
                                      "snover"};  // TODO: sep loading method
@@ -231,20 +231,9 @@ public class Specie {
     }
 
     public void init(String n, Generation generation) {
-
         this.name = n.toLowerCase();
-
-        //        this.eggHatchInto = eggHatchInto;
-
-
-        if (this.name.equals("unown")) {  // TODO: this was to fix a bug, remove
-            this.name = "unown_w";
-        }
-
         this.generation = generation;
-
         this.types = new ArrayList<String>();
-
         this.learnSet = new HashMap<Integer, String[]>();
 
         // TODO: individual avatars
@@ -408,11 +397,12 @@ public class Specie {
      * Load pokemon sprites and data from crystal_pokemon files.
      */
     void loadCrystalPokemon() {
-
-
         String newName = name;
         if (name.contains("unown")) {
             newName = "unown";
+        }
+        if (name.equals("combee_female")) {
+            newName = "combee";
         }
         //        if (name.equals("egg")) {
         //            newName = this.eggHatchInto;
@@ -810,15 +800,18 @@ public class Specie {
                 e.printStackTrace();
             }
             Specie.gen2Attacks.put(newName, attacks);
-            Specie.gen2Evos.put(newName, evos);
+            // Only female combee evolves
+            String finalName = newName;
+            if (finalName.equals("combee")) {
+                finalName = "combee_female";
+            }
+            Specie.gen2Evos.put(finalName, evos);
         }
         this.learnSet = Specie.gen2Attacks.get(newName);
     }
 
 
     void loadOverworldSprites() {
-
-
         // Load overworld sprites from file
         try {
             FileHandle file = Gdx.files.internal("crystal_pokemon/prism/pokemon_names.asm");
@@ -1078,6 +1071,66 @@ public class Specie {
             if (found) {
                 return;
             }
+            
+            // Try to load from directory
+            FileHandle filehandle = Gdx.files.internal("crystal_pokemon/"+path+"pokemon/" + this.name + "/overworld.png");
+            if (filehandle.exists()) {
+                flip = false;
+                // Treating flip as special case for now, would need to
+                // do this for flipped sprites:
+//                if (name.equals("something")) {
+//                    flip = true;
+//                }
+                
+                // left left, up up, down down is the order using atm.
+                Texture text = TextureCache.get(filehandle);
+                int row = 0;
+                int col = 0;
+                this.standingSprites.put("left", new Sprite(text, col*16, row*16, 16, 16));
+                this.movingSprites.put("right", new Sprite(text, col*16, row*16, 16, 16));
+                this.movingSprites.get("right").flip(true, false);
+                row++;
+                this.movingSprites.put("left", new Sprite(text, col*16, row*16, 16, 16));
+                this.altMovingSprites.put("left", new Sprite(text, col*16, row*16, 16, 16));
+                this.altMovingSprites.put("right", new Sprite(text, col*16, row*16, 16, 16));
+                this.altMovingSprites.get("right").flip(true, false);
+                this.standingSprites.put("right", new Sprite(text, col*16, row*16, 16, 16));
+                this.standingSprites.get("right").flip(true, false);
+                row++;
+                this.movingSprites.put("up", new Sprite(text, col*16, row*16, 16, 16));
+                row++;
+                this.altMovingSprites.put("up", new Sprite(text, col*16, row*16, 16, 16));
+                if (flip) {
+                    this.altMovingSprites.get("up").flip(true, false);
+                }
+                this.standingSprites.put("up", new Sprite(text, col*16, row*16, 16, 16));
+                row++;
+                this.standingSprites.put("down", new Sprite(text, col*16, row*16, 16, 16));
+                row++;
+                this.movingSprites.put("down", new Sprite(text, col*16, row*16, 16, 16));
+                this.altMovingSprites.put("down", new Sprite(text, col*16, row*16, 16, 16));
+                if (flip) {
+                    this.altMovingSprites.get("down").flip(true, false);
+                }
+
+                this.avatarSprites.add(this.standingSprites.get("down"));
+                this.avatarSprites.add(this.movingSprites.get("down"));
+                this.avatarSprites.add(this.standingSprites.get("down"));
+                this.avatarSprites.add(this.altMovingSprites.get("down"));
+                for (String key : new ArrayList<String>(this.standingSprites.keySet())) {
+                    this.standingSprites.put(key+"_running", this.standingSprites.get(key));
+                }
+                for (String key : new ArrayList<String>(this.movingSprites.keySet())) {
+                    this.movingSprites.put(key+"_running", this.movingSprites.get(key));
+                }
+                for (String key : new ArrayList<String>(this.altMovingSprites.keySet())) {
+                    this.altMovingSprites.put(key+"_running", this.altMovingSprites.get(key));
+                }
+                return;
+            }
+            
+            
+            
             // else, load from crystal overworld sprite sheet
             //            else {
             // If failed to load from prism animations, load from crystal
@@ -1127,8 +1180,6 @@ public class Specie {
     }
 
     void loadPrismPokemon() {
-
-
         //        if (this.name.equals("egg")) {
         //            name = this.eggHatchInto;
         //        }
@@ -1451,16 +1502,18 @@ public class Specie {
                         if (!Game.staticGame.battle.attacks.containsKey(attack)) {
                             continue;
                         }
-                        int level = Integer.valueOf(vals[0].split(" ")[1]);
-                        String[] attacksArray = new String[]{attack};
-                        if (attacks.containsKey(level)) {
-                            attacksArray = new String[attacks.get(level).length+1];
-                            for (int j=0; j<attacks.get(level).length; j++) {
-                                attacksArray[j] = attacks.get(level)[j];
+                        if (Pokemon.attacksImplemented.contains(attack)) {
+                            int level = Integer.valueOf(vals[0].split(" ")[1]);
+                            String[] attacksArray = new String[]{attack};
+                            if (attacks.containsKey(level)) {
+                                attacksArray = new String[attacks.get(level).length+1];
+                                for (int j=0; j<attacks.get(level).length; j++) {
+                                    attacksArray[j] = attacks.get(level)[j];
+                                }
+                                attacksArray[attacks.get(level).length] = attack;
                             }
-                            attacksArray[attacks.get(level).length] = attack;
+                            attacks.put(level, attacksArray);
                         }
-                        attacks.put(level, attacksArray);
                     }
                 }
                 reader.close();
@@ -1586,10 +1639,15 @@ public class Specie {
         if (this.types.contains("GHOST")) {
             this.harvestables.add("spell tag");
         }
-        if (this.types.contains("DRAGON")) {
+//        if (this.types.contains("DRAGON")) {
+        if (name.equals("dratini") || name.equals("dragonair") || name.equals("dragonite")) {
             this.habitats.clear();
-            this.habitats.add("water");  // TODO: potentially change for other dragon types
-            this.harvestables.clear();  // TODO: disable this line once it's easier to get dragon types.
+            this.habitats.add("water");
+            this.harvestables.clear();
+            // Needs to be done after flying type harvestables added,
+            // and before dragon type harvestables added.
+        }
+        if (this.types.contains("DRAGON")) {
             this.harvestables.add("dragon fang");
             this.harvestables.add("dragon scale");
             this.harvestables.add("dragon scale");
@@ -1614,6 +1672,10 @@ public class Specie {
         //            this.harvestables.clear();
         //            this.harvestables.add("sweet nectar");
         //        }
+        else if (name.equals("beedrill") || name.contains("combee") || name.equals("vespiquen")) {
+            this.harvestables.clear();
+            this.harvestables.add("honey");
+        }
         else if (name.equals("miltank")) {
             this.harvestables.clear();
             this.harvestables.add("moomoo milk");

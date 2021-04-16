@@ -588,8 +588,8 @@ class EnteiTile extends Tile {
                                      new SplitAction(
                                          new DrawBattle(game),
                                      new BattleAnimPositionPlayers(game,
-                                     new PlaySound(game.battle.oppPokemon.name,
-                                     new DisplayText(game, "Wild "+ game.battle.oppPokemon.name.toUpperCase()+ " appeared!",
+                                     new PlaySound(game.battle.oppPokemon.specie.name,
+                                     new DisplayText(game, "Wild "+ game.battle.oppPokemon.nickname.toUpperCase()+ " appeared!",
                                                      null, null,
                                      new WaitFrames(game, 39,
                                      game.player.adrenaline > 0 ?
@@ -2537,11 +2537,11 @@ class RaikouTile extends Tile {
                                         new BattleAnimPositionPlayers(
                                                 game,
                                                 new PlaySound(
-                                                        game.battle.oppPokemon.name,
+                                                        game.battle.oppPokemon.specie.name,
                                                         new DisplayText(
                                                                 game,
                                                                 "Wild "
-                                                                        + game.battle.oppPokemon.name
+                                                                        + game.battle.oppPokemon.nickname
                                                                                 .toUpperCase()
                                                                         + " appeared!",
                                                                 null,
@@ -2908,10 +2908,10 @@ class Route {
             this.allowedPokemon.add("sigilyph");
             this.allowedPokemon.add("natu");
             this.allowedPokemon.add("nosepass");
-//            this.allowedPokemon.add("beldum");  // TODO: basespecies is broken for this one
-//            this.allowedPokemon.add("metang");
+            this.allowedPokemon.add("beldum");  // TODO: basespecies is broken for this one
+            this.allowedPokemon.add("metang");
             this.allowedPokemon.add("smeargle");
-//            this.allowedPokemon.add("solrock");  // TODO: basespecies is broken for this one
+            this.allowedPokemon.add("solrock");  // TODO: basespecies is broken for this one
         }
         else if (name.equals("ruins1_inner")) {
             // TODO
@@ -3056,8 +3056,9 @@ class Route {
         String pokemonName;
         ArrayList<String> usedPokemon = new ArrayList<String>();
         for (Pokemon pkmn : this.pokemon) {
-            usedPokemon.add(pkmn.name);
+            usedPokemon.add(pkmn.specie.name);
         }
+
         // Below will add from allowed pkmn based on catchRate
         // 4 total pokemon in route
         while (this.pokemon.size() < 4 && this.pokemon.size() < this.allowedPokemon.size()) {
@@ -3083,7 +3084,7 @@ class Route {
             boolean failed = false;
             while (!failed && shouldEvo) {
                 failed = true;
-                evos = Specie.gen2Evos.get(tempPokemon.name.toLowerCase());
+                evos = Specie.gen2Evos.get(tempPokemon.specie.name.toLowerCase());
                 for (String evo : evos.keySet()) {
                     try {
                         int evoLevel = Integer.valueOf(evo);
@@ -3223,11 +3224,11 @@ class SuicuneTile extends Tile {
                                         new BattleAnimPositionPlayers(
                                                 game,
                                                 new PlaySound(
-                                                        game.battle.oppPokemon.name,
+                                                        game.battle.oppPokemon.specie.name,
                                                         new DisplayText(
                                                                 game,
                                                                 "Wild "
-                                                                        + game.battle.oppPokemon.name
+                                                                        + game.battle.oppPokemon.nickname
                                                                                 .toUpperCase()
                                                                         + " appeared!",
                                                                 null,
@@ -4762,8 +4763,8 @@ class Tile {
                 oppDir = "right";
             }
             boolean isBaseSpecies = true;
-            if (Pokemon.baseSpecies.get(pokemon.name) != null) {
-                isBaseSpecies = Pokemon.baseSpecies.get(pokemon.name).equals(pokemon.name);
+            if (Pokemon.baseSpecies.get(pokemon.specie.name) != null) {
+                isBaseSpecies = Pokemon.baseSpecies.get(pokemon.specie.name).equals(pokemon.specie.name);
             }
             // If player is attacking
             if (game.player.currFieldMove.equals("ATTACK") ||
@@ -4784,8 +4785,8 @@ class Tile {
                 return;
             }
             if (pokemon.previousOwner == game.player && pokemon.hasItem != null) {
-                nextAction.append(new DisplayText(game, pokemon.name.toUpperCase()+" looks like it' holding something...", null, false, true,
-                                  new DisplayText(game, pokemon.name.toUpperCase()+" gave you "+pokemon.hasItem.toUpperCase()+"!", "fanfare1.ogg", false, true,
+                nextAction.append(new DisplayText(game, pokemon.nickname.toUpperCase()+" looks like it' holding something...", null, false, true,
+                                  new DisplayText(game, pokemon.nickname.toUpperCase()+" gave you "+pokemon.hasItem.toUpperCase()+"!", "fanfare1.ogg", false, true,
                                   null)));
                 if (!game.player.alreadyDoneHarvestables.contains(pokemon.hasItem)) {
                     if (pokemon.hasItem.contains("manure")) {
@@ -4823,7 +4824,7 @@ class Tile {
                                  new WaitFrames(game, 20,
                                  new PlaySound(pokemon,
                                  null)))));
-                    nextAction.append(new DisplayText(game, pokemon.name.toUpperCase()+" seems aggressive... it may attack if provoked!", null, false, true, null));
+                    nextAction.append(new DisplayText(game, pokemon.nickname.toUpperCase()+" seems aggressive... it may attack if provoked!", null, false, true, null));
                     pokemon.interactedWith = true;
                     nextAction.append(new WaitFrames(game, 10,
                                       new SetField(game, "playerCanMove", true,
@@ -4876,23 +4877,23 @@ class Tile {
                                   null));
             }
             else if (pokemon.previousOwner != game.player) {
-                nextAction.append(new DisplayText(game, pokemon.name.toUpperCase()+" seems friendly. ", null, false, true, null));
+                nextAction.append(new DisplayText(game, pokemon.nickname.toUpperCase()+" seems friendly. ", null, false, true, null));
             } 
             // if pokemon is indoors, it will say it's happy but no items
             else if (pokemon.mapTiles != game.map.overworldTiles) {
-                nextAction.append(new DisplayText(game, pokemon.name.toUpperCase()+" is enjoying itself.", null, false, true, null));
+                nextAction.append(new DisplayText(game, pokemon.nickname.toUpperCase()+" is enjoying itself.", null, false, true, null));
             }
             else if (!pokemon.inHabitat) {
-                nextAction.append(new DisplayText(game, pokemon.name.toUpperCase()+" seems uncomfortable in this environment. ", null, false, true, null));
+                nextAction.append(new DisplayText(game, pokemon.nickname.toUpperCase()+" seems uncomfortable in this environment. ", null, false, true, null));
             }
             else if (pokemon.loveInterest != null) {
-                nextAction.append(new DisplayText(game, pokemon.name.toUpperCase()+" seems interested in "+pokemon.loveInterest.name.toUpperCase()+".", null, false, true, null));
+                nextAction.append(new DisplayText(game, pokemon.nickname.toUpperCase()+" seems interested in "+pokemon.loveInterest.nickname.toUpperCase()+".", null, false, true, null));
             }
             else {
-                nextAction.append(new DisplayText(game, pokemon.name.toUpperCase()+" seems happy. ", null, false, true, null));
+                nextAction.append(new DisplayText(game, pokemon.nickname.toUpperCase()+" seems happy. ", null, false, true, null));
             }
 //                              new DisplayText(game, "Put "+pokemon.name.toUpperCase()+" in it' POKéBALL?", null, true, false,
-            String text = pokemon.isEgg ? "Pick it up?" : "Add "+pokemon.name.toUpperCase()+" to your party?";
+            String text = pokemon.isEgg ? "Pick it up?" : "Add "+pokemon.nickname.toUpperCase()+" to your party?";
             game.player.displayedMaxPartyText = false; // tODO: debug, remove
             nextAction.append(new DisplayText(game, text, null, true, false,
                               new DrawYesNoMenu(null,
@@ -5077,7 +5078,7 @@ class Tile {
             game.player.isCrafting = true;
             Action nextAction = new FossilMachinePowerUp(false,
                                 new PlaySound("sounds/pc_on1",
-                                new DisplayText(game, game.player.hmPokemon.name.toUpperCase()+" powered up the machine!", null, false, true,
+                                new DisplayText(game, game.player.hmPokemon.nickname.toUpperCase()+" powered up the machine!", null, false, true,
                                 new DrawCraftsMenu.Intro(null, 9,
                                 new DrawCraftsMenu(game, game.player.fossilCrafts,
                                 new FossilMachinePowerUp(true,
@@ -5136,7 +5137,7 @@ class Tile {
             game.player.setCurrPokemon();
 //            pokemon.position = this.position.cpy().add(8, 8);  // TODO: not working
 //            game.insertAction(pokemon.new Emote("!", null));  // TODO: not working
-            game.insertAction(new DisplayText(game, pokemon.name.toUpperCase()+" attacked!", "crystal_pokemon/cries/" + pokemon.dexNumber + ".ogg", null,
+            game.insertAction(new DisplayText(game, pokemon.nickname.toUpperCase()+" attacked!", "crystal_pokemon/cries/" + pokemon.dexNumber + ".ogg", null,
                               //new PlaySound(pokemon,
                               new WaitFrames(game, 10,
                               new SetField(game.musicController, "startBattle", "wild",

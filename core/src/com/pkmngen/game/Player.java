@@ -508,7 +508,7 @@ class CycleDayNight extends Action {
                     String gender = null;
                     for (Vector2 pos : game.map.overworldTiles.keySet()) {
                         if (game.map.pokemon.containsKey(pos) &&
-                            game.map.pokemon.get(pos).name.equals("dragonite")) {
+                            game.map.pokemon.get(pos).specie.name.equals("dragonite")) {
                             gender = game.map.pokemon.get(pos).gender;
                             numDragonites++;
                             if (numDragonites >= 2) {
@@ -2428,65 +2428,65 @@ class DrawPlayerUpper extends Action {
             int offsetY = 0;
             if (game.player.dirFacing.equals("up")) {
                 offsetY += -2;
-                if (game.player.hmPokemon.name.equals("mamoswine")) {
+                if (game.player.hmPokemon.specie.name.equals("mamoswine")) {
                     offsetY += 5;
                 }
             }
             if (game.player.dirFacing.equals("down")) {
                 offsetY += 3;
-                if (game.player.hmPokemon.name.equals("ponyta") ||
-                    game.player.hmPokemon.name.equals("rapidash")) {
+                if (game.player.hmPokemon.specie.name.equals("ponyta") ||
+                    game.player.hmPokemon.specie.name.equals("rapidash")) {
                     offsetY -= 1;
                 }
-                if (game.player.hmPokemon.name.equals("mamoswine")) {
+                if (game.player.hmPokemon.specie.name.equals("mamoswine")) {
                     offsetY += 2;
                 }
-                if (game.player.hmPokemon.name.equals("rhyhorn")) {
+                if (game.player.hmPokemon.specie.name.equals("rhyhorn")) {
                     offsetY += 1;
                 }
             }
             else if (game.player.dirFacing.equals("right")) {
                 offsetX += -4;
-                if (game.player.hmPokemon.name.equals("ninetales") ||
-                    game.player.hmPokemon.name.equals("arcanine")) {
+                if (game.player.hmPokemon.specie.name.equals("ninetales") ||
+                    game.player.hmPokemon.specie.name.equals("arcanine")) {
                     offsetX += 1;
                 }
-                if (game.player.hmPokemon.name.equals("ponyta") ||
-                    game.player.hmPokemon.name.equals("rapidash")) {
+                if (game.player.hmPokemon.specie.name.equals("ponyta") ||
+                    game.player.hmPokemon.specie.name.equals("rapidash")) {
                     offsetX += 2;
                 }
-                if (game.player.hmPokemon.name.equals("mamoswine")) {
+                if (game.player.hmPokemon.specie.name.equals("mamoswine")) {
                     offsetY += 5;
                     offsetX += 2;
                 }
-                if (game.player.hmPokemon.name.equals("donphan")) {
+                if (game.player.hmPokemon.specie.name.equals("donphan")) {
                     offsetY += 2;
                     offsetX += 2;
                 }
-                if (game.player.hmPokemon.name.equals("rhyhorn")) {
+                if (game.player.hmPokemon.specie.name.equals("rhyhorn")) {
                     offsetY += 1;
                     offsetX += 1;
                 }
             }
             else if (game.player.dirFacing.equals("left")) {
                 offsetX += 4;
-                if (game.player.hmPokemon.name.equals("ninetales") ||
-                    game.player.hmPokemon.name.equals("arcanine")) {
+                if (game.player.hmPokemon.specie.name.equals("ninetales") ||
+                    game.player.hmPokemon.specie.name.equals("arcanine")) {
                     offsetX -= 1;
                 }
-                if (game.player.hmPokemon.name.equals("ponyta") ||
-                    game.player.hmPokemon.name.equals("rapidash")) {
+                if (game.player.hmPokemon.specie.name.equals("ponyta") ||
+                    game.player.hmPokemon.specie.name.equals("rapidash")) {
                     offsetX -= 2;
                 }
-                if (game.player.hmPokemon.name.equals("mamoswine")) {
+                if (game.player.hmPokemon.specie.name.equals("mamoswine")) {
                     offsetY += 5;
                     offsetX -= 2;
                 }
-                if (game.player.hmPokemon.name.equals("donphan")) {
+                if (game.player.hmPokemon.specie.name.equals("donphan")) {
                     offsetY += 2;
                     offsetX -= 2;
                 }
-                if (game.player.hmPokemon.name.equals("rhyhorn")) {
+                if (game.player.hmPokemon.specie.name.equals("rhyhorn")) {
                     offsetY += 1;
                     offsetX -= 1;
                 }
@@ -2498,7 +2498,7 @@ class DrawPlayerUpper extends Action {
             game.mapBatch.draw(this.spritePart, game.player.position.x+offsetX, game.player.position.y+10+offsetY+DrawPlayerUpper.offsetY+DrawPlayerUpper.pokemonOffsetY);
 
             if (game.player.dirFacing.equals("down") && 
-                !game.player.hmPokemon.name.equals("rhyhorn")) {
+                !game.player.hmPokemon.specie.name.equals("rhyhorn")) {
                 this.spritePart = new Sprite(game.player.currSprite);
                 this.spritePart.setRegionY(game.player.spriteOffsetY);
                 this.spritePart.setRegionHeight(8);
@@ -5628,7 +5628,7 @@ class PlayerStanding extends Action {
                 for (Pokemon pokemon : game.player.pokemon) {
                     if (pokemon.isEgg) {
                         pokemon.happiness -= 1;
-                        System.out.println(pokemon.name);
+                        System.out.println(pokemon.specie.name);
                         System.out.println(pokemon.happiness);
                         if (pokemon.happiness <= 0) {
                             game.playerCanMove = false;
@@ -6549,9 +6549,9 @@ class PlayerStanding extends Action {
                         game.playerCanMove = false;
                         game.battle.oppPokemon = currTile.routeBelongsTo.pokemon.get(0);
                         game.player.setCurrPokemon();
-//                        game.insertAction(Battle_Actions.get(game));
-                        // new DisplayText(game, "A wild pokémon attacked!", null, null,
-//                        game.musicController.startBattle = "wild";  // TODO: remove
+                        // Required by EnemyFaint and others, so they can remove the caught/fainted pokemon.
+                        // Route name == "" in this case, so no new Pokemon are added when route.genPokemon() is called.
+                        game.map.currRoute = currTile.routeBelongsTo;
                         nextAction = new WaitFrames(game, 16,
                                      new SetField(game.musicController, "startBattle", "wild",
                                      Battle.getIntroAction(game)));

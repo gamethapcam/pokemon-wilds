@@ -313,9 +313,9 @@ class ClientBroadcast extends Action {
                                                     new PlaySound(pokemon,
                                                     null)))));
                                 if (pokemon.previousOwner != game.player) {
-                                    nextAction.append(new DisplayText(game, pokemon.name.toUpperCase()+" seems friendly. ", null, false, true, null));
+                                    nextAction.append(new DisplayText(game, pokemon.nickname.toUpperCase()+" seems friendly. ", null, false, true, null));
                                 }
-                                nextAction.append(new DisplayText(game, "Add "+pokemon.name.toUpperCase()+" to your party?", null, true, false,
+                                nextAction.append(new DisplayText(game, "Add "+pokemon.nickname.toUpperCase()+" to your party?", null, true, false,
                                                   new DrawYesNoMenu(null,
                                                       new DisplayText.Clear(game,
                                                       new WaitFrames(game, 3,
@@ -398,10 +398,13 @@ public class Network {
         kryo.register(OverworldPokemonData.class);
         
         // Any new 'versioned' classes need to be added at bottom (I think)
-        kryo.register(PlayerDataV06.class);  // rename to PlayerDataV05 when moving to v0.6
+        kryo.register(PlayerDataV06.class);  // rename to PlayerDataV05 when moving to a new version
         kryo.register(PokemonDataV04.class);
-        kryo.register(PokemonData.class);  // rename to PokemonDataV05 when moving to v0.6
+        kryo.register(PokemonDataV05.class);
         kryo.register(PlayerData.class);
+        
+        // Pokemon Wilds V0.7
+        kryo.register(PokemonData.class);   // TODO: rename to PokemonDataV07 when moving to a new version
     }
 
     static public class ActionData {
@@ -708,6 +711,11 @@ public class Network {
         }
     }
 
+    /**
+     * IMPORTANT NOTE: I found out that you can't rename fields. If you do, 
+     * kryonet will fail to deserialize if it loads a save file from a 
+     * previous version.
+     */
     static public class PlayerDataBase {
         public Vector2 position;
         public String name;
@@ -773,6 +781,10 @@ public class Network {
 
     /**
      * Unsure when this was introduced tbh.
+     * 
+     * IMPORTANT NOTE: I found out that you can't rename fields. If you do, 
+     * kryonet will fail to deserialize if it loads a save file from a 
+     * previous version.
      */
     static public class PlayerDataV06 extends PlayerDataBase {
         public int spawnIndex = -1;
@@ -830,6 +842,10 @@ public class Network {
 
     /**
      * These fields are from pokemon wilds version 0.4.
+     * 
+     * IMPORTANT NOTE: I found out that you can't rename fields. If you do, 
+     * kryonet will fail to deserialize if it loads a save file from a 
+     * previous version.
      */
     static public class PokemonDataBase {
         String name;
@@ -842,7 +858,7 @@ public class Network {
         String status = null;
         String previousOwnerName = null;
         
-        // overworld-related
+        // Overworld-related
         Vector2 position;
         boolean isInterior = false;
         int harvestTimer = 0;
@@ -850,7 +866,7 @@ public class Network {
         public PokemonDataBase() {}
 
         public PokemonDataBase(Pokemon pokemon) {
-            this.name = pokemon.name;
+            this.name = pokemon.specie.name;
             this.level = pokemon.level;
             this.generation = pokemon.generation;
             this.isShiny = pokemon.isShiny;
@@ -880,6 +896,10 @@ public class Network {
 
     /**
      * This is just for testing, no fields were added here.
+     * 
+     * IMPORTANT NOTE: I found out that you can't rename fields. If you do, 
+     * kryonet will fail to deserialize if it loads a save file from a 
+     * previous version.
      */
     static public class PokemonDataV04 extends PokemonDataBase {
         public boolean test = false;
@@ -899,18 +919,22 @@ public class Network {
 
     /**
      * Fields added in v0.5
+     * 
+     * IMPORTANT NOTE: I found out that you can't rename fields. If you do, 
+     * kryonet will fail to deserialize if it loads a save file from a 
+     * previous version.
      */
-    static public class PokemonData extends PokemonDataV04 {
+    static public class PokemonDataV05 extends PokemonDataV04 {
         public String gender = null;
         public String eggHatchInto = null;
         public int friendliness = 0;  // mistakenly didn't include this in v0.4
         public boolean aggroPlayer = false;
 
-        public PokemonData() {
+        public PokemonDataV05() {
             super();
         }
 
-        public PokemonData(Pokemon pokemon) {
+        public PokemonDataV05(Pokemon pokemon) {
             super(pokemon);
             this.gender = pokemon.gender;
             if (pokemon.isEgg) {
@@ -921,7 +945,7 @@ public class Network {
             this.aggroPlayer = pokemon.aggroPlayer;
         }
 
-        public PokemonData(Pokemon pokemon, int index) {
+        public PokemonDataV05(Pokemon pokemon, int index) {
             super(pokemon, index);
             this.gender = pokemon.gender;
             if (pokemon.isEgg) {
@@ -930,6 +954,27 @@ public class Network {
             }
             this.friendliness = pokemon.happiness;
             this.aggroPlayer = pokemon.aggroPlayer;
+        }
+    }
+
+    /**
+     * Fields added in v0.7
+     */
+    static public class PokemonData extends PokemonDataV05 {
+        public String nickname = null;
+
+        public PokemonData() {
+            super();
+        }
+
+        public PokemonData(Pokemon pokemon) {
+            super(pokemon);
+            this.nickname = pokemon.nickname;
+        }
+
+        public PokemonData(Pokemon pokemon, int index) {
+            super(pokemon, index);
+            this.nickname = pokemon.nickname;
         }
     }
 
@@ -1518,8 +1563,8 @@ class ServerBroadcast extends Action {
                                             // Check if pokemon evolves or not
                                             // TODO: handle when player cancels evolution
                                             for (int i=1; i <= player.currPokemon.level; i++) {
-                                                if (Specie.gen2Evos.get(player.currPokemon.name.toLowerCase()).containsKey(String.valueOf(i))) {
-                                                    String evolveTo = Specie.gen2Evos.get(player.currPokemon.name.toLowerCase()).get(String.valueOf(i));
+                                                if (Specie.gen2Evos.get(player.currPokemon.specie.name.toLowerCase()).containsKey(String.valueOf(i))) {
+                                                    String evolveTo = Specie.gen2Evos.get(player.currPokemon.specie.name.toLowerCase()).get(String.valueOf(i));
                                                     player.currPokemon.evolveTo(evolveTo);
                                                     break;
                                                 }
@@ -1565,8 +1610,8 @@ class ServerBroadcast extends Action {
                                             // Check if pokemon evolves or not
                                             // TODO: handle when player cancels evolution
                                             for (int i=1; i <= player.currPokemon.level; i++) {
-                                                if (Specie.gen2Evos.get(player.currPokemon.name.toLowerCase()).containsKey(String.valueOf(i))) {
-                                                    String evolveTo = Specie.gen2Evos.get(player.currPokemon.name.toLowerCase()).get(String.valueOf(i));
+                                                if (Specie.gen2Evos.get(player.currPokemon.specie.name.toLowerCase()).containsKey(String.valueOf(i))) {
+                                                    String evolveTo = Specie.gen2Evos.get(player.currPokemon.specie.name.toLowerCase()).get(String.valueOf(i));
                                                     player.currPokemon.evolveTo(evolveTo);
                                                     break;
                                                 }

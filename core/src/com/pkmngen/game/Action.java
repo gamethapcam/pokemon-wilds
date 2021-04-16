@@ -2779,7 +2779,7 @@ class PlaySound extends Action {
     public PlaySound(Pokemon pokemon, boolean cached, Action nextAction) {
         this.nextAction = nextAction;
         this.playedYet = false;
-        this.sound = pokemon.name;
+        this.sound = pokemon.specie.name;
         this.music = null;
         this.cached = cached;
         // Don't play cry if this is an egg
@@ -2789,8 +2789,7 @@ class PlaySound extends Action {
         }
         // if it's crystal pokemon, load from crystal dir
         else if (pokemon.generation == Pokemon.Generation.CRYSTAL) {
-        	if(pokemon.isGhost)
-        	{
+        	if(pokemon.isGhost) {
         		this.music = Gdx.audio.newMusic(Gdx.files.internal("crystal_pokemon/cries/000.ogg"));
         		this.music.setVolume(0.9f);
         	}
@@ -2811,8 +2810,7 @@ class PlaySound extends Action {
             }
 
             this.music = Gdx.audio.newMusic(Gdx.files.internal("crystal_pokemon/cries/" + pokemon.dexNumber + ".ogg"));
-            if(pokemon.isGhost)
-            {
+            if(pokemon.isGhost) {
                 this.music = Gdx.audio.newMusic(Gdx.files.internal("crystal_pokemon/cries/000.ogg"));
                 this.music.setVolume(0.9f);
             }

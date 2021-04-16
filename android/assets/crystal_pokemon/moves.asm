@@ -270,6 +270,7 @@ Moves:
 	;
 	move DAZZLING_GLEAM, EFFECT_NORMAL_HIT,       80, FAIRY,    100, 10,   0
 	move DRAINING_KISS, EFFECT_DRAINING_KISS,     50, FAIRY,    100, 10,   0
-	move STRUGGLE_BUG,  EFFECT_SP_ATK_DOWN,       50, BUG,      100, 20,   0
+    ; TODO: not sure if _HIT is correct for struggle bug.
+	move STRUGGLE_BUG,  EFFECT_SP_ATK_DOWN_HIT,   50, BUG,      100, 20, 100
 	move FAIRY_WIND,    EFFECT_NORMAL_HIT,        40, FAIRY,    100, 30,   0
 	move AIR_CUTTER,    EFFECT_NORMAL_HIT,        60, FLYING,   95,  25,   0

@@ -334,62 +334,129 @@ public class Pokemon {
     static {
         try {
             // TODO: prism
-            for (String path : new String[]{"", "nuuk/"}) {
-                FileHandle file = Gdx.files.internal("crystal_pokemon/"+path+"evos_attacks.asm");
-                Reader reader = file.reader();
-                BufferedReader br = new BufferedReader(reader);
-                String line;
-                String currMon = null;
-                while ((line = br.readLine()) != null)   {
-                    if (line.contains("EvosAttacks:")) {
-                        currMon = line.split("EvosAttacks:")[0].toLowerCase();
-                        // Fix some formatting exceptions (evos_attacks entries are camelcase,
-                        // everything else seems to use underscore formatting).
-                        if (currMon.equals("nidoranf")) {
-                            currMon = "nidoran_f";
+            for (String path : new String[]{"prism/", "", "nuuk/"}) {
+                if (path.equals("prism/")) {
+                    FileHandle file2 = Gdx.files.internal("crystal_pokemon/prism/pokemon_names.asm");
+                    Reader reader2 = file2.reader();
+                    BufferedReader br2 = new BufferedReader(reader2);
+                    String line2;
+                    String currPokemonName = null;
+                    int dexNumber = 0;
+                    while ((line2 = br2.readLine()) != null)   {
+                        
+                        // No need to do lower case b/c file names use capital first letter.
+                        currPokemonName = line2.split("db \"")[1].split("\"")[0].replace("@", "");
+                        if (currPokemonName.equals("Egg") ||
+                            currPokemonName.equals("?????") ||
+                            currPokemonName.equals("Debug")) {
+                            continue;
                         }
-                        else if (currMon.equals("nidoranm")) {
-                            currMon = "nidoran_m";
+                        dexNumber = Integer.valueOf(Pokemon.nameToIndex(currPokemonName.toLowerCase()));
+                        if (dexNumber <= 251) {
+                            continue;
                         }
-                        continue;
-                    }
-                    if (currMon == null) {
-                        continue;
-                    }
-                    if (line.contains(";")) {
-                        // skip commented line
-                        continue;
-                    }
-                    if (line.contains("EVOLVE")) {
-                        String vals[] = line.split(", ");
-                        String baseMon = Pokemon.baseSpecies.get(currMon);
-                        if (baseMon == null) {
-                            baseMon = currMon;
+                        currPokemonName = currPokemonName.replace("-", "");
+                        FileHandle file = Gdx.files.internal("crystal_pokemon/prism/movesets/"+currPokemonName+".asm");
+                        Reader reader = file.reader();
+                        BufferedReader br = new BufferedReader(reader);
+                        String line;
+                        String currMon = null;
+                        while ((line = br.readLine()) != null)   {
+                            if (line.contains("EvosAttacks:")) {
+                                currMon = line.split("EvosAttacks:")[0].toLowerCase();
+                                // Fix some formatting exceptions (evos_attacks entries are camelcase,
+                                // everything else seems to use underscore formatting).
+                                if (currMon.equals("nidoranf")) {
+                                    currMon = "nidoran_f";
+                                }
+                                else if (currMon.equals("nidoranm")) {
+                                    currMon = "nidoran_m";
+                                }
+                                continue;
+                            }
+                            if (currMon == null) {
+                                continue;
+                            }
+                            if (line.contains("EVOLVE")) {
+                                String vals[] = line.split(", ");
+                                String baseMon = Pokemon.baseSpecies.get(currMon);
+                                if (baseMon == null) {
+                                    baseMon = currMon;
+                                }
+                                Pokemon.baseSpecies.put(vals[2].toLowerCase(), baseMon);
+                            }
+                            else if (line.contains("db 0")) {
+                                // Base forms put self
+                                String baseMon = Pokemon.baseSpecies.get(currMon);
+                                if (baseMon == null) {
+                                    Pokemon.baseSpecies.put(currMon, currMon);
+                                }
+                                currMon = null;
+                            }
                         }
-                        Pokemon.baseSpecies.put(vals[2].toLowerCase(), baseMon);
-                    }
-                    else if (!line.contains("\t")) {
-                        // Base forms put self
-                        String baseMon = Pokemon.baseSpecies.get(currMon);
-                        if (baseMon == null) {
-                            baseMon = Pokemon.baseSpecies.put(currMon, currMon);
-                        }
-                        currMon = null;
+                        reader.close();
                     }
                 }
-                reader.close();
+                else {
+                    FileHandle file = Gdx.files.internal("crystal_pokemon/"+path+"evos_attacks.asm");
+                    Reader reader = file.reader();
+                    BufferedReader br = new BufferedReader(reader);
+                    String line;
+                    String currMon = null;
+                    while ((line = br.readLine()) != null)   {
+                        if (line.contains("EvosAttacks:")) {
+                            currMon = line.split("EvosAttacks:")[0].toLowerCase();
+                            // Fix some formatting exceptions (evos_attacks entries are camelcase,
+                            // everything else seems to use underscore formatting).
+                            if (currMon.equals("nidoranf")) {
+                                currMon = "nidoran_f";
+                            }
+                            else if (currMon.equals("nidoranm")) {
+                                currMon = "nidoran_m";
+                            }
+                            continue;
+                        }
+                        if (currMon == null) {
+                            continue;
+                        }
+                        if (line.contains(";")) {
+                            // skip commented line
+                            continue;
+                        }
+                        if (line.contains("EVOLVE")) {
+                            String vals[] = line.split(", ");
+                            String baseMon = Pokemon.baseSpecies.get(currMon);
+                            if (baseMon == null) {
+                                baseMon = currMon;
+                            }
+                            Pokemon.baseSpecies.put(vals[2].toLowerCase(), baseMon);
+                        }
+                        else if (!line.contains("\t")) {
+                            // Base forms put self
+                            String baseMon = Pokemon.baseSpecies.get(currMon);
+                            if (baseMon == null) {
+                                baseMon = Pokemon.baseSpecies.put(currMon, currMon);
+                            }
+                            currMon = null;
+                        }
+                    }
+                    reader.close();
+                }
                 
                 // TODO: if abilities are ever implemented, this needs to be removed.
                 // Right now Darminitan Zen form is a fully-separate pokemon (as 
                 // requested by people on discord)
                 Pokemon.baseSpecies.put("darmanitanzen", "darumaka");
                 Pokemon.baseSpecies.put("aexeggutor", "exeggcute");
+                // Female combee is separate species due to different front anim/sprites
+                Pokemon.baseSpecies.put("combee_female", "combee");
                 
                 // Load egg moves
-                file = Gdx.files.internal("crystal_pokemon/"+path+"egg_moves.asm");
-                reader = file.reader();
-                br = new BufferedReader(reader);
-                currMon = null;
+                FileHandle file = Gdx.files.internal("crystal_pokemon/"+path+"egg_moves.asm");
+                Reader reader = file.reader();
+                BufferedReader br = new BufferedReader(reader);
+                String line;
+                String currMon = null;
                 while ((line = br.readLine()) != null)   {
                     if (line.contains("EggMoves:")) {
                         currMon = line.split("EggMoves:")[0].toLowerCase();
@@ -447,8 +514,11 @@ public class Pokemon {
         if (name.equals("aexeggutor")) {
             name = "exeggutor";
         }
-        if (name.equals("darmanitanzen")) {
+        else if (name.equals("darmanitanzen")) {
             name = "darmanitan";
+        }
+        else if (name.equals("combee_female")) {
+            name = "combee";
         }
 
         int lineNum = 1;
@@ -472,7 +542,7 @@ public class Pokemon {
         return String.format("%03d", lineNum);
     }
 
-    String name;
+    String nickname;
     Specie specie;
     int level;
     int exp;  // current total exp.
@@ -613,10 +683,10 @@ public class Pokemon {
         // Fields added in v0.5
         // TODO: I guess I will have to rename this to Network.PokemonDataV05 when moving to v0.6
         // TODO: if I don't rename this, it will introduce a bug. I can't think of a better way to do it tho.
-        if (Network.PokemonData.class.isInstance(pokemonData)) {
-            this.isEgg = ((Network.PokemonData)pokemonData).name.equals("egg");
-            if (((Network.PokemonData)pokemonData).eggHatchInto != null) {
-                pokemonData.name = ((Network.PokemonData)pokemonData).eggHatchInto;
+        if (pokemonData instanceof Network.PokemonDataV05) {
+            this.isEgg = ((Network.PokemonDataV05)pokemonData).name.equals("egg");
+            if (((Network.PokemonDataV05)pokemonData).eggHatchInto != null) {
+                pokemonData.name = ((Network.PokemonDataV05)pokemonData).eggHatchInto;
             }
         }
 
@@ -651,19 +721,23 @@ public class Pokemon {
             }
         }
         // TODO: load from file once happiness is tied to things other than if pokemon runs in overworld.
-        if (this.name.toLowerCase().equals("tauros") || this.name.toLowerCase().equals("ekans")
-                || this.name.toLowerCase().equals("pidgey") || this.name.toLowerCase().equals("spearow")
-                || this.name.toLowerCase().equals("rattata")) {
+        if (this.specie.name.equals("tauros") || this.specie.name.equals("ekans")
+                || this.specie.name.equals("pidgey") || this.specie.name.equals("spearow")
+                || this.specie.name.equals("rattata")) {
             this.happiness = 0;
         }
 
         // Fields added in v0.5
+        if (pokemonData instanceof Network.PokemonDataV05) {
+            this.gender = ((Network.PokemonDataV05)pokemonData).gender;
+            this.happiness = ((Network.PokemonDataV05)pokemonData).friendliness;
+            this.aggroPlayer = ((Network.PokemonDataV05)pokemonData).aggroPlayer;
+        }
+
         // TODO: I guess I will have to rename this to Network.PokemonDataV05 when moving to v0.6
         // TODO: if I don't rename this, it will introduce a bug. I can't think of a better way to do it though.
-        if (Network.PokemonData.class.isInstance(pokemonData)) {
-            this.gender = ((Network.PokemonData)pokemonData).gender;
-            this.happiness = ((Network.PokemonData)pokemonData).friendliness;
-            this.aggroPlayer = ((Network.PokemonData)pokemonData).aggroPlayer;
+        if (pokemonData instanceof Network.PokemonData) {
+            this.nickname = ((Network.PokemonData)pokemonData).nickname;
         }
     }
 
@@ -681,15 +755,32 @@ public class Pokemon {
 
     public Pokemon (String name, int level, Generation generation, boolean isShiny, boolean isEgg) {
         this.init(name, level, generation, isShiny, isEgg);
+        // This shouldn't be called when loading from PokemonData,
+        // only when the pokemon is created for the first time.
+        if (this.specie.name.equals("combee") && this.gender.equals("female")) {
+            this.updateSpecieInfo("combee_female");
+        }
     }
 
-    public void updateSpecieInfo(String name) {
-        this.name = name.toLowerCase();
+    public void updateSpecieInfo(String specieName) {
+        this.nickname = specieName.toLowerCase();
+        if (this.nickname.equals("aexeggutor")) {
+            this.nickname = "exeggutor";
+        }
+        else if (this.nickname.equals("darmanitanzen")) {
+            this.nickname = "darmanitan";
+        }
+        else if (this.nickname.equals("combee_female")) {
+            this.nickname = "combee";
+        }
+        else if (this.nickname.contains("unown")) {
+            this.nickname = "unown";
+        }
 
-        if (!Specie.species.containsKey(this.name)) {
+        if (!Specie.species.containsKey(specieName)) {
             // Very clunky looking, but I don't know of a better way
             if (Thread.currentThread() != Game.staticGame.gameThread) {
-                final String finalName = this.name;
+                final String finalName = specieName;
                 Runnable runnable = new Runnable() {
                     public void run() {
                         try {
@@ -712,50 +803,50 @@ public class Pokemon {
                 }
             }
             else {
-                Specie.species.put(this.name, new Specie(this.name));
+                Specie.species.put(specieName, new Specie(specieName));
             }
         }
-        this.specie = Specie.species.get(this.name);
-        if (specie == null) {
-            System.out.println("No such specie exists: " + name);
+        this.specie = Specie.species.get(specieName);
+        if (this.specie == null) {
+            System.out.println("No such specie exists: " + specieName);
         }
 
         // Set sprites, backsprites, & intro animations
         if (isEgg) {
-            this.name = "Egg";
+            this.nickname = "egg";
             this.sprite = Specie.spriteEgg;
             this.backSprite = Specie.backSpriteEgg;
             this.introAnim = Specie.introAnimEgg;
         }
         else if (isShiny) {
-            this.sprite = specie.spriteShiny;
-            this.backSprite = specie.backSpriteShiny;
-            this.introAnim = specie.introAnimShiny;
+            this.sprite = this.specie.spriteShiny;
+            this.backSprite = this.specie.backSpriteShiny;
+            this.introAnim = this.specie.introAnimShiny;
         }
         else {
-            this.sprite = specie.sprite;
-            this.backSprite = specie.backSprite;
-            this.introAnim = specie.introAnim;
+            this.sprite = this.specie.sprite;
+            this.backSprite = this.specie.backSprite;
+            this.introAnim = this.specie.introAnim;
         }
 
         this.learnSet = this.specie.learnSet;
-        this.dexNumber = specie.dexNumber;
-        this.baseStats = specie.baseStats;
-        this.types = specie.types;
-        this.growthRateGroup = specie.growthRateGroup;
-        this.eggGroups = specie.eggGroups;
+        this.dexNumber = this.specie.dexNumber;
+        this.baseStats = this.specie.baseStats;
+        this.types = this.specie.types;
+        this.growthRateGroup = this.specie.growthRateGroup;
+        this.eggGroups = this.specie.eggGroups;
         if (!this.isEgg) {
-            this.hms = specie.hms;
+            this.hms = this.specie.hms;
         }
         this.loadOverworldSprites();
         // Stats formulas here
-        calcMaxStats();
+        this.calcMaxStats();
         this.initHabitatValues();
     }
     /**
      * TODO: remove isShiny and eggHatchInto params, just set before calling init.
      */
-    public void init(String name, int level, Generation generation, boolean isShiny, boolean isEgg) {
+    public void init(String specieName, int level, Generation generation, boolean isShiny, boolean isEgg) {
         // levels have to be >= 1
         if (level <= 0) {
             System.out.println("Bad level: " + String.valueOf(level));
@@ -765,7 +856,7 @@ public class Pokemon {
         this.level = level;
         this.isEgg = isEgg;
         this.isShiny = isShiny;  //Pokemon.rand.nextInt(256) == 0;
-        updateSpecieInfo(name);
+        this.updateSpecieInfo(specieName);
         this.currentStats = new HashMap<String, Integer>(this.maxStats); // copy maxStats   
 
         // init vars
@@ -791,24 +882,24 @@ public class Pokemon {
         // GENDER_F75: 1/4 male, 3/4 female
         // GENDER_F100: 100% female
         // GENDER_UNKNOWN: genderless
-        if (specie.genderRatio.equals("GENDER_UNKNOWN")) {
+        if (this.specie.genderRatio.equals("GENDER_UNKNOWN")) {
             this.gender = "unknown";
         }
         else {
             int percentFemale = 0;
-            if (specie.genderRatio.equals("GENDER_F12_5")) {
+            if (this.specie.genderRatio.equals("GENDER_F12_5")) {
                 percentFemale = 125;
             }
-            else if (specie.genderRatio.equals("GENDER_F25")) {
+            else if (this.specie.genderRatio.equals("GENDER_F25")) {
                 percentFemale = 250;
             }
-            else if (specie.genderRatio.equals("GENDER_F50")) {
+            else if (this.specie.genderRatio.equals("GENDER_F50")) {
                 percentFemale = 500;
             }
-            else if (specie.genderRatio.equals("GENDER_F75")) {
+            else if (this.specie.genderRatio.equals("GENDER_F75")) {
                 percentFemale = 750;
             }
-            else if (specie.genderRatio.equals("GENDER_F100")) {
+            else if (this.specie.genderRatio.equals("GENDER_F100")) {
                 percentFemale = 1000;
             }
             if (Pokemon.rand.nextInt(1000) < percentFemale) {
@@ -818,8 +909,10 @@ public class Pokemon {
                 this.gender = "male";
             }
         }
+
+        
         // Set hapiness level
-        this.happiness = specie.baseHappiness;
+        this.happiness = this.specie.baseHappiness;
 
         //        // if it is in original 251, load from crystal
         //        if (this.name.equals("egg") ||
@@ -1006,7 +1099,7 @@ public class Pokemon {
     void hatch() {
         this.isEgg = false;
         this.loadOverworldSprites();
-        this.name = this.specie.name;
+        this.nickname = this.specie.name;
         this.hms = this.specie.hms;
         if (this.isShiny)
         {
@@ -1025,7 +1118,7 @@ public class Pokemon {
      * */
     void spookify() {
         this.isGhost = true;
-        this.name = "Ghost";
+        this.nickname = "ghost";
         this.sprite = Specie.spriteGhost;
         this.backSprite = null;
         this.introAnim = Specie.introAnimGhost;
@@ -1036,7 +1129,7 @@ public class Pokemon {
     public Pokemon revealGhost() {
         this.isGhost = false;
         this.loadOverworldSprites();
-        this.name = this.specie.name;
+        this.nickname = this.specie.name;
         //need to store these as the Sprite will be reset once the ghost is revealed
         float x = this.sprite.getX();
         float y = this.sprite.getY();
@@ -1448,8 +1541,13 @@ public class Pokemon {
                 return;
             }
             this.spritePart = new Sprite(Pokemon.this.currOwSprite);
-            this.spritePart.setRegionY(Pokemon.this.spriteOffsetY+8);
+//            this.spritePart.setRegionY(Pokemon.this.spriteOffsetY+8);
+            this.spritePart.setRegionY(Pokemon.this.currOwSprite.getRegionY()+8);
             this.spritePart.setRegionHeight(8);
+            // TODO: the below didn't help
+//            this.spritePart.setRegion(Pokemon.this.currOwSprite.getRegionX(),
+//                                      Pokemon.this.currOwSprite.getRegionY()+8,
+//                                      Pokemon.this.currOwSprite.getRegionWidth(), 8);
             game.mapBatch.draw(this.spritePart, Pokemon.this.position.x, Pokemon.this.position.y+4);
         }
     }
@@ -1485,8 +1583,14 @@ public class Pokemon {
                 return;
             }
             this.spritePart = new Sprite(Pokemon.this.currOwSprite);
-            this.spritePart.setRegionY(Pokemon.this.spriteOffsetY);
+//            this.spritePart.setRegionY(Pokemon.this.spriteOffsetY);
+            this.spritePart.setRegionY(Pokemon.this.currOwSprite.getRegionY());
             this.spritePart.setRegionHeight(8);
+            // TODO: the below didn't help anything
+//            this.spritePart.setRegion(Pokemon.this.currOwSprite.getRegionX(),
+//                                      Pokemon.this.currOwSprite.getRegionY(),
+//                                      Pokemon.this.currOwSprite.getRegionWidth(), 8);
+            
             game.mapBatch.draw(this.spritePart, Pokemon.this.position.x, Pokemon.this.position.y+12);
             // TODO: remove if unused
 //            Pokemon.this.currOwSprite.setPosition(Pokemon.this.position.x, Pokemon.this.position.y);
@@ -1613,9 +1717,9 @@ public class Pokemon {
 
                 // Create egg, place on overworld
                 Pokemon.this.layEggTimer = Pokemon.this.layEggTimerMax;  //3600*2;
-                String baseSpecies = Pokemon.baseSpecies.get(Pokemon.this.name.toLowerCase());
-                if (Pokemon.this.name.equals("ditto")) {
-                    baseSpecies = Pokemon.baseSpecies.get(Pokemon.this.loveInterest.name.toLowerCase());
+                String baseSpecies = Pokemon.baseSpecies.get(Pokemon.this.specie.name.toLowerCase());
+                if (Pokemon.this.specie.name.equals("ditto")) {
+                    baseSpecies = Pokemon.baseSpecies.get(Pokemon.this.loveInterest.specie.name.toLowerCase());
                 }
                 // Nidoqueen will lay a nidoran_f egg b/c nidoran_f is it's base speicies
                 // Add a 50 percent chance for it to lay nidoran_m egg instead.
@@ -1633,7 +1737,7 @@ public class Pokemon {
                 }
                 // TODO: debug, remove
                 if (Pokemon.eggMoves.get(baseSpecies) == null) {
-                    System.out.println(Pokemon.this.name);
+                    System.out.println(Pokemon.this.specie.name);
                     System.out.println(baseSpecies);
                 }
                 for (String move : Pokemon.eggMoves.get(baseSpecies)) {

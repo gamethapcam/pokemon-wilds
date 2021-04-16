@@ -2073,7 +2073,7 @@ class AttackAnim extends Action {
                 }
                 action.append(new DisplayText.Clear(game,
                               new WaitFrames(game, 3,
-                              new DisplayText(game, enemy+friendlyPokemon.name.toUpperCase()+"' hurt by poison!", null, true, true,
+                              new DisplayText(game, enemy+friendlyPokemon.nickname.toUpperCase()+"' hurt by poison!", null, true, true,
                               new Battle.LoadAndPlayAnimation(game, "status_poison", friendlyPokemon,
                               Battle.depleteHealth(game, !isFriendly, damage,
                               new WaitFrames(game, 13,
@@ -2087,7 +2087,7 @@ class AttackAnim extends Action {
                 }
                 action.append(new DisplayText.Clear(game,
                               new WaitFrames(game, 3,
-                              new DisplayText(game, enemy+friendlyPokemon.name.toUpperCase()+"' hurt by it' burn!", null, true, false,
+                              new DisplayText(game, enemy+friendlyPokemon.nickname.toUpperCase()+"' hurt by it' burn!", null, true, false,
                               Battle.depleteHealth(game, !isFriendly, damage,
                               new WaitFrames(game, 13,
                               null))))));
@@ -2102,7 +2102,7 @@ class AttackAnim extends Action {
                 }
                 action.append(new DisplayText.Clear(game,
                               new WaitFrames(game, 3,
-                              new DisplayText(game, enemy+friendlyPokemon.name.toUpperCase()+"' hurt by poison!", null, true, true,
+                              new DisplayText(game, enemy+friendlyPokemon.nickname.toUpperCase()+"' hurt by poison!", null, true, true,
                                               new Battle.LoadAndPlayAnimation(game, "status_poison", friendlyPokemon,
                               Battle.depleteHealth(game, !isFriendly, damage,
                               new WaitFrames(game, 13,
@@ -2329,10 +2329,10 @@ public class Battle {
                 System.out.println("used dusk ball");  // TODO: remove
             }
         }
-        else if (ballUsed.equals("fast ball") && (pokemon.name.equals("tangela") || 
-                                                  pokemon.name.equals("grimer")  || 
-                                                  pokemon.name.equals("regieleki")  ||  // TODO: not sure if approp
-                                                  pokemon.name.equals("magnemite"))) {
+        else if (ballUsed.equals("fast ball") && (pokemon.specie.name.equals("tangela") || 
+                                                  pokemon.specie.name.equals("grimer")  || 
+                                                  pokemon.specie.name.equals("regieleki")  ||  // TODO: not sure if approp
+                                                  pokemon.specie.name.equals("magnemite"))) {
             rateModified *= 4;
         }
         
@@ -2372,25 +2372,25 @@ public class Battle {
                                            "regieleki"};
             int foundRate = rateModified -20;
             for (String name : lbs903) {
-                if (name.equals(pokemon.name)) {
+                if (name.equals(pokemon.specie.name)) {
                     foundRate = rateModified +40;
                     break;
                 }
             }
             for (String name : lbs677) {
-                if (name.equals(pokemon.name)) {
+                if (name.equals(pokemon.specie.name)) {
                     foundRate = rateModified +30;
                     break;
                 }
             }
             for (String name : lbs451) {
-                if (name.equals(pokemon.name)) {
+                if (name.equals(pokemon.specie.name)) {
                     foundRate = rateModified +20;
                     break;
                 }
             }
             for (String name : lbs225) {
-                if (name.equals(pokemon.name)) {
+                if (name.equals(pokemon.specie.name)) {
                     foundRate = rateModified;
                     break;
                 }
@@ -2424,7 +2424,7 @@ public class Battle {
                                                   "nidorina",
                                                   "nidorino"};
             for (String name : moonStoneMons) {
-                if (pokemon.name.equals(name)) {
+                if (pokemon.specie.name.equals(name)) {
                     rateModified *= 4;
                     break;
                 }
@@ -2618,7 +2618,7 @@ public class Battle {
             if (friendlyPokemon.disabledCounter <= 0 && friendlyPokemon.disabledIndex != -1) {
                 attackAction.append(new DisplayText.Clear(game,
                                     new WaitFrames(game, 3,
-                                    new DisplayText(game, enemy+friendlyPokemon.name.toUpperCase()+"' "+friendlyPokemon.attacks[friendlyPokemon.disabledIndex]+" is no longer disabled!", null, true, false,
+                                    new DisplayText(game, enemy+friendlyPokemon.nickname.toUpperCase()+"' "+friendlyPokemon.attacks[friendlyPokemon.disabledIndex]+" is no longer disabled!", null, true, false,
                                     null))));
                 friendlyPokemon.disabledIndex = -1;
             }
@@ -2626,7 +2626,7 @@ public class Battle {
             if (friendlyPokemon.flinched) {
                 return new DisplayText.Clear(game,
                        new WaitFrames(game, 3,
-                       new DisplayText(game, enemy+friendlyPokemon.name.toUpperCase()+" flinched!", null, true, true,
+                       new DisplayText(game, enemy+friendlyPokemon.nickname.toUpperCase()+" flinched!", null, true, true,
                        new WaitFrames(game, 10,
                        nextAction))));
             }
@@ -2639,7 +2639,7 @@ public class Battle {
                     if (friendlyPokemon.statusCounter > 0) {
                         return new DisplayText.Clear(game,
                                new WaitFrames(game, 3,
-                               new DisplayText(game, enemy+friendlyPokemon.name.toUpperCase()+" is fast asleep!", null, true, true,
+                               new DisplayText(game, enemy+friendlyPokemon.nickname.toUpperCase()+" is fast asleep!", null, true, true,
                                // used attack_anims\hypnosis_player_gsc\frames
                                new WaitFrames(game, 23,
                                new LoadAndPlayAnimation(game, "status_sleep", friendlyPokemon,
@@ -2648,7 +2648,7 @@ public class Battle {
 //                    friendlyPokemon.status = null;
                     attackAction.append(new DisplayText.Clear(game,
                                         new WaitFrames(game, 3,
-                                        new DisplayText(game, enemy+friendlyPokemon.name.toUpperCase()+" woke up!", null, true, true,
+                                        new DisplayText(game, enemy+friendlyPokemon.nickname.toUpperCase()+" woke up!", null, true, true,
                                         new SetField(friendlyPokemon, "status", null,  // Delay to emulate vgc
                                         null)))));
                 }
@@ -2656,7 +2656,7 @@ public class Battle {
                     if (game.map.rand.nextInt(256) < 128) {
                         return new DisplayText.Clear(game,
                                new WaitFrames(game, 3,
-                               new DisplayText(game, enemy+friendlyPokemon.name.toUpperCase()+" is fully paralyzed!", null, true, true,
+                               new DisplayText(game, enemy+friendlyPokemon.nickname.toUpperCase()+" is fully paralyzed!", null, true, true,
                                nextAction)));
                     }
                 }
@@ -2666,13 +2666,13 @@ public class Battle {
                     if (game.map.rand.nextInt(256) >= 51) {  // roughly 80 percent
                         return new DisplayText.Clear(game,
                                new WaitFrames(game, 3,
-                               new DisplayText(game, enemy+friendlyPokemon.name.toUpperCase()+" is frozen solid!", null, true, true,
+                               new DisplayText(game, enemy+friendlyPokemon.nickname.toUpperCase()+" is frozen solid!", null, true, true,
                                nextAction)));
                     }
 //                    friendlyPokemon.status = null;
                     attackAction.append(new DisplayText.Clear(game,
                                         new WaitFrames(game, 3,
-                                        new DisplayText(game, enemy+friendlyPokemon.name.toUpperCase()+" thawed out!", null, true, true,
+                                        new DisplayText(game, enemy+friendlyPokemon.nickname.toUpperCase()+" thawed out!", null, true, true,
                                         new SetField(friendlyPokemon, "status", null,
                                         null)))));
                 }
@@ -2681,7 +2681,7 @@ public class Battle {
                     if (friendlyPokemon.statusCounter > 0) {
                         attackAction.append(new DisplayText.Clear(game,
                                             new WaitFrames(game, 3,
-                                            new DisplayText(game, enemy+friendlyPokemon.name.toUpperCase()+" is confused!", null, true, true,
+                                            new DisplayText(game, enemy+friendlyPokemon.nickname.toUpperCase()+" is confused!", null, true, true,
                                             // Used attack_anims/supersonic_enemy_gsc/is_confused_test.avi
                                             new WaitFrames(game, 24,
                                             new LoadAndPlayAnimation(game, "status_confuse", friendlyPokemon,
@@ -2707,7 +2707,7 @@ public class Battle {
                         friendlyPokemon.status = null;
                         attackAction.append(new DisplayText.Clear(game,
                                             new WaitFrames(game, 3,
-                                            new DisplayText(game, enemy+friendlyPokemon.name.toUpperCase()+" snapped out of confusion!", null, true, true,
+                                            new DisplayText(game, enemy+friendlyPokemon.nickname.toUpperCase()+" snapped out of confusion!", null, true, true,
                                             null))));
                     }
                 }
@@ -2771,7 +2771,7 @@ public class Battle {
             // if does any stat change (how to tell?) then add text.
             attackAction.append(new DisplayText.Clear(game,
                                 new WaitFrames(game, 3,
-                                new DisplayText(game, enemy+friendlyPokemon.name.toUpperCase()+" used "+attack.name.toUpperCase()+"!",
+                                new DisplayText(game, enemy+friendlyPokemon.nickname.toUpperCase()+" used "+attack.name.toUpperCase()+"!",
                                                 null, true, false,
                                 null))));
 
@@ -2822,7 +2822,7 @@ public class Battle {
                     attackAction.append(new WaitFrames(game, 30,
                                         new DisplayText.Clear(game,
                                         new WaitFrames(game, 3,
-                                        new DisplayText(game, "It doesnì effect "+enemyPokemon.name.toUpperCase()+"!", null, true, true,
+                                        new DisplayText(game, "It doesnì effect "+enemyPokemon.nickname.toUpperCase()+"!", null, true, true,
                                         nextAction)))));
                     return attackAction;
                 }
@@ -2946,24 +2946,30 @@ public class Battle {
                     // Only show failed text when applying to friendly.
                     if (!worked) {
                         if (!attack.effect.contains("HIT")) {
-                            text = target.name.toUpperCase()+"' "+stat.toUpperCase()+" wonì go any "+(stage > 0 ? "higher!" : "lower!");
+                            text = target.nickname.toUpperCase()+"' "+stat.toUpperCase()+" wonì go any "+(stage > 0 ? "higher!" : "lower!");
                         }
                     }
                     else {
+                        if (stat.equals("specialAtk")) {
+                            stat = "special attack";
+                        }
+                        else if (stat.equals("specialDef")) {
+                            stat = "special defense";
+                        }
                         if (stat.equals("all")) {
-                            text = target.name.toUpperCase()+"' stats went up!";
+                            text = target.nickname.toUpperCase()+"' stats went up!";
                         }
                         else if (stage == 2) {
-                            text = target.name.toUpperCase()+"' "+stat.toUpperCase()+" went way up!";
+                            text = target.nickname.toUpperCase()+"' "+stat.toUpperCase()+" went way up!";
                         }
                         else if (stage == 1) {
-                            text = target.name.toUpperCase()+"' "+stat.toUpperCase()+" went up!";
+                            text = target.nickname.toUpperCase()+"' "+stat.toUpperCase()+" went up!";
                         }
                         else if (stage == -1) {
-                            text = target.name.toUpperCase()+"' "+stat.toUpperCase()+" fell!";
+                            text = target.nickname.toUpperCase()+"' "+stat.toUpperCase()+" fell!";
                         }
                         else if (stage == -2) {
-                            text = target.name.toUpperCase()+"' "+stat.toUpperCase()+" sharply fell!";
+                            text = target.nickname.toUpperCase()+"' "+stat.toUpperCase()+" sharply fell!";
                         }
                     }
                     // Don't play animation if stat stage won't go any higher/lower
@@ -3090,35 +3096,35 @@ public class Battle {
                     if (status.equals("paralyze")) {
                         // Reduce speed to 1/4
                         target.currentStats.put("speed", target.currentStats.get("speed")/4);
-                        text = enemy+target.name.toUpperCase()+" was PARALYZED! It might not be able to attack!";
+                        text = enemy+target.nickname.toUpperCase()+" was PARALYZED! It might not be able to attack!";
                     }
                     else if (status.equals("burn")) {
                         // Reduce attack to 1/4
                         target.currentStats.put("attack", target.currentStats.get("attack")/4);
-                        text = enemy+target.name.toUpperCase()+" was burned!";
+                        text = enemy+target.nickname.toUpperCase()+" was burned!";
                     }
                     else if (status.equals("sleep")) {
                         // Add to statusCounter
                         target.statusCounter = game.map.rand.nextInt(5) + 1;
-                        text = enemy+target.name.toUpperCase()+" fell asleep!";
+                        text = enemy+target.nickname.toUpperCase()+" fell asleep!";
                     }
                     else if (status.equals("poison")) {
-                        text = enemy+target.name.toUpperCase()+" was poisoned!";
+                        text = enemy+target.nickname.toUpperCase()+" was poisoned!";
                     }
                     else if (status.equals("confuse")) {
                         target.statusCounter = game.map.rand.nextInt(5) + 1;
-                        text = enemy+target.name.toUpperCase()+" is confused!";
+                        text = enemy+target.nickname.toUpperCase()+" is confused!";
                     }
                     else if (status.equals("freeze")) {
-                        text = enemy+target.name.toUpperCase()+"' frozen solid!";
+                        text = enemy+target.nickname.toUpperCase()+"' frozen solid!";
                     }
                     else if (status.equals("toxic")) {
                         // Use statusCounter to count how many turns toxic has been in effect.
                         target.statusCounter = 1;
-                        text = enemy+target.name.toUpperCase()+"' badly poisoned!";
+                        text = enemy+target.nickname.toUpperCase()+"' badly poisoned!";
                     }
                     else if (status.equals("attract")) {
-                        text = enemy+enemyPokemon.name.toUpperCase()+" became infatuated with "+friendlyPokemon.name.toUpperCase()+"!";
+                        text = enemy+enemyPokemon.nickname.toUpperCase()+" became infatuated with "+friendlyPokemon.nickname.toUpperCase()+"!";
                     }
                     if (text != null) {
                         attackAction.append(new DisplayText.Clear(game,
@@ -3156,7 +3162,7 @@ public class Battle {
                     enemyPokemon.disabledCounter = game.map.rand.nextInt(7) + 2;
                     attackAction.append(new DisplayText.Clear(game,
                                         new WaitFrames(game, 3,
-                                        new DisplayText(game, enemy+enemyPokemon.name.toUpperCase()+"' "+enemyPokemon.attacks[attackIndex].toUpperCase()+" was disabled!",
+                                        new DisplayText(game, enemy+enemyPokemon.nickname.toUpperCase()+"' "+enemyPokemon.attacks[attackIndex].toUpperCase()+" was disabled!",
                                                         null, false, true,
                                         null))));
                 }
@@ -3198,7 +3204,7 @@ public class Battle {
                 if (friendlyPokemon.currentStats.get("hp") >= friendlyPokemon.maxStats.get("hp")) {
                     attackAction.append(new DisplayText.Clear(game,
                                         new WaitFrames(game, 3,
-                                        new DisplayText(game, enemy+friendlyPokemon.name.toUpperCase()+"' HP is full!",  // TODO: wrong text
+                                        new DisplayText(game, enemy+friendlyPokemon.nickname.toUpperCase()+"' HP is full!",  // TODO: wrong text
                                                         null, false, true,
                                         null))));
                 }
@@ -3209,7 +3215,7 @@ public class Battle {
                                         new RestoreHealth(friendlyPokemon, -amount,
                                         new DisplayText.Clear(game,
                                         new WaitFrames(game, 3,
-                                        new DisplayText(game, friendlyPokemon.name.toUpperCase()+" regained health!", null, false, true,
+                                        new DisplayText(game, friendlyPokemon.nickname.toUpperCase()+" regained health!", null, false, true,
                                         null))))));
                 }
             }
@@ -3237,7 +3243,7 @@ public class Battle {
                 enemy = isFriendly ? "Enemy " : "";  // TODO: probably could just base this on target
                 attackAction.append(new DisplayText.Clear(game,
                                     new WaitFrames(game, 3,
-                                    new DisplayText(game, enemy+enemyPokemon.name.toUpperCase()+" was trapped!",
+                                    new DisplayText(game, enemy+enemyPokemon.nickname.toUpperCase()+" was trapped!",
                                                     null, true, true,
                                     null))));
 //                System.out.println(enemyPokemon.name);
@@ -3322,7 +3328,7 @@ public class Battle {
                                    new SplitAction(new DrawBattle(game),
                                                    new BattleAnimPositionPlayers(game,
                                                    new PlaySound(game.battle.oppPokemon,
-                                                   new DisplayText(game, "Wild "+game.battle.oppPokemon.name.toUpperCase()+" appeared!", null, null,
+                                                   new DisplayText(game, "Wild "+game.battle.oppPokemon.nickname.toUpperCase()+" appeared!", null, null,
                                                    new WaitFrames(game, 39,
                                                    // Demo code - confusing, but I don't want to write another if statement
                                                    game.player.adrenaline > 0 ? new DisplayText(game, ""+game.player.name+" has ADRENALINE "+Integer.toString(game.player.adrenaline)+"!", null, null,
@@ -3343,7 +3349,7 @@ public class Battle {
         else if (game.battle.oppPokemon.generation == Pokemon.Generation.CRYSTAL) {
             Action triggerAction;
             if (game.player.currPokemon.generation == Pokemon.Generation.RED) {
-                triggerAction = new PlaySound(game.player.currPokemon.name,
+                triggerAction = new PlaySound(game.player.currPokemon.specie.name,
                                 new WaitFrames(game, 6,
                                 new DrawBattleMenuNormal(game, null)
                                 ));
@@ -3378,8 +3384,8 @@ public class Battle {
             // then increase it's attack stat
             if (game.battle.oppPokemon.aggroPlayer) {
                 introAction.append(
-                    new DisplayText(game, "Angry "+game.battle.oppPokemon.name.toUpperCase()+" attacked!", null, null,
-                    new DisplayText(game, "Enemy "+game.battle.oppPokemon.name.toUpperCase()+"' attack went way up!", null, null,
+                    new DisplayText(game, "Angry "+game.battle.oppPokemon.nickname.toUpperCase()+" attacked!", null, null,
+                    new DisplayText(game, "Enemy "+game.battle.oppPokemon.nickname.toUpperCase()+"' attack went way up!", null, null,
                     null)));
                 // TODO: stat stages are never reset for oppPokemon, I think
                 // and they need to be
@@ -3387,7 +3393,7 @@ public class Battle {
             }
             else {
                 introAction.append(
-                    new DisplayText(game, "Wild "+game.battle.oppPokemon.name.toUpperCase()+" appeared!", null, null,
+                    new DisplayText(game, "Wild "+game.battle.oppPokemon.nickname.toUpperCase()+" appeared!", null, null,
                     null));
             }
 
@@ -3400,7 +3406,7 @@ public class Battle {
                                    new DrawEnemyHealth(game)),
                    new WaitFrames(game, 39,
                    new MovePlayerOffScreen(game,
-                   new DisplayText(game, "Go! "+game.player.currPokemon.name.toUpperCase()+"!", null, triggerAction,
+                   new DisplayText(game, "Go! "+game.player.currPokemon.nickname.toUpperCase()+"!", null, triggerAction,
                    game.player.currPokemon.generation == Pokemon.Generation.RED ?  // basically an if block
                        new SplitAction(new DrawFriendlyHealth(game),
                        new ThrowOutPokemon(game, // this draws pkmn sprite permanently until battle ends, ie until game.battle.drawAction == null
@@ -3420,7 +3426,7 @@ public class Battle {
         // Below is red/blue intro anim
         // TODO: what if opp pokemon is crystal, and yours is red? or vice-versa
         else {
-            Action triggerAction = new PlaySound(game.player.currPokemon.name,
+            Action triggerAction = new PlaySound(game.player.currPokemon.specie.name,
                                    new WaitFrames(game, 6,
                                    new DrawBattleMenuNormal(game, null)
                                    ));
@@ -3429,13 +3435,13 @@ public class Battle {
                    new SplitAction(
                    new DrawBattle(game),
                    new BattleAnimPositionPlayers(game,
-                   new PlaySound(game.battle.oppPokemon.name,
-                   new DisplayText(game, "Wild "+game.battle.oppPokemon.name.toUpperCase()+" appeared!", null, null,
+                   new PlaySound(game.battle.oppPokemon.specie.name,
+                   new DisplayText(game, "Wild "+game.battle.oppPokemon.nickname.toUpperCase()+" appeared!", null, null,
                    new SplitAction(new WaitFrames(game, 1,
                                    new DrawEnemyHealth(game)),
                    new WaitFrames(game, 39,
                    new MovePlayerOffScreen(game,
-                   new DisplayText(game, "Go! "+game.player.currPokemon.name.toUpperCase()+"!", null, triggerAction,
+                   new DisplayText(game, "Go! "+game.player.currPokemon.nickname.toUpperCase()+"!", null, triggerAction,
                    new SplitAction(new DrawFriendlyHealth(game),
                    new ThrowOutPokemon(game, // this draws pkmn sprite permanently until battle ends, ie until game.battle.drawAction == null
                                        triggerAction
@@ -4023,7 +4029,7 @@ public class Battle {
                 action.append(new Battle.LoadAndPlayAnimation(game, game.player.currPokemon.trappedBy, game.player.currPokemon,
                               new DisplayText.Clear(game,
                               new WaitFrames(game, 3,
-                              new DisplayText(game, game.player.currPokemon.name.toUpperCase()+"' hurt by "+game.player.currPokemon.trappedBy.toUpperCase()+"!",
+                              new DisplayText(game, game.player.currPokemon.nickname.toUpperCase()+"' hurt by "+game.player.currPokemon.trappedBy.toUpperCase()+"!",
                                               null, true,
                               new DepleteFriendlyHealth(game.player.currPokemon, trap.damage,
                               new WaitFrames(game, 13,
@@ -4042,7 +4048,7 @@ public class Battle {
                 action.append(new Battle.LoadAndPlayAnimation(game, game.battle.oppPokemon.trappedBy, game.battle.oppPokemon,
                               new DisplayText.Clear(game,
                               new WaitFrames(game, 3,
-                              new DisplayText(game, game.battle.oppPokemon.name.toUpperCase()+"' hurt by "+game.battle.oppPokemon.trappedBy.toUpperCase()+"!",
+                              new DisplayText(game, game.battle.oppPokemon.nickname.toUpperCase()+"' hurt by "+game.battle.oppPokemon.trappedBy.toUpperCase()+"!",
                                               null, true,
                               new DepleteEnemyHealth(game, trap.damage,
                               new WaitFrames(game, 13,
@@ -4141,7 +4147,7 @@ public class Battle {
 
                 game.player.currPokemon = game.player.pokemon.get(DrawPokemonMenu.currIndex);
                 playerAction = new DrawPokemonMenu.Intro(13,
-                               new DisplayText(game, "Go! "+game.player.currPokemon.name.toUpperCase()+"!",
+                               new DisplayText(game, "Go! "+game.player.currPokemon.nickname.toUpperCase()+"!",
                                                null, true, false,
                                new ThrowOutPokemonCrystal(game,
                                new PlaySound(game.player.currPokemon,
@@ -4375,6 +4381,10 @@ public class Battle {
 //                System.out.println(enemyAttack.name);
                 enemyAttack.isCrit = Battle.gen2DetermineCrit(game.battle.oppPokemon, enemyAttack);
                 enemyAttack.damage = Battle.gen2CalcDamage(game.battle.oppPokemon, enemyAttack, game.player.currPokemon);
+                // Debug function
+                if (game.debugInputEnabled && Gdx.input.isKeyPressed(Input.Keys.SPACE)) {
+                    enemyAttack.damage = 0;
+                }
 
                 // TODO: remove
 //                // check if attack traps player pokemon
@@ -6163,7 +6173,7 @@ class CatchPokemonWobblesThenCatch extends Action {
                 // (burrowed mon is contained in items)
                 if (game.battle.oppPokemon.isTrapping) {
                     Tile tile = game.map.tiles.get(game.battle.oppPokemon.position);
-                    tile.items.remove(game.battle.oppPokemon.name.toLowerCase());
+                    tile.items.remove(game.battle.oppPokemon.specie.name.toLowerCase());
                 }
                 // else it's in the overworld so remove
                 else {
@@ -6174,7 +6184,7 @@ class CatchPokemonWobblesThenCatch extends Action {
             // (burrowed mon is contained in items)
             if (game.battle.oppPokemon.isTrapping) {
                 Tile tile = game.map.tiles.get(game.battle.oppPokemon.position);
-                tile.items.remove(game.battle.oppPokemon.name.toLowerCase());
+                tile.items.remove(game.battle.oppPokemon.specie.name.toLowerCase());
             }
             // Since pkmn was caught, add to players pokemon
             Action newAction = new PokemonCaughtEvents(game,
@@ -6182,7 +6192,7 @@ class CatchPokemonWobblesThenCatch extends Action {
                                new BattleFadeOutMusic(game,
 //                                new SetField(game.musicController, "resumeOverworldMusic", true,  // TODO: remove
                                null)));
-            if (!game.battle.oppPokemon.name.contains("regi")) {
+            if (!game.battle.oppPokemon.specie.name.contains("regi")) {
                 newAction.append(new SetField(game.musicController, "resumeOverworldMusic", true, null));
             }
             game.battle.oppPokemon.previousOwner = game.player;
@@ -6198,7 +6208,7 @@ class CatchPokemonWobblesThenCatch extends Action {
                     game.battle.oppPokemon.mapTiles = game.map.interiorTiles.get(game.player.spawnIndex);
                 }
                 newAction.append(// new SetField(game, "playerCanMove", false,  // TODO: remove these
-                                 new DisplayText(game, "Your party is full! "+game.battle.oppPokemon.name.toUpperCase()+" was sent to the last known safe place.", null, null,
+                                 new DisplayText(game, "Your party is full! "+game.battle.oppPokemon.nickname.toUpperCase()+" was sent to the last known safe place.", null, null,
                                  // new SetField(game, "playerCanMove", true,
                                  null));
                 // TODO: there will probably be bugs if pokemon overlaps in game.map.pokemon with another pokemon.
@@ -6228,7 +6238,7 @@ class CatchPokemonWobblesThenCatch extends Action {
             }
 
             // If this was the regi encounter, so remove from the pedistal
-            if (game.battle.oppPokemon.name.equals("regigigas")) {
+            if (game.battle.oppPokemon.specie.name.equals("regigigas")) {
                 Tile regiTile = null;
                 for (Tile tile : game.map.tiles.values()) {
                     if (tile.name.contains("cave1_regi3")) {
@@ -6244,7 +6254,7 @@ class CatchPokemonWobblesThenCatch extends Action {
 //                game.map.tiles.remove(game.battle.oppPokemon.position.cpy().add(16, 0));
             }
             else if (this.pedistalTile != null &&
-                     game.battle.oppPokemon.name.contains("regi")) {
+                     game.battle.oppPokemon.specie.name.contains("regi")) {
                 String text = "";
                 if (this.pedistalTile.nameUpper.equals("REGICE")) {
                     text = "Cold ... very cold ... too cold ... but ... even with heat ... it lasts forever ... ";
@@ -6263,7 +6273,7 @@ class CatchPokemonWobblesThenCatch extends Action {
                 }
                 this.pedistalTile.nameUpper = "";
                 this.pedistalTile.overSprite = null;
-                this.pedistalTile.items().remove(game.battle.oppPokemon.name.toUpperCase());
+                this.pedistalTile.items().remove(game.battle.oppPokemon.specie.name.toUpperCase());
                 
                 // TODO: remove
 //                newAction.append(new SetField(game, "playerCanMove", false,  // TODO: refactor this, i think it's in battlefadeout
@@ -6387,7 +6397,7 @@ class ChanceToRun extends Action {
 
         if (x > 255) {
             // pokemon runs
-            String textString = "Wild " + game.battle.oppPokemon.name.toUpperCase() + " ran!";
+            String textString = "Wild " + game.battle.oppPokemon.nickname.toUpperCase() + " ran!";
             game.insertAction(new DisplayText(game, textString, null, null,
                                              new SplitAction(new OppPokemonFlee(game,
                                                              new SplitAction(new BattleFadeOut(game,
@@ -6414,7 +6424,7 @@ class ChanceToRun extends Action {
         int r = game.map.rand.nextInt(255+1); //+1 to include upper bound
         if (r < x) {
             // pokemon runs
-            String textString = "Wild " + game.battle.oppPokemon.name.toUpperCase() + " ran!";
+            String textString = "Wild " + game.battle.oppPokemon.nickname.toUpperCase() + " ran!";
             game.insertAction(new DisplayText(game, textString, null, null,
                                              new SplitAction(new OppPokemonFlee(game,
                                                              new SplitAction(new BattleFadeOut(game,
@@ -6524,14 +6534,14 @@ class DepleteEnemyHealth extends Action {
                                     new RemoveDisplayText(  // TODO: refactor to stop using this
                                     new DisplayText.Clear(game,
                                     new WaitFrames(game, 3,
-                                    new DisplayText(game, "Enemy "+game.battle.oppPokemon.name.toUpperCase()+" fainted!",
+                                    new DisplayText(game, "Enemy "+game.battle.oppPokemon.nickname.toUpperCase()+" fainted!",
                                                     null, null,
                                     null)))));
                 for (Pokemon pokemon : game.player.pokemon) {
                     if (pokemon.participatedInBattle && pokemon.currentStats.get("hp") > 0) {
                         int exp = game.battle.calcFaintExp(numParticipated);
                         pokemon.exp += exp;
-                        nextAction.append(new DisplayText(game, pokemon.name.toUpperCase()+" gained "+String.valueOf(exp)+" EXP. Points!",
+                        nextAction.append(new DisplayText(game, pokemon.nickname.toUpperCase()+" gained "+String.valueOf(exp)+" EXP. Points!",
                                           null, true, true,
                                           new GainExpAnimation(pokemon,
                                           null)));
@@ -6581,7 +6591,7 @@ class DepleteEnemyHealth extends Action {
                     // (burrowed mon is contained in items)
                     if (game.battle.oppPokemon.isTrapping) {
                         Tile tile = game.map.tiles.get(game.battle.oppPokemon.position);
-                        tile.items.remove(game.battle.oppPokemon.name.toLowerCase());
+                        tile.items.remove(game.battle.oppPokemon.specie.name.toLowerCase());
                     }
                     // else it's in the overworld so remove
                     else {
@@ -6753,7 +6763,7 @@ class DepleteFriendlyHealth extends Action {
                 game.insertAction(new FriendlyFaint(game,
                                   new RemoveDisplayText(
                                   new WaitFrames(game, 3,
-                                  new DisplayText(game, this.pokemon.name.toUpperCase()+" fainted!",
+                                  new DisplayText(game, this.pokemon.nickname.toUpperCase()+" fainted!",
                                                   null, null,
                                   // TODO: decide whether to switch pkmn, send out player, or end game
                                   new AfterFriendlyFaint())))));
@@ -6909,9 +6919,9 @@ class DrawAttacksMenu extends Action {
                                       new WaitFrames(game, 3,
                                       new DisplayText(game, "And one... two... three... POOF!",
                                                       null, null,
-                                      new DisplayText(game, this.pokemon.name.toUpperCase() + " forgot " + this.pokemon.attacks[DrawAttacksMenu.curr].toUpperCase()+" and...",
+                                      new DisplayText(game, this.pokemon.nickname.toUpperCase() + " forgot " + this.pokemon.attacks[DrawAttacksMenu.curr].toUpperCase()+" and...",
                                                       null, null,
-                                      new DisplayText(game, this.pokemon.name.toUpperCase() + " learned " + this.attackLearning.toUpperCase()+"!",
+                                      new DisplayText(game, this.pokemon.nickname.toUpperCase() + " learned " + this.attackLearning.toUpperCase()+"!",
                                                       "fanfare1.ogg", true, true,
                                       new SetArrayAtIndex(this.pokemon.attacks, DrawAttacksMenu.curr, this.attackLearning,
                                       this.nextAction)))))),
@@ -6979,7 +6989,7 @@ class DrawAttacksMenu extends Action {
                                   new DrawYesNoMenu(null,
                                       new DisplayText.Clear(game,
                                       new WaitFrames(game, 3,
-                                      new DisplayText(game, this.pokemon.name.toUpperCase()+" did not learn " + this.attackLearning.toUpperCase()+".",
+                                      new DisplayText(game, this.pokemon.nickname.toUpperCase()+" did not learn " + this.attackLearning.toUpperCase()+".",
                                                       null, null,
                                       this.nextAction))),
                                   new DisplayText.Clear(game,
@@ -7715,10 +7725,7 @@ class DrawEnemyHealth extends Action {
             // probly remove
             this.bgSprite.setPosition(this.translateAmt.x, this.translateAmt.y);
             this.bgSprite.draw(game.uiBatch);
-            String name = game.battle.oppPokemon.name.toUpperCase();
-            if (name.contains("UNOWN")) {
-                name = "UNOWN";
-            }
+            String name = game.battle.oppPokemon.nickname.toUpperCase();
             char[] textArray = name.toCharArray();
             SpriteProxy letterSprite;
             for (int i=0; i < textArray.length; i++) {
@@ -7866,10 +7873,7 @@ class DrawFriendlyHealth extends Action {
 
     //        this.helperSprite.draw(game.floatingBatch);    // debug
 
-            String name = game.player.currPokemon.name.toUpperCase();
-            if (name.contains("UNOWN")) {
-                name = "UNOWN";
-            }
+            String name = game.player.currPokemon.nickname.toUpperCase();
             char[] textArray = name.toCharArray();
             SpriteProxy letterSprite;
             int offset = 0;
@@ -8624,7 +8628,7 @@ class DrawPokemonMenu extends MenuAction {
             // TODO: I just need to implement real vs displayed name, somehow
             //       Displayed is probably the nickname, whereas real probably
             //       should be an enum, maybe.
-            char[] textArray = currPokemon.name.split("_")[0].toUpperCase().toCharArray();
+            char[] textArray = currPokemon.nickname.split("_")[0].toUpperCase().toCharArray();
             Sprite letterSprite;
             for (int j=0; j < textArray.length; j++) {
                 letterSprite = game.textDict.get(textArray[j]);
@@ -8868,7 +8872,7 @@ class DrawPokemonMenu extends MenuAction {
 //                                      this.prevMenu)))));
                     game.insertAction(new PlaySound("potion1", null));
                     Action nextAction = new RestoreHealth(currPokemon, -restoreAmt,
-                                        new DisplayText(game, currPokemon.name.toUpperCase()+" gained "+String.valueOf(restoreAmt)+" hp!", null, null,
+                                        new DisplayText(game, currPokemon.nickname.toUpperCase()+" gained "+String.valueOf(restoreAmt)+" hp!", null, null,
                                         new SetField(this, "goAway", true,
                                         null)));
                     if (game.battle.drawAction == null) {
@@ -8908,7 +8912,7 @@ class DrawPokemonMenu extends MenuAction {
                     }
                     currPokemon.gainLevel(1);
                     currPokemon.currentStats.put("hp", currPokemon.maxStats.get("hp"));
-                    game.insertAction(new DisplayText(game, currPokemon.name.toUpperCase()+" grew to level "+String.valueOf(currPokemon.level)+"!", "fanfare1.ogg", null,
+                    game.insertAction(new DisplayText(game, currPokemon.nickname.toUpperCase()+" grew to level "+String.valueOf(currPokemon.level)+"!", "fanfare1.ogg", null,
                                       new SetField(this, "goAway", true,
                                       new DrawPokemonMenu.Outro(
                                       this.prevMenu))));
@@ -9073,7 +9077,7 @@ class DrawPokemonMenu extends MenuAction {
                     this.disabled = true;
                     game.insertAction(this.prevMenu);
                     return new PlaySound("error1",
-                           new DisplayText(game, game.player.currPokemon.name.toUpperCase()+" is trapped!", null, null,
+                           new DisplayText(game, game.player.currPokemon.nickname.toUpperCase()+" is trapped!", null, null,
                            new SetField(this.prevMenu, "disabled", false,
                            null)));
                 }
@@ -9241,7 +9245,7 @@ class DrawPokemonMenu extends MenuAction {
                 //
                 return new SelectedMenu.ExitAfterActions(this.prevMenu,
                        new PlaySound(pokemon,
-                       new DisplayText(game, pokemon.name.toUpperCase()+" used DIG! Press C and V to select terrain.", null, null,
+                       new DisplayText(game, pokemon.nickname.toUpperCase()+" used DIG! Press C and V to select terrain.", null, null,
                        null)));
             }
             
@@ -9292,7 +9296,7 @@ class DrawPokemonMenu extends MenuAction {
                 //
                 return new SelectedMenu.ExitAfterActions(this.prevMenu,
                        new PlaySound(pokemon,
-                       new DisplayText(game, pokemon.name.toUpperCase()+" used BUILD! Press C and V to select tiles.", null, null,
+                       new DisplayText(game, pokemon.nickname.toUpperCase()+" used BUILD! Press C and V to select tiles.", null, null,
                        null)));
             }
             else if (word.equals("CUT")) {
@@ -9308,7 +9312,7 @@ class DrawPokemonMenu extends MenuAction {
                 game.player.currFieldMove = "CUT";
                 return new SelectedMenu.ExitAfterActions(this.prevMenu,
                        new PlaySound(pokemon,
-                       new DisplayText(game, pokemon.name.toUpperCase()+" is using CUT!", null, null,
+                       new DisplayText(game, pokemon.nickname.toUpperCase()+" is using CUT!", null, null,
                        null)));
             }
             else if (word.equals("SMASH")) {
@@ -9318,7 +9322,7 @@ class DrawPokemonMenu extends MenuAction {
                 game.player.currFieldMove = "SMASH";
                 return new SelectedMenu.ExitAfterActions(this.prevMenu,
                        new PlaySound(pokemon,
-                       new DisplayText(game, pokemon.name.toUpperCase()+" is using ROCK SMASH!", null, null,
+                       new DisplayText(game, pokemon.nickname.toUpperCase()+" is using ROCK SMASH!", null, null,
                        null)));
             }
             else if (word.equals("POWER")) {
@@ -9328,7 +9332,7 @@ class DrawPokemonMenu extends MenuAction {
                 game.player.currFieldMove = "POWER";
                 return new SelectedMenu.ExitAfterActions(this.prevMenu,
                        new PlaySound(pokemon,
-                       new DisplayText(game, pokemon.name.toUpperCase()+" is using POWER! Power machinery by pressing Z.", null, null,
+                       new DisplayText(game, pokemon.nickname.toUpperCase()+" is using POWER! Power machinery by pressing Z.", null, null,
                        null)));
             }
             else if (word.equals("HEADBUTT")) {
@@ -9343,7 +9347,7 @@ class DrawPokemonMenu extends MenuAction {
                 game.player.currFieldMove = "HEADBUTT";
                 return new SelectedMenu.ExitAfterActions(this.prevMenu,
                        new PlaySound(pokemon,
-                       new DisplayText(game, pokemon.name.toUpperCase()+" is using HEADBUTT!", null, null,
+                       new DisplayText(game, pokemon.nickname.toUpperCase()+" is using HEADBUTT!", null, null,
                        null)));
             }
             else if (word.equals("RIDE")) {
@@ -9357,7 +9361,7 @@ class DrawPokemonMenu extends MenuAction {
                 game.player.currFieldMove = "RIDE";
                 return new SelectedMenu.ExitAfterActions(this.prevMenu,
                        new PlaySound(pokemon,
-                       new DisplayText(game, pokemon.name.toUpperCase()+" is using RIDE!", null, null,
+                       new DisplayText(game, pokemon.nickname.toUpperCase()+" is using RIDE!", null, null,
                        null)));
             }
             else if (word.equals("ATTACK")) {
@@ -9367,7 +9371,7 @@ class DrawPokemonMenu extends MenuAction {
                 game.player.currFieldMove = "ATTACK";
                 return new SelectedMenu.ExitAfterActions(this.prevMenu,
                        new PlaySound(pokemon,
-                       new DisplayText(game, pokemon.name.toUpperCase()+" is using ATTACK!", null, null,
+                       new DisplayText(game, pokemon.nickname.toUpperCase()+" is using ATTACK!", null, null,
                        null)));
             }
             // TODO: how to make pokemon stop following
@@ -9379,7 +9383,7 @@ class DrawPokemonMenu extends MenuAction {
                 game.player.hmPokemon = pokemon;
                 return new SelectedMenu.ExitAfterActions(this.prevMenu,
                        new PlaySound(pokemon,
-                       new DisplayText(game, pokemon.name.toUpperCase()+" is following you around!", null, null,
+                       new DisplayText(game, pokemon.nickname.toUpperCase()+" is following you around!", null, null,
                        null)));
             }
             return null;
@@ -10316,7 +10320,7 @@ class DrawUseTossMenu extends MenuAction {
         }
         // Not allowed to catch ghosts (for now)
         if (itemName.contains("ball") && game.battle.oppPokemon.isGhost) {
-            game.insertAction(new DisplayText(game, game.battle.oppPokemon.name.toUpperCase()+" canì be caught!", null, null,
+            game.insertAction(new DisplayText(game, game.battle.oppPokemon.nickname.toUpperCase()+" canì be caught!", null, null,
                               new SetField(this.prevMenu, "disabled", false,
                               this.prevMenu)));
             return;
@@ -10638,7 +10642,7 @@ class DrawYesNoMenu extends MenuAction {
     }
 }
 
-// scroll enemy pkmn off screen
+// Scroll enemy pkmn off screen
 class EnemyFaint extends Action {
     ArrayList<Vector2> positions;
     ArrayList<Integer> repeats;
@@ -10729,15 +10733,20 @@ class EnemyFaint extends Action {
             this.firstStep = false;
         }
 
-        // if done with anim, do nextAction
+        // If done with anim, do nextAction
         if (positions.isEmpty() || repeats.isEmpty()) {
-            // remove enemy from route, and add a new pokemon in route
+            // Remove enemy from route, and add a new pokemon in route
             if (game.type != Game.Type.CLIENT) {
                 game.map.currRoute.pokemon.remove(game.battle.oppPokemon);
+                System.out.println(game.battle.oppPokemon.specie.name);
+                for (Pokemon pokemon : game.map.currRoute.pokemon) {
+                    System.out.println(pokemon.specie.name);
+                }
                 game.map.currRoute.genPokemon(256);
                 // TODO: debug, remove
+                System.out.println("here2");
                 for (Pokemon pokemon : game.map.currRoute.pokemon) {
-                    System.out.println(pokemon.name);
+                    System.out.println(pokemon.specie.name);
                 }
             }
 
@@ -11298,12 +11307,12 @@ class CheckEvo extends Action {
         if (this.pokemon.gainedLevel) {
             this.pokemon.gainedLevel = false;
             for (int i=1; i <= this.pokemon.level; i++) {
-                if (Specie.gen2Evos.get(this.pokemon.name.toLowerCase()).containsKey(String.valueOf(i))) {
-                    String evolveTo = Specie.gen2Evos.get(this.pokemon.name.toLowerCase()).get(String.valueOf(i));
+                if (Specie.gen2Evos.get(this.pokemon.specie.name.toLowerCase()).containsKey(String.valueOf(i))) {
+                    String evolveTo = Specie.gen2Evos.get(this.pokemon.specie.name.toLowerCase()).get(String.valueOf(i));
                     this.nextAction = new WaitFrames(game, 61,
                                     new WaitFrames(game, 3,  // NOTE: this is in case I add 3 frame delay to DisplayText, in that case
                                                              // remove this line.
-                                    new DisplayText(game, "What? "+this.pokemon.name.toUpperCase()+" is evolving!",
+                                    new DisplayText(game, "What? "+this.pokemon.nickname.toUpperCase()+" is evolving!",
                                                     null, true, false,
                                     new WaitFrames(game, 51,
                                     new EvolutionAnim(this.pokemon, evolveTo,
@@ -11315,7 +11324,7 @@ class CheckEvo extends Action {
                                     new PlaySound(new Pokemon(evolveTo.toLowerCase(), 10),
                                     new DisplayText.Clear(game,
                                     new WaitFrames(game, 3,
-                                    new DisplayText(game, "Congratulations! Your "+this.pokemon.name.toUpperCase(),
+                                    new DisplayText(game, "Congratulations! Your "+this.pokemon.nickname.toUpperCase(),
                                                     null, true, true,
                                     new DisplayText.Clear(game,
                                     new WaitFrames(game, 3,
@@ -11361,7 +11370,7 @@ class GainExpAnimation extends Action {
             game.actionStack.remove(this);
             Action action = new DisplayText.Clear(game,
                             new WaitFrames(game, 3,
-                            new DisplayText(game, pokemon.name.toUpperCase() + " grew to level " + pokemon.level+"!",
+                            new DisplayText(game, pokemon.nickname.toUpperCase() + " grew to level " + pokemon.level+"!",
                                             "fanfare1.ogg", true, true,
                             null)));
             // Check if any moves learned
@@ -11376,7 +11385,7 @@ class GainExpAnimation extends Action {
                         if (pokemon.attacks[i] == null) {
                             action.append(new DisplayText.Clear(game,
                                           new WaitFrames(game, 3,
-                                          new DisplayText(game, pokemon.name.toUpperCase() + " learned " + attack.toUpperCase()+"!",
+                                          new DisplayText(game, pokemon.nickname.toUpperCase() + " learned " + attack.toUpperCase()+"!",
                                                           "fanfare1.ogg", true, true,
                                           null))));
                             pokemon.attacks[i] = attack;
@@ -11390,7 +11399,7 @@ class GainExpAnimation extends Action {
                     if (!learned) {
                         action.append(new DisplayText.Clear(game,
                                       new WaitFrames(game, 3,
-                                      new DisplayText(game, pokemon.name.toUpperCase() + " is trying to learn " + attack.toUpperCase()+".",
+                                      new DisplayText(game, pokemon.nickname.toUpperCase() + " is trying to learn " + attack.toUpperCase()+".",
                                                       null, null,
                                       new DisplayText(game, "Which move should be forgotten?",
 //                                                      null, true, false,
@@ -11635,7 +11644,7 @@ class PokemonCaughtEvents extends Action {
 
         // step through DisplayText until finished
         // String string1 = game.battle.oppPokemon.name.toUpperCase()+" was    caught!";
-        String string1 = "All right! "+game.battle.oppPokemon.name.toUpperCase()+" was caught!";
+        String string1 = "All right! "+game.battle.oppPokemon.nickname.toUpperCase()+" was caught!";
         // demo code
 //        String string2 = ""+game.player.name+" gained "+Character.forDigit(adrenaline,10)+" ADRENALINE!";
 
@@ -11730,7 +11739,7 @@ class PrintAngryEating extends Action {
     @Override
     public void step(Game game) {
         if (game.battle.oppPokemon.angry > 0) {
-            String textString = "Wild " + game.battle.oppPokemon.name.toUpperCase() + " is angry!";
+            String textString = "Wild " + game.battle.oppPokemon.nickname.toUpperCase() + " is angry!";
             game.insertAction(new DisplayText(game, textString, null, null, this.nextAction));
             game.actionStack.remove(this);
 
@@ -11745,7 +11754,7 @@ class PrintAngryEating extends Action {
             return;
         }
         else if (game.battle.oppPokemon.eating > 0) {
-            String textString = "Wild " + game.battle.oppPokemon.name.toUpperCase() + " is eating!";
+            String textString = "Wild " + game.battle.oppPokemon.nickname.toUpperCase() + " is eating!";
             game.insertAction(new DisplayText(game, textString, null, null, this.nextAction));
             game.actionStack.remove(this);
 
@@ -11861,7 +11870,7 @@ class SpecialBattleMegaGengar extends Action {
             SpecialMegaGengar1 gengar = new SpecialMegaGengar1(70);
             game.battle.oppPokemon = gengar;
 
-            Action triggerAction = new PlaySound(game.player.currPokemon.name,
+            Action triggerAction = new PlaySound(game.player.currPokemon.specie.name,
                                    new WaitFrames(game, 6,
                                    new DrawBattleMenuNormal(game, null)
                                    ));
@@ -11882,7 +11891,7 @@ class SpecialBattleMegaGengar extends Action {
                                  ),
                                  new WaitFrames(game, 39,
                                  new MovePlayerOffScreen(game,
-                                 new DisplayText(game, "Go! "+game.player.currPokemon.name.toUpperCase()+"!", null, triggerAction,
+                                 new DisplayText(game, "Go! "+game.player.currPokemon.nickname.toUpperCase()+"!", null, triggerAction,
                                  new SplitAction(new DrawFriendlyHealth(game),
                                  new ThrowOutPokemon(game, // this draws pkmn sprite permanently until battle ends, ie until game.battle.drawAction == null
                                  triggerAction
@@ -12207,7 +12216,7 @@ class SpecialBattleMegaGengar extends Action {
             // start next action (pokemon cry) but continue animation
             if (this.timer == 30) {
                 // mega gengar cry
-                game.insertAction(new PlaySound(game.battle.oppPokemon.name,
+                game.insertAction(new PlaySound(game.battle.oppPokemon.specie.name,
                                                  null));
             }
 
@@ -12445,16 +12454,16 @@ class SpecialBattleMewtwo extends Action {
                                          new SpecialBattleMewtwo.RocksEffect1(),
                                  new SplitAction(
                                          new SpecialBattleMewtwo.RippleEffect1(),
-                                 new PlaySound(game.battle.oppPokemon.name,  // TODO: cry not working for dex num 150
+                                 new PlaySound(game.battle.oppPokemon.specie.name,  // TODO: cry not working for dex num 150
 //                                 new PlaySound(game.battle.oppPokemon,  // TODO: remove
-                                 new DisplayText(game, "Wild "+game.battle.oppPokemon.name.toUpperCase()+" appeared!", null, null,
+                                 new DisplayText(game, "Wild "+game.battle.oppPokemon.nickname.toUpperCase()+" appeared!", null, null,
                                  new SplitAction(
                                          new WaitFrames(game, 1,
                                          new DrawEnemyHealth(game)
                                  ),
                                  new WaitFrames(game, 39,
                                  new MovePlayerOffScreen(game,
-                                 new DisplayText(game, "Go! "+game.player.currPokemon.name.toUpperCase()+"!", null, triggerAction,
+                                 new DisplayText(game, "Go! "+game.player.currPokemon.nickname.toUpperCase()+"!", null, triggerAction,
 //                                 new SplitAction(  // TODO: gen 1 animation. remove
 //                                     new DrawFriendlyHealth(game),
                                  // TODO: this was for gen1
@@ -14646,7 +14655,7 @@ class DrawStatsScreen extends MenuAction {
             game.uiBatch.draw(TextureCache.femaleSymbol, 144, 144 -8);
         }
         // Name 64, 120
-        char[] textArray = this.pokemon.name.toUpperCase().toCharArray();
+        char[] textArray = this.pokemon.nickname.toUpperCase().toCharArray();
         Sprite letterSprite;
         for (int j=0; j < textArray.length; j++) {
             letterSprite = game.transparentDict.get(textArray[j]);
@@ -14654,34 +14663,34 @@ class DrawStatsScreen extends MenuAction {
         }
         
         if (this.currIndex == 0) {
-            // max health 17, 57
-            int maxHealth = this.pokemon.maxStats.get("hp");
-            int hundredsPlace = maxHealth/100;
+            // Draw pkmn current health text
+            int currHealth = this.pokemon.currentStats.get("hp");
+            int hundredsPlace = currHealth/100;
             if (hundredsPlace > 0) {
                 Sprite hundredsPlaceSprite = game.transparentDict.get(Character.forDigit(hundredsPlace,10));
                 game.uiBatch.draw(hundredsPlaceSprite, 16-8, 56);
             }
-            tensPlace = (maxHealth % 100) / 10;
+            tensPlace = (currHealth % 100) / 10;
             if (tensPlace > 0 || hundredsPlace > 0) {
                 tensPlaceSprite = game.transparentDict.get(Character.forDigit(tensPlace, 10));
                 game.uiBatch.draw(tensPlaceSprite, 16-8 +8, 56);
             }
-            onesPlace = maxHealth % 10;
+            onesPlace = currHealth % 10;
             onesPlaceSprite = game.transparentDict.get(Character.forDigit(onesPlace,10));
             game.uiBatch.draw(onesPlaceSprite, 16-8 +16, 56);
-            // Draw pkmn current health text
-            int currHealth = this.pokemon.currentStats.get("hp");
-            hundredsPlace = currHealth/100;
+            // Max health
+            int maxHealth = this.pokemon.maxStats.get("hp");
+            hundredsPlace = maxHealth/100;
             if (hundredsPlace > 0) {
                 Sprite hundredsPlaceSprite = game.transparentDict.get(Character.forDigit(hundredsPlace, 10));
                 game.uiBatch.draw(hundredsPlaceSprite, 48-8, 56);
             }
-            tensPlace = (currHealth % 100) / 10;
+            tensPlace = (maxHealth % 100) / 10;
             if (tensPlace > 0 || hundredsPlace > 0) {
                 tensPlaceSprite = game.transparentDict.get(Character.forDigit(tensPlace, 10));
                 game.uiBatch.draw(tensPlaceSprite, 48-8 +8, 56);
             }
-            onesPlace = currHealth % 10;
+            onesPlace = maxHealth % 10;
             onesPlaceSprite = game.transparentDict.get(Character.forDigit(onesPlace, 10));
             game.uiBatch.draw(onesPlaceSprite, 48-8 +16, 56);
 

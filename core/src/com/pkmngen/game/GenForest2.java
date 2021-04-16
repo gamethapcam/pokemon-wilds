@@ -1825,6 +1825,7 @@ class GenIsland1 extends Action {
                     for (int i=0; i < interiorTiles.size(); i++) {
                         currLayer = interiorTiles.get(i);
                         // TODO: uncomment, I think
+                        // TODO: this has to be uncommented or game won't work when generating full island
 //                        if (currLayer == null) {
 //                            continue;
 //                        }
@@ -1906,8 +1907,8 @@ class GenIsland1 extends Action {
                 continue;
             }
             for (Pokemon pokemon : new ArrayList<Pokemon>(tile.routeBelongsTo.pokemon)) {
-                boolean isBaseSpecies = Pokemon.baseSpecies.get(pokemon.name.toLowerCase()).equalsIgnoreCase(pokemon.name);
-                boolean hasEvo = !Specie.gen2Evos.get(pokemon.name).isEmpty();
+                boolean isBaseSpecies = Pokemon.baseSpecies.get(pokemon.specie.name.toLowerCase()).equalsIgnoreCase(pokemon.specie.name);
+                boolean hasEvo = !Specie.gen2Evos.get(pokemon.specie.name).isEmpty();
 
                 if (tile.routeBelongsTo.name.contains("beach")) {
                     hasEvo = !hasEvo;  // want wartortle, croconaw, etc to walk around
@@ -1916,7 +1917,9 @@ class GenIsland1 extends Action {
                     isBaseSpecies = false;
                     hasEvo = false;  // yeet everything
                 }
-                if (!isBaseSpecies && !hasEvo) {
+                // Don't yeet pokemon out of routes in headbutt trees.
+                boolean headbuttable = tile.attrs.containsKey("headbuttable") && tile.attrs.get("headbuttable");
+                if (!headbuttable && !isBaseSpecies && !hasEvo) {
                     tile.routeBelongsTo.pokemon.remove(pokemon);
                     int baseChance = 192;
                     if (tile.routeBelongsTo.name.contains("forest")) {
@@ -2476,9 +2479,9 @@ class GenIsland1 extends Action {
 //                                    pokemon.mapTiles = game.map.tiles;  // TODO: test
                                     pokemon.mapTiles = game.map.overworldTiles;
                                     //pokemon.name.toLowerCase().equals("tauros") || 
-                                    if (pokemon.name.toLowerCase().equals("ekans")
-                                            || pokemon.name.toLowerCase().equals("pidgey") || pokemon.name.toLowerCase().equals("spearow")
-                                            || pokemon.name.toLowerCase().equals("rattata")) {
+                                    if (pokemon.specie.name.toLowerCase().equals("ekans")
+                                            || pokemon.specie.name.toLowerCase().equals("pidgey") || pokemon.specie.name.toLowerCase().equals("spearow")
+                                            || pokemon.specie.name.toLowerCase().equals("rattata")) {
                                         pokemon.happiness = 0;
                                     }
                                     pokemon.standingAction = pokemon.new Standing();
@@ -2486,9 +2489,9 @@ class GenIsland1 extends Action {
                                     this.pokemonToAdd.put(pokemon.position.cpy(), pokemon);
 
                                     // Add mates for some pokemon (at same position)
-                                    if (GenForest2.mates2.containsKey(pokemon.name)) {
+                                    if (GenForest2.mates2.containsKey(pokemon.specie.name)) {
                                         String oppGender = pokemon.gender.equals("male") ? "female" : "male";
-                                        Pokemon mate = new Pokemon(GenForest2.mates2.get(pokemon.name), pokemon.level);
+                                        Pokemon mate = new Pokemon(GenForest2.mates2.get(pokemon.specie.name), pokemon.level);
                                         mate.gender = oppGender;
                                         mate.position = pokemon.position.cpy().add(16, 0);
                                         mate.mapTiles = game.map.overworldTiles;
@@ -2516,7 +2519,7 @@ class GenIsland1 extends Action {
                                     pokemon.standingAction = pokemon.new Standing();
                                     this.pokemonToAdd.put(pokemon.position.cpy(), pokemon);
                                     String oppGender = pokemon.gender.equals("male") ? "female" : "male";
-                                    Pokemon mate = new Pokemon(GenForest2.mates.get(pokemon.name), pokemon.level);
+                                    Pokemon mate = new Pokemon(GenForest2.mates.get(pokemon.specie.name), pokemon.level);
                                     mate.gender = oppGender;
                                     mate.position = pokemon.position.cpy().add(16, 0);
                                     mate.mapTiles = game.map.overworldTiles;
@@ -2762,15 +2765,17 @@ class GenIsland1 extends Action {
                                     ApplyBlotch(game, "grass", newTile, nextSize, grassTiles, 0, false, blotchRoute);
                                 }
                                 else if (this.rand.nextInt(10) < 1) {
-                                    Route tempRoute = new Route("oasis1", 22);
-                                    tempRoute.allowedPokemon.clear();
-                                    tempRoute.pokemon.clear();
+                                    Route tempRoute = new Route("", 22);
+                                    tempRoute.name = "oasis1";
                                     int randInt = this.rand.nextInt(2);
                                     if (randInt == 0) {
                                         String[] pokemon = new String[]{"aexeggutor"};
                                         randInt = this.rand.nextInt(pokemon.length);
-                                        tempRoute.allowedPokemon.add(pokemon[randInt]);
-                                        tempRoute.genPokemon(256);
+//                                        tempRoute.allowedPokemon.add(pokemon[randInt]);
+//                                        tempRoute.genPokemon(256);
+                                        tempRoute.pokemon.add(new Pokemon(pokemon[randInt],
+                                                                          tempRoute.level,
+                                                                          Pokemon.Generation.CRYSTAL));
                                     }
                                     newTile = new Tile("tree5", edge, true, tempRoute);
                                 }
@@ -5259,10 +5264,10 @@ class GenIsland1 extends Action {
             game.insertAction(pokemon.standingAction);
             // TODO: ideally wouldn't do this but not sure what to do
             // Nido family requires 'ground' habitat.
-            if (pokemon.name.contains("nido") && pokemon.gender.equals("female")) {
+            if (pokemon.specie.name.contains("nido") && pokemon.gender.equals("female")) {
                 game.map.tiles.put(pokemon.position.cpy(), new Tile("mountain3", pokemon.position.cpy(), true));
             }
-            else if (pokemon.name.equals("charizard") && pokemon.gender.equals("female")) {
+            else if (pokemon.specie.name.equals("charizard") && pokemon.gender.equals("female")) {
                 game.map.tiles.put(pokemon.position.cpy(), new Tile("green1", "campfire1", pokemon.position.cpy(), true));
             }
         }
