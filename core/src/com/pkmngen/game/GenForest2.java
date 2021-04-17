@@ -575,7 +575,7 @@ public class GenForest2 extends Action {
         // randomNum = 0; // debug
         return squares.get(randomNum);
     }
-    
+
     public static boolean[][] Maze_Algo2(int width, int height, float complexity, float density, Random rand) {
         width = (int)(width / 2) * 2 + 2;
         height = (int)(height / 2) * 2 + 2;
@@ -594,13 +594,13 @@ public class GenForest2 extends Action {
             }
         }
         for (int i=0; i < density; i++) {
-            // get even number between width and height
-            int x = rand.nextInt( (int)(width / 2)  ) * 2; //+1 b/c java excludes this number
+            // Get even number between width and height
+            int x = rand.nextInt( (int)(width / 2)  ) * 2;
             int y = rand.nextInt( (int)(height / 2)  ) * 2;
             Z[x][y] = Boolean.TRUE;
 
             for (int j=0; j < complexity; j++) {
-                // compile list of neighboring cells
+                // Compile list of neighboring cells
                 ArrayList<int[]> neighbours = new ArrayList<int[]>();
                 if (x > 1) { neighbours.add(new int[]{x - 2, y}); }
                 if (x < width - 2) { neighbours.add(new int[]{x + 2, y}); }
@@ -621,7 +621,7 @@ public class GenForest2 extends Action {
                 }
             }
         }
-        // debug - print maze
+        // Debug - print maze
         for (int i=height-1; i >= 0; i--) {
             for (int j=0; j < width; j++) {
                 System.out.print(String.valueOf(Z[j][i] ? 1 : 0)+" ");
@@ -630,6 +630,84 @@ public class GenForest2 extends Action {
         }
         return Z;
     }
+    
+
+    /**
+     * Simplify density and complexity as an integer. Accept startLocs to override maze wall origin points.
+     * 
+     * startLocs is modified and turns into endpoints.
+     */
+    public static boolean[][] Maze_Algo3(int width, int height, float complexity, float density, Random rand, ArrayList<Vector2> startLocs) {
+        width = (int)(width / 2) * 2 + 2;
+        height = (int)(height / 2) * 2 + 2;
+        
+        ArrayList<Vector2> endpoints = new ArrayList<Vector2>();
+
+        boolean[][] Z = new boolean[ width ][ height ];
+
+        // Fill borders
+//        for (int i=0; i < width; i++) {
+//            for (int j=0; j < height; j++) {
+//                if ( i == 0 || j == 0 || i == width-2 || j == height-2) {
+//                    Z[i][j] = Boolean.TRUE;
+//                }
+//            }
+//        }
+        for (int i=0; i < density; i++) {
+            // Get even number between width and height
+            int x;
+            int y;
+            if (!startLocs.isEmpty()) {
+                Vector2 newLoc = startLocs.remove(0);
+                x = (int)newLoc.x;
+                y = (int)newLoc.y;
+            }
+            else {
+                x = rand.nextInt( (int)(width / 2)  ) * 2;
+                y = rand.nextInt( (int)(height / 2)  ) * 2;
+            }
+            Z[x][y] = Boolean.TRUE;
+
+            for (int j=0; j < complexity; j++) {
+                // Compile list of neighboring cells
+                ArrayList<int[]> neighbours = new ArrayList<int[]>();
+                if (x > 1) { neighbours.add(new int[]{x - 2, y}); }
+                if (x < width - 2) { neighbours.add(new int[]{x + 2, y}); }
+                if (y > 1) { neighbours.add(new int[]{x, y - 2}); }
+                if (y < height - 2) { neighbours.add(new int[]{x, y + 2}); }
+
+                if (!neighbours.isEmpty()) {
+                    int randomNum = rand.nextInt(neighbours.size()); //-1? no, python includes, java excludes this number
+                    int x_ = neighbours.get(randomNum)[0];
+                    int y_ = neighbours.get(randomNum)[1];
+
+                    if (Z[x_][y_] == Boolean.FALSE) {
+                        Z[x_][y_] = Boolean.TRUE;
+                        Z[x_ + (int)((x - x_) / 2)][y_ + (int)((y - y_) / 2)] = Boolean.TRUE;
+                        x = x_;
+                        y = y_;
+                    }
+                }
+            }
+            // Done adding to wall at this point, so save this point as an endpoint.
+            endpoints.add(new Vector2(x, y));
+        }
+        // Debug - print maze
+        for (int i=height-1; i >= 0; i--) {
+            for (int j=0; j < width; j++) {
+                System.out.print(String.valueOf(Z[j][i] ? 1 : 0)+" ");
+            }
+            System.out.print("\n");
+        }
+
+        startLocs.clear();
+        for (Vector2 point : endpoints) {
+            startLocs.add(point);
+        }
+
+        return Z;
+    }
+    
 
     
     public static HashMap<Vector2, MazeNode> Maze_Algo1(int width, int height, float complexity, float density, int squareSize, Random rand) {
@@ -1440,8 +1518,8 @@ class GenIsland1 extends Action {
 
         Route blotchRoute = new Route("desert1", 40);
         ApplyBlotch(game, "desert", originTile, maxDist/36, this.tilesToAdd, 1, false, blotchRoute);
-        
-        
+
+
         // TODO: uncomment this for just giant island
 //        ApplyBlotch(game, "island", originTile, maxDist, this.tilesToAdd, 1, false, new Route("forest1", 22));
         HashMap<Vector2, Tile> mtnTiles = new HashMap<Vector2, Tile>();
@@ -1850,7 +1928,6 @@ class GenIsland1 extends Action {
             }
         }
 
-        
         // TODO: test
         int nextSize = 230;
         Route currRoute = new Route("ruins1_outer", 44);
@@ -1898,7 +1975,193 @@ class GenIsland1 extends Action {
             }
         }
         tilesToAdd.put(newTile2.position.cpy(), new Tile("ruins1_NSEW", "stairs_down2", newTile2.position.cpy(), true, null));
+        String[][] names = new String[][]{{"ruins2_wall1", "ruins2_wall1", "ruins2_wall1", "ruins2_wall1", "ruins2_wall1", "ruins2_wall1", "ruins2_wall1", "ruins2_wall1"},
+                                          {"ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2"},
+                                          {"ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2"},
+                                          {"ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2"},
+                                          {"ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2"},
+                                          {"ruins_floor2", "ruins1_pillar1", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins1_pillar1", "ruins_floor2"},
+                                          {"ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2"},
+                                          {"ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2"},
+                                          {"ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2"},
+                                          {"ruins_floor2", "ruins_floor2", "ruins1_pillar1", "ruins_floor2", "ruins_floor2", "ruins1_pillar1", "ruins_floor2", "ruins_floor2"},
+                                          {"ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2"},
+                                          {"ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2"},
+                                          {"ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2"},
+                                          {"ruins_floor2", "ruins1_pillar1", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins1_pillar1", "ruins_floor2"},
+                                          {"ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2"},
+                                          {null, null, null, "ruins_floor2", "ruins_floor2_stairs", null, null, null, null}};
+        // Generate the ruins interior
+        // TODO: move to function like generateMansion
+        ArrayList<HashMap<Vector2, Tile>> interiorTiles = new ArrayList<HashMap<Vector2, Tile>>();
+        for (int i=0; i < 5; i++) {
+            interiorTiles.add(new HashMap<Vector2, Tile>());
+        }
+        HashMap<Vector2, Tile> currLayer;
+        Vector2 startLoc = new Vector2(10, 10);
+        Vector2 bl = newTile2.position.cpy().add((-10*3-1)*16, (-10*3-1)*16);
+        ArrayList<Vector2> startLocs = new ArrayList<Vector2>();
+        ArrayList<Vector2> endPoints = new ArrayList<Vector2>();
+        endPoints.add(startLoc);
+        boolean[][] maze;
+        currRoute = new Route("ruins1_inner", 44);
+        // Start from top level, work downward
+        for (int levelNum=interiorTiles.size()-1; levelNum >= 0; levelNum--) {
+            
+            currLayer = interiorTiles.get(levelNum);
+            
+            // Final layer so make volcarona room
+            if (levelNum == 0) {
+                for (int i=0; i < names.length; i++) {
+                    for (int j=0; j < names[i].length; j++) {
+                        if (names[i][j] == null) {
+                            continue;
+                        }
+                        Vector2 startPos = endPoints.get(0);
+                        Vector2 position = bl.cpy().add( (startPos.x*3 -3 +j)*16, (startPos.y*3 +16 -i)*16 );
+                        Tile newTile;
+                        if (names[i][j].equals("ruins_floor2_stairs")) {
+                            newTile = new Tile("ruins_floor2", "stairs_up1", position.cpy(), true, currRoute);
+                        }
+                        else {
+                            newTile = new Tile(names[i][j], position.cpy(), true, currRoute);
+                        }
+                        if (names[i][j].contains("pillar")) {
+                            newTile.items().put("torch", 1);
+                        }
+                        currLayer.put(position, newTile);
+                    }
+                }
+                continue;
+            }
+            
+            // This is for the first level
+            // 3 start locations to branch from
+            float complexity = 15;
+            for (Vector2 position : endPoints) {
+                currLayer.put(bl.cpy().add((position.x*3+1)*16, (position.y*3+1)*16), new Tile("ruins1_NSEW", "stairs_up1", bl.cpy().add((position.x*3+1)*16, (position.y*3+1)*16), true, null));
+                startLocs.add(position);
+                startLocs.add(position);
+                if (this.rand.nextInt(2) == 0 || levelNum == interiorTiles.size()-1) {
+                    startLocs.add(position);
+                    if (levelNum != interiorTiles.size()-1) {
+                        complexity = 10;
+                    }
+                }
+            }
+            endPoints.clear();
+            
+            // Generate a maze
+            int width = 20;
+            int height = 20;
+            float density = startLocs.size();
+            maze = GenForest2.Maze_Algo3(width, height, complexity, density, this.rand, startLocs);
+//            System.out.println("startLocs.size()");
+//            System.out.println(startLocs.size());
+            // Debug - remove
+            System.out.print("\n");
+            System.out.print("\n");
 
+            for (int j=maze.length-1; j >= 0; j--) {
+                for (int i=0; i < maze[j].length; i++) {
+//                    maze[j][i] = !maze[j][i];
+                    System.out.print(String.valueOf(maze[i][j] ? 1 : " ")+" ");
+                }
+                System.out.print("\n");
+            }
+
+            // TODO: make each node 3x3 (?) not 1x1
+            for (int i=0; i < maze.length; i++) {
+                for (int j=0; j < maze[i].length; j++) {
+                    if (maze[i][j]) {
+                        // This will overwrite stairs going up otherwise.
+                        // 3x3 grid of stuff
+                        for (int k=0; k < 3; k++) {
+                            for (int l=0; l < 4; l++) {
+                                Vector2 position = bl.cpy().add((i*3+k)*16, (j*3+l)*16);
+                                Tile currTile = currLayer.get(position);
+                                if (currTile == null || currTile.name.contains("wall")) {
+                                    if (l == 3) {
+                                        // ruins2_wall2
+                                        Tile newTile = new Tile("ruins2_wall1", position.cpy(), true, null);
+                                        if (i % 2 == 0 && k == 1 && this.rand.nextInt(4)> 0) {
+                                            newTile.items().put("torch", 1);
+                                        }
+                                        currLayer.put(position, newTile);
+                                    }
+                                    else {
+                                        String name = "desert4";
+                                        // TODO: remove
+                                        // Mod function was an attempt to make it 'splotch'
+                                        if (this.rand.nextInt(6 +2*Math.abs((i%8)-4)) > 5) {  //+k
+                                            name = "ruins_floor2";
+                                        }
+                                        currLayer.put(position, new Tile(name, position.cpy(), true, currRoute));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            
+            // Pick two endpoints to be stairs
+            int size = startLocs.size();
+            for (int i=0; i < size && i < 2; i++) {
+                startLoc = startLocs.remove(this.rand.nextInt(startLocs.size()));
+                System.out.println(startLoc);
+                for (int k=0; k < 3; k++) {
+                    for (int l=0; l < 3; l++) {
+                        Vector2 position = bl.cpy().add((startLoc.x*3+k)*16, (startLoc.y*3+l)*16);
+                        if (k == 1 && l == 1) {
+                            currLayer.put(position.cpy(), new Tile("ruins1_NSEW", "stairs_down2", position.cpy(), true, null));
+                        }
+                        else if (this.rand.nextInt(5) > 1) {
+                            currLayer.put(position.cpy(), new Tile("ruins_floor2", position.cpy(), true, currRoute));
+                        }
+                        else {
+                            currLayer.put(position.cpy(), new Tile("desert4", position.cpy(), true, currRoute));
+                            
+                        }
+                    }
+                }
+                endPoints.add(startLoc);
+                // Only place 1 stairs on final level
+                if (levelNum == 1) {
+                    break;
+                }
+            }
+            startLocs.clear();
+            
+        }
+        // Do this because stairs will go down one level
+        interiorTiles.add(new HashMap<Vector2, Tile>());
+
+        for (int i=0; i < interiorTiles.size(); i++) {
+            currLayer = interiorTiles.get(i);
+            // TODO: uncomment, I think
+            // TODO: this has to be uncommented or game won't work when generating full island
+//            if (currLayer == null) {
+//                continue;
+//            }
+            int interiorIndex = i +100 -5;
+            if (interiorIndex >= this.interiorTilesToAdd.size()) {
+                this.interiorTilesToAdd.add(currLayer);
+                continue;
+            }
+            if (this.interiorTilesToAdd.get(interiorIndex) == null) {
+                this.interiorTilesToAdd.remove(interiorIndex);
+                this.interiorTilesToAdd.add(interiorIndex, currLayer);
+                continue;
+            }
+            for (Vector2 key : currLayer.keySet()) {
+                this.interiorTilesToAdd.get(interiorIndex).put(key, currLayer.get(key));
+            }
+        }
+        
+        
+        
         // TODO: test
         // TODO: moving this broke things
         // Make all fully-evolved Pokemon overworld pokemon
@@ -1917,7 +2180,23 @@ class GenIsland1 extends Action {
                     isBaseSpecies = false;
                     hasEvo = false;  // yeet everything
                 }
-                // Don't yeet pokemon out of routes in headbutt trees.
+
+                if (tile.routeBelongsTo.name.equals("desert1")) {
+
+                    if (this.rand.nextInt(2048) >= 2047) {
+                        tile.routeBelongsTo.pokemon.remove(pokemon);
+                        pokemon.position = tile.position.cpy();
+                        pokemon.mapTiles = game.map.overworldTiles;
+                        pokemon.standingAction = pokemon.new Standing();  // Somehow this breaks things?
+                        this.pokemonToAdd.put(tile.position.cpy(), pokemon);
+                        if (pokemon.specie.name.equals("drapion")) {
+                            pokemon.aggroPlayer = true;
+                        }
+                        break;
+                    }
+                    continue;
+                }
+                // Don't yeet pokemon out of the routes contained in headbutt trees.
                 boolean headbuttable = tile.attrs.containsKey("headbuttable") && tile.attrs.get("headbuttable");
                 if (!headbuttable && !isBaseSpecies && !hasEvo) {
                     tile.routeBelongsTo.pokemon.remove(pokemon);
@@ -2263,7 +2542,8 @@ class GenIsland1 extends Action {
                         if (putTile < maxDist || shouldPut) {
 
                             if (type.equals("desert")) {
-                                Tile newTile = new Tile("desert4", edge);
+//                                Tile newTile = new Tile("desert4", edge);
+                                Tile newTile = new Tile("desert4", edge, true, currRoute);
                                 newTile.biome = "desert";
 
                                 if (this.rand.nextInt(maxDist) < 6) {
@@ -2328,7 +2608,8 @@ class GenIsland1 extends Action {
                                     int nextSize = 45; // +this.rand.nextInt(20);
                                     newTile = new Tile("desert2_trapinch_spawn", edge, true, currRoute);
                                     HashMap<Vector2, Tile> newTiles = new HashMap<Vector2, Tile>();
-                                    ApplyBlotch(game, "sand_pit1", newTile, nextSize, newTiles, 0, true, currRoute);
+                                    Route tempRoute = new Route("sand_pit1", 44);
+                                    ApplyBlotch(game, "sand_pit1", newTile, nextSize, newTiles, 0, true, tempRoute);
                                     grassTiles.putAll(newTiles);
                                 }
 
@@ -2713,7 +2994,6 @@ class GenIsland1 extends Action {
                                     }
                                     
                                 }
-                                
                                 tilesToAdd.put(newTile.position.cpy(), newTile);
                                 edgeTiles.put(newTile.position.cpy(), newTile);
                             }
@@ -2820,7 +3100,7 @@ class GenIsland1 extends Action {
                                 edgeTiles.put(newTile.position.cpy(), newTile);
                             }
                             else if (type.equals("desert_cacti3")) {
-                                Tile newTile = new Tile("desert4", edge);
+                                Tile newTile = new Tile("desert4", edge, true, currRoute);
                                 boolean doCactus = true;
                                 if (distance > 0) {
                                     doCactus = this.rand.nextInt((int)distance) < maxDist/8;
@@ -2838,7 +3118,7 @@ class GenIsland1 extends Action {
                                 edgeTiles.put(newTile.position.cpy(), newTile);
                             }
                             else if (type.equals("desert_cacti4")) {
-                                Tile newTile = new Tile("desert4", edge);
+                                Tile newTile = new Tile("desert4", edge, true, currRoute);
                                 if (this.rand.nextInt((int)(maxDist-distance)) < maxDist) {
                                     Route tempRoute = null;
                                     if (distance < maxDist/4) {
@@ -2854,7 +3134,7 @@ class GenIsland1 extends Action {
                                 edgeTiles.put(newTile.position.cpy(), newTile);
                             }
                             else if (type.equals("desert_cacti2")) {
-                                Tile newTile = new Tile("desert4", edge);
+                                Tile newTile = new Tile("desert4", edge, true, currRoute);
 
                                 if (distance < 2*maxDist/7) {
                                     

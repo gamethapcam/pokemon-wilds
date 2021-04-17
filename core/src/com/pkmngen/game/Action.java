@@ -7,6 +7,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -3387,6 +3388,61 @@ class TileEditor extends Action {
         }
         else if (this.timer == 60) {
 //            Gdx.gl.glClearColor(1, 1, 1, 1);  // TODO: why?
+        }
+        
+        
+        if (game.debugInputEnabled && Gdx.input.isKeyPressed(Input.Keys.P)) {
+
+            Vector3 worldCoordsTL = game.cam.unproject(new Vector3(-256, 0, 0f));
+            Vector3 worldCoordsBR = game.cam.unproject(new Vector3(game.currScreen.x, game.currScreen.y+128+64, 0f));
+            worldCoordsTL.x = (int)worldCoordsTL.x - (int)worldCoordsTL.x % 16;
+            worldCoordsTL.y = (int)worldCoordsTL.y - (int)worldCoordsTL.y % 16;
+            worldCoordsBR.x = (int)worldCoordsBR.x - (int)worldCoordsBR.x % 16;
+            worldCoordsBR.y = (int)worldCoordsBR.y - (int)worldCoordsBR.y % 16;
+//            System.out.println(game.viewport.getScreenWidth());
+//            System.out.println(game.viewport.getScreenHeight());
+            Vector3 startPos = worldCoordsTL; // new Vector3(worldCoordsTL.x, worldCoordsTL.y, 0f);
+            Vector3 endPos = worldCoordsBR; // new Vector3(worldCoordsBR.x, worldCoordsBR.y, 0f);
+            Tile tile;
+
+//            ArrayList<ArrayList<Tile>> allTiles = new ArrayList<ArrayList<Tile>>();
+            String[][] allTiles = new String[100][];
+            ArrayList<String> currTiles = new ArrayList<String>();
+
+            int i=0;
+            for (Vector2 currPos = new Vector2(startPos.x, startPos.y); currPos.y > endPos.y;) {
+                tile = game.map.tiles.get(currPos);
+                currPos.x += 16;
+                if (currPos.x > endPos.x) {
+                    currPos.x = startPos.x;
+                    currPos.y -= 16;
+//                    allTiles.add(currTiles);
+                    String[] currTilesArray = new String[currTiles.size()];
+                    int j = 0;
+                    for (String currTile : currTiles) {
+                        currTilesArray[j] = currTile;
+                        j++;
+                    }
+                    allTiles[i] = currTilesArray;
+                    currTiles.clear();
+                    i++;
+                }
+
+                if (!game.cam.frustum.pointInFrustum(currPos.x, currPos.y-32, game.cam.position.z) &&
+                        !game.cam.frustum.pointInFrustum(currPos.x+16, currPos.y+16+64, game.cam.position.z) &&
+                        !game.cam.frustum.pointInFrustum(currPos.x+16, currPos.y-32, game.cam.position.z) &&
+                        !game.cam.frustum.pointInFrustum(currPos.x, currPos.y+16+64, game.cam.position.z)) {
+                   continue;
+                }
+                if (tile == null) {
+                    currTiles.add(null);
+                }
+                else {
+                    currTiles.add(tile.name);
+                }
+            }
+            System.out.println(Arrays.deepToString(allTiles));
+
         }
         
 

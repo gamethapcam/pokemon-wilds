@@ -98,6 +98,7 @@ public class Game extends ApplicationAdapter {
     //       would have to be saved with the map I think
     public boolean levelScalingEnabled = true; 
     public static boolean fairyTypeEnabled = false; 
+    public static boolean catchExpEnabled = true; 
 
     HashMap<Character, SpriteProxy> brailleDict = new HashMap<Character, SpriteProxy>();
 
@@ -213,40 +214,40 @@ public class Game extends ApplicationAdapter {
      * Handle keyboard input to be used for debug-related things (screenshot, move/zoom camera, print actionStack).
      */
     private void handleDebuggingInput() {
-        if(Gdx.input.isKeyPressed(Input.Keys.Q)) {
+        if (Gdx.input.isKeyPressed(Input.Keys.Q)) {
             if (cam.zoom < 8) {
                 cam.zoom += 0.5;
             }
         }
-        if(Gdx.input.isKeyPressed(Input.Keys.E)) {
+        if (Gdx.input.isKeyPressed(Input.Keys.E)) {
             if (cam.zoom > 1) {
                 cam.zoom -= 0.5;
             }
         }
-        if(Gdx.input.isKeyPressed(Input.Keys.A)) {
+        if (Gdx.input.isKeyPressed(Input.Keys.A)) {
             if (cam.position.x > -10000)
                 cam.translate(-20, 0, 0);
         }
-        if(Gdx.input.isKeyPressed(Input.Keys.D)) {
+        if (Gdx.input.isKeyPressed(Input.Keys.D)) {
             if (cam.position.x < 10000)
                 cam.translate(20, 0, 0);
         }
-        if(Gdx.input.isKeyPressed(Input.Keys.S)) {
+        if (Gdx.input.isKeyPressed(Input.Keys.S)) {
             if (cam.position.y > -10000)
                 cam.translate(0, -20, 0);
         }
-        if(Gdx.input.isKeyPressed(Input.Keys.W)) {
+        if (Gdx.input.isKeyPressed(Input.Keys.W)) {
             if (cam.position.y < 10000)
                 cam.translate(0, 20, 0);
         }
-        if(Gdx.input.isKeyJustPressed(Input.Keys.F)) {
+        if (Gdx.input.isKeyJustPressed(Input.Keys.F)) {
             this.cam.zoom = 1;
         }
-        if(Gdx.input.isKeyJustPressed(Input.Keys.T)) {
+        if (Gdx.input.isKeyJustPressed(Input.Keys.T)) {
             CycleDayNight.dayTimer = 100;
         }
         // Print action stack in layer-order
-        if(Gdx.input.isKeyPressed(Input.Keys.P)) {
+        if (Gdx.input.isKeyPressed(Input.Keys.P)) {
             System.out.println("Layer, Name");
             for (Action action : this.actionStack) {
                 System.out.println(String.valueOf(action.getLayer()) + "  " + action.getClass().getName());
@@ -886,16 +887,17 @@ public class Game extends ApplicationAdapter {
             this.player.pokemon.add(new Pokemon("meganium", 46, Pokemon.Generation.CRYSTAL));
 //            this.player.pokemon.add(new Pokemon("ursaring", 46, Pokemon.Generation.CRYSTAL));
 
-            this.player.pokemon.add(new Pokemon("gabite", 46, Pokemon.Generation.CRYSTAL, true, false));
+            this.player.pokemon.add(new Pokemon("gabite", 11, Pokemon.Generation.CRYSTAL, true, false));
             this.player.pokemon.get(4).gender = "female";
-            this.player.pokemon.add(new Pokemon("garchomp", 46, Pokemon.Generation.CRYSTAL, true, false));
+            this.player.pokemon.add(new Pokemon("garchomp", 11, Pokemon.Generation.CRYSTAL, true, false));
             this.player.pokemon.get(5).gender = "male";
 //            this.player.pokemon.add(new Pokemon("darmanitan", 46, Pokemon.Generation.CRYSTAL, true, false));
 //            Pokemon temp = new Pokemon("combee_female", 46, Pokemon.Generation.CRYSTAL, false, false);
 //            temp.gender = "female";
 //            this.player.pokemon.add(temp);
 //            this.player.pokemon.add(new Pokemon("combee", 46, Pokemon.Generation.CRYSTAL, false, false));
-//            this.player.pokemon.get(2).attacks[0] = "ancientpower";
+            this.player.pokemon.get(2).attacks[0] = "giga drain";
+            this.player.pokemon.get(2).currentStats.put("hp", 10);
 
             // TODO: remove
 //            this.player.pokemon.add(new Pokemon("charizard", 60, Pokemon.Generation.CRYSTAL));

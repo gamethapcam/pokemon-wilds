@@ -2838,7 +2838,7 @@ public class Battle {
 
                 attackAction.append(new LoadAndPlayAnimation(game, attack.name, enemyPokemon, null));
                 attackAction.append(new LoadAndPlayAnimation(game, effectiveness, enemyPokemon,
-                                    Battle.depleteHealth(game, isFriendly, attack.damage,  // TODO: generic DepleteHealth class
+                                    Battle.depleteHealth(game, isFriendly, attack.damage, false, // TODO: generic DepleteHealth class
                                     new WaitFrames(game, 13,
                                     null))));
                 // If crit, display text.
@@ -2854,6 +2854,7 @@ public class Battle {
                                         new DisplayText(game, text_string, null, true, true,
                                         null))));
                 }
+                
                 // Determine flinch success
                 if (attack.effect.contains("FLINCH_HIT")) {
                     accuracy = (attack.effectChance*255)/100;
@@ -2863,6 +2864,68 @@ public class Battle {
                     }
                 }
             }
+
+            // Recover/Heal effects
+            if (attack.effect.equals("EFFECT_HEAL") ||
+                attack.effect.equals("EFFECT_SYNTHESIS") ||
+                attack.effect.equals("EFFECT_LEECH_HIT") ||
+                attack.effect.equals("EFFECT_DRAINING_KISS")) {
+                // Default value for Recover
+                int amount = friendlyPokemon.maxStats.get("hp")/2;
+                // Synthesis effect notes:
+                // https://bulbapedia.bulbagarden.net/wiki/Synthesis_(move)#Generation_II
+                // TODO: synthesis checks weather, restores more if harsh sunlight
+                //  weather not in the game yet (probably game.map.weather)
+                if (attack.effect.equals("EFFECT_SYNTHESIS")) {
+                    amount = friendlyPokemon.maxStats.get("hp")/4;
+                    // TODO: if harsh sunlight active, do hp/2
+                    //  If other weather active (hail, rain, sandstorm, ...), do hp/8
+                    // TODO: 'morning' time of day doesn't exist yet. Shouldn't require any change here tho.
+                    if (game.map.timeOfDay.equals("day")) {
+                        amount *= 2;
+                    }
+                }
+                else if (attack.effect.equals("EFFECT_LEECH_HIT")) {
+                    amount = attack.damage/2;
+                    if (amount < 1) {
+                        amount = 1;
+                    }
+                }
+                else if (attack.effect.equals("EFFECT_DRAINING_KISS")) {
+                    amount = (3*attack.damage)/4;
+                    if (amount < 1) {
+                        amount = 1;
+                    }
+                }
+                enemy = isFriendly ? "" : "Enemy ";
+                
+                if (friendlyPokemon.currentStats.get("hp") >= friendlyPokemon.maxStats.get("hp")) {
+                    attackAction.append(new DisplayText.Clear(game,
+                                        new WaitFrames(game, 3,
+                                        new DisplayText(game, enemy+friendlyPokemon.nickname.toUpperCase()+"' HP is full!",  // TODO: wrong text
+                                                        null, false, true,
+                                        null))));
+                }
+                else {
+                    attackAction.append(new LoadAndPlayAnimation(game, attack.name, enemyPokemon,
+                                        // TODO: probably need to wait 4/5 frames here
+                                        // to sync with animation length
+                                        new RestoreHealth(friendlyPokemon, -amount,
+                                        new DisplayText.Clear(game,
+                                        new WaitFrames(game, 3,
+                                        new DisplayText(game, friendlyPokemon.nickname.toUpperCase()+" regained health!", null, false, true,
+                                        null))))));
+                }
+            }
+
+            // Everything that should happen before the enemy pokemon faints needs
+            // to happen before this point.
+            if (attack.power != 0) {
+                attackAction.append(Battle.detectFaint(game, isFriendly, null));
+            }
+            
+            
+            
             // TODO: I'm probably going to have to move the effects with the additional HIT effects
             // - if opposing pokemon faints, that effect isn't supposed to trigger. it will currently.
             // - See: 'End of Attack' section, https://web.archive.org/web/20140712063943/http://www.upokecenter.com/content/pokemon-gold-version-silver-version-and-crystal-version-timing-notes
@@ -3165,58 +3228,6 @@ public class Battle {
                                         new DisplayText(game, enemy+enemyPokemon.nickname.toUpperCase()+"' "+enemyPokemon.attacks[attackIndex].toUpperCase()+" was disabled!",
                                                         null, false, true,
                                         null))));
-                }
-            }
-            // Recover/Heal effects
-            if (attack.effect.equals("EFFECT_HEAL") ||
-                attack.effect.equals("EFFECT_SYNTHESIS") ||
-                attack.effect.equals("EFFECT_LEECH_HIT") ||
-                attack.effect.equals("EFFECT_DRAINING_KISS")) {
-                // Default value for Recover
-                int amount = friendlyPokemon.maxStats.get("hp")/2;
-                // Synthesis effect notes:
-                // https://bulbapedia.bulbagarden.net/wiki/Synthesis_(move)#Generation_II
-                // TODO: synthesis checks weather, restores more if harsh sunlight
-                //  weather not in the game yet (probably game.map.weather)
-                if (attack.effect.equals("EFFECT_SYNTHESIS")) {
-                    amount = friendlyPokemon.maxStats.get("hp")/4;
-                    // TODO: if harsh sunlight active, do hp/2
-                    //  If other weather active (hail, rain, sandstorm, ...), do hp/8
-                    // TODO: 'morning' time of day doesn't exist yet. Shouldn't require any change here tho.
-                    if (game.map.timeOfDay.equals("day")) {
-                        amount *= 2;
-                    }
-                }
-                else if (attack.effect.equals("EFFECT_LEECH_HIT")) {
-                    amount = attack.damage/2;
-                    if (amount < 1) {
-                        amount = 1;
-                    }
-                }
-                else if (attack.effect.equals("EFFECT_DRAINING_KISS")) {
-                    amount = (3*attack.damage)/4;
-                    if (amount < 1) {
-                        amount = 1;
-                    }
-                }
-                enemy = isFriendly ? "" : "Enemy ";
-                
-                if (friendlyPokemon.currentStats.get("hp") >= friendlyPokemon.maxStats.get("hp")) {
-                    attackAction.append(new DisplayText.Clear(game,
-                                        new WaitFrames(game, 3,
-                                        new DisplayText(game, enemy+friendlyPokemon.nickname.toUpperCase()+"' HP is full!",  // TODO: wrong text
-                                                        null, false, true,
-                                        null))));
-                }
-                else {
-                    attackAction.append(new LoadAndPlayAnimation(game, attack.name, enemyPokemon,
-                                        // TODO: probably need to wait 4/5 frames here
-                                        // to sync with animation length
-                                        new RestoreHealth(friendlyPokemon, -amount,
-                                        new DisplayText.Clear(game,
-                                        new WaitFrames(game, 3,
-                                        new DisplayText(game, friendlyPokemon.nickname.toUpperCase()+" regained health!", null, false, true,
-                                        null))))));
                 }
             }
 
@@ -3996,15 +4007,41 @@ public class Battle {
         }
         return false;
     }
-    
+
+    public static Action depleteHealth(Game game, boolean isFriendly, int damage, Action nextAction) {
+        return Battle.depleteHealth(game, isFriendly, damage, true, nextAction);
+    }
     /**
      * TODO: just make DepleteHealth generic class
      */
-    public static Action depleteHealth(Game game, boolean isFriendly, int damage, Action nextAction) {
+    public static Action depleteHealth(Game game, boolean isFriendly, int damage, boolean detectFaint, Action nextAction) {
+        Action newAction;
         if (!isFriendly) {
-            return new DepleteFriendlyHealth(game.player.currPokemon, damage, nextAction);
+            newAction = new DepleteFriendlyHealth(game.player.currPokemon, damage, null);
         }
-        return new DepleteEnemyHealth(game, damage, nextAction);
+        else {
+            newAction = new DepleteEnemyHealth(game, damage, null);
+        }
+        // detectFaint == fale when needing to do things between depleting health and fainting
+        // the enemy, like gaining health from absorb, printing effectiveness
+        // text, etc.
+        if (detectFaint) {
+            newAction.append(Battle.detectFaint(game, isFriendly, null));
+        }
+        newAction.append(nextAction);
+        return newAction;
+    }
+
+    public static Action detectFaint(Game game, boolean isFriendly, Action nextAction) {
+        Action newAction;
+        if (!isFriendly) {
+            newAction = new DetectFriendlyFaint(game.player.currPokemon, null);
+        }
+        else {
+            newAction = new DetectEnemyFaint(null);
+        }
+        newAction.append(nextAction);
+        return newAction;
     }
 
     class CheckTrapped extends Action {
@@ -6186,12 +6223,38 @@ class CatchPokemonWobblesThenCatch extends Action {
                 Tile tile = game.map.tiles.get(game.battle.oppPokemon.position);
                 tile.items.remove(game.battle.oppPokemon.specie.name.toLowerCase());
             }
+
+            
             // Since pkmn was caught, add to players pokemon
-            Action newAction = new PokemonCaughtEvents(game,
-                               new SplitAction(new BattleFadeOut(game, null),
-                               new BattleFadeOutMusic(game,
+            PokemonCaughtEvents newAction = new PokemonCaughtEvents(game, 
+                                            new DisplayText(game, "All right! "+game.battle.oppPokemon.nickname.toUpperCase()+" was caught!", "fanfare1", null,
+                                            null));
+            if (Game.catchExpEnabled) {
+                int numPokemon = 0;
+                for (Pokemon pokemon : game.player.pokemon) {
+                    if (!pokemon.isEgg) {
+                        numPokemon++;
+                    }
+                }
+                if (numPokemon <= 0) {
+                    numPokemon = 1;
+                }
+                int expAmount = game.battle.calcFaintExp(numPokemon);
+                newAction.append(new DisplayText(game, game.player.name.toUpperCase()+"' POKéMON gained "+String.valueOf(expAmount)+" EXP. Points!",
+                                                 null, null,
+                                 null));
+                for (Pokemon pokemon : game.player.pokemon) {
+                    if (!pokemon.isEgg) {
+                        pokemon.exp += expAmount;
+                        newAction.append(new GainExpAnimation(pokemon, null));
+                    }
+                }
+            }
+            newAction.append(new SetField(newAction, "done", true,
+                             new SplitAction(new BattleFadeOut(game, null),
+                             new BattleFadeOutMusic(game,
 //                                new SetField(game.musicController, "resumeOverworldMusic", true,  // TODO: remove
-                               null)));
+                             null))));
             if (!game.battle.oppPokemon.specie.name.contains("regi")) {
                 newAction.append(new SetField(game.musicController, "resumeOverworldMusic", true, null));
             }
@@ -6517,94 +6580,97 @@ class DepleteEnemyHealth extends Action {
         if (game.battle.drawAction.drawEnemyHealthAction.currHealth <= this.targetSize) {
             game.battle.drawAction.drawEnemyHealthAction.currHealth = this.targetSize;
             game.actionStack.remove(this);
-            // If enemy health is 0, do EnemyFaint
-            if (game.battle.oppPokemon.currentStats.get("hp") <= 0) {
-                int numParticipated = 0;
-                for (Pokemon pokemon : game.player.pokemon) {
-                    if (pokemon.participatedInBattle && pokemon.currentStats.get("hp") > 0) {
-                        numParticipated++;
-                    }
-                }
-                if (numParticipated <= 0) {
-                    numParticipated = 1;
-                }
-                // TODO: remove
-                System.out.println(numParticipated);
-                Action nextAction = new EnemyFaint(game,
-                                    new RemoveDisplayText(  // TODO: refactor to stop using this
-                                    new DisplayText.Clear(game,
-                                    new WaitFrames(game, 3,
-                                    new DisplayText(game, "Enemy "+game.battle.oppPokemon.nickname.toUpperCase()+" fainted!",
-                                                    null, null,
-                                    null)))));
-                for (Pokemon pokemon : game.player.pokemon) {
-                    if (pokemon.participatedInBattle && pokemon.currentStats.get("hp") > 0) {
-                        int exp = game.battle.calcFaintExp(numParticipated);
-                        pokemon.exp += exp;
-                        nextAction.append(new DisplayText(game, pokemon.nickname.toUpperCase()+" gained "+String.valueOf(exp)+" EXP. Points!",
-                                          null, true, true,
-                                          new GainExpAnimation(pokemon,
-                                          null)));
-                    }
-                }
-                // For each Pokemon that gained a level, check if it should evolve
-                // and play the evolve animation if it does.
-                for (Pokemon pokemon : game.player.pokemon) {
-                    // TODO: multiple evos in a row likely is broken
-                    nextAction.append(new CheckEvo(pokemon, null));
-                }
-                // TODO: remove
-//                int exp = game.battle.calcFaintExp();
-//                game.player.currPokemon.exp += exp;
-
-                // TODO: now for each Pokemon, check if evolved or not
-                
-                nextAction.append(new SplitAction(
-                                      new BattleFadeOut(game, null),
-                                  new SplitAction(
-                                      new BattleFadeOutMusic(game, null),
-                                  new WaitFrames(game, 30,
-                                  new SetField(game.musicController, "resumeOverworldMusic", true,
-                                  null)))));
-                // If player made mewtwo faint, display message that it may return
-                // Also don't draw upper sprite, make unsolid.
-                if (SpecialMewtwo1.class.isInstance(game.battle.oppPokemon)) {
-//                if (game.battle.oppPokemon instanceof SpecialMewtwo1) {  // TODO: enable if verified working
-                    SpecialMewtwo1 mewtwo = (SpecialMewtwo1)game.battle.oppPokemon;
-                    mewtwo.tile.attrs.put("solid", false);
-                    mewtwo.tile.nameUpper = "mewtwo_overworld_hidden";
-                    mewtwo.tile.overSprite = null;
-                    nextAction.append(//new SetField(game, "playerCanMove", false,
-                                      new DisplayText(game, "MEWTWO fled... it may return when it' had time to recover.",
-                                                      null, null,
-                                      //new SetField(game, "playerCanMove", true,
-                                      null));
-                }
-                // If the player fainted an overworld pokemon,
-                // then remove it's standing Action :(
-                if (game.battle.oppPokemon.standingAction != null) {
-                    // It still lives on in memory... until
-                    // it gets garbage collected :O
-                    game.actionStack.remove(game.battle.oppPokemon.standingAction);
-                    game.battle.oppPokemon.standingAction = null;
-                    // If pokemon was burrowed, remove it from it's tile's items
-                    // (burrowed mon is contained in items)
-                    if (game.battle.oppPokemon.isTrapping) {
-                        Tile tile = game.map.tiles.get(game.battle.oppPokemon.position);
-                        tile.items.remove(game.battle.oppPokemon.specie.name.toLowerCase());
-                    }
-                    // else it's in the overworld so remove
-                    else {
-                        game.map.pokemon.remove(game.battle.oppPokemon.position);
-                    }
-                }
-                nextAction.append(new SetField(game, "playerCanMove", true, null));
-                game.insertAction(nextAction);
-            }
-            // else, insert nextAction
-            else {
-                game.insertAction(this.nextAction);
-            }
+            
+//            // TODO: remove
+//            // If enemy health is 0, do EnemyFaint
+//            if (game.battle.oppPokemon.currentStats.get("hp") <= 0) {
+//                int numParticipated = 0;
+//                for (Pokemon pokemon : game.player.pokemon) {
+//                    if (pokemon.participatedInBattle && pokemon.currentStats.get("hp") > 0) {
+//                        numParticipated++;
+//                    }
+//                }
+//                if (numParticipated <= 0) {
+//                    numParticipated = 1;
+//                }
+//                // TODO: remove
+//                System.out.println(numParticipated);
+//                Action nextAction = new EnemyFaint(game,
+//                                    new RemoveDisplayText(  // TODO: refactor to stop using this
+//                                    new DisplayText.Clear(game,
+//                                    new WaitFrames(game, 3,
+//                                    new DisplayText(game, "Enemy "+game.battle.oppPokemon.nickname.toUpperCase()+" fainted!",
+//                                                    null, null,
+//                                    null)))));
+//                for (Pokemon pokemon : game.player.pokemon) {
+//                    if (pokemon.participatedInBattle && pokemon.currentStats.get("hp") > 0) {
+//                        int exp = game.battle.calcFaintExp(numParticipated);
+//                        pokemon.exp += exp;
+//                        nextAction.append(new DisplayText(game, pokemon.nickname.toUpperCase()+" gained "+String.valueOf(exp)+" EXP. Points!",
+//                                          null, true, true,
+//                                          new GainExpAnimation(pokemon,
+//                                          null)));
+//                    }
+//                }
+//                // For each Pokemon that gained a level, check if it should evolve
+//                // and play the evolve animation if it does.
+//                for (Pokemon pokemon : game.player.pokemon) {
+//                    // TODO: multiple evos in a row likely is broken
+//                    nextAction.append(new CheckEvo(pokemon, null));
+//                }
+//                // TODO: remove
+////                int exp = game.battle.calcFaintExp();
+////                game.player.currPokemon.exp += exp;
+//
+//                // TODO: now for each Pokemon, check if evolved or not
+//                
+//                nextAction.append(new SplitAction(
+//                                      new BattleFadeOut(game, null),
+//                                  new SplitAction(
+//                                      new BattleFadeOutMusic(game, null),
+//                                  new WaitFrames(game, 30,
+//                                  new SetField(game.musicController, "resumeOverworldMusic", true,
+//                                  null)))));
+//                // If player made mewtwo faint, display message that it may return
+//                // Also don't draw upper sprite, make unsolid.
+//                if (SpecialMewtwo1.class.isInstance(game.battle.oppPokemon)) {
+////                if (game.battle.oppPokemon instanceof SpecialMewtwo1) {  // TODO: enable if verified working
+//                    SpecialMewtwo1 mewtwo = (SpecialMewtwo1)game.battle.oppPokemon;
+//                    mewtwo.tile.attrs.put("solid", false);
+//                    mewtwo.tile.nameUpper = "mewtwo_overworld_hidden";
+//                    mewtwo.tile.overSprite = null;
+//                    nextAction.append(//new SetField(game, "playerCanMove", false,
+//                                      new DisplayText(game, "MEWTWO fled... it may return when it' had time to recover.",
+//                                                      null, null,
+//                                      //new SetField(game, "playerCanMove", true,
+//                                      null));
+//                }
+//                // If the player fainted an overworld pokemon,
+//                // then remove it's standing Action :(
+//                if (game.battle.oppPokemon.standingAction != null) {
+//                    // It still lives on in memory... until
+//                    // it gets garbage collected :O
+//                    game.actionStack.remove(game.battle.oppPokemon.standingAction);
+//                    game.battle.oppPokemon.standingAction = null;
+//                    // If pokemon was burrowed, remove it from it's tile's items
+//                    // (burrowed mon is contained in items)
+//                    if (game.battle.oppPokemon.isTrapping) {
+//                        Tile tile = game.map.tiles.get(game.battle.oppPokemon.position);
+//                        tile.items.remove(game.battle.oppPokemon.specie.name.toLowerCase());
+//                    }
+//                    // else it's in the overworld so remove
+//                    else {
+//                        game.map.pokemon.remove(game.battle.oppPokemon.position);
+//                    }
+//                }
+//                nextAction.append(new SetField(game, "playerCanMove", true, null));
+//                game.insertAction(nextAction);
+//            }
+//            // else, insert nextAction
+//            else {
+//                game.insertAction(this.nextAction);
+//            }
+            game.insertAction(this.nextAction);
         }
 
     }
@@ -6689,7 +6755,7 @@ class RestoreHealth extends Action {
     }
 }
 
-// instance of this assigned to DrawBattle.drawEnemyHealthAction
+// Instance of this assigned to DrawBattle.drawEnemyHealthAction
 class DepleteFriendlyHealth extends Action {
     public int layer = 129;
     Pokemon pokemon;
@@ -6759,19 +6825,152 @@ class DepleteFriendlyHealth extends Action {
         if (game.battle.drawAction.drawFriendlyHealthAction.currHealth <= this.targetSize) {
             game.battle.drawAction.drawFriendlyHealthAction.currHealth = this.targetSize;
             game.actionStack.remove(this);
-            if (this.pokemon.currentStats.get("hp") <= 0) {
-                game.insertAction(new FriendlyFaint(game,
-                                  new RemoveDisplayText(
-                                  new WaitFrames(game, 3,
-                                  new DisplayText(game, this.pokemon.nickname.toUpperCase()+" fainted!",
+            // TODO: remove
+//            if (this.pokemon.currentStats.get("hp") <= 0) {
+//                game.insertAction(new FriendlyFaint(game,
+//                                  new RemoveDisplayText(
+//                                  new WaitFrames(game, 3,
+//                                  new DisplayText(game, this.pokemon.nickname.toUpperCase()+" fainted!",
+//                                                  null, null,
+//                                  // TODO: decide whether to switch pkmn, send out player, or end game
+//                                  new AfterFriendlyFaint())))));
+//            }
+//            // else, insert nextAction
+//            else {
+//                game.insertAction(this.nextAction);
+//            }
+            game.insertAction(this.nextAction);
+        }
+    }
+}
+
+class DetectFriendlyFaint extends Action {
+    public int layer = 129;
+    Pokemon pokemon;
+
+    public DetectFriendlyFaint(Pokemon pokemon, Action nextAction) {
+        this.pokemon = pokemon;
+        this.nextAction = nextAction;
+    }
+
+    public String getCamera() {return "gui";}
+
+    public int getLayer(){return this.layer;}
+
+    @Override
+    public void step(Game game) {
+        game.actionStack.remove(this);
+        if (this.pokemon.currentStats.get("hp") <= 0) {
+            game.insertAction(new FriendlyFaint(game,
+                              new RemoveDisplayText(
+                              new WaitFrames(game, 3,
+                              new DisplayText(game, this.pokemon.nickname.toUpperCase()+" fainted!",
+                                              null, null,
+                              new AfterFriendlyFaint())))));
+        }
+        else {
+            game.insertAction(this.nextAction);
+        }
+    }
+}
+
+class DetectEnemyFaint extends Action {
+    public int layer = 129;
+
+    public DetectEnemyFaint(Action nextAction) {
+        this.nextAction = nextAction;
+    }
+
+    public String getCamera() {return "gui";}
+
+    public int getLayer(){return this.layer;}
+
+    @Override
+    public void step(Game game) {
+        game.actionStack.remove(this);
+        if (game.battle.oppPokemon.currentStats.get("hp") <= 0) {
+            int numParticipated = 0;
+            for (Pokemon pokemon : game.player.pokemon) {
+                if (pokemon.participatedInBattle && pokemon.currentStats.get("hp") > 0) {
+                    numParticipated++;
+                }
+            }
+            if (numParticipated <= 0) {
+                numParticipated = 1;
+            }
+            Action nextAction = new EnemyFaint(game,
+                                new RemoveDisplayText(  // TODO: refactor to stop using this
+                                new DisplayText.Clear(game,
+                                new WaitFrames(game, 3,
+                                new DisplayText(game, "Enemy "+game.battle.oppPokemon.nickname.toUpperCase()+" fainted!",
+                                                null, null,
+                                null)))));
+            for (Pokemon pokemon : game.player.pokemon) {
+                if (pokemon.participatedInBattle && pokemon.currentStats.get("hp") > 0) {
+                    int exp = game.battle.calcFaintExp(numParticipated);
+                    pokemon.exp += exp;
+                    nextAction.append(new DisplayText(game, pokemon.nickname.toUpperCase()+" gained "+String.valueOf(exp)+" EXP. Points!",
+                                      null, true, true,
+                                      new GainExpAnimation(pokemon,
+                                      null)));
+                }
+            }
+            // For each Pokemon that gained a level, check if it should evolve
+            // and play the evolve animation if it does.
+            for (Pokemon pokemon : game.player.pokemon) {
+                // TODO: multiple evos in a row likely is broken
+                nextAction.append(new CheckEvo(pokemon, null));
+            }
+            // TODO: remove
+//            int exp = game.battle.calcFaintExp();
+//            game.player.currPokemon.exp += exp;
+
+            // TODO: now for each Pokemon, check if evolved or not
+            
+            nextAction.append(new SplitAction(
+                                  new BattleFadeOut(game, null),
+                              new SplitAction(
+                                  new BattleFadeOutMusic(game, null),
+                              new WaitFrames(game, 30,
+                              new SetField(game.musicController, "resumeOverworldMusic", true,
+                              null)))));
+            // If player made mewtwo faint, display message that it may return
+            // Also don't draw upper sprite, make unsolid.
+            if (SpecialMewtwo1.class.isInstance(game.battle.oppPokemon)) {
+//            if (game.battle.oppPokemon instanceof SpecialMewtwo1) {  // TODO: enable if verified working
+                SpecialMewtwo1 mewtwo = (SpecialMewtwo1)game.battle.oppPokemon;
+                mewtwo.tile.attrs.put("solid", false);
+                mewtwo.tile.nameUpper = "mewtwo_overworld_hidden";
+                mewtwo.tile.overSprite = null;
+                nextAction.append(//new SetField(game, "playerCanMove", false,
+                                  new DisplayText(game, "MEWTWO fled... it may return when it' had time to recover.",
                                                   null, null,
-                                  // TODO: decide whether to switch pkmn, send out player, or end game
-                                  new AfterFriendlyFaint())))));
+                                  //new SetField(game, "playerCanMove", true,
+                                  null));
             }
-            // else, insert nextAction
-            else {
-                game.insertAction(this.nextAction);
+            // If the player fainted an overworld pokemon,
+            // then remove it's standing Action :(
+            if (game.battle.oppPokemon.standingAction != null) {
+                // It still lives on in memory... until
+                // it gets garbage collected :O
+                game.actionStack.remove(game.battle.oppPokemon.standingAction);
+                game.battle.oppPokemon.standingAction = null;
+                // If pokemon was burrowed, remove it from it's tile's items
+                // (burrowed mon is contained in items)
+                if (game.battle.oppPokemon.isTrapping) {
+                    Tile tile = game.map.tiles.get(game.battle.oppPokemon.position);
+                    tile.items.remove(game.battle.oppPokemon.specie.name.toLowerCase());
+                }
+                // else it's in the overworld so remove
+                else {
+                    game.map.pokemon.remove(game.battle.oppPokemon.position);
+                }
             }
+            nextAction.append(new SetField(game, "playerCanMove", true, null));
+            game.insertAction(nextAction);
+        }
+        else {
+            game.insertAction(this.nextAction);
         }
     }
 }
@@ -10722,7 +10921,7 @@ class EnemyFaint extends Action {
 
     @Override
     public void step(Game game) {
-        if (this.firstStep == true) {
+        if (this.firstStep) {
             // TODO - because drawing enemy sprite will likely be an
              // action later, this flag will need to instead be like
              //'FriendlyFaint' , ie remove drawAction for pokemon
@@ -10754,8 +10953,8 @@ class EnemyFaint extends Action {
             game.actionStack.remove(game.battle.drawAction.drawEnemyHealthAction);
             game.battle.drawAction.drawEnemyHealthAction = null;
 
-            game.insertAction(this.nextAction);
             game.actionStack.remove(this);
+            game.insertAction(this.nextAction);
             return;
         }
 
@@ -11635,26 +11834,27 @@ class PokemonCaughtEvents extends Action {
     Action displayTextAction;
     Sprite pokeballSprite;
     public int layer = 120;
-    boolean startLooking;
+//    boolean startLooking;
+    public boolean done = false;
 
     public PokemonCaughtEvents(Game game, Action nextAction) {
         this.nextAction = nextAction;
 
-        this.startLooking = false;
+//        this.startLooking = false;  // TODO: remove
 
         // step through DisplayText until finished
         // String string1 = game.battle.oppPokemon.name.toUpperCase()+" was    caught!";
-        String string1 = "All right! "+game.battle.oppPokemon.nickname.toUpperCase()+" was caught!";
+//        String string1 = "All right! "+game.battle.oppPokemon.nickname.toUpperCase()+" was caught!";
         // demo code
 //        String string2 = ""+game.player.name+" gained "+Character.forDigit(adrenaline,10)+" ADRENALINE!";
 
         // TODO: remove if unused
 //        this.displayTextAction  = new DisplayText(game, string2,  null, null, null);
 //        Action firstTextAction = new DisplayText(game, string1, "fanfare1", null, this.displayTextAction);
-        Action firstTextAction = new DisplayText(game, string1, "fanfare1", null, null);
-        this.displayTextAction = firstTextAction;
-
-        game.insertAction(firstTextAction);
+//        Action firstTextAction = new DisplayText(game, string1, "fanfare1", null, null);
+//        this.displayTextAction = firstTextAction;
+//        game.insertAction(firstTextAction);
+        
 
 //        Texture text = new Texture(Gdx.files.internal("throw_pokeball_anim/pokeball_wiggleSheet1.png"));
         Texture text = new Texture(Gdx.files.internal("throw_pokeball_anim/pokeball_wiggleSheet1_color.png"));
@@ -11665,22 +11865,28 @@ class PokemonCaughtEvents extends Action {
 
     public int getLayer(){return this.layer;}
 
+    public void firstStep(Game game) {
+        game.insertAction(this.nextAction);
+    }
+
     // what to do at each iteration
     public void step(Game game) {
         this.pokeballSprite.draw(game.uiBatch);
 
+        // TODO: remove
         // When text action first appears, start checking for when it leaves AS
-        if (this.startLooking == false && game.actionStack.contains(this.displayTextAction)) {
-            this.startLooking = true;
-            return; // won't have left AS on this first iteration, might as well return
-        }
+//        if (!this.startLooking && game.actionStack.contains(this.displayTextAction)) {
+//            this.startLooking = true;
+//            return; // won't have left AS on this first iteration, might as well return
+//        }
 
         // For now, if displayTextAction not in AS, remove and return
-        if (!game.actionStack.contains(this.displayTextAction) && this.startLooking == true) {
+//        if (!game.actionStack.contains(this.displayTextAction) && this.startLooking) {
+        if (this.done) {
             // set oppPokemon alpha back to normal
             game.battle.oppPokemon.sprite.setAlpha(1);
 
-            game.insertAction(this.nextAction);
+//            game.insertAction(this.nextAction);
             game.actionStack.remove(this);
             // stop drawing the battle
             game.actionStack.remove(game.battle.drawAction); // stop drawing the battle

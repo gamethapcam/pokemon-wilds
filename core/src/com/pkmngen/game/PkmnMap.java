@@ -894,10 +894,15 @@ class EnterBuilding extends Action {
                     else if (newRoute != null && newRoute.name.equals("fossil_lab1")) {
                         game.mapBatch.setColor(new Color(0.8f, 0.8f, 0.8f, 1f));
                     }
+                    else if (newRoute != null && newRoute.name.equals("ruins1_inner")) {
+//                        game.mapBatch.setColor(new Color(0.04f, 0.04f, 0.1f, 1.0f));
+//                        game.mapBatch.setColor(new Color(0.01f, 0.01f, 0.04f, 1.0f));  // Very hard to see
+//                        game.mapBatch.setColor(new Color(0.02f, 0.02f, 0.05f, 1.0f));  // Somewhat hard to see
+                    }
                     else if (newRoute != null && newRoute.name.equals("regi_cave1")) {
 //                        game.mapBatch.setColor(new Color(0.08f, 0.08f, 0.3f, 1.0f));
 //                        game.mapBatch.setColor(new Color(0.2f, 0.2f, 0.5f, 1.0f));  // TODO: re-enable?
-                    } 
+                    }
                     else if (!game.map.timeOfDay.equals("night")) {
                         // TODO: remove
 //                        if (newRoute != null && newRoute.name.contains("pkmnmansion")) {
@@ -2646,6 +2651,12 @@ class Route {
         if (name.equals("regi_cave1")) {
             this.isDungeon = true;
         }
+        if (name.equals("ruins1_inner")) {
+            this.isDungeon = true;
+            this.musics.clear();
+            this.musics.add("silence1");
+            this.musics.add("silence1");
+        }
     }
 
     public Route(String name, int level) {
@@ -2880,13 +2891,17 @@ class Route {
 //            this.allowedPokemon.add("cacnea");
 //            this.allowedPokemon.add("cacturne");
             
-            this.allowedPokemon.add("sandshrew");
+//            this.allowedPokemon.add("sandshrew");
 //            this.allowedPokemon.add("sandslash");
             this.allowedPokemon.add("kangaskhan");
             this.allowedPokemon.add("cubone");
-            this.allowedPokemon.add("diglett");
+//            this.allowedPokemon.add("diglett");  // TODO: didnt care for the way this looked.
+            this.allowedPokemon.add("numel");
+            this.allowedPokemon.add("camerupt");
+            this.allowedPokemon.add("drapion");
+
 //            this.allowedPokemon.add("marowak");
-            
+
 //            this.allowedPokemon.add("rhyhorn");  // TODO: remove
 //            this.allowedPokemon.add("shieldon");  // TODO: was prism, remove
 //            this.allowedPokemon.add("bastiodon");  // high-level
@@ -2894,6 +2909,14 @@ class Route {
 //            this.allowedPokemon.add("drapion");    // high-level
 //            this.allowedPokemon.add("trapinch");  // TODO: was prism, remove
 //            this.allowedPokemon.add("vibrava");
+        }
+        // 
+        else if (name.equals("sand_pit1")) {
+            this.allowedPokemon.add("diglett");
+            this.allowedPokemon.add("sandile");
+            // Gible? Gabite?
+            // Hippowdon line
+            
         }
         else if (name.equals("oasis1")) {
             this.allowedPokemon.add("surskit");
@@ -2916,6 +2939,7 @@ class Route {
         else if (name.equals("ruins1_inner")) {
             // TODO
             this.allowedPokemon.add("lunatone");  // TODO: day/night spawns
+            this.isDungeon = true;
         }
         else if (name.equals("snow1")) {
             this.allowedPokemon.add("larvitar");
@@ -4075,6 +4099,11 @@ class Tile {
             else if (tileName.contains("floor")) {
                 Texture playerText = TextureCache.get(Gdx.files.internal("tiles/"+tileName+".png"));
                 this.sprite = new Sprite(playerText, 0, 0, 16, 16);
+            }
+            else if (tileName.contains("wall")) {
+                Texture playerText = TextureCache.get(Gdx.files.internal("tiles/"+tileName+".png"));
+                this.sprite = new Sprite(playerText, 0, 0, 16, 16);
+                this.attrs.put("solid", true);
             }
             else {
                 Texture text = TextureCache.get(Gdx.files.internal("tiles/ruins1_all.png"));

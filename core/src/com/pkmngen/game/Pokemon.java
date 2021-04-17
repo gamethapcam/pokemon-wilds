@@ -329,6 +329,8 @@ public class Pokemon {
 //    public static HashMap<String, Map<String, String>> gen2Evos = new HashMap<String, Map<String, String>>();
 //    public static HashMap<String, Map<Integer, String[]>> gen2Attacks = new HashMap<String, Map<Integer, String[]>>();
     // Name->Base species name. Required by egg-laying.
+    // TODO: make pokemon.specie.baseSpecie a field that loads from this
+    //       so that you don't have to do lookup so often.
     public static HashMap<String, String> baseSpecies = new HashMap<String, String>();
     public static HashMap<String, ArrayList<String>> eggMoves = new HashMap<String, ArrayList<String>>();
     static {
@@ -2617,6 +2619,7 @@ public class Pokemon {
         int danceCounter = 240;  // don't make this = 0, game will crash trying to play hop sound effects
         boolean alternate = true;
         public int aggroTimer = 0;
+        public boolean justAggroed = true;
         public boolean isEgg = false;
 
         // TODO: migrate to start using this. 
@@ -2718,7 +2721,8 @@ public class Pokemon {
             Pokemon.this.currOwSprite = Pokemon.this.standingSprites.get(Pokemon.this.dirFacing);
 
             // If pokemon is aggro-ing the player, run towards the player
-            if (Pokemon.this.aggroPlayer) {
+            // Don't aggro if player is indoors
+            if (Pokemon.this.aggroPlayer && Pokemon.this.mapTiles == game.map.tiles) {
                 if (!game.playerCanMove) {
                     return;
                 }
@@ -2735,6 +2739,11 @@ public class Pokemon {
 
                 float dst2 = Pokemon.this.position.dst2(game.player.position);
                 if (dst2 < 16384) {  //12544) {  //9216) {  //4096) {
+                    if (this.justAggroed) {
+                        game.insertAction(Pokemon.this.new Emote("skull", null));
+                        this.aggroTimer = 1;
+                        this.justAggroed = false;
+                    }
                     // Play skull emote + pokemon cry every so often
                     if (this.aggroTimer == 1) {
                         game.insertAction(new PlaySound(Pokemon.this, null));
@@ -2831,7 +2840,14 @@ public class Pokemon {
                             Pokemon.this.dirFacing = move;
                             game.actionStack.remove(this);
 //                            Action action = Pokemon.this.new Moving(1, 2, this.alternate, this);  // pretty fast
-                            Action action = Pokemon.this.new Moving(1, 1.5f, this.alternate, this);
+                            float speed = 1.5f;
+                            // TODO: remove, didn't look right
+//                            if (Pokemon.this.specie.name.equals("drapion")) {
+//                                speed = 1.2f;
+//                                // speed isn't fast enough to trigger the sound
+//                                game.insertAction(new PlaySound("ride1", 1f, true, null));
+//                            }
+                            Action action = Pokemon.this.new Moving(1, speed, this.alternate, this);
                             this.alternate = !this.alternate;
                             game.insertAction(action);
                             Pokemon.this.standingAction = action;
@@ -2845,6 +2861,9 @@ public class Pokemon {
                     // TODO: give up if enough time passed or haven't moved in a while.
 
                     return;
+                }
+                else {
+                    this.justAggroed = true;
                 }
             }
 
@@ -3141,9 +3160,83 @@ public class Pokemon {
                 else if (Pokemon.this.previousOwner == null && Pokemon.this.specie.name.equals("darmanitanzen")) {
                     return;
                 }
-                this.moveTimer = game.map.rand.nextInt(180) + 60;
+
+                String nearbyDir = null;
+                
+                if (Pokemon.this.specie.name.equals("diglett") || Pokemon.this.specie.name.equals("dugtrio")) {
+                    this.moveTimer = 1;
+                }
+                else {
+                    // Don't do for diglett/dugtrio, which move a lot
+                    // TODO: disable if poor performance
+                    // If there are pokemon nearby of same species, slightly
+                    // prefer moving that direction.
+                    // This might cause performance issues.
+                    Vector2 startPos = Pokemon.this.position.cpy().add(-16*7, -16*7);
+                    startPos.x = (int)startPos.x - (int)startPos.x % 16;
+                    startPos.y = (int)startPos.y - (int)startPos.y % 16;
+                    Vector2 endPos = Pokemon.this.position.cpy().add(16*7, 16*7);
+                    endPos.x = (int)endPos.x - (int)endPos.x % 16;
+                    endPos.y = (int)endPos.y - (int)endPos.y % 16;
+                    for (Vector2 currPos = new Vector2(startPos.x, startPos.y); currPos.y < endPos.y;) {
+                        Tile tile = Pokemon.this.mapTiles.get(currPos);
+                        currPos.x += 16;
+                        if (currPos.x > endPos.x) {
+                            currPos.x = startPos.x;
+                            currPos.y += 16;
+                        }
+                        if (tile == null) {
+                            continue;
+                        }
+                        if (game.map.pokemon.containsKey(currPos)) {
+                            Pokemon pokemon = game.map.pokemon.get(currPos);
+                            boolean sameBaseSpecie = Pokemon.baseSpecies.get(pokemon.specie.name).equals(Pokemon.baseSpecies.get(Pokemon.this.specie.name));
+                            if (Pokemon.this.specie.name.equals("tauros")) {
+                                sameBaseSpecie = sameBaseSpecie || Pokemon.baseSpecies.get(pokemon.specie.name).equals("miltank");
+                            }
+                            else if (Pokemon.this.specie.name.equals("miltank")) {
+                                sameBaseSpecie = sameBaseSpecie || Pokemon.baseSpecies.get(pokemon.specie.name).equals("tauros");
+                            }
+                            else if (Pokemon.baseSpecies.get(Pokemon.this.specie.name).equals("nidoran_f")) {
+                                sameBaseSpecie = sameBaseSpecie || Pokemon.baseSpecies.get(pokemon.specie.name).equals("nididoran_m");
+                            }
+                            else if (Pokemon.baseSpecies.get(Pokemon.this.specie.name).equals("nidoran_m")) {
+                                sameBaseSpecie = sameBaseSpecie || Pokemon.baseSpecies.get(pokemon.specie.name).equals("nididoran_f");
+                            }
+                            if (pokemon != Pokemon.this && pokemon.mapTiles == Pokemon.this.mapTiles) {
+//                                System.out.println("found");
+//                                System.out.println(pokemon.specie.name);
+//                                System.out.println(Pokemon.this.specie.name);
+                                float dx = Math.abs(Pokemon.this.position.x - pokemon.position.x);
+                                float dy = Math.abs(Pokemon.this.position.y - pokemon.position.y);
+                                if (dx < dy) {
+                                    if (pokemon.position.y < Pokemon.this.position.y) {
+                                        nearbyDir = "down";
+                                    }
+                                    else {
+                                        nearbyDir = "up";
+                                    }
+                                }
+                                else {
+                                    if (pokemon.position.x < Pokemon.this.position.x) {
+                                        nearbyDir = "left";
+                                    }
+                                    else {
+                                        nearbyDir = "right";
+                                    }
+                                }
+                                break;
+                            }
+                        }
+                    }
+                    this.moveTimer = game.map.rand.nextInt(180) + 60;
+                }
                 String[] dirs = new String[]{"up", "down", "left", "right"};
                 Pokemon.this.dirFacing = dirs[game.map.rand.nextInt(dirs.length)];
+                // 25% chance to move towards nearby pokemon, if one is nearby.
+                if (nearbyDir != null && Game.rand.nextInt(100) < 25) {  
+                    Pokemon.this.dirFacing = nearbyDir;
+                }
                 Vector2 newPos = Pokemon.this.facingPos();
                 // Just checking overworldTiles for now, that way it will still
                 // move around while player is indoors
