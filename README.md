@@ -98,7 +98,7 @@ This project is still in the early stages. If you are interested in joining the 
  - Cinderace overworld sprites - Internet_Goblin on discord.
  - Punching bag sprite - Goose on discord.
  - Regi battle music - Alifib on youtube.
- - Regi dungeon concept and mechanics - Kalvinz, Internet_Goblin, Sadfish, Mr Dustman on discord.
+ - Regi dungeon concept and mechanics - Internet_Goblin, Sadfish, Mr Dustman on discord.
  - nuukiie on Twitter for Pokemon devamp sprites and animations (aron, lotad, makuhita, ralts, taillow, whismur, poochyena, wingull, shroomish, surskit, litwick, dwebble, and sableye lines).
  - Corphish front, back and overworld sprites - sir feralipogchamp on discord.
  - Crawdaunt overworld sprites - sir feralipogchamp on discord.
