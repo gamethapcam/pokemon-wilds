@@ -962,6 +962,8 @@ public class Network {
      */
     static public class PokemonData extends PokemonDataV05 {
         public String nickname = null;
+        // Default to 100 b/c that is a 'safe' interior layer.
+        public int interiorIndex = 100;
 
         public PokemonData() {
             super();
@@ -970,6 +972,7 @@ public class Network {
         public PokemonData(Pokemon pokemon) {
             super(pokemon);
             this.nickname = pokemon.nickname;
+            this.interiorIndex = pokemon.interiorIndex;
         }
 
         public PokemonData(Pokemon pokemon, int index) {

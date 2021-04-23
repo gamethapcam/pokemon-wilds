@@ -142,6 +142,7 @@ public class Pokemon {
         attacksImplemented.add("scary face");
         attacksImplemented.add("scratch");
         attacksImplemented.add("screech");
+        attacksImplemented.add("seismic toss");
         attacksImplemented.add("selfdestruct");
         attacksImplemented.add("shadow ball");
         attacksImplemented.add("sharpen");
@@ -600,6 +601,8 @@ public class Pokemon {
     public boolean canMove = true;
     // Keeps track of if this was set loose in overworld, indoors, etc.
     Map<Vector2, Tile> mapTiles;
+    //
+    public int interiorIndex = 100;
     boolean isRunning = false;
     public boolean shouldMove = false;  // used by client listener to trigger remote pokemon to move.
     Player.Type type = Player.Type.LOCAL;
@@ -670,6 +673,7 @@ public class Pokemon {
     public ArrayList<Integer> ledgeJumps = new ArrayList<Integer>();  // 1 or 2, 2 is faster.
     public ArrayList<Float> numMoves = new ArrayList<Float>();
 
+    // TODO: remove, I think
     public static Random rand = new Random();
 
     // TODO: put these in OverworldThing
@@ -700,13 +704,19 @@ public class Pokemon {
         this.attacks[2] = pokemonData.attacks[2];
         this.attacks[3] = pokemonData.attacks[3];
         this.position = pokemonData.position;
+        if (pokemonData instanceof Network.PokemonData) {
+            this.interiorIndex = ((Network.PokemonData)pokemonData).interiorIndex;
+        }
         if (pokemonData.isInterior) {
             // TODO: ideally store pokemon layer, similar to player
 //            this.mapTiles = Game.staticGame.map.interiorTiles.get(Game.staticGame.map.interiorTilesIndex);
             // TODO: will need this when adding different floors to buildings
+            // TODO: debug, remove
             System.out.println("Game.staticGame.map.interiorTilesIndex");
             System.out.println(Game.staticGame.map.interiorTilesIndex);
-            this.mapTiles = Game.staticGame.map.interiorTiles.get(100);
+            System.out.println("this.interiorIndex");
+            System.out.println(this.interiorIndex);
+            this.mapTiles = Game.staticGame.map.interiorTiles.get(this.interiorIndex);
         }
         else {
             this.mapTiles = Game.staticGame.map.overworldTiles;
@@ -979,6 +989,7 @@ public class Pokemon {
         ArrayList<String> notFoundHabitats = new ArrayList<String>(Pokemon.this.habitats);
         for (Vector2 currPos = new Vector2(startPos.x, startPos.y); currPos.y < endPos.y;) {
 //            Tile tile = game.map.tiles.get(currPos);  // TODO: remove
+//            System.out.println(Pokemon.this.specie.name);
             Tile tile = Pokemon.this.mapTiles.get(currPos);
             currPos.x += 16;
             if (currPos.x > endPos.x) {
@@ -2466,7 +2477,8 @@ public class Pokemon {
         @Override
         public void step(Game game) {
 
-            if (game.player.position.equals(Pokemon.this.position)) {
+            if (Pokemon.this.mapTiles == game.map.tiles &&
+                game.player.position.equals(Pokemon.this.position)) {
                 this.popOut = true;
             }
             if (this.popOut) {
@@ -2621,6 +2633,7 @@ public class Pokemon {
         public int aggroTimer = 0;
         public boolean justAggroed = true;
         public boolean isEgg = false;
+        public int losTimer = 0;
 
         // TODO: migrate to start using this. 
         // Ideally in 'class OverworldThing' but sep for
@@ -2738,7 +2751,39 @@ public class Pokemon {
                 }
 
                 float dst2 = Pokemon.this.position.dst2(game.player.position);
-                if (dst2 < 16384) {  //12544) {  //9216) {  //4096) {
+                boolean hasLos = true;
+                // Check line-of-sight if indoors
+                if (Pokemon.this.mapTiles != game.map.overworldTiles) {
+                    // losTimer used to check los only at certain intervals
+                    
+                    if (dst2 < 16384 && this.losTimer <= 0) {
+                        Vector2 startPos = Pokemon.this.position.cpy();
+                        // Vector2 losVector = startPos.cpy().sub(game.player.position);
+                        Vector2 losVector = game.player.position.cpy().sub(startPos);
+                        losVector = losVector.nor().scl(16);
+                        // System.out.println(losVector);
+                        Vector2 checkPos = new Vector2();
+                        Tile mapTile;
+                        while (Pokemon.this.position.dst2(startPos) < dst2) {
+                            startPos.add(losVector);
+                            checkPos.set((int)startPos.x - (int)startPos.x % 16, (int)startPos.y - (int)startPos.y % 16);
+                            mapTile = Pokemon.this.mapTiles.get(checkPos);
+                            if (mapTile == null) {
+                                hasLos = false;
+                                break;
+                            }
+                        }
+                        if (hasLos) {
+//                            this.losTimer = 120;
+                            this.losTimer = 60;
+                        }
+                    }
+                    if (this.losTimer > 0) {
+                        this.losTimer--;
+                    }
+                }
+
+                if (dst2 < 16384 && hasLos) {  //12544) {  //9216) {  //4096) {
                     if (this.justAggroed) {
                         game.insertAction(Pokemon.this.new Emote("skull", null));
                         this.aggroTimer = 1;
@@ -2746,7 +2791,12 @@ public class Pokemon {
                     }
                     // Play skull emote + pokemon cry every so often
                     if (this.aggroTimer == 1) {
-                        game.insertAction(new PlaySound(Pokemon.this, null));
+                        if (Pokemon.this.specie.name.equals("dusclops")) {
+                            game.insertAction(new PlaySound("crystal_pokemon/cries/" + Pokemon.this.dexNumber, .2f, null));
+                        }
+                        else {
+                            game.insertAction(new PlaySound(Pokemon.this, null));
+                        }
                     }
                     // Wait before moving
                     // Play sounds
@@ -2832,7 +2882,8 @@ public class Pokemon {
                         Tile currTile = Pokemon.this.mapTiles.get(Pokemon.this.position);
                         boolean isLedge = (facingTile != null && facingTile.attrs.get("ledge")) ||
                                           (currTile != null && currTile.attrs.get("ledge") && currTile.ledgeDir.equals("up") && move.equals("up"));
-                        if (!facingTile.attrs.get("solid") &&
+                        if (facingTile != null &&
+                            !facingTile.attrs.get("solid") &&
                             !isLedge &&
                             !facingTile.name.contains("door") &&
                             !facingTile.nameUpper.contains("door") &&

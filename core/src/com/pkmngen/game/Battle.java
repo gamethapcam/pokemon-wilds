@@ -2142,6 +2142,9 @@ public class Battle {
             power = 1 + ((120 * target.currentStats.get("hp"))/target.maxStats.get("hp"));
             System.out.println(power);
         }
+        else if (attack.name.equals("night shade") || attack.name.equals("seismic toss")) {
+            return source.level;
+        }
         int attackStat = attack.isPhysical ? source.currentStats.get("attack") : source.currentStats.get("specialAtk");
         int defenseStat = attack.isPhysical ? target.currentStats.get("defense") : target.currentStats.get("specialDef");
         int damage = (int)Math.floor(Math.floor(Math.floor(2 * source.level / 5 + 2) * attackStat * power / defenseStat) / 50) + 2;
@@ -2805,7 +2808,11 @@ public class Battle {
                 }
                 String effectiveness = "neutral_effective";
                 String text_string = "";
-                if (multiplier > 1f) {
+                if (attack.name.equals("night shade") || attack.name.equals("seismic toss")) {
+                    effectiveness = "neutral_effective";
+                    attack.isCrit = false;
+                }
+                else if (multiplier > 1f) {
                     effectiveness = "super_effective";
                     text_string = "It' super- effective!";
                 }
@@ -3101,6 +3108,10 @@ public class Battle {
                 // TODO: Technically should also check that move type == electric I believe
                 // Electric types cannot be paralyzed (this covers HIT and non-HIT moves)
                 if (attack.type.equals("electric") && enemyPokemon.types.contains("ELECTRIC") && status.equals("paralyze")) {
+                    attackMisses = true;
+                }
+                // Steel types cannot be poisoned by poison moves (in gen3+ they can't be poisoned at all)
+                if (attack.type.equals("poison") && enemyPokemon.types.contains("STEEL") && (status.equals("poison") || status.equals("toxic"))) {
                     attackMisses = true;
                 }
                 // Ground types not affected by electric moves
@@ -6286,6 +6297,11 @@ class CatchPokemonWobblesThenCatch extends Action {
             }
             else if (game.battle.oppPokemon.onTile != null && game.battle.oppPokemon.onTile.nameUpper.contains("revived_")) {
                 game.battle.oppPokemon.onTile.nameUpper = "";
+            }
+            else if (game.battle.oppPokemon.onTile != null && game.battle.oppPokemon.onTile.nameUpper.equals("volcarona")) {
+                Tile tile = game.battle.oppPokemon.onTile;
+                tile.nameUpper = "";
+                tile.init(tile.name, tile.nameUpper, tile.position, true, tile.routeBelongsTo);
             }
             else {
                 // Remove this pokemon from the map

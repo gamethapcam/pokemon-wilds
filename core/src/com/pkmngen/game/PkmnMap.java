@@ -755,6 +755,8 @@ class EnterBuilding extends Action {
     int timer = 0;
 
     int slow = 1;  // TODO: remove, use some sort of into anim;
+    
+    int interiorTilesIndex = 0;
 
     public EnterBuilding(Game game, Action nextAction) {
         this(game, "enter", nextAction);
@@ -768,6 +770,11 @@ class EnterBuilding extends Action {
         this(game, action, null, nextAction);
         this.slow = slow;
     }
+ 
+    public EnterBuilding(Game game, String action, Map<Vector2, Tile> whichTiles, int interiorTilesIndex, Action nextAction) {
+        this(game, action, whichTiles, nextAction);
+        this.interiorTilesIndex = interiorTilesIndex;
+    }
     
     public EnterBuilding(Game game, String action, Map<Vector2, Tile> whichTiles, Action nextAction) {
         this.whichTiles = whichTiles;
@@ -777,6 +784,7 @@ class EnterBuilding extends Action {
         Texture text1 = TextureCache.get(Gdx.files.internal("battle/intro_frame6.png"));
         this.sprite = new Sprite(text1);
         this.sprite.setPosition(0,0);
+        this.interiorTilesIndex = game.map.interiorTilesIndex;
     }
 
     public String getCamera() {return "gui";}
@@ -896,8 +904,26 @@ class EnterBuilding extends Action {
                     }
                     else if (newRoute != null && newRoute.name.equals("ruins1_inner")) {
 //                        game.mapBatch.setColor(new Color(0.04f, 0.04f, 0.1f, 1.0f));
-//                        game.mapBatch.setColor(new Color(0.01f, 0.01f, 0.04f, 1.0f));  // Very hard to see
 //                        game.mapBatch.setColor(new Color(0.02f, 0.02f, 0.05f, 1.0f));  // Somewhat hard to see
+//                        game.mapBatch.setColor(new Color(0.01f, 0.01f, 0.04f, 1.0f));  // Very hard to see
+                        System.out.println(this.interiorTilesIndex);
+                        if (this.interiorTilesIndex >= 99) {
+                            game.mapBatch.setColor(new Color(0.8f, 0.8f, 0.8f, 1f));
+                        }
+                        else if (this.interiorTilesIndex == 98){
+                            game.mapBatch.setColor(new Color(0.3f, 0.3f, 0.6f, 1.0f));
+                        }
+                        else if (this.interiorTilesIndex == 97){
+                            game.mapBatch.setColor(new Color(0.04f, 0.04f, 0.1f, 1.0f));
+                        }
+                        else if (this.interiorTilesIndex == 96){
+                            game.mapBatch.setColor(new Color(0.01f, 0.01f, 0.04f, 1.0f));  // Very hard to see
+//                            game.mapBatch.setColor(new Color(0.02f, 0.02f, 0.05f, 1.0f));  // Somewhat hard to see
+                        }
+                        else {
+                            game.mapBatch.setColor(new Color(0.02f, 0.02f, 0.05f, 1.0f));  // Somewhat hard to see
+                        }
+                        
                     }
                     else if (newRoute != null && newRoute.name.equals("regi_cave1")) {
 //                        game.mapBatch.setColor(new Color(0.08f, 0.08f, 0.3f, 1.0f));
@@ -1356,6 +1382,25 @@ class MoveWater extends Action {
                     index = 1;
                 }
                 game.mapBatch.draw(Specie.species.get(name).avatarSprites.get(index), tile.position.x+8, tile.position.y+8);
+            }
+            else if (tile.nameUpper.equals("volcarona")) {
+                // Campfire aura
+                if (this.campfireTimer % 10 == 0) {
+                    if (game.mapBatch.getColor().r < .5f) {
+                        int xPos = (int)(tile.position.x -80 -(game.player.position.x -240));
+                        int yPos = (int)(296 -(tile.position.y +8 -72 -(game.player.position.y -216)));
+                        this.pixmap.drawPixmap(currPixmap, xPos, yPos);
+                    }
+                }
+                String name = tile.nameUpper;
+                if (!Specie.species.containsKey(name)) {
+                    Specie.species.put(name, new Specie(name));
+                }
+                int index = 0;
+                if (this.avatarTimer < 60) {
+                    index = 1;
+                }
+                game.mapBatch.draw(Specie.species.get(name).avatarSprites.get(index), tile.position.x, tile.position.y+4);
             }
             else if (this.waterTimer == 0 && (tile.nameUpper.contains("hole") && !tile.nameUpper.contains("water"))) {
                 Vector2[] positions = new Vector2[]{new Vector2(0, -16), new Vector2(0, 16),
@@ -2654,8 +2699,8 @@ class Route {
         if (name.equals("ruins1_inner")) {
             this.isDungeon = true;
             this.musics.clear();
-            this.musics.add("silence1");
-            this.musics.add("silence1");
+            this.musics.add("relic_castle2");
+            this.musics.add("relic_castle2");
         }
     }
 
@@ -2931,15 +2976,31 @@ class Route {
             this.allowedPokemon.add("sigilyph");
             this.allowedPokemon.add("natu");
             this.allowedPokemon.add("nosepass");
-            this.allowedPokemon.add("beldum");  // TODO: basespecies is broken for this one
+            this.allowedPokemon.add("beldum");
             this.allowedPokemon.add("metang");
             this.allowedPokemon.add("smeargle");
-            this.allowedPokemon.add("solrock");  // TODO: basespecies is broken for this one
+            this.allowedPokemon.add("solrock");
         }
         else if (name.equals("ruins1_inner")) {
             // TODO
             this.allowedPokemon.add("lunatone");  // TODO: day/night spawns
+//            this.allowedPokemon.add("chingling");
+            this.allowedPokemon.add("elgyem");
+            this.allowedPokemon.add("duskull");
+            this.allowedPokemon.add("sandile");
+            this.allowedPokemon.add("sandshrew");
+            // Baltoy/Claydol
+            // Beldum/Metang/Metagross
+            // Klink/Klang/Klinklang
+            // Elgyem/Beheeyem
+            // Golett/Golurk
+            // Deino/Zweilous/Hydreigon
+            // Chingling/Chimeco
+            // relic castle spawns: sandline, sandshrew, yamask, onix, claydol
             this.isDungeon = true;
+            this.musics.clear();
+            this.musics.add("relic_castle2");
+            this.musics.add("relic_castle2");
         }
         else if (name.equals("snow1")) {
             this.allowedPokemon.add("larvitar");
@@ -3373,6 +3434,9 @@ class Tile {
     // TODO: experimental
     // hole name -> texture
     public static HashMap<String, Texture[]> dynamicTexts = new HashMap<String, Texture[]>();
+
+    // Only used during map generation
+    public boolean isBottomMtnLayer = false;
 
     /** Api intending to increase perf.
      * 
@@ -4100,6 +4164,15 @@ class Tile {
                 Texture playerText = TextureCache.get(Gdx.files.internal("tiles/"+tileName+".png"));
                 this.sprite = new Sprite(playerText, 0, 0, 16, 16);
             }
+            else if (tileName.contains("picture")) {
+                Texture playerText = TextureCache.get(Gdx.files.internal("tiles/"+tileName+".png"));
+                this.sprite = new Sprite(playerText, 0, 0, 48, 32);
+                this.attrs.put("solid", true);
+            }
+            else if (tileName.contains("path")) {
+                Texture playerText = TextureCache.get(Gdx.files.internal("tiles/"+tileName+".png"));
+                this.sprite = new Sprite(playerText, 0, 0, 48, 16);
+            }
             else if (tileName.contains("wall")) {
                 Texture playerText = TextureCache.get(Gdx.files.internal("tiles/"+tileName+".png"));
                 this.sprite = new Sprite(playerText, 0, 0, 16, 16);
@@ -4177,6 +4250,10 @@ class Tile {
             Texture playerText = TextureCache.get(Gdx.files.internal("tiles/blank3.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
             this.attrs.put("solid", true);
+        }
+        else if (tileName.equals("blank1")) {
+            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/blank.png"));
+            this.sprite = new Sprite(playerText, 0, 0, 16, 16);
         }
         else if (tileName.equals("campfire1")) {
             Texture playerText = TextureCache.get(Gdx.files.internal("tiles/campfire1.png"));
@@ -4264,6 +4341,11 @@ class Tile {
             if (tileName.equals("desert2_trapinch_spawn")) {
                 tileName = "desert2";
             }
+            // TODO: test
+            if (tileName.equals("desert4_isGrass")) {
+                tileName = "desert4";
+                this.attrs.put("grass", true);
+            }
             Texture playerText = TextureCache.get(Gdx.files.internal("tiles/"+tileName+".png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
             
@@ -4322,6 +4404,12 @@ class Tile {
             Texture playerText = TextureCache.get(Gdx.files.internal("tiles/buildings/building1_machine2.png"));
             this.sprite = new Sprite(playerText, 0, 0, 96, 32);
             this.attrs.put("solid", true);
+        }
+        else if (tileName.equals("pedistal1")) {
+//            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/pedistal1.png"));
+//            this.sprite = new Sprite(playerText, 0, 0, 16, 32);
+//            this.attrs.put("solid", true);
+            this.nameUpper = name;
         }
         else if (tileName.equals("building1_fossilreviver1")) {
             Texture playerText = TextureCache.get(Gdx.files.internal("tiles/blank.png"));
@@ -4409,6 +4497,11 @@ class Tile {
                 text = TextureCache.get(Gdx.files.internal("tiles/buildings/"+this.nameUpper+".png"));
                 this.overSprite = new Sprite(text, 0, 0, 16, 16);
             }
+            else if (this.nameUpper.equals("pedistal1") || this.nameUpper.equals("ruins_statue1")) {
+                text = TextureCache.get(Gdx.files.internal("tiles/"+this.nameUpper+".png"));
+                this.overSprite = new Sprite(text, 0, 0, 16, 32);
+                this.drawAsTree = true;
+            }
             else if (this.nameUpper.contains("building1_fossilreviver1")) {
                 text = TextureCache.get(Gdx.files.internal("tiles/buildings/building1_pc1.png"));
 //                text = TextureCache.get(Gdx.files.internal("tiles/buildings/building1_pc2.png"));
@@ -4419,6 +4512,10 @@ class Tile {
                 text = TextureCache.get(Gdx.files.internal("tiles/blank3.png"));
             }
             else if (this.nameUpper.contains("revived")) {
+                text = TextureCache.get(Gdx.files.internal("tiles/blank3.png"));
+            }
+            // TODO: some way to flag that a pokemon is on this tile
+            else if (this.nameUpper.contains("volcarona")) {
                 text = TextureCache.get(Gdx.files.internal("tiles/blank3.png"));
             }
             else if (this.nameUpper.contains("hole1_water")) {
@@ -4472,7 +4569,6 @@ class Tile {
                 this.overSprite = new Sprite(text, 0, 0, 16, 16);
             }
             else if (this.nameUpper.contains("hole1")) {
-
                 if (!Tile.dynamicTexts.containsKey(this.nameUpper)) {
                     String name = new String(this.nameUpper);
                     name = name.replace("[NE]", "");
@@ -5117,7 +5213,7 @@ class Tile {
                                 null)))))))));
             game.insertAction(nextAction);
         }
-        else if (this.nameUpper.contains("revived_")) {
+        else if (this.nameUpper.contains("revived_")) { 
             game.playerCanMove = false;
             // Was if player just picks it up.
 //            if (game.player.pokemon.size() >= 6) {
@@ -5171,6 +5267,24 @@ class Tile {
                               new WaitFrames(game, 10,
                               new SetField(game.musicController, "startBattle", "wild",
                               Battle.getIntroAction(game)))));
+        }
+        // Tile for Volcarona battle
+        // TODO: make this generic-ish
+        // Some things are specific, like battle theme, etc.
+        else if (this.nameUpper.equals("volcarona")) {
+            String name = this.nameUpper;
+            // TODO: it's level 70 in black/white, might change at some point
+            // Larvesta evolves at level 59, so 60 for now.
+            Pokemon pokemon = new Pokemon(name, 60, Pokemon.Generation.CRYSTAL);
+            game.playerCanMove = false;
+            game.battle.oppPokemon = pokemon;
+            pokemon.onTile = this;
+            game.player.setCurrPokemon();
+            game.insertAction(new DisplayText(game, "Vraahhbrbrbr!", "crystal_pokemon/cries/" + pokemon.dexNumber + ".ogg", null,
+                              new WaitFrames(game, 10,
+                              new SetField(game.musicController, "startBattle", "bw_legendary_theme3",
+                              new WaitFrames(game, 80,
+                              Battle.getIntroAction(game))))));
         }
         
         // Pokemon mansion (dungeon) door

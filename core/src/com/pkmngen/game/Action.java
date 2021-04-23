@@ -2478,6 +2478,9 @@ class MusicController extends Action {
                     if (this.startBattle.contains("regi")) {
                         game.currMusic.setVolume(0.3f);
                     }
+                    else if (this.startBattle.equals("bw_legendary_theme3")) {
+                        game.currMusic.setVolume(0.6f);
+                    }
                 }
                 game.currMusic.play();
             }
@@ -2575,6 +2578,8 @@ class MusicController extends Action {
                 }
                 System.out.println("nextMusicName");
                 System.out.println(nextMusicName);
+                System.out.println("currRoute.name");
+                System.out.println(game.map.currRoute.name);
                 // TODO: this was the previous behavior
 //                Action action = new FadeMusic(game.currMusic, -0.025f,
 //                                new WaitFrames(game, 10, 

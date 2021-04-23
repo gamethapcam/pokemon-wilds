@@ -442,6 +442,7 @@ class CycleDayNight extends Action {
                                     trapinch.isTrapping = true;
                                     trapinch.position = nextTile.position.cpy();
                                     game.insertAction(trapinch.new Burrowed());
+                                    trapinch.mapTiles = game.map.overworldTiles;
                                     nextTile.items().put("trapinch", 1);
                                     System.out.println("hi42342");
                                 }
@@ -1909,7 +1910,7 @@ class DrawGhost extends Action {
         // need to store which pokemon this actually will be (i think)
 //        this.pokemon = new Pokemon("Sableye", 21);
 //        this.pokemon = new Pokemon("Sableye", 21, Pokemon.Generation.CRYSTAL);
-        
+
         String[] pokemon = new String[]{"litwick", "lampent", "chandelure",
                 "mimikyu", "misdreavus", "sableye",
                 "gastly", "haunter", "gengar"};
@@ -5440,6 +5441,8 @@ class PlayerStanding extends Action {
                     // disable player movement
                     // game.actionStack.remove(this); // using flag now, delete this
 
+                    
+
                     // get list of pokemon not in battle
                     ArrayList<Pokemon> notInBattle = new ArrayList<Pokemon>();
 //                    for (Pokemon pokemon : game.map.currRoute.pokemon) {  // TODO: remove
@@ -5447,6 +5450,7 @@ class PlayerStanding extends Action {
                         if (!pokemon.inBattle) {
                             notInBattle.add(pokemon);
                         }
+//                        System.out.println(pokemon.nickname);  // TODO: debug, remove
                     }
                     // If all pokemon are in battle, return null for now.
                     if (notInBattle.size() <= 0) {
@@ -5486,6 +5490,10 @@ class PlayerStanding extends Action {
                         if (averageLevel > 50) {
                             averageLevel = 50;
                         }
+                        // Don't allow anything below level 2
+                        if (averageLevel < 2) {
+                            averageLevel = 2;
+                        }
                         // Reset all of the Pokemon's stat values (including health).
                         // TODO: not sure if I'm evolving mons here or not
                         //       would be cool in the beach biome.
@@ -5503,7 +5511,7 @@ class PlayerStanding extends Action {
 //                    pokemon.attacks[2] = "crush grip";
 //                    pokemon.attacks[3] = "crush grip";
                     // TODO: debug, remove
-                    pokemon = new Pokemon("numel", 46, Pokemon.Generation.CRYSTAL);
+//                    pokemon = new Pokemon("numel", 46, Pokemon.Generation.CRYSTAL);
                     return pokemon;
                 }
             }
@@ -5597,21 +5605,22 @@ class PlayerStanding extends Action {
         Vector2 newPos = new Vector2();
 
         if (this.checkWildEncounter) {
+            Tile tile = game.map.tiles.get(game.player.position);
             // If player is standing on stairs, stop moving and change interior index.
-            if (game.map.tiles.get(game.player.position) != null &&
-                (game.map.tiles.get(game.player.position).nameUpper.contains("stairs") ||
-                 game.map.tiles.get(game.player.position).name.contains("stairs"))) {
+            if (tile != null && (tile.nameUpper.contains("stairs") || tile.name.contains("stairs"))) {
                 int downUp = 0;
-                if (game.map.tiles.get(game.player.position).nameUpper.contains("up") ||
-                    game.map.tiles.get(game.player.position).name.contains("up")) {
+                if (tile.nameUpper.contains("up") || tile.name.contains("up")) {
                     downUp = +1;
                 }
                 else {
                     downUp = -1;
                 }
                 game.playerCanMove = false;
-                HashMap<Vector2, Tile> whichTiles = game.map.interiorTiles.get(game.map.interiorTilesIndex+downUp);
-                Action action = new EnterBuilding(game, "enter", whichTiles,
+                Map<Vector2, Tile> whichTiles = game.map.interiorTiles.get(game.map.interiorTilesIndex+downUp);
+                if (tile.name.contains("exit") || tile.nameUpper.contains("exit")) {
+                    whichTiles = game.map.overworldTiles;
+                }
+                Action action = new EnterBuilding(game, "enter", whichTiles, game.map.interiorTilesIndex+downUp,
                                 new SetField(game.map, "interiorTilesIndex", game.map.interiorTilesIndex+downUp,
                                 new SetField(game, "playerCanMove", true,
                                 null)));

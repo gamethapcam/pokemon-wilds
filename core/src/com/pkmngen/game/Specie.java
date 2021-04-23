@@ -54,7 +54,8 @@ public class Specie {
                                      "combee", "combee_female", "vespiquen",  // TerraTerraCotta on discord
                                      "nosepass",  // nuuk, ow sadfish on discord
                                      "sigilyph",  // sadfish on discord, ow dustman on discord
-                                     "snover"};  // TODO: sep loading method
+                                     "snover",
+                                     "larvesta", "volcarona"};  // TODO: sep loading method
         for (String t : temp) {
             nuukPokemon.add(t);
         }
@@ -999,6 +1000,16 @@ public class Specie {
                 }
                 // TODO: debug, remove
                 else if (name.equals("whismur")) {
+                    i = 343;
+                    found = true;
+                    flip = false;
+                }
+                else if (name.equals("larvesta")) {
+                    i = 343;
+                    found = true;
+                    flip = false;
+                }
+                else if (name.equals("volcarona")) {
                     i = 343;
                     found = true;
                     flip = false;

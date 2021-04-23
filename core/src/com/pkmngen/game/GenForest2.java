@@ -653,6 +653,8 @@ public class GenForest2 extends Action {
 //                }
 //            }
 //        }
+        // Don't add to endpoints unless placed at least one wall.
+        boolean placedOneWall = false;
         for (int i=0; i < density; i++) {
             // Get even number between width and height
             int x;
@@ -667,6 +669,7 @@ public class GenForest2 extends Action {
                 y = rand.nextInt( (int)(height / 2)  ) * 2;
             }
             Z[x][y] = Boolean.TRUE;
+            placedOneWall = false;
 
             for (int j=0; j < complexity; j++) {
                 // Compile list of neighboring cells
@@ -686,11 +689,14 @@ public class GenForest2 extends Action {
                         Z[x_ + (int)((x - x_) / 2)][y_ + (int)((y - y_) / 2)] = Boolean.TRUE;
                         x = x_;
                         y = y_;
+                        placedOneWall = true;
                     }
                 }
             }
             // Done adding to wall at this point, so save this point as an endpoint.
-            endpoints.add(new Vector2(x, y));
+            if (placedOneWall) {
+                endpoints.add(new Vector2(x, y));
+            }
         }
         // Debug - print maze
         for (int i=height-1; i >= 0; i--) {
@@ -1476,6 +1482,11 @@ class GenIsland1 extends Action {
     // ArrayList<Tile> tilesToAdd;
     HashMap<Vector2, Tile> tilesToAdd;
     ArrayList<HashMap<Vector2, Tile>> interiorTilesToAdd = new ArrayList<HashMap<Vector2, Tile>>();
+    {
+        for (int i=0; i < 102; i++) {
+            interiorTilesToAdd.add(null);
+        }
+    }
 //    HashMap<Vector2, Tile> edgeTiles;
 
     HashMap<Vector2, Pokemon> pokemonToAdd = new HashMap<Vector2, Pokemon>();
@@ -1498,7 +1509,13 @@ class GenIsland1 extends Action {
     public static boolean doneFossilBuilding = false;
     public static int unownCounter = 0;
 
+    public HashMap<Vector2, Tile> mtnTiles = new HashMap<Vector2, Tile>();
+
     public static int doneDesert = 0;
+
+    public HashMap<Pokemon, Integer> interiorPokemon = new HashMap<Pokemon, Integer>();
+    // Candidate locations for where to place trapinch in the desert
+    public ArrayList<Vector2> trapinchSpawns = new ArrayList<Vector2>();
 
     public GenIsland1(Game game, Vector2 origin, int radius) {
         this.radius = radius;
@@ -1516,61 +1533,60 @@ class GenIsland1 extends Action {
         Tile originTile = new Tile("sand1", this.origin.cpy());
         this.tilesToAdd.put(originTile.position.cpy(), originTile);
 
-        Route blotchRoute = new Route("desert1", 40);
-        ApplyBlotch(game, "desert", originTile, maxDist/36, this.tilesToAdd, 1, false, blotchRoute);
+//        Route blotchRoute = new Route("desert1", 40);
+//        ApplyBlotch(game, "desert", originTile, maxDist/36, this.tilesToAdd, 1, false, blotchRoute);
 
 
         // TODO: uncomment this for just giant island
 //        ApplyBlotch(game, "island", originTile, maxDist, this.tilesToAdd, 1, false, new Route("forest1", 22));
-        HashMap<Vector2, Tile> mtnTiles = new HashMap<Vector2, Tile>();
         
-//        // TODO: debug, revert
-//        ArrayList<Tile> endPoints = ApplyBlotchMountain(game, originTile, maxDist, mtnTiles);
-//        System.out.println("endPoints size");
-//        System.out.println(endPoints.size());
-//        for (Tile tile : endPoints) {
-//
-//            if (GenIsland1.doneDesert == 1) {
-//                // TODO: seems to be happening near middle of mountain, would like it to be elsewhere.
-//                Route blotchRoute = new Route("desert1", 40);
-//                ApplyBlotch(game, "desert", tile, maxDist/18 +maxDist/4, this.tilesToAdd, 1, true, blotchRoute);
-//                continue;
-//            }
-//            else {
-//                GenIsland1.doneDesert++;
-//            }
-//            
-//              // TODO: this might be fixed, test
-//            Route blotchRoute = new Route("forest1", 40); // TODO: mem usage too high
-//            // TODO: maxDist/6 is too big I think for some islands.
-//            // maxDist/6 for 100x100 island, it looked pretty good.
-//            // maxDist/10 for 100x180 island
-//            // maxDist/14 for 100x350 island
-//            // maxDist/18 for 100x500 island
-//            // TODO: could try adding more layers to mountains for larger islands.
-//            // TODO: maxDist/18 is actually working pretty well for most sizes.
-//            ApplyBlotch(game, "island", tile, maxDist/18, this.tilesToAdd, 1, true, blotchRoute); 
-//        }
+        
+        // TODO: debug, revert
+        ArrayList<Tile> endPoints = ApplyBlotchMountain(game, originTile, maxDist, this.mtnTiles);
+        System.out.println("endPoints size");
+        System.out.println(endPoints.size());
+        for (Tile tile : endPoints) {
+
+            if (GenIsland1.doneDesert == 1) {
+                // TODO: seems to be happening near middle of mountain, would like it to be elsewhere.
+                Route blotchRoute = new Route("desert1", 40);
+                ApplyBlotch(game, "desert", tile, maxDist/18 +maxDist/4, this.tilesToAdd, 1, true, blotchRoute);
+                continue;
+            }
+            else {
+                GenIsland1.doneDesert++;
+            }
+            
+              // TODO: this might be fixed, test
+            Route blotchRoute = new Route("forest1", 40); // TODO: mem usage too high
+            // TODO: maxDist/6 is too big I think for some islands.
+            // maxDist/6 for 100x100 island, it looked pretty good.
+            // maxDist/10 for 100x180 island
+            // maxDist/14 for 100x350 island
+            // maxDist/18 for 100x500 island
+            // TODO: could try adding more layers to mountains for larger islands.
+            // TODO: maxDist/18 is actually working pretty well for most sizes.
+            ApplyBlotch(game, "island", tile, maxDist/18, this.tilesToAdd, 1, true, blotchRoute); 
+        }
 
         // TODO: this probably will tack on even more processing time.
         // TODO: doesn't really work, bleeds into upper mountain area
-//        long startTime = System.currentTimeMillis();
-//        System.out.println("Start mountain tile dither: " + String.valueOf(startTime));
-//        for (Tile tile : mtnTiles.values()) {
-//            if (this.tilesToAdd.containsKey(tile.position)) {
-//                Tile currTile = this.tilesToAdd.get(tile.position);
-//                if (currTile.name.contains("desert") && tile.name.contains("snow")) {
-//                    continue;
-//                }
-//            }
-//            this.tilesToAdd.put(tile.position, tile);
-//        }
-//        System.out.println("End mountain tile dither: " + String.valueOf(System.currentTimeMillis()-startTime));
-        this.tilesToAdd.putAll(mtnTiles);  // TODO: testing, revert
+        long startTime = System.currentTimeMillis();
+        for (Tile tile : this.mtnTiles.values()) {
+            if (this.tilesToAdd.containsKey(tile.position)) {
+                Tile currTile = this.tilesToAdd.get(tile.position);
+                if (currTile.name.contains("desert") &&
+                    tile.isBottomMtnLayer) {
+                    continue;
+                }
+            }
+            this.tilesToAdd.put(tile.position, tile);
+        }
+        System.out.println("End mountain tile dither: " + String.valueOf(System.currentTimeMillis()-startTime));
+//        this.tilesToAdd.putAll(this.mtnTiles);  // TODO: remove
 
- 
         // Remove 'stray' overworld pokemon
-        for (Vector2 pos : mtnTiles.keySet()) {
+        for (Vector2 pos : this.mtnTiles.keySet()) {
             if (this.pokemonToAdd.containsKey(pos)) {
                 this.pokemonToAdd.remove(pos);
             }
@@ -1694,8 +1710,8 @@ class GenIsland1 extends Action {
                     // TODO: not working.
                     tilesToAdd.put(tile.position.cpy().add(16,0), new Tile("desert4", "solid", tile.position.cpy().add(16, 0), true, tile.routeBelongsTo));
                 }
-                
-                
+
+
                 if (tile.name.contains("desert")) {
                     desertTiles.add(tile);
                 }
@@ -1709,9 +1725,9 @@ class GenIsland1 extends Action {
                 }
                 // Generate the pokemon mansion dungeon
                 if (tile.biome.equals("deep_forest") && !GenIsland1.donePkmnMansion
-                    && !mtnTiles.containsKey(tile.position.cpy().add(0, -16*23))
-                    && !mtnTiles.containsKey(tile.position.cpy().add(-16*14, 0))
-                    && !mtnTiles.containsKey(tile.position.cpy().add(16*9, -16*15))) {
+                    && !this.mtnTiles.containsKey(tile.position.cpy().add(0, -16*23))
+                    && !this.mtnTiles.containsKey(tile.position.cpy().add(-16*14, 0))
+                    && !this.mtnTiles.containsKey(tile.position.cpy().add(16*9, -16*15))) {
                     GenIsland1.donePkmnMansion = true;
 //                    i = -1;  // start over. it's iterating on a copy of tilesToAdd right now.
                     complete = false;
@@ -1729,7 +1745,26 @@ class GenIsland1 extends Action {
                         try {
                             this.generateMansion(game, mansionExteriorTiles, mansionInteriorTiles, mansionPos);
                             tilesToAdd.putAll(mansionExteriorTiles);
-                            this.interiorTilesToAdd.addAll(mansionInteriorTiles);
+//                            this.interiorTilesToAdd.addAll(mansionInteriorTiles);  // TODO: remove
+                            // TODO: generic algo for this.
+                            for (int i=0; i < mansionInteriorTiles.size(); i++) {
+                                HashMap<Vector2, Tile> currLayer = mansionInteriorTiles.get(i);
+                                if (i >= this.interiorTilesToAdd.size()) {
+                                    this.interiorTilesToAdd.add(currLayer);
+                                    continue;
+                                }
+                                if (currLayer == null) {
+                                    continue;
+                                }
+                                if (this.interiorTilesToAdd.get(i) == null) {
+                                    this.interiorTilesToAdd.remove(i);
+                                    this.interiorTilesToAdd.add(i, currLayer);
+                                    continue;
+                                }
+                                for (Vector2 key : currLayer.keySet()) {
+                                    this.interiorTilesToAdd.get(i).put(key, currLayer.get(key));
+                                }
+                            }
                             break;
                         } catch (Exception e) {
                             System.out.println("Failed to generate mansion: " + e.getMessage());
@@ -1763,13 +1798,13 @@ class GenIsland1 extends Action {
                      // TODO: test
                      // might have been fine if cave is just on lower layer
 //                    && (keyLoc == null || !keyLoc.equals(tile.position))  
-                    && !mtnTiles.containsKey(tile.position.cpy().add(0, -16*23))
-                    && !mtnTiles.containsKey(tile.position.cpy().add(-16*14, 0))
-                    && !mtnTiles.containsKey(tile.position.cpy().add(16*9, -16*15))
-                    && !mtnTiles.containsKey(tile.position.cpy().add(32, 32))
-                    && !mtnTiles.containsKey(tile.position.cpy().add(-32, 32))
-                    && !mtnTiles.containsKey(tile.position.cpy().add(32, -32))
-                    && !mtnTiles.containsKey(tile.position.cpy().add(-32, -32))
+                    && !this.mtnTiles.containsKey(tile.position.cpy().add(0, -16*23))
+                    && !this.mtnTiles.containsKey(tile.position.cpy().add(-16*14, 0))
+                    && !this.mtnTiles.containsKey(tile.position.cpy().add(16*9, -16*15))
+                    && !this.mtnTiles.containsKey(tile.position.cpy().add(32, 32))
+                    && !this.mtnTiles.containsKey(tile.position.cpy().add(-32, 32))
+                    && !this.mtnTiles.containsKey(tile.position.cpy().add(32, -32))
+                    && !this.mtnTiles.containsKey(tile.position.cpy().add(-32, -32))
                     && this.rand.nextInt(3) == 2) {
                     GenIsland1.doneRegiDungeon = true;
                     complete = false;
@@ -1793,7 +1828,6 @@ class GenIsland1 extends Action {
                         }
                         tilesToAdd.put(tile2.position.cpy(), tile2);
                     }
-//                    tilesToAdd.putAll(regiExteriorTiles);  // TODO: remove
                     for (int i=0; i < regiInteriorTiles.size(); i++) {
                         HashMap<Vector2, Tile> currLayer = regiInteriorTiles.get(i);
                         if (currLayer == null) {
@@ -1810,361 +1844,137 @@ class GenIsland1 extends Action {
                     }
                     break;  // if you don't do this, then dungeon gets replaced by trees.
                 }
-                
 
-                if (!GenIsland1.doneFossilBuilding && tile.routeBelongsTo != null && tile.routeBelongsTo.name.equals("oasis1")) {
-                    GenIsland1.doneFossilBuilding = true;
-                    complete = false;
-                    HashMap<Vector2, Tile> exteriorTiles = new HashMap<Vector2, Tile>();
-                    ArrayList<HashMap<Vector2, Tile>> interiorTiles = new ArrayList<HashMap<Vector2, Tile>>();
-                    for (int i=0; i < 100; i++) {
-                        interiorTiles.add(null);
-                    }
-                    HashMap<Vector2, Tile> currLayer = new HashMap<Vector2, Tile>();
-                    Vector2 tl2 = tile.position.cpy();
-//                    String[][] names = new String[][]{{null, null, "building1_wall1", "building1_wall1"},
-//                                                      {"building1_pokecenter1", null, "building1_cables1", "building1_fossilreviver1"},
-//                                                      {"building1_floor2", "building1_floor2", "building1_floor1", "building1_floor2"},
-//                                                      {"building1_floor1", "rug2", "rug2", "building1_floor1"}
+                // TODO: remove
+//                if (!GenIsland1.doneFossilBuilding &&
+//                    tile.routeBelongsTo != null &&
+//                    tile.routeBelongsTo.name.equals("oasis1")) {
+//                    GenIsland1.doneFossilBuilding = true;
+//                    complete = false;
+//                    HashMap<Vector2, Tile> exteriorTiles = new HashMap<Vector2, Tile>();
+//                    ArrayList<HashMap<Vector2, Tile>> interiorTiles = new ArrayList<HashMap<Vector2, Tile>>();
+//                    for (int i=0; i < 100; i++) {
+//                        interiorTiles.add(null);
+//                    }
+//                    HashMap<Vector2, Tile> currLayer = new HashMap<Vector2, Tile>();
+//                    Vector2 tl2 = tile.position.cpy();
+////                    String[][] names = new String[][]{{null, null, "building1_wall1", "building1_wall1"},
+////                                                      {"building1_pokecenter1", null, "building1_cables1", "building1_fossilreviver1"},
+////                                                      {"building1_floor2", "building1_floor2", "building1_floor1", "building1_floor2"},
+////                                                      {"building1_floor1", "rug2", "rug2", "building1_floor1"}
+////                                                      };
+////                    String[][] names = new String[][]{{"building1_wall1", "building1_wall1", "building1_wall1", "building1_wall1"},
+////                                                      {"building1_cables1", "building1_cables1", "building1_cables1", "pkmnmansion_shelf1"},
+////                                                      {"building1_fossilreviver1", "building1_floor1", null, null},
+////                                                      {"building1_floor2", "rug2", "building1_pokecenter1", null}
+////                                                      };
+//                    String[][] names = new String[][]{{"building1_wall1", "building1_wall1", "building1_wall1", "building1_wall1", "building1_wall1", "building1_wall1"},
+//                                                      {"building1_machine2", null, null, null, null, null},
+//                                                      {"building1_fossilreviver1", "building1_cables1", "building1_cables1", "building1_cables1", "building1_pokecenter1", "building1_pokecenter1_right"},
+//                                                      {"building1_floor2", "building1_floor1", "rug2", "building1_floor1", "building1_floor2", "building1_floor2"}
 //                                                      };
-//                    String[][] names = new String[][]{{"building1_wall1", "building1_wall1", "building1_wall1", "building1_wall1"},
-//                                                      {"building1_cables1", "building1_cables1", "building1_cables1", "pkmnmansion_shelf1"},
-//                                                      {"building1_fossilreviver1", "building1_floor1", null, null},
-//                                                      {"building1_floor2", "rug2", "building1_pokecenter1", null}
-//                                                      };
-                    String[][] names = new String[][]{{"building1_wall1", "building1_wall1", "building1_wall1", "building1_wall1", "building1_wall1", "building1_wall1"},
-                                                      {"building1_machine2", null, null, null, null, null},
-                                                      {"building1_fossilreviver1", "building1_cables1", "building1_cables1", "building1_cables1", "building1_pokecenter1", "building1_pokecenter1_right"},
-                                                      {"building1_floor2", "building1_floor1", "rug2", "building1_floor1", "building1_floor2", "building1_floor2"}
-                                                      };
-                    Route interiorRoute = new Route("fossil_lab1", 11);
-                    Vector2 pos2;
-                    for (int i=0; i < names.length; i++) {
-                        for (int j=0; j < names[i].length; j++) {
-                            if (names[i][j] == null) {
-                                continue;
-                            }
-                            pos2 = new Vector2(tl2.x -6*16 +j*16, tl2.y +5*16 -i*16);
-                            currLayer.put(pos2, new Tile(names[i][j], pos2, true, interiorRoute));
-                        }
-                    }
-                    interiorTiles.add(currLayer);
-//                    names = new String[][]{{"pkmnmansion_roof_NW", "pkmnmansion_roof_N", "pkmnmansion_roof_N", "pkmnmansion_roof_NE"},
-//                                           {"pkmnmansion_roof_SW", "pkmnmansion_roof_S", "pkmnmansion_roof_S", "pkmnmansion_roof_SE"},
-//                                           {"pkmnmansion_ext_W", "pkmnmansion_ext", "pkmnmansion_ext", "pkmnmansion_ext_E"},
-//                                           {"pkmnmansion_ext_SW", "pkmnmansion_ext_door", "pkmnmansion_ext_S", "pkmnmansion_ext_SE"},
-//                                           {"sand1", "sand1", "sand1", "sand1"},
-//                                           };
-                    // Non-damaged building
-//                    names = new String[][]{{"pkmnmansion_roof_NW", "pkmnmansion_roof_N", "pkmnmansion_roof_N", "pkmnmansion_roof_N", "pkmnmansion_roof_N", "pkmnmansion_roof_NE"},
-//                                           {"pkmnmansion_roof_SW", "pkmnmansion_roof_S", "pkmnmansion_roof_S", "pkmnmansion_roof_S", "pkmnmansion_roof_S", "pkmnmansion_roof_SE"},
-//                                           {"pkmnmansion_ext_W_window", "pkmnmansion_ext_windows", "pkmnmansion_ext_windows_W", "pkmnmansion_ext_windows_E", "pkmnmansion_ext_windows", "pkmnmansion_ext_E_window"},
-//                                           {"pkmnmansion_ext_SW", "pkmnmansion_ext_S", "pkmnmansion_ext_door", "pkmnmansion_ext_S_windows", "pkmnmansion_ext_S", "pkmnmansion_ext_SE"},
+//                    Route interiorRoute = new Route("fossil_lab1", 11);
+//                    Vector2 pos2;
+//                    for (int i=0; i < names.length; i++) {
+//                        for (int j=0; j < names[i].length; j++) {
+//                            if (names[i][j] == null) {
+//                                continue;
+//                            }
+//                            pos2 = new Vector2(tl2.x -6*16 +j*16, tl2.y +5*16 -i*16);
+//                            currLayer.put(pos2, new Tile(names[i][j], pos2, true, interiorRoute));
+//                        }
+//                    }
+//                    interiorTiles.add(currLayer);
+////                    names = new String[][]{{"pkmnmansion_roof_NW", "pkmnmansion_roof_N", "pkmnmansion_roof_N", "pkmnmansion_roof_NE"},
+////                                           {"pkmnmansion_roof_SW", "pkmnmansion_roof_S", "pkmnmansion_roof_S", "pkmnmansion_roof_SE"},
+////                                           {"pkmnmansion_ext_W", "pkmnmansion_ext", "pkmnmansion_ext", "pkmnmansion_ext_E"},
+////                                           {"pkmnmansion_ext_SW", "pkmnmansion_ext_door", "pkmnmansion_ext_S", "pkmnmansion_ext_SE"},
+////                                           {"sand1", "sand1", "sand1", "sand1"},
+////                                           };
+//                    // Non-damaged building
+////                    names = new String[][]{{"pkmnmansion_roof_NW", "pkmnmansion_roof_N", "pkmnmansion_roof_N", "pkmnmansion_roof_N", "pkmnmansion_roof_N", "pkmnmansion_roof_NE"},
+////                                           {"pkmnmansion_roof_SW", "pkmnmansion_roof_S", "pkmnmansion_roof_S", "pkmnmansion_roof_S", "pkmnmansion_roof_S", "pkmnmansion_roof_SE"},
+////                                           {"pkmnmansion_ext_W_window", "pkmnmansion_ext_windows", "pkmnmansion_ext_windows_W", "pkmnmansion_ext_windows_E", "pkmnmansion_ext_windows", "pkmnmansion_ext_E_window"},
+////                                           {"pkmnmansion_ext_SW", "pkmnmansion_ext_S", "pkmnmansion_ext_door", "pkmnmansion_ext_S_windows", "pkmnmansion_ext_S", "pkmnmansion_ext_SE"},
+////                                           {"sand1", "sand1", "sand1", "sand1", "sand1", "sand1"},
+////                                           };
+//                    names = new String[][]{{"pkmnmansion_roof_NW", "pkmnmansion_roof_N", "pkmnmansion_roof_N", "pkmnmansion_roof_N_damaged", "pkmnmansion_roof_N", "pkmnmansion_roof_NE"},
+//                                           {"pkmnmansion_roof_SW", "pkmnmansion_roof_S_damaged", "pkmnmansion_roof_S", "pkmnmansion_roof_S", "pkmnmansion_roof_S", "pkmnmansion_roof_SE"},
+//                                           {"pkmnmansion_ext_W_window", "pkmnmansion_ext_windows", "pkmnmansion_ext_windows_W_damaged", "pkmnmansion_ext_windows_E_damaged", "pkmnmansion_ext_windows", "pkmnmansion_ext_E_window_damaged"},
+//                                           {"pkmnmansion_ext_SW", "pkmnmansion_ext_S", "pkmnmansion_ext_door", "pkmnmansion_ext_S_windows_damaged", "pkmnmansion_ext_S", "pkmnmansion_ext_SE_damaged"},
 //                                           {"sand1", "sand1", "sand1", "sand1", "sand1", "sand1"},
 //                                           };
-                    names = new String[][]{{"pkmnmansion_roof_NW", "pkmnmansion_roof_N", "pkmnmansion_roof_N", "pkmnmansion_roof_N_damaged", "pkmnmansion_roof_N", "pkmnmansion_roof_NE"},
-                                           {"pkmnmansion_roof_SW", "pkmnmansion_roof_S_damaged", "pkmnmansion_roof_S", "pkmnmansion_roof_S", "pkmnmansion_roof_S", "pkmnmansion_roof_SE"},
-                                           {"pkmnmansion_ext_W_window", "pkmnmansion_ext_windows", "pkmnmansion_ext_windows_W_damaged", "pkmnmansion_ext_windows_E_damaged", "pkmnmansion_ext_windows", "pkmnmansion_ext_E_window_damaged"},
-                                           {"pkmnmansion_ext_SW", "pkmnmansion_ext_S", "pkmnmansion_ext_door", "pkmnmansion_ext_S_windows_damaged", "pkmnmansion_ext_S", "pkmnmansion_ext_SE_damaged"},
-                                           {"sand1", "sand1", "sand1", "sand1", "sand1", "sand1"},
-                                           };
-                    for (int i=0; i < names.length; i++) {
-                        for (int j=0; j < names[i].length; j++) {
-                            if (names[i][j] == null) {
-                                continue;
-                            }
-                            pos2 = new Vector2(tl2.x -6*16 +j*16, tl2.y +5*16 -i*16);
-
-                            // Below block is to get rid of aloe plants
-                            Tile currTile = exteriorTiles.get(pos2);
-                            if (currTile != null && currTile.name.equals("aloe_large1")) {
-                                Vector2[] nexts = new Vector2[]{new Vector2(16, 0), new Vector2(0, 16), new Vector2(16, 16)};
-                                for (Vector2 next : nexts) {
-                                    Vector2 nextPos = pos2.cpy().add(next);
-                                    Tile nextTile = exteriorTiles.get(nextPos);
-                                    if (nextTile.nameUpper.equals("solid")) {
-                                        nextTile.nameUpper = "";
-                                        nextTile.attrs.put("solid", false);
-                                    }
-                                }
-                            }
-
-                            exteriorTiles.put(pos2, new Tile(names[i][j], pos2, true, tile.routeBelongsTo));
-                        }
-                    }
-                    for (Tile tile2 : exteriorTiles.values()) {
-                        Tile currTile = tilesToAdd.get(tile2.position);
-                        if (currTile != null && currTile.nameUpper.equals("pokemon_mansion_key")) {
-                            tilesToAdd.put(tile2.position.cpy(), new Tile(tile2.name, currTile.nameUpper, currTile.position, true, currTile.routeBelongsTo));
-                            continue;
-                        }
-                        tilesToAdd.put(tile2.position.cpy(), tile2);
-                    }
-                    for (int i=0; i < interiorTiles.size(); i++) {
-                        currLayer = interiorTiles.get(i);
-                        // TODO: uncomment, I think
-                        // TODO: this has to be uncommented or game won't work when generating full island
+//                    for (int i=0; i < names.length; i++) {
+//                        for (int j=0; j < names[i].length; j++) {
+//                            if (names[i][j] == null) {
+//                                continue;
+//                            }
+//                            pos2 = new Vector2(tl2.x -6*16 +j*16, tl2.y +5*16 -i*16);
+//
+//                            // Below block is to get rid of aloe plants
+//                            Tile currTile = exteriorTiles.get(pos2);
+//                            if (currTile != null && currTile.name.equals("aloe_large1")) {
+//                                Vector2[] nexts = new Vector2[]{new Vector2(16, 0), new Vector2(0, 16), new Vector2(16, 16)};
+//                                for (Vector2 next : nexts) {
+//                                    Vector2 nextPos = pos2.cpy().add(next);
+//                                    Tile nextTile = exteriorTiles.get(nextPos);
+//                                    if (nextTile.nameUpper.equals("solid")) {
+//                                        nextTile.nameUpper = "";
+//                                        nextTile.attrs.put("solid", false);
+//                                    }
+//                                }
+//                            }
+//
+//                            exteriorTiles.put(pos2, new Tile(names[i][j], pos2, true, tile.routeBelongsTo));
+//                        }
+//                    }
+//                    for (Tile tile2 : exteriorTiles.values()) {
+//                        Tile currTile = tilesToAdd.get(tile2.position);
+//                        if (currTile != null && currTile.nameUpper.equals("pokemon_mansion_key")) {
+//                            tilesToAdd.put(tile2.position.cpy(), new Tile(tile2.name, currTile.nameUpper, currTile.position, true, currTile.routeBelongsTo));
+//                            continue;
+//                        }
+//                        tilesToAdd.put(tile2.position.cpy(), tile2);
+//                    }
+//                    for (int i=0; i < interiorTiles.size(); i++) {
+//                        currLayer = interiorTiles.get(i);
+//                        // TODO: uncomment, I think
+//                        // TODO: this has to be uncommented or game won't work when generating full island
 //                        if (currLayer == null) {
 //                            continue;
 //                        }
-                        if (i >= this.interiorTilesToAdd.size()) {
-                            this.interiorTilesToAdd.add(currLayer);
-                            continue;
-                        }
-                        if (this.interiorTilesToAdd.get(i) == null) {
-                            this.interiorTilesToAdd.remove(i);
-                            this.interiorTilesToAdd.add(i, currLayer);
-                            continue;
-                        }
-                        for (Vector2 key : currLayer.keySet()) {
-                            this.interiorTilesToAdd.get(i).put(key, currLayer.get(key));
-                        }
-                    }
-                    break;  // if you don't do this, then dungeon gets replaced by trees.
-                }
-                
-                
-                
+//                        if (i >= this.interiorTilesToAdd.size()) {
+//                            this.interiorTilesToAdd.add(currLayer);
+//                            continue;
+//                        }
+//                        if (this.interiorTilesToAdd.get(i) == null) {
+//                            this.interiorTilesToAdd.remove(i);
+//                            this.interiorTilesToAdd.add(i, currLayer);
+//                            continue;
+//                        }
+//                        for (Vector2 key : currLayer.keySet()) {
+//                            this.interiorTilesToAdd.get(i).put(key, currLayer.get(key));
+//                        }
+//                    }
+//                    break;  // If you don't do this, then dungeon gets replaced by trees.
+//                }
             }
         }
 
-        // TODO: test
-        int nextSize = 230;
-        Route currRoute = new Route("ruins1_outer", 44);
-        int tries = 0;
-        Tile newTile2 = desertTiles.remove(this.rand.nextInt(desertTiles.size()));
-        while (tries < 80 && desertTiles.size() > 0) {
-            // newTile2.position.x % 64 == 0 looked neat
-//             newTile2.position.x % 64 == 32
-            if (newTile2.position.x % 32 == 0 && newTile2.position.y % 32 == 16) {  
-                break;
-            }
-            newTile2 = desertTiles.remove(this.rand.nextInt(desertTiles.size()));
-            tries++;
-        }
-        HashMap<Vector2, Tile> newTiles = new HashMap<Vector2, Tile>();
-        HashMap<Vector2, Tile> newTiles2 = new HashMap<Vector2, Tile>();
-        ApplyBlotch(game, "ruins1_upper2", newTile2, nextSize, newTiles2, 0, false, currRoute);
-        newTiles.putAll(newTiles2);
-        newTiles2.clear();
-        nextSize = 240;
-        ApplyBlotch(game, "ruins1_upper", newTile2, nextSize, newTiles2, 0, false, currRoute);
-        newTiles.putAll(newTiles2);
-        for (Tile thisTile : newTiles.values()) {
-            if (!thisTile.name.contains("ruins1")) {
-                continue;
-            }
-            game.map.adjustSurroundingTiles(thisTile, newTiles);
-        }
-        tilesToAdd.putAll(newTiles);
-        for (int i = -1; i < 2; i++) {
-            for (int j = -1; j < 2; j++) {
-                Tile currTile = tilesToAdd.get(newTile2.position.cpy().add(16*i, 16*j));
-                if (!currTile.name.equals("desert4")) {
-                    tilesToAdd.put(currTile.position.cpy(), new Tile("ruins_floor2", currTile.position.cpy(), true, null));
-                }
+        // Remove 'stray' overworld pokemon (again, this time from desert)
+        for (Tile tile : desertTiles) {
+            if (this.pokemonToAdd.containsKey(tile.position)) {
+                this.pokemonToAdd.remove(tile.position);
             }
         }
-        Vector2[] positions2 = new Vector2[]{newTile2.position.cpy().add(-32, 16),
-                                             newTile2.position.cpy().add(32, 16),
-                                             newTile2.position.cpy().add(-32, -16),
-                                             newTile2.position.cpy().add(32, -16)};
-        for (Vector2 position : positions2) {
-            if (this.rand.nextInt(3) > 0) {
-                tilesToAdd.put(position.cpy(), new Tile("ruins1_pillar1", position.cpy(), true, null));
-            }
-        }
-        tilesToAdd.put(newTile2.position.cpy(), new Tile("ruins1_NSEW", "stairs_down2", newTile2.position.cpy(), true, null));
-        String[][] names = new String[][]{{"ruins2_wall1", "ruins2_wall1", "ruins2_wall1", "ruins2_wall1", "ruins2_wall1", "ruins2_wall1", "ruins2_wall1", "ruins2_wall1"},
-                                          {"ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2"},
-                                          {"ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2"},
-                                          {"ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2"},
-                                          {"ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2"},
-                                          {"ruins_floor2", "ruins1_pillar1", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins1_pillar1", "ruins_floor2"},
-                                          {"ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2"},
-                                          {"ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2"},
-                                          {"ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2"},
-                                          {"ruins_floor2", "ruins_floor2", "ruins1_pillar1", "ruins_floor2", "ruins_floor2", "ruins1_pillar1", "ruins_floor2", "ruins_floor2"},
-                                          {"ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2"},
-                                          {"ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2"},
-                                          {"ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2"},
-                                          {"ruins_floor2", "ruins1_pillar1", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins1_pillar1", "ruins_floor2"},
-                                          {"ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins_floor2"},
-                                          {null, null, null, "ruins_floor2", "ruins_floor2_stairs", null, null, null, null}};
-        // Generate the ruins interior
-        // TODO: move to function like generateMansion
-        ArrayList<HashMap<Vector2, Tile>> interiorTiles = new ArrayList<HashMap<Vector2, Tile>>();
-        for (int i=0; i < 5; i++) {
-            interiorTiles.add(new HashMap<Vector2, Tile>());
-        }
-        HashMap<Vector2, Tile> currLayer;
-        Vector2 startLoc = new Vector2(10, 10);
-        Vector2 bl = newTile2.position.cpy().add((-10*3-1)*16, (-10*3-1)*16);
-        ArrayList<Vector2> startLocs = new ArrayList<Vector2>();
-        ArrayList<Vector2> endPoints = new ArrayList<Vector2>();
-        endPoints.add(startLoc);
-        boolean[][] maze;
-        currRoute = new Route("ruins1_inner", 44);
-        // Start from top level, work downward
-        for (int levelNum=interiorTiles.size()-1; levelNum >= 0; levelNum--) {
-            
-            currLayer = interiorTiles.get(levelNum);
-            
-            // Final layer so make volcarona room
-            if (levelNum == 0) {
-                for (int i=0; i < names.length; i++) {
-                    for (int j=0; j < names[i].length; j++) {
-                        if (names[i][j] == null) {
-                            continue;
-                        }
-                        Vector2 startPos = endPoints.get(0);
-                        Vector2 position = bl.cpy().add( (startPos.x*3 -3 +j)*16, (startPos.y*3 +16 -i)*16 );
-                        Tile newTile;
-                        if (names[i][j].equals("ruins_floor2_stairs")) {
-                            newTile = new Tile("ruins_floor2", "stairs_up1", position.cpy(), true, currRoute);
-                        }
-                        else {
-                            newTile = new Tile(names[i][j], position.cpy(), true, currRoute);
-                        }
-                        if (names[i][j].contains("pillar")) {
-                            newTile.items().put("torch", 1);
-                        }
-                        currLayer.put(position, newTile);
-                    }
-                }
-                continue;
-            }
-            
-            // This is for the first level
-            // 3 start locations to branch from
-            float complexity = 15;
-            for (Vector2 position : endPoints) {
-                currLayer.put(bl.cpy().add((position.x*3+1)*16, (position.y*3+1)*16), new Tile("ruins1_NSEW", "stairs_up1", bl.cpy().add((position.x*3+1)*16, (position.y*3+1)*16), true, null));
-                startLocs.add(position);
-                startLocs.add(position);
-                if (this.rand.nextInt(2) == 0 || levelNum == interiorTiles.size()-1) {
-                    startLocs.add(position);
-                    if (levelNum != interiorTiles.size()-1) {
-                        complexity = 10;
-                    }
-                }
-            }
-            endPoints.clear();
-            
-            // Generate a maze
-            int width = 20;
-            int height = 20;
-            float density = startLocs.size();
-            maze = GenForest2.Maze_Algo3(width, height, complexity, density, this.rand, startLocs);
-//            System.out.println("startLocs.size()");
-//            System.out.println(startLocs.size());
-            // Debug - remove
-            System.out.print("\n");
-            System.out.print("\n");
 
-            for (int j=maze.length-1; j >= 0; j--) {
-                for (int i=0; i < maze[j].length; i++) {
-//                    maze[j][i] = !maze[j][i];
-                    System.out.print(String.valueOf(maze[i][j] ? 1 : " ")+" ");
-                }
-                System.out.print("\n");
-            }
+        // Place desert ruins exterior and interior
+        this.generateDesertRuins(game, desertTiles);
 
-            // TODO: make each node 3x3 (?) not 1x1
-            for (int i=0; i < maze.length; i++) {
-                for (int j=0; j < maze[i].length; j++) {
-                    if (maze[i][j]) {
-                        // This will overwrite stairs going up otherwise.
-                        // 3x3 grid of stuff
-                        for (int k=0; k < 3; k++) {
-                            for (int l=0; l < 4; l++) {
-                                Vector2 position = bl.cpy().add((i*3+k)*16, (j*3+l)*16);
-                                Tile currTile = currLayer.get(position);
-                                if (currTile == null || currTile.name.contains("wall")) {
-                                    if (l == 3) {
-                                        // ruins2_wall2
-                                        Tile newTile = new Tile("ruins2_wall1", position.cpy(), true, null);
-                                        if (i % 2 == 0 && k == 1 && this.rand.nextInt(4)> 0) {
-                                            newTile.items().put("torch", 1);
-                                        }
-                                        currLayer.put(position, newTile);
-                                    }
-                                    else {
-                                        String name = "desert4";
-                                        // TODO: remove
-                                        // Mod function was an attempt to make it 'splotch'
-                                        if (this.rand.nextInt(6 +2*Math.abs((i%8)-4)) > 5) {  //+k
-                                            name = "ruins_floor2";
-                                        }
-                                        currLayer.put(position, new Tile(name, position.cpy(), true, currRoute));
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            
-            
-            // Pick two endpoints to be stairs
-            int size = startLocs.size();
-            for (int i=0; i < size && i < 2; i++) {
-                startLoc = startLocs.remove(this.rand.nextInt(startLocs.size()));
-                System.out.println(startLoc);
-                for (int k=0; k < 3; k++) {
-                    for (int l=0; l < 3; l++) {
-                        Vector2 position = bl.cpy().add((startLoc.x*3+k)*16, (startLoc.y*3+l)*16);
-                        if (k == 1 && l == 1) {
-                            currLayer.put(position.cpy(), new Tile("ruins1_NSEW", "stairs_down2", position.cpy(), true, null));
-                        }
-                        else if (this.rand.nextInt(5) > 1) {
-                            currLayer.put(position.cpy(), new Tile("ruins_floor2", position.cpy(), true, currRoute));
-                        }
-                        else {
-                            currLayer.put(position.cpy(), new Tile("desert4", position.cpy(), true, currRoute));
-                            
-                        }
-                    }
-                }
-                endPoints.add(startLoc);
-                // Only place 1 stairs on final level
-                if (levelNum == 1) {
-                    break;
-                }
-            }
-            startLocs.clear();
-            
-        }
-        // Do this because stairs will go down one level
-        interiorTiles.add(new HashMap<Vector2, Tile>());
+        // Place oasis exterior and interior
+        this.generateOasis(game, desertTiles);
 
-        for (int i=0; i < interiorTiles.size(); i++) {
-            currLayer = interiorTiles.get(i);
-            // TODO: uncomment, I think
-            // TODO: this has to be uncommented or game won't work when generating full island
-//            if (currLayer == null) {
-//                continue;
-//            }
-            int interiorIndex = i +100 -5;
-            if (interiorIndex >= this.interiorTilesToAdd.size()) {
-                this.interiorTilesToAdd.add(currLayer);
-                continue;
-            }
-            if (this.interiorTilesToAdd.get(interiorIndex) == null) {
-                this.interiorTilesToAdd.remove(interiorIndex);
-                this.interiorTilesToAdd.add(interiorIndex, currLayer);
-                continue;
-            }
-            for (Vector2 key : currLayer.keySet()) {
-                this.interiorTilesToAdd.get(interiorIndex).put(key, currLayer.get(key));
-            }
-        }
-        
-        
-        
-        // TODO: test
-        // TODO: moving this broke things
-        // Make all fully-evolved Pokemon overworld pokemon
+        // Yeet pokemon out of routes and into the overworld (using various criteria)
         for (Tile tile : this.tilesToAdd.values()) {
             if (tile.routeBelongsTo == null) {
                 continue;
@@ -2182,12 +1992,11 @@ class GenIsland1 extends Action {
                 }
 
                 if (tile.routeBelongsTo.name.equals("desert1")) {
-
                     if (this.rand.nextInt(2048) >= 2047) {
                         tile.routeBelongsTo.pokemon.remove(pokemon);
                         pokemon.position = tile.position.cpy();
                         pokemon.mapTiles = game.map.overworldTiles;
-                        pokemon.standingAction = pokemon.new Standing();  // Somehow this breaks things?
+                        pokemon.standingAction = pokemon.new Standing();
                         this.pokemonToAdd.put(tile.position.cpy(), pokemon);
                         if (pokemon.specie.name.equals("drapion")) {
                             pokemon.aggroPlayer = true;
@@ -2204,9 +2013,9 @@ class GenIsland1 extends Action {
                     if (tile.routeBelongsTo.name.contains("forest")) {
                         baseChance = 224;  // 1/8 chance if it's forest biome
                     }
-                    // Oasis was packed with evos
                     if (tile.routeBelongsTo.name.contains("oasis")) {
-                        baseChance = 248;
+//                        baseChance = 248;
+                        baseChance = 100;  // Had to change this after some refactors
                     }
                     if (tile.routeBelongsTo.name.contains("ruins")) {
                         baseChance = 253;
@@ -2299,7 +2108,7 @@ class GenIsland1 extends Action {
 
 
 
-        long startTime = System.currentTimeMillis();
+        startTime = System.currentTimeMillis();
         Vector2[] positions = new Vector2[]{new Vector2(-16, 0), new Vector2(16, 0),
                                             new Vector2(-16, -16), new Vector2(16, 16),
                                             new Vector2(16, -16), new Vector2(-16, 16),
@@ -2325,11 +2134,13 @@ class GenIsland1 extends Action {
                     Tile newTile = new Tile("sand3", nextTile.position.cpy(), true, tempRoute);
                     this.tilesToAdd.put(newTile.position.cpy(), newTile);
                     // Don't place edges next to desert or in oasis
-                    
+
                     // TODO: re-enable
-//                    if (!tile.name.contains("desert") && (tile.routeBelongsTo == null || !tile.routeBelongsTo.name.equals("oasis1"))) {
+                    if (!tile.name.contains("desert") &&
+                        (tile.routeBelongsTo == null || (!tile.routeBelongsTo.name.equals("oasis1") &&
+                                                         !tile.routeBelongsTo.name.equals("ruins1_outer")))) {
                         this.edges.add(newTile);
-//                    }
+                    }
                 }
             }
         }
@@ -2502,9 +2313,9 @@ class GenIsland1 extends Action {
         }
         // TODO: this will have to be done in post like the mansion, etc.
         // Picking a random spot should be okay, tiles are concetrated near center (?)
-        int doneOasis = maxDist;
+        int doneOasis = maxDist;  // TODO: remove
         int numDarms = 10;  // TODO: would like this to only apply to desert ruins
-//        int doneRuins = maxDist;  // TODO: remove
+        int invulnTimer = 0;
 
 
         while (!edgeTiles.isEmpty()) {
@@ -2521,7 +2332,18 @@ class GenIsland1 extends Action {
                         // that there aren't any random gaps in the middle of an island.
                         boolean shouldPut = ((int)distance < 7*maxDist/16);
                         if (type.equals("desert")) {
-                            shouldPut = ((int)distance < 8*maxDist/16);
+                            // Prevents desert from bleeding 'through' mountains
+                            // TODO: test that this was causing issue
+//                            if (invulnTimer >= 120 && this.mtnTiles.containsKey(edge)) {
+//                                continue;
+//                            }
+//                            if (invulnTimer < 120) {
+//                                invulnTimer++;
+//                            }
+                            // Looked nice but tiles from other biomes were 'bleeding' into the
+                            // desert too much.
+//                            shouldPut = ((int)distance < 8*maxDist/16);
+                            shouldPut = ((int)distance < 10*maxDist/16);
                         }
                         if (type.equals("sand_pit1")) {
                             shouldPut = ((int)distance < 10*maxDist/16);
@@ -2569,30 +2391,34 @@ class GenIsland1 extends Action {
                                 else if (this.rand.nextInt(maxDist) < 3) {
                                     newTile = new Tile("desert4", "desert4_cracked", edge, true, currRoute);
                                 }
+                                
+                                // TODO: remove
                                 // TODO: not sure if should limit to 1. definitely want minimum of one
-                                else if (distance > maxDist/8 && doneOasis > 0 && this.rand.nextInt(doneOasis) < 1) {
-//                                    int nextSize = 300 + this.rand.nextInt(100);
-                                    int nextSize = 250 + this.rand.nextInt(50);
-                                    HashMap<Vector2, Tile> newTiles = new HashMap<Vector2, Tile>();
-                                    ApplyBlotch(game, "oasis1", newTile, nextSize, newTiles, 0, true, currRoute);
-                                    HashMap<Vector2, Tile> newTiles2 = new HashMap<Vector2, Tile>();
-                                    nextSize = nextSize/2;
-                                    ApplyBlotch(game, "pond1", newTile, nextSize, newTiles2, 0, true, currRoute);
-                                    newTiles.putAll(newTiles2);
-                                    
-
-                                    for (Tile tile2 : new ArrayList<Tile>(newTiles.values())) {
-                                        if (tile2.nameUpper.equals("aloe_large1")) {
-                                            newTiles.put(tile2.position.cpy().add(16, 0), new Tile("green1", "solid", tile2.position.cpy().add(16, 0), true, tile2.routeBelongsTo));
-                                            newTiles.put(tile2.position.cpy().add(0, 16), new Tile("green1", "solid", tile2.position.cpy().add(0, 16), true, tile2.routeBelongsTo));
-                                            newTiles.put(tile2.position.cpy().add(16,16), new Tile("green1", "solid", tile2.position.cpy().add(16,16), true, tile2.routeBelongsTo));
-                                        }
-                                    }
-
-                                    grassTiles.putAll(newTiles);
-                                    tilesToAdd.putAll(newTiles);
-                                    doneOasis= 0;
-                                }
+//                                else if (distance > maxDist/8 && doneOasis > 0 && this.rand.nextInt(doneOasis) < 1) {
+//                                    
+////                                    int nextSize = 300 + this.rand.nextInt(100);
+//                                    int nextSize = 250 + this.rand.nextInt(50);
+//                                    HashMap<Vector2, Tile> newTiles = new HashMap<Vector2, Tile>();
+//                                    ApplyBlotch(game, "oasis1", newTile, nextSize, newTiles, 0, true, currRoute);
+//                                    HashMap<Vector2, Tile> newTiles2 = new HashMap<Vector2, Tile>();
+//                                    nextSize = nextSize/2;
+//                                    ApplyBlotch(game, "pond1", newTile, nextSize, newTiles2, 0, true, currRoute);
+//                                    newTiles.putAll(newTiles2);
+//                                    
+//
+//                                    for (Tile tile2 : new ArrayList<Tile>(newTiles.values())) {
+//                                        if (tile2.nameUpper.equals("aloe_large1")) {
+//                                            newTiles.put(tile2.position.cpy().add(16, 0), new Tile("green1", "solid", tile2.position.cpy().add(16, 0), true, tile2.routeBelongsTo));
+//                                            newTiles.put(tile2.position.cpy().add(0, 16), new Tile("green1", "solid", tile2.position.cpy().add(0, 16), true, tile2.routeBelongsTo));
+//                                            newTiles.put(tile2.position.cpy().add(16,16), new Tile("green1", "solid", tile2.position.cpy().add(16,16), true, tile2.routeBelongsTo));
+//                                        }
+//                                    }
+//
+//                                    grassTiles.putAll(newTiles);
+//                                    tilesToAdd.putAll(newTiles);
+//                                    doneOasis= 0;
+//                                }
+                                // TODO: remove
 //                                else if (distance > maxDist/8 && doneRuins > 0 && this.rand.nextInt(doneRuins) < 1) {
 //                                    int nextSize = 150;
 //                                    HashMap<Vector2, Tile> newTiles = new HashMap<Vector2, Tile>();
@@ -2915,13 +2741,8 @@ class GenIsland1 extends Action {
 
                                     // Chance to put trapinch in this tile
                                     if (this.rand.nextInt(256) < 32) {
-                                        Pokemon trapinch = new Pokemon("trapinch", 22, Pokemon.Generation.CRYSTAL);
-                                        trapinch.position = edge.cpy();
-                                        trapinch.isTrapping = true;
-                                        game.insertAction(trapinch.new Burrowed());
-                                        newTile.items().put("trapinch", 1);
+                                        this.trapinchSpawns.add(edge.cpy());
                                     }
-                                    
                                 }
                                 tilesToAdd.put(newTile.position.cpy(), newTile);
                                 edgeTiles.put(newTile.position.cpy(), newTile);
@@ -3012,22 +2833,23 @@ class GenIsland1 extends Action {
                             }
                             else if (type.equals("oasis1")) {
 
-                                Route blotchRoute = new Route("oasis1", 30);
+                                // TODO: remove
+//                                Route blotchRoute = new Route("oasis1", 30);
 //                                blotchRoute.genPokemon(0, false);
                                 
-                                Tile newTile = new Tile("sand1", "", edge, true, blotchRoute);
+                                Tile newTile = new Tile("sand1", "", edge, true, currRoute);
                                 int isGrass = this.rand.nextInt(maxDist/8) + (int)distance;
                                 if (isGrass < 1*maxDist/2) {
                                     if ((int)distance < 3*maxDist/8) {
                                         if (this.rand.nextInt(24) == 0) {
-                                            newTile = new Tile("flower4", edge, true, blotchRoute);
+                                            newTile = new Tile("flower4", edge, true, currRoute);
                                         }
                                         else {
-                                            newTile = new Tile("green1", edge, true, blotchRoute);
+                                            newTile = new Tile("green1", edge, true, currRoute);
                                         }
                                     }
                                     else {
-                                        newTile = new Tile("green1", edge, true, blotchRoute);
+                                        newTile = new Tile("green1", edge, true, currRoute);
                                     }
                                 }
 //                                if (this.rand.nextInt(110) < 1) {
@@ -3042,6 +2864,9 @@ class GenIsland1 extends Action {
                                 
                                 if (putGrass) {
                                     int nextSize = 40;
+                                    // New route technically not required however I liked the
+                                    // overworld diversity created by having a separate route here.
+                                    Route blotchRoute = new Route("oasis1", 30);
                                     ApplyBlotch(game, "grass", newTile, nextSize, grassTiles, 0, false, blotchRoute);
                                 }
                                 else if (this.rand.nextInt(10) < 1) {
@@ -3060,19 +2885,24 @@ class GenIsland1 extends Action {
                                     newTile = new Tile("tree5", edge, true, tempRoute);
                                 }
                                 else if (this.rand.nextInt(110) < 1) {
-                                    newTile = new Tile("green1", "aloe_large1", edge, true, blotchRoute);
+                                    newTile = new Tile("green1", "aloe_large1", edge, true, currRoute);
                                 }
                                 else if (putRock) {
-                                    Route tempRoute = null;
+                                    Route tempRoute = new Route("", 22);
+                                    tempRoute.name = "oasis1";
                                     int randInt = this.rand.nextInt(2);
                                     if (randInt == 0) {
-                                        tempRoute = new Route("oasis1", 22);
-                                        tempRoute.allowedPokemon.clear();
-                                        tempRoute.pokemon.clear();
+                                          // TODO: remove the commented stuff
+//                                        tempRoute = new Route("oasis1", 22);  
+//                                        tempRoute.allowedPokemon.clear();
+//                                        tempRoute.pokemon.clear();
                                         String[] pokemon = new String[]{"shellder", "krabby", "staryu", "dwebble"};
                                         randInt = this.rand.nextInt(pokemon.length);
-                                        tempRoute.allowedPokemon.add(pokemon[randInt]);
-                                        tempRoute.genPokemon(256);
+//                                        tempRoute.allowedPokemon.add(pokemon[randInt]);
+//                                        tempRoute.genPokemon(256);
+                                        tempRoute.pokemon.add(new Pokemon(pokemon[randInt],
+                                                                          tempRoute.level,
+                                                                          Pokemon.Generation.CRYSTAL));
                                     }
                                     newTile = new Tile(newTile.name, "rock1_color", edge.cpy(), true, tempRoute);
                                 }
@@ -3262,6 +3092,9 @@ class GenIsland1 extends Action {
                                 }
                                 if (type.equals("mtn_green1")) {
                                     newTile.biome = "deep_forest";
+                                }
+                                if (currRoute.level <= 10) {
+                                    newTile.isBottomMtnLayer = true;
                                 }
                                 tilesToAdd.put(newTile.position.cpy(), newTile);
                                 edgeTiles.put(newTile.position.cpy(), newTile);
@@ -3463,7 +3296,7 @@ class GenIsland1 extends Action {
                     ApplyBlotch(game, "desert", prevTiles.get(next), newSize +(maxDist/4), nextIslandTiles, 1, true, blotchRoute);
                     continue;
                 }
-                
+
                 tilesToAdd.put(prevTiles.get(next).position.cpy(), prevTiles.get(next));
                 // TODO: remove once tested
                 String newType = "island";
@@ -3505,6 +3338,7 @@ class GenIsland1 extends Action {
                     tilesToAdd.put(tile.position.cpy(), tile);
                     continue;
                 }
+                // Desert tiles take priority
                 if (currTile.name.contains("desert")) {
                     continue;
                 }
@@ -4042,6 +3876,529 @@ class GenIsland1 extends Action {
             }
         }
         interiorTiles.add(currLayer);
+    }
+
+    /**
+     * Desert oasis.
+     */
+    public void generateOasis(Game game, ArrayList<Tile> desertTiles) {
+        Route blotchRoute = new Route("oasis1", 30);
+        Tile newTile = desertTiles.remove(this.rand.nextInt(desertTiles.size()));
+        newTile.biome = "desert";
+        int nextSize = 250 + this.rand.nextInt(50);
+        HashMap<Vector2, Tile> newTiles = new HashMap<Vector2, Tile>();
+        ApplyBlotch(game, "oasis1", newTile, nextSize, newTiles, 0, true, blotchRoute);
+        HashMap<Vector2, Tile> newTiles2 = new HashMap<Vector2, Tile>();
+        nextSize = nextSize/2;
+        ApplyBlotch(game, "pond1", newTile, nextSize, newTiles2, 0, true, blotchRoute);
+        newTiles.putAll(newTiles2);
+        for (Tile tile2 : new ArrayList<Tile>(newTiles.values())) {
+            if (tile2.nameUpper.equals("aloe_large1")) {
+                newTiles.put(tile2.position.cpy().add(16, 0), new Tile("green1", "solid", tile2.position.cpy().add(16, 0), true, tile2.routeBelongsTo));
+                newTiles.put(tile2.position.cpy().add(0, 16), new Tile("green1", "solid", tile2.position.cpy().add(0, 16), true, tile2.routeBelongsTo));
+                newTiles.put(tile2.position.cpy().add(16,16), new Tile("green1", "solid", tile2.position.cpy().add(16,16), true, tile2.routeBelongsTo));
+            }
+        }
+        // Don't overwrite mountains.
+        ArrayList<Tile> oasisTiles = new ArrayList<Tile>();
+        for (Tile tile : newTiles.values()) {
+//            Tile currTile = this.tilesToAdd.get(tile.position);
+//            if (currTile != null) {
+//                if (currTile.name.contains("mountain") || currTile.nameUpper.contains("mountain")) {
+//                    continue;
+//                }
+//            }
+            if (this.mtnTiles.containsKey(tile.position)) {
+                continue;
+            }
+            if (!tile.name.contains("water")) {
+                oasisTiles.add(tile);
+            }
+            this.tilesToAdd.put(tile.position.cpy(), tile);
+        }
+
+        // Start fossil building stuff
+        newTile = oasisTiles.remove(this.rand.nextInt(oasisTiles.size()));
+        System.out.println("newTile.name");
+        System.out.println(newTile.name);
+        System.out.println("newTile.routeBelongsTo.name");
+        System.out.println(newTile.routeBelongsTo.name);
+        HashMap<Vector2, Tile> exteriorTiles = new HashMap<Vector2, Tile>();
+        ArrayList<HashMap<Vector2, Tile>> interiorTiles = new ArrayList<HashMap<Vector2, Tile>>();
+        for (int i=0; i < 100; i++) {
+            interiorTiles.add(null);
+        }
+        HashMap<Vector2, Tile> currLayer = new HashMap<Vector2, Tile>();
+        Vector2 tl2 = newTile.position.cpy();
+        String[][] names = new String[][]{{"building1_wall1", "building1_wall1", "building1_wall1", "building1_wall1", "building1_wall1", "building1_wall1"},
+                                          {"building1_machine2", null, null, null, null, null},
+                                          {"building1_fossilreviver1", "building1_cables1", "building1_cables1", "building1_cables1", "building1_pokecenter1", "building1_pokecenter1_right"},
+                                          {"building1_floor2", "building1_floor1", "rug2", "building1_floor1", "building1_floor2", "building1_floor2"}
+                                          };
+        Route interiorRoute = new Route("fossil_lab1", 11);
+        Vector2 pos2;
+        for (int i=0; i < names.length; i++) {
+            for (int j=0; j < names[i].length; j++) {
+                if (names[i][j] == null) {
+                    continue;
+                }
+                pos2 = new Vector2(tl2.x -6*16 +j*16, tl2.y +5*16 -i*16);
+                currLayer.put(pos2, new Tile(names[i][j], pos2, true, interiorRoute));
+            }
+        }
+        interiorTiles.add(currLayer);
+        names = new String[][]{{"pkmnmansion_roof_NW", "pkmnmansion_roof_N", "pkmnmansion_roof_N", "pkmnmansion_roof_N_damaged", "pkmnmansion_roof_N", "pkmnmansion_roof_NE"},
+                               {"pkmnmansion_roof_SW", "pkmnmansion_roof_S_damaged", "pkmnmansion_roof_S", "pkmnmansion_roof_S", "pkmnmansion_roof_S", "pkmnmansion_roof_SE"},
+                               {"pkmnmansion_ext_W_window", "pkmnmansion_ext_windows", "pkmnmansion_ext_windows_W_damaged", "pkmnmansion_ext_windows_E_damaged", "pkmnmansion_ext_windows", "pkmnmansion_ext_E_window_damaged"},
+                               {"pkmnmansion_ext_SW", "pkmnmansion_ext_S", "pkmnmansion_ext_door", "pkmnmansion_ext_S_windows_damaged", "pkmnmansion_ext_S", "pkmnmansion_ext_SE_damaged"},
+                               {"sand1", "sand1", "sand1", "sand1", "sand1", "sand1"},
+                               };
+        for (int i=0; i < names.length; i++) {
+            for (int j=0; j < names[i].length; j++) {
+                if (names[i][j] == null) {
+                    continue;
+                }
+                pos2 = new Vector2(tl2.x -6*16 +j*16, tl2.y +5*16 -i*16);
+
+                // TODO: I think this is broken. Did I intend to do this.tilesToAdd.get(pos2) instead?
+                // Below block is to get rid of aloe plants
+                Tile currTile = exteriorTiles.get(pos2);
+                if (currTile != null && currTile.name.equals("aloe_large1")) {
+                    Vector2[] nexts = new Vector2[]{new Vector2(16, 0), new Vector2(0, 16), new Vector2(16, 16)};
+                    for (Vector2 next : nexts) {
+                        Vector2 nextPos = pos2.cpy().add(next);
+                        Tile nextTile = exteriorTiles.get(nextPos);
+                        if (nextTile.nameUpper.equals("solid")) {
+                            nextTile.nameUpper = "";
+                            nextTile.attrs.put("solid", false);
+                        }
+                    }
+                }
+                exteriorTiles.put(pos2, new Tile(names[i][j], pos2, true, newTile.routeBelongsTo));
+            }
+        }
+        for (Tile tile2 : exteriorTiles.values()) {
+            Tile currTile = this.tilesToAdd.get(tile2.position);
+            if (currTile != null && currTile.nameUpper.equals("pokemon_mansion_key")) {
+                this.tilesToAdd.put(tile2.position.cpy(), new Tile(tile2.name, currTile.nameUpper, currTile.position, true, currTile.routeBelongsTo));
+                continue;
+            }
+            this.tilesToAdd.put(tile2.position.cpy(), tile2);
+        }
+        for (int i=0; i < interiorTiles.size(); i++) {
+            currLayer = interiorTiles.get(i);
+            if (i >= this.interiorTilesToAdd.size()) {
+                this.interiorTilesToAdd.add(currLayer);
+                continue;
+            }
+            if (currLayer == null) {
+                continue;
+            }
+            if (this.interiorTilesToAdd.get(i) == null) {
+                this.interiorTilesToAdd.remove(i);
+                this.interiorTilesToAdd.add(i, currLayer);
+                continue;
+            }
+            for (Vector2 key : currLayer.keySet()) {
+                this.interiorTilesToAdd.get(i).put(key, currLayer.get(key));
+            }
+        }
+    }
+
+    /**
+     * Ruins exterior.
+     */
+    public void generateDesertRuins(Game game, ArrayList<Tile> desertTiles) {
+        // Start ruins upper/outer placement
+        int nextSize = 230;
+        Route currRoute = new Route("ruins1_outer", 44);
+        int tries = 0;
+        Tile newTile = desertTiles.remove(this.rand.nextInt(desertTiles.size()));
+        while (tries < 80 && desertTiles.size() > 0) {
+            // newTile.position.x % 64 == 0 looked neat
+//             newTile.position.x % 64 == 32
+            if (newTile.position.x % 32 == 0 && newTile.position.y % 32 == 16) {  
+                break;
+            }
+            newTile = desertTiles.remove(this.rand.nextInt(desertTiles.size()));
+            tries++;
+        }
+        HashMap<Vector2, Tile> newTiles = new HashMap<Vector2, Tile>();
+        HashMap<Vector2, Tile> newTiles2 = new HashMap<Vector2, Tile>();
+        ApplyBlotch(game, "ruins1_upper2", newTile, nextSize, newTiles2, 0, false, currRoute);
+        newTiles.putAll(newTiles2);
+        newTiles2.clear();
+        nextSize = 240;
+        ApplyBlotch(game, "ruins1_upper", newTile, nextSize, newTiles2, 0, false, currRoute);
+        newTiles.putAll(newTiles2);
+        // Ruins tiles need to be adjusted for surrounding tiles.
+        for (Tile tile : newTiles.values()) {
+            if (!tile.name.contains("ruins1")) {
+                continue;
+            }
+            game.map.adjustSurroundingTiles(tile, newTiles);
+        }
+        // Don't overwrite mountains
+        for (Tile tile : newTiles.values()) {
+            if (this.mtnTiles.containsKey(tile.position)) {
+                continue;
+            }
+            this.tilesToAdd.put(tile.position.cpy(), tile);
+        }
+        // Add middle stairs area.
+        for (int i = -1; i < 2; i++) {
+            for (int j = -1; j < 2; j++) {
+                Tile currTile = this.tilesToAdd.get(newTile.position.cpy().add(16*i, 16*j));
+                if (!currTile.name.equals("desert4")) {
+                    this.tilesToAdd.put(currTile.position.cpy(), new Tile("ruins_floor2", currTile.position.cpy(), true, null));
+                }
+            }
+        }
+        Vector2[] positions2 = new Vector2[]{newTile.position.cpy().add(-32, 16),
+                                             newTile.position.cpy().add(32, 16),
+                                             newTile.position.cpy().add(-32, -16),
+                                             newTile.position.cpy().add(32, -16)};
+        for (Vector2 position : positions2) {
+            if (this.rand.nextInt(3) > 0) {
+                this.tilesToAdd.put(position.cpy(), new Tile("ruins1_pillar1", position.cpy(), true, null));
+            }
+        }
+        this.tilesToAdd.put(newTile.position.cpy(), new Tile("ruins1_NSEW", "stairs_down2", newTile.position.cpy(), true, currRoute));
+
+        // Generate the ruins interior
+        this.generateRuinsInterior(newTile.position.cpy());
+    }
+
+    /**
+     * Ruins interior. Currently 5 levels.
+     * 
+     * Levels 1-2 -> Wild encounters enabled, no dusclops.
+     * Levels 3-4 -> Wild encounters disabled, roaming dusclops.
+     * Level 5 - Volcarona room.
+     */
+    public void generateRuinsInterior(Vector2 origin) {
+        // Array representation of the volcarona room.
+        String[][] names = new String[][]{{"ruins2_wall1", "ruins2_wall1", "ruins2_wall1", "ruins2_wall1", "ruins2_wall1", "ruins2_wall1", "ruins2_wall1", "ruins2_wall1", "ruins2_wall1"},
+                                          {"ruins2_wall1", "ruins2_wall1", "ruins2_wall1", "ruins2_volcarona_picture1", null, null, "ruins2_wall1", "ruins2_wall1", "ruins2_wall1"},
+                                          {"ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins2_path1", "blank1", "blank1",  "ruins_floor2", "ruins_floor2", "ruins_floor2"},
+                                          {"ruins_floor2", "pedistal1", "ruins_floor2", "ruins2_path1", "blank1", "blank1",  "ruins_floor2", "pedistal1", "ruins_floor2"},
+                                          {"ruins_floor2", "ruins_floor2", "pedistal1", "ruins2_path1", "blank1", "blank1",  "pedistal1", "ruins_floor2", "ruins_floor2"},
+                                          {"ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins2_path1", "blank1", "blank1",  "ruins_floor2", "ruins_floor2", "ruins_floor2"},
+                                          {"ruins_floor2", "ruins1_pillar1", "ruins_floor2", "ruins2_path1", "blank1", "blank1", "ruins_floor2", "ruins1_pillar1", "ruins_floor2"},
+                                          {"ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins2_path1", "blank1", "blank1",  "ruins_floor2", "ruins_floor2", "ruins_floor2"},
+                                          {"ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins2_path1", "blank1", "blank1",  "ruins_floor2", "ruins_floor2", "ruins_floor2"},
+                                          {"ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins2_path1", "blank1", "blank1",  "ruins_floor2", "ruins_floor2", "ruins_floor2"},
+                                          {"ruins_floor2", "ruins_floor2", "ruins1_pillar1", "ruins2_path1", "blank1", "blank1", "ruins1_pillar1", "ruins_floor2", "ruins_floor2"},
+                                          {"ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins2_path1", "blank1", "blank1",  "ruins_floor2", "ruins_floor2", "ruins_floor2"},
+                                          {"ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins2_path1", "blank1", "blank1",  "ruins_floor2", "ruins_floor2", "ruins_floor2"},
+                                          {"ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins2_path1", "blank1", "blank1",  "ruins_floor2", "ruins_floor2", "ruins_floor2"},
+                                          {"ruins_floor2", "ruins1_pillar1", "ruins_floor2", "ruins2_path1", "blank1", "blank1", "ruins_floor2", "ruins1_pillar1", "ruins_floor2"},
+                                          {"ruins_floor2", "ruins_floor2", "ruins_floor2", "ruins2_path1", "blank1", "blank1",  "ruins_floor2", "ruins_floor2", "ruins_floor2"},
+                                          {null, null, null, "ruins2_path1", "ruins_floor2_stairs", "blank1", null, null, null, null}};
+        // Generate the ruins interior
+        ArrayList<HashMap<Vector2, Tile>> interiorTiles = new ArrayList<HashMap<Vector2, Tile>>();
+        for (int i=0; i < 5; i++) {
+            interiorTiles.add(new HashMap<Vector2, Tile>());
+        }
+        HashMap<Vector2, Tile> currLayer;
+        Vector2 startLoc = new Vector2(10, 10);
+        Vector2 bl = origin.add((-10*3-1)*16, (-10*3-1)*16);
+        ArrayList<Vector2> startLocs = new ArrayList<Vector2>();
+        ArrayList<Vector2> endPoints = new ArrayList<Vector2>();
+        ArrayList<Vector2> dusclopsPositions = new ArrayList<Vector2>();
+        endPoints.add(startLoc);
+        boolean[][] maze;
+        Route currRoute = new Route("ruins1_inner", 22);
+        currRoute.genPokemon(256, false);  // Don't evolve pokemon in the route
+        // Start from top level, work downward
+        for (int levelNum=interiorTiles.size()-1; levelNum >= 0; levelNum--) {
+            currLayer = interiorTiles.get(levelNum);
+
+            // Final layer so make volcarona room
+            if (levelNum == 0) {
+                for (int i=0; i < names.length; i++) {
+                    for (int j=0; j < names[i].length; j++) {
+                        if (names[i][j] == null) {
+                            continue;
+                        }
+                        Vector2 startPos = endPoints.get(0);
+                        Vector2 position = bl.cpy().add( (startPos.x*3 -3 +j)*16, (startPos.y*3 +17 -i)*16 );
+                        Tile newTile;
+                        if (names[i][j].equals("ruins_floor2_stairs")) {
+                            newTile = new Tile("blank1", "stairs_up1", position.cpy(), true, currRoute);
+                        }
+                        else if (names[i][j].equals("pedistal1")) {
+                            newTile = new Tile("ruins_floor2", "pedistal1", position.cpy(), true, currRoute);
+                        }
+                        else {
+                            newTile = new Tile(names[i][j], position.cpy(), true, currRoute);
+                        }
+                        if (names[i][j].contains("pillar")) {
+                            newTile.items().put("torch", 1);
+                        }
+                        if (i == 2 && j == 4) {
+                            newTile.nameUpper = "volcarona";
+                        }
+                        currLayer.put(position, newTile);
+                    }
+                }
+                continue;
+            }
+
+            // 3 start locations to branch from
+            float complexity = 15;
+            for (Vector2 position : endPoints) {
+                String nameUpper = "stairs_up1";
+                if (levelNum == interiorTiles.size()-1) {
+                    // _exit denotes that player should switch to overworldTiles after going through.
+                    nameUpper = "stairs_up1_exit";
+                }
+                currLayer.put(bl.cpy().add((position.x*3+1)*16, (position.y*3+1)*16), new Tile("desert4", nameUpper, bl.cpy().add((position.x*3+1)*16, (position.y*3+1)*16), true, currRoute));
+                startLocs.add(position);
+                startLocs.add(position);
+                if (this.rand.nextInt(2) == 0 || levelNum == interiorTiles.size()-1) {
+                    startLocs.add(position);
+                    if (levelNum != interiorTiles.size()-1) {
+                        complexity = 10;
+                    }
+                }
+            }
+            endPoints.clear();
+            
+            // Generate a maze
+            int width = 20;
+            int height = 20;
+            float density = startLocs.size();
+            maze = GenForest2.Maze_Algo3(width, height, complexity, density, this.rand, startLocs);
+//            System.out.println("startLocs.size()");
+//            System.out.println(startLocs.size());
+            // Debug - remove
+            System.out.print("\n");
+            System.out.print("\n");
+
+            for (int j=maze.length-1; j >= 0; j--) {
+                for (int i=0; i < maze[j].length; i++) {
+//                    maze[j][i] = !maze[j][i];
+                    System.out.print(String.valueOf(maze[i][j] ? 1 : " ")+" ");
+                }
+                System.out.print("\n");
+            }
+            
+            dusclopsPositions.clear();
+
+            // 
+            for (int i=0; i < maze.length; i++) {
+                for (int j=0; j < maze[i].length; j++) {
+                    if (maze[i][j]) {
+                        // This will overwrite stairs going up otherwise.
+                        // 3x3 grid of stuff
+                        for (int k=0; k < 3; k++) {
+                            for (int l=0; l < 4; l++) {
+                                Vector2 position = bl.cpy().add((i*3+k)*16, (j*3+l)*16);
+                                Tile currTile = currLayer.get(position);
+                                if (currTile == null || currTile.name.contains("wall")) {
+                                    if (l == 3) {
+                                        // ruins2_wall2
+                                        Tile newTile = new Tile("ruins2_wall1", position.cpy(), true, null);
+                                        if (levelNum != interiorTiles.size()-1 && i % 2 == 0 && k == 1 && this.rand.nextInt(4)> 0) {
+                                            newTile.items().put("torch", 1);
+                                        }
+                                        currLayer.put(position, newTile);
+                                    }
+                                    else {
+                                        String name = "desert4";
+                                        // TODO: remove
+                                        // Mod function was an attempt to make it 'splotch'
+                                        // this.rand.nextInt(6 +2*Math.abs((i%8)-4)) > 5 -- floor 2
+                                        if (levelNum == interiorTiles.size()-1) {
+                                            name = "desert4_isGrass";
+                                            // Just desert for now
+//                                            if (this.rand.nextInt(26) == 0) { // old method
+                                            int offset = +Math.abs(((i*3+k)%12)-6) +Math.abs(((j*3+l)%12)-6);
+                                            if (this.rand.nextInt(offset+1)+offset > 14) {
+                                                name = "ruins_floor2";
+                                            }
+                                        }
+                                        else if (levelNum == interiorTiles.size()-2){
+                                            name = "desert4_isGrass";
+//                                            if (this.rand.nextInt(6 +2*Math.abs((i%8)-4)) > 5) {
+                                            int offset = +Math.abs(((i*3+k)%12)-6) +Math.abs(((j*3+l)%12)-6);
+                                            if (this.rand.nextInt(offset+1)+offset > 10) {
+                                                name = "ruins_floor2";
+                                            }
+                                        }
+                                        else if (levelNum == interiorTiles.size()-3){
+//                                            if (this.rand.nextInt(6 +2*Math.abs((i%8)-4)) > 1) {
+                                            int offset = +Math.abs(((i*3+k)%12)-6) +Math.abs(((j*3+l)%12)-6);
+                                            if (this.rand.nextInt(offset+1)+offset > 7) {
+                                                name = "ruins_floor2";
+                                            }
+                                        }
+                                        else { 
+                                            // TODO: remove, no chance for desert tiles anymore
+//                                            if (this.rand.nextInt(26) > 0) {
+//                                                name = "ruins_floor2";
+//                                            }
+                                            name = "ruins_floor2";
+                                        }
+                                        currLayer.put(position, new Tile(name, position.cpy(), true, currRoute));
+                                        
+                                    }
+                                    // Only on bottom two layers (before volcarona room)
+                                    // && this.rand.nextInt(4) == 0
+                                    if (levelNum < 3 && k == 1 && l == 1 && i % 3 == 0 && j % 3 == 0) {
+
+                                        dusclopsPositions.add(position);
+                                    }
+                                }
+                            }
+                        }
+
+                        // Jar placement
+                        if (!startLocs.contains(new Vector2(i, j)) && i % 2 == 0 && j % 2 == 0 && this.rand.nextInt(3) == 0) {
+                            ArrayList<Vector2> potPositions = new ArrayList<Vector2>();
+                            // down closed
+                            if (j-1 >= 0 && !maze[i][j-1]) {
+                                potPositions.add(bl.cpy().add((i*3+0)*16, (j*3+0)*16));
+                                potPositions.add(bl.cpy().add((i*3+1)*16, (j*3+0)*16));
+                                potPositions.add(bl.cpy().add((i*3+2)*16, (j*3+0)*16));
+                            }
+                            // up closed
+                            if (j+1 < height && !maze[i][j+1]) {
+                                potPositions.add(bl.cpy().add((i*3+0)*16, (j*3+2)*16));
+                                potPositions.add(bl.cpy().add((i*3+1)*16, (j*3+2)*16));
+                                potPositions.add(bl.cpy().add((i*3+2)*16, (j*3+2)*16));
+                            }
+                            // right closed
+                            if (i+1 < width && !maze[i+1][j]) {
+                                potPositions.add(bl.cpy().add((i*3+2)*16, (j*3+0)*16));
+                                potPositions.add(bl.cpy().add((i*3+2)*16, (j*3+1)*16));
+                                potPositions.add(bl.cpy().add((i*3+2)*16, (j*3+2)*16));
+                            }
+                            // left closed
+                            if (i-1 >= 0 && !maze[i-1][j]) {
+                                potPositions.add(bl.cpy().add((i*3+0)*16, (j*3+0)*16));
+                                potPositions.add(bl.cpy().add((i*3+0)*16, (j*3+1)*16));
+                                potPositions.add(bl.cpy().add((i*3+0)*16, (j*3+2)*16));
+                            }
+                            for (Vector2 position : potPositions) {
+                                if (this.rand.nextInt(7) > 3) {
+                                    Tile tile = currLayer.get(position);
+                                    tile.nameUpper = "pot1";
+                                    tile.init(tile.name, tile.nameUpper, tile.position, true, tile.routeBelongsTo);
+                                }
+                            }
+                        }
+                        // Statues
+                        else if (levelNum == 1 && i % 2 == 0 && j % 2 == 0 && this.rand.nextInt(2) == 0) {
+                            Vector2 position = bl.cpy().add((i*3+1)*16, (j*3+1)*16);
+                            Tile tile = currLayer.get(position);
+                            // Prevent it from going over-top a staircase
+                            if (tile.nameUpper.equals("")) {
+                                tile.nameUpper = "ruins_statue1";
+                                tile.init(tile.name, tile.nameUpper, tile.position, true, tile.routeBelongsTo);
+                            }
+                        }
+                    }
+                }
+            }
+            
+            int size = dusclopsPositions.size();
+            for (int i=0; i < 2 + this.rand.nextInt(3) && i < size; i++) {
+                Vector2 position = dusclopsPositions.remove(this.rand.nextInt(dusclopsPositions.size()));
+                int interiorIndex = levelNum +100 -5;
+                Pokemon pokemon = new Pokemon("dusclops", 44, Pokemon.Generation.CRYSTAL);
+                pokemon.position = position.cpy();
+                pokemon.standingAction = pokemon.new Standing();
+                pokemon.aggroPlayer = true;
+//                pokemon.mapTiles = game.map.interiorTiles.get(interiorIndex);  // TODO: this doesn't work either.
+//                game.insertAction(pokemon.standingAction);  // TODO: probably doesn't work
+                // TODO: what if pokemon position overlaps with another?
+//              game.map.pokemon.put(position.cpy(), pokemon);
+                this.interiorPokemon.put(pokemon, interiorIndex);
+            }
+
+            // Pick two endpoints to be stairs
+            size = startLocs.size();
+            int numStairs = 2;
+            // Only place 1 stairs on final level
+            if (levelNum == 1) {
+                numStairs = 1;
+            }
+            for (int i=0; i < size; i++) {
+                startLoc = startLocs.remove(this.rand.nextInt(startLocs.size()));
+                System.out.println(startLoc);
+                if (i < numStairs) {
+                    for (int k=0; k < 3; k++) {
+                        for (int l=0; l < 3; l++) {
+                            Vector2 position = bl.cpy().add((startLoc.x*3+k)*16, (startLoc.y*3+l)*16);
+                            if (k == 1 && l == 1) {
+                                currLayer.put(position.cpy(), new Tile("ruins_floor2", "stairs_down2", position.cpy(), true, currRoute));
+                            }
+                            else if (this.rand.nextInt(5) > 1) {
+                                currLayer.put(position.cpy(), new Tile("ruins_floor2", position.cpy(), true, currRoute));
+                            }
+                            else {
+                                currLayer.put(position.cpy(), new Tile("desert4", position.cpy(), true, currRoute));
+                                
+                            }
+                        }
+                    }
+                    endPoints.add(startLoc);
+                }
+                else {
+                    int numPots = 0;
+                    for (int k=0; k < 3; k++) {
+                        for (int l=0; l < 3; l++) {
+                            Vector2 position = bl.cpy().add((startLoc.x*3+k)*16, (startLoc.y*3+l)*16);
+                            Tile tile = currLayer.get(position);
+                            if (k == 1 && l == 1) {
+                                // Don't put over a stairscase
+                                // But should put over a statue
+                                if (tile != null && !tile.nameUpper.contains("stairs")) {
+                                    tile.nameUpper = "pokeball1";
+                                    tile.init(tile.name, tile.nameUpper, tile.position, true, tile.routeBelongsTo);
+                                    if (this.rand.nextInt(2) == 0) {
+                                        tile.hasItem = "ultra ball";
+                                        tile.hasItemAmount = 2;
+                                    }
+                                    else {
+                                        tile.hasItem = "ancientpowder";
+                                        tile.hasItemAmount = this.rand.nextInt(3) +2;
+                                    }
+                                }
+                            }
+                            // TODO: had chance to block path, remove
+                            else if (this.rand.nextInt(7) > 3 && numPots < 2) {
+                                currLayer.put(position.cpy(), new Tile(tile.name, "pot1", position.cpy(), true, currRoute));
+                                numPots++;
+                            }
+                        }
+                    }
+                }
+            }
+            startLocs.clear();
+        }
+        // Do this because stairs will go down one level
+        interiorTiles.add(new HashMap<Vector2, Tile>());
+
+        // Add all generated interior layers to map interior tiles.
+        for (int i=0; i < interiorTiles.size(); i++) {
+            currLayer = interiorTiles.get(i);
+            int interiorIndex = i +100 -5;
+            if (interiorIndex >= this.interiorTilesToAdd.size()) {
+                this.interiorTilesToAdd.add(currLayer);
+                continue;
+            }
+            if (this.interiorTilesToAdd.get(interiorIndex) == null) {
+                this.interiorTilesToAdd.remove(interiorIndex);
+                this.interiorTilesToAdd.add(interiorIndex, currLayer);
+                continue;
+            }
+            for (Vector2 key : currLayer.keySet()) {
+                this.interiorTilesToAdd.get(interiorIndex).put(key, currLayer.get(key));
+            }
+        }
     }
 
     /**
@@ -5552,6 +5909,44 @@ class GenIsland1 extends Action {
             }
         }
         this.pokemonToAdd.clear();
+
+        for (Pokemon pokemon : this.interiorPokemon.keySet()) {
+            if (!game.map.pokemon.containsKey(pokemon.position)) {
+                int interiorIndex = this.interiorPokemon.get(pokemon);
+                game.insertAction(pokemon.standingAction);
+                pokemon.mapTiles = game.map.interiorTiles.get(interiorIndex);
+                pokemon.interiorIndex = interiorIndex;
+                game.map.pokemon.put(pokemon.position.cpy(), pokemon);
+            }
+        }
+        this.interiorPokemon.clear();
+        
+
+        for (Vector2 position : this.trapinchSpawns) {
+            Tile tile = game.map.overworldTiles.get(position);
+            if (tile == null) {
+                continue;
+            }
+            // Only place trapinch on 'sand pit' tiles
+            if (!tile.name.equals("desert2")) {
+                continue;
+            }
+            System.out.println("hoi");
+            Pokemon trapinch = new Pokemon("trapinch", 22, Pokemon.Generation.CRYSTAL);
+            trapinch.mapTiles = game.map.overworldTiles;
+            trapinch.position = position.cpy();
+            trapinch.isTrapping = true;
+            // NOTE: Doing game.insertAction on a thread other than
+            // the Gdx thread was causing issues. Calling
+            // game.insertAction() will sometimes cause concurrent
+            // modification of the actionStack (I think), since
+            // this is happening in separate thread from game
+            // thread. If this needs to be called from a different
+            // thread, need to post a runnable to the gdx thread.
+            game.insertAction(trapinch.new Burrowed());
+            tile.items().put("trapinch", 1);
+        }
+        this.trapinchSpawns.clear();
 
         if (this.tilesToAdd.isEmpty()) {
             if (this.doActions.isEmpty()) {

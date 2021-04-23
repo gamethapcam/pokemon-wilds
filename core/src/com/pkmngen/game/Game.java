@@ -98,7 +98,7 @@ public class Game extends ApplicationAdapter {
     //       would have to be saved with the map I think
     public boolean levelScalingEnabled = true; 
     public static boolean fairyTypeEnabled = false; 
-    public static boolean catchExpEnabled = true; 
+    public static boolean catchExpEnabled = true;
 
     HashMap<Character, SpriteProxy> brailleDict = new HashMap<Character, SpriteProxy>();
 
@@ -889,15 +889,16 @@ public class Game extends ApplicationAdapter {
 
             this.player.pokemon.add(new Pokemon("gabite", 11, Pokemon.Generation.CRYSTAL, true, false));
             this.player.pokemon.get(4).gender = "female";
-            this.player.pokemon.add(new Pokemon("garchomp", 11, Pokemon.Generation.CRYSTAL, true, false));
-            this.player.pokemon.get(5).gender = "male";
+//            this.player.pokemon.add(new Pokemon("garchomp", 11, Pokemon.Generation.CRYSTAL, true, false));
+//            this.player.pokemon.get(5).gender = "male";
+            this.player.pokemon.add(new Pokemon("dusclops", 46, Pokemon.Generation.CRYSTAL));
 //            this.player.pokemon.add(new Pokemon("darmanitan", 46, Pokemon.Generation.CRYSTAL, true, false));
 //            Pokemon temp = new Pokemon("combee_female", 46, Pokemon.Generation.CRYSTAL, false, false);
 //            temp.gender = "female";
 //            this.player.pokemon.add(temp);
 //            this.player.pokemon.add(new Pokemon("combee", 46, Pokemon.Generation.CRYSTAL, false, false));
-            this.player.pokemon.get(2).attacks[0] = "giga drain";
-            this.player.pokemon.get(2).currentStats.put("hp", 10);
+            this.player.pokemon.get(2).attacks[0] = "seismic toss";
+//            this.player.pokemon.get(2).currentStats.put("hp", 10);
 
             // TODO: remove
 //            this.player.pokemon.add(new Pokemon("charizard", 60, Pokemon.Generation.CRYSTAL));

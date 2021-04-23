@@ -164,3 +164,8 @@ SigilyphEggMoves:
 	db ANCIENTPOWER
 	; db PSYCHO_SHIFT
 	; db ROOST
+
+LarvestaEggMoves:
+	db ABSORB
+	db HARDEN
+	db THRASH
