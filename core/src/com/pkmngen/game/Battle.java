@@ -163,6 +163,7 @@ class Attack {
     int effectChance; // chance to paralyze, lower speed, poison, etc.
     boolean isPhysical = false;
     boolean isCrit = false;
+    int priority = 0;
 
     // Network-related things
     int damage;
@@ -2761,7 +2762,7 @@ public class Battle {
 //            System.out.println(attack.accuracy);
 //            System.out.println(accuracy);
             boolean attackMisses = accuracy < 255 && game.map.rand.nextInt(256) >= accuracy;
-            if (attack.name.equals("swift")) {
+            if (attack.effect.equals("EFFECT_ALWAYS_HIT")) {
                 attackMisses = false;
             }
 
@@ -2876,7 +2877,9 @@ public class Battle {
             if (attack.effect.equals("EFFECT_HEAL") ||
                 attack.effect.equals("EFFECT_SYNTHESIS") ||
                 attack.effect.equals("EFFECT_LEECH_HIT") ||
-                attack.effect.equals("EFFECT_DRAINING_KISS")) {
+                attack.effect.equals("EFFECT_DRAINING_KISS") ||
+                attack.effect.equals("EFFECT_MORNING_SUN") ||
+                attack.effect.equals("EFFECT_MOONLIGHT")) {
                 // Default value for Recover
                 int amount = friendlyPokemon.maxStats.get("hp")/2;
                 // Synthesis effect notes:
@@ -2904,6 +2907,22 @@ public class Battle {
                         amount = 1;
                     }
                 }
+                else if (attack.effect.equals("EFFECT_MORNING_SUN")) {
+                    // TODO: weather effects
+                    amount = friendlyPokemon.maxStats.get("hp")/4;
+                    // TODO: supposed to be "morning", not "day"
+                    if (game.map.timeOfDay.equals("day")) {
+                        amount *= 2;
+                    }
+                }
+                else if (attack.effect.equals("EFFECT_MOONLIGHT")) {
+                    // TODO: weather effects
+                    amount = friendlyPokemon.maxStats.get("hp")/4;
+                    if (game.map.timeOfDay.equals("night")) {
+                        amount *= 2;
+                    }
+                }
+
                 enemy = isFriendly ? "" : "Enemy ";
                 
                 if (friendlyPokemon.currentStats.get("hp") >= friendlyPokemon.maxStats.get("hp")) {
@@ -3921,6 +3940,24 @@ public class Battle {
                 if (gen2PhysicalTypes.contains(attack.type.toLowerCase())) {
                     attack.isPhysical = true;
                 }
+                // Source - https://web.archive.org/web/20140712063943/http://www.upokecenter.com/content/pokemon-gold-version-silver-version-and-crystal-version-timing-notes
+                // 2: Endure, Protect, Detect -> 1: Quick Attack, Mach Punch, Extremespeed -> 0: All other attacks -> -1: Counter, Mirror Coat, Whirlwind, Roar, Vital Throw 
+                if (attack.name.equals("endure") || attack.name.equals("protect") || attack.name.equals("detect")) {
+                    attack.priority = 2;
+                }
+                else if (attack.effect.equals("EFFECT_PRIORITY_HIT") || attack.name.equals("quick attack") || attack.name.equals("mach punch") ||
+                         attack.name.equals("extremespeed")) {
+                    attack.priority = 1;
+                }
+                // Counter, Mirror Coat, Whirlwind, Roar, Vital Throw
+                else if (attack.name.equals("counter") || attack.name.equals("mirror coat") ||
+                         attack.name.equals("whirlwind") || attack.name.equals("roar") || 
+                         attack.name.equals("vital throw")) {
+                    attack.priority = -1;
+                }
+                else {
+                    attack.priority = 0;
+                }
                 this.attacks.put(attack.name, attack);
 //                lineNum++;  // TODO: remove
             }
@@ -3952,6 +3989,24 @@ public class Battle {
                                                Integer.valueOf(attrs[6]), Integer.valueOf(attrs[7].split(" ")[0]));
                     if (gen2PhysicalTypes.contains(attack.type.toLowerCase())) {
                         attack.isPhysical = true;
+                    }
+                    // source - https://web.archive.org/web/20140712063943/http://www.upokecenter.com/content/pokemon-gold-version-silver-version-and-crystal-version-timing-notes
+                    // 2: Endure, Protect, Detect -> 1: Quick Attack, Mach Punch, Extremespeed -> 0: All other attacks -> -1: Counter, Mirror Coat, Whirlwind, Roar, Vital Throw 
+                    if (attack.name.equals("endure") || attack.name.equals("protect") || attack.name.equals("detect")) {
+                        attack.priority = 2;
+                    }
+                    else if (attack.effect.equals("EFFECT_PRIORITY_HIT") || attack.name.equals("quick attack") || attack.name.equals("mach punch") ||
+                             attack.name.equals("extremespeed")) {
+                        attack.priority = 1;
+                    }
+                    // Counter, Mirror Coat, Whirlwind, Roar, Vital Throw
+                    else if (attack.name.equals("counter") || attack.name.equals("mirror coat") ||
+                             attack.name.equals("whirlwind") || attack.name.equals("roar") || 
+                             attack.name.equals("vital throw")) {
+                        attack.priority = -1;
+                    }
+                    else {
+                        attack.priority = 0;
                     }
                     this.attacks.put(attack.name, attack);
                 }
@@ -4183,6 +4238,53 @@ public class Battle {
             Attack enemyAttack;
             Action playerAction;
             Action doTurn;
+            
+
+            // Select enemy attack
+            if (game.type != Game.Type.CLIENT) {
+
+                // TODO: is enemy able to choose disabled move?
+                // TODO: check disabled index
+                ArrayList<String> validAttacks = new ArrayList<String>();
+                int i = 0;
+                for (String attack : game.battle.oppPokemon.attacks) {
+                    if (attack != null && game.battle.oppPokemon.disabledIndex != i) {
+                        validAttacks.add(attack);
+                    }
+                    i++;
+                }
+                String attackChoice = null;
+                if (validAttacks.isEmpty()) {
+                    attackChoice = "struggle";
+                }
+                else {
+                    attackChoice = validAttacks.get(game.map.rand.nextInt(validAttacks.size()));
+                }
+                enemyAttack = game.battle.attacks.get(attackChoice.toLowerCase());
+                // TODO: debug, remove
+//                for (int i=0; i<game.battle.oppPokemon.attacks.length;i++) {
+//                    System.out.println(game.battle.oppPokemon.attacks[i]);
+//                }
+//                System.out.println(attackChoice);
+//                System.out.println(enemyAttack.name);
+                enemyAttack.isCrit = Battle.gen2DetermineCrit(game.battle.oppPokemon, enemyAttack);
+                enemyAttack.damage = Battle.gen2CalcDamage(game.battle.oppPokemon, enemyAttack, game.player.currPokemon);
+                // Debug function
+                if (game.debugInputEnabled && Gdx.input.isKeyPressed(Input.Keys.SPACE)) {
+                    enemyAttack.damage = 0;
+                }
+            }
+            // If Client, get enemy attack that was sent from server.
+            else {
+                BattleTurnData turnData = game.battle.network.turnData;
+                enemyAttack = turnData.enemyAttack;
+                game.battle.oppPokemon.trappedBy = turnData.enemyTrappedBy;
+                game.battle.oppPokemon.trapCounter = turnData.enemyTrapCounter;
+                // TODO: debug, remove
+//                System.out.println("enemyAttack.damage");
+//                System.out.println(enemyAttack.damage);
+            }
+            Action enemyAction = new AttackAnim(game, enemyAttack, !isFriendly, null);
 
             if (this.type == Type.SWITCH) {
                 game.player.numFlees = 0;
@@ -4326,14 +4428,28 @@ public class Battle {
             }
             // else, player selected attack
             else {
-                game.player.numFlees = 0;  // reset this counter if attack is picked.
+                game.player.numFlees = 0;  // Reset this counter if attack is picked.
                 Attack playerAttack;
+                // This is the 'who goes first' check.
                 if (game.type != Game.Type.CLIENT) {
-                    // Find which pokemon is first
+
+                    String attackName = game.player.currPokemon.attacks[DrawAttacksMenu.curr];
+                    if (attackName == null) {
+                        attackName = "struggle";
+                    }
+                    playerAttack = game.battle.attacks.get(attackName.toLowerCase());
+                    playerAttack.isCrit = Battle.gen2DetermineCrit(game.player.currPokemon, playerAttack);
+                    playerAttack.damage = Battle.gen2CalcDamage(game.player.currPokemon, playerAttack, game.battle.oppPokemon);
+
                     int yourSpeed = game.player.currPokemon.currentStats.get("speed");
                     int oppSpeed = game.battle.oppPokemon.currentStats.get("speed");
 
-                    if (yourSpeed > oppSpeed) {
+                    // If player and enemy attack aren't the same priority, 
+                    // the move with the higher priority goes first.
+                    if (playerAttack.priority != enemyAttack.priority) {
+                        oppFirst = enemyAttack.priority > playerAttack.priority;
+                    }
+                    else if (yourSpeed > oppSpeed) {
                         oppFirst = false;
                     }
                     else if (yourSpeed < oppSpeed) {
@@ -4345,31 +4461,8 @@ public class Battle {
                             oppFirst = true;
                         }
                     }
-                    String attackName = game.player.currPokemon.attacks[DrawAttacksMenu.curr];
-                    if (attackName == null) {
-                        attackName = "struggle";
-                    }
-                    playerAttack = game.battle.attacks.get(attackName.toLowerCase());
-                    playerAttack.isCrit = Battle.gen2DetermineCrit(game.player.currPokemon, playerAttack);
-                    playerAttack.damage = Battle.gen2CalcDamage(game.player.currPokemon, playerAttack, game.battle.oppPokemon);
-
-                    // TODO: remove
-//                    if (game.battle.oppPokemon.trappedBy == null &&
-//                        playerAttack.name.toLowerCase().equals("whirlpool") ||
-//                        playerAttack.name.toLowerCase().equals("fire spin") ||
-//                        playerAttack.name.toLowerCase().equals("wrap") ||
-//                        playerAttack.name.toLowerCase().equals("thunder cage") ||
-//                        playerAttack.name.toLowerCase().equals("clamp")) {
-//                        // 2-5 turns for trap
-//                        game.battle.oppPokemon.trappedBy = playerAttack.name.toLowerCase();
-//                        game.battle.oppPokemon.trapCounter = game.map.rand.nextInt(4) + 2;
-//                        if (playerAttack.name.toLowerCase().equals("thunder cage")) {
-//                            game.battle.oppPokemon.trapCounter = game.map.rand.nextInt(2) + 4;
-//                        }
-//                        //
-//                    }
                 }
-                // if this is a CLIENT, get all outcomes of attacks etc from the server.
+                // If this is a CLIENT, get all outcomes of attacks etc from the server.
                 else {
                     BattleTurnData turnData = game.battle.network.turnData;
                     oppFirst = turnData.oppFirst;
@@ -4377,10 +4470,7 @@ public class Battle {
                     game.player.currPokemon.trappedBy = turnData.playerTrappedBy;
                     game.player.currPokemon.trapCounter = turnData.playerTrapCounter;
                 }
-                playerAction =  //new DisplayText(game, game.player.currPokemon.name.toUpperCase()+" used "+playerAttack.name.toUpperCase()+"!",
-                                //                null, true, false,
-                                new AttackAnim(game, playerAttack, isFriendly,
-                                null);
+                playerAction = new AttackAnim(game, playerAttack, isFriendly, null);
             }
             // If expecting player to switch (after friendly pokemon fainted), enemy does nothing
             if (game.battle.network.expectPlayerSwitch) {
@@ -4394,77 +4484,6 @@ public class Battle {
                 game.battle.network.turnData = null;
                 return;
             }
-            // Select enemy attack
-            if (game.type != Game.Type.CLIENT) {
-                // TODO: remove
-//                int attackIndex = game.map.rand.nextInt(game.battle.oppPokemon.attacks.length);
-//                String attackChoice = game.battle.oppPokemon.attacks[attackIndex];
-//                if (attackChoice == null) {
-//                    attackChoice = "Struggle";
-//                }
-
-                // TODO: is enemy able to choose disabled move?
-                // TODO: check disabled index
-                ArrayList<String> validAttacks = new ArrayList<String>();
-                int i = 0;
-                for (String attack : game.battle.oppPokemon.attacks) {
-                    if (attack != null && game.battle.oppPokemon.disabledIndex != i) {
-                        validAttacks.add(attack);
-                    }
-                    i++;
-                }
-                String attackChoice = null;
-                if (validAttacks.isEmpty()) {
-                    attackChoice = "struggle";
-                }
-                else {
-                    attackChoice = validAttacks.get(game.map.rand.nextInt(validAttacks.size()));
-                }
-                enemyAttack = game.battle.attacks.get(attackChoice.toLowerCase());
-                // TODO: debug, remove
-//                for (int i=0; i<game.battle.oppPokemon.attacks.length;i++) {
-//                    System.out.println(game.battle.oppPokemon.attacks[i]);
-//                }
-//                System.out.println(attackChoice);
-//                System.out.println(enemyAttack.name);
-                enemyAttack.isCrit = Battle.gen2DetermineCrit(game.battle.oppPokemon, enemyAttack);
-                enemyAttack.damage = Battle.gen2CalcDamage(game.battle.oppPokemon, enemyAttack, game.player.currPokemon);
-                // Debug function
-                if (game.debugInputEnabled && Gdx.input.isKeyPressed(Input.Keys.SPACE)) {
-                    enemyAttack.damage = 0;
-                }
-
-                // TODO: remove
-//                // check if attack traps player pokemon
-//                if (game.player.currPokemon.trappedBy == null &&
-//                    enemyAttack.name.toLowerCase().equals("whirlpool") ||
-//                    enemyAttack.name.toLowerCase().equals("fire spin") ||
-//                    enemyAttack.name.toLowerCase().equals("wrap") ||
-//                    enemyAttack.name.toLowerCase().equals("thunder cage") ||
-//                    enemyAttack.name.toLowerCase().equals("clamp")) {
-//                    // 2-5 turns for trap
-//                    game.player.currPokemon.trappedBy = enemyAttack.name.toLowerCase();
-//                    game.player.currPokemon.trapCounter = game.map.rand.nextInt(4) + 2;
-//                    // 4-5 turns for thunder cage
-//                    if (enemyAttack.name.toLowerCase().equals("thunder cage")) {
-//                        game.player.currPokemon.trapCounter = game.map.rand.nextInt(2) + 4;
-//                    }
-//                }
-            }
-            // If Client, get enemy attack that was sent from server.
-            else {
-                BattleTurnData turnData = game.battle.network.turnData;
-                enemyAttack = turnData.enemyAttack;
-                game.battle.oppPokemon.trappedBy = turnData.enemyTrappedBy;
-                game.battle.oppPokemon.trapCounter = turnData.enemyTrapCounter;
-                // TODO: debug, remove
-//                System.out.println("enemyAttack.damage");
-//                System.out.println(enemyAttack.damage);
-            }
-            Action enemyAction =  //new DisplayText(game, "Enemy "+game.battle.oppPokemon.name.toUpperCase()+" used "+enemyAttack.name.toUpperCase()+"!",
-                                  //                null, true, false, // TODO: remove if unused
-                                  new AttackAnim(game, enemyAttack, !isFriendly,
-                                  null);
             if (!oppFirst) {
                 doTurn = playerAction;
                 doTurn.append(new DisplayText.Clear(game,
@@ -9323,8 +9342,8 @@ class DrawPokemonMenu extends MenuAction {
                            null))));
                 }
             }
-            // TODO: just use player.currHm
-            if (game.player.isFlying) {
+
+            if (game.player.currFieldMove.equals("FLY")) {
                 this.disabled = true;
                 game.insertAction(this.prevMenu);
                 return new PlaySound("error1",
@@ -10189,7 +10208,7 @@ class DrawUseTossMenu extends MenuAction {
 //
 //        }
         if (game.battle.drawAction == null) {
-            if (game.player.isFlying) {
+            if (game.player.currFieldMove.equals("FLY")) {
                 game.insertAction(this.prevMenu);
                 game.insertAction(new PlaySound("error1",
                                   new SetField(this.prevMenu, "disabled", false,

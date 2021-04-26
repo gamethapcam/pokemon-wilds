@@ -2535,11 +2535,21 @@ class MusicController extends Action {
             System.out.println(this.inBattle);
 //            if (!this.inTransition) {  // TODO: remove once tested
                 game.currMusic.pause();
-                if (isDungeon) {
+                boolean isDesert = game.map.currRoute != null &&
+                                   game.map.currRoute.type.equals("desert") &&
+                                   !this.currDayTime.equals("night");
+                if (isDungeon || isDesert) {
                     String musicName = game.map.currRoute.getNextMusic(true);
                     if (!game.loadedMusic.containsKey(musicName)) {
-                        Music music = Gdx.audio.newMusic(Gdx.files.internal("music/"+musicName+".ogg"));
-                        music.setLooping(true);
+                        Music music;
+                        if (isDesert) {
+                            // Desert music is looped
+                            music = new LinkedMusic("music/"+musicName+"_intro", "music/"+musicName);
+                        }
+                        else {
+                            music = Gdx.audio.newMusic(Gdx.files.internal("music/"+musicName+".ogg"));
+                            music.setLooping(true);
+                        }
                         game.loadedMusic.put(musicName, music);
                     }
                     game.currMusic = game.loadedMusic.get(musicName);

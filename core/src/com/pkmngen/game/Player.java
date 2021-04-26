@@ -355,6 +355,8 @@ class CycleDayNight extends Action {
                     // TODO: do smthng similar for respawning rocks
                     ArrayList<Tile> desertTiles = new ArrayList<Tile>();
                     int numFossils = 0;
+
+                    ArrayList<Vector2> desertEdges = new ArrayList<Vector2>();
                     
                     for (Tile tile : game.map.overworldTiles.values()) {
                         if (tile.nameUpper.contains("tree_planted")) {
@@ -444,12 +446,14 @@ class CycleDayNight extends Action {
                                     game.insertAction(trapinch.new Burrowed());
                                     trapinch.mapTiles = game.map.overworldTiles;
                                     nextTile.items().put("trapinch", 1);
-                                    System.out.println("hi42342");
                                 }
                             }
                         }
                         else if (tile.nameUpper.equals("rock1_color")) {
                             numRocks++;
+                        }
+                        else if (tile.name.equals("sand3_desertEdge")) {
+                            desertEdges.add(tile.position.cpy());
                         }
                         else if (tile.name.contains("desert")) {
                             if (tile.nameUpper.equals("")) {
@@ -506,30 +510,38 @@ class CycleDayNight extends Action {
                     // Respawn dragonites if necessary
                     // TODO: eventually move dragonite to a biome
                     int numDragonites = 0;
-                    String gender = null;
+                    int numGarchomps = 0;
+                    String dragoniteGender = null;
+                    String garchompGender = null;
                     for (Vector2 pos : game.map.overworldTiles.keySet()) {
-                        if (game.map.pokemon.containsKey(pos) &&
-                            game.map.pokemon.get(pos).specie.name.equals("dragonite")) {
-                            gender = game.map.pokemon.get(pos).gender;
-                            numDragonites++;
-                            if (numDragonites >= 2) {
+                        if (game.map.pokemon.containsKey(pos)) {
+                            Pokemon pokemon = game.map.pokemon.get(pos);
+                            if (pokemon.specie.name.equals("dragonite")) {
+                                dragoniteGender = pokemon.gender;
+                                numDragonites++;
+                            }
+                            else if (pokemon.specie.name.equals("garchomp")) {
+                                garchompGender = pokemon.gender;
+                                numGarchomps++;
+                            }
+                            if (numDragonites >= 2 && numGarchomps >= 2) {
                                 break;
                             }
                         }
                     }
                     int index = game.map.rand.nextInt(game.map.edges.size()-1);
-                    for (String gender2 : new String[]{"male", "female"}) {
+                    for (String gender : new String[]{"male", "female"}) {
                         if (numDragonites >= 2) {
                             break;
                         }
-                        if (gender2.equals(gender)) {
+                        if (gender.equals(dragoniteGender)) {
                             continue;
                         }
                         System.out.println("numDragonites");
                         System.out.println(numDragonites);
                         Vector2 edge = game.map.edges.get(index);
                         Pokemon pokemon = new Pokemon("dragonite", 55);
-                        pokemon.gender = gender2;
+                        pokemon.gender = gender;
                         pokemon.position = edge.cpy();
                         pokemon.mapTiles = game.map.overworldTiles;
                         pokemon.standingAction = pokemon.new Standing();
@@ -537,6 +549,29 @@ class CycleDayNight extends Action {
                         game.insertAction(pokemon.standingAction);
                         game.map.pokemon.put(pokemon.position.cpy(), pokemon);
                         numDragonites++;
+                    }
+                    // Spawn two opposite-gender garchomp on a random desert edge
+                    index = Game.rand.nextInt(desertEdges.size()-1);
+                    for (String gender : new String[]{"male", "female"}) {
+                        if (desertEdges.size() <= 0) {
+                            break;
+                        }
+                        if (numGarchomps >= 2) {
+                            break;
+                        }
+                        if (gender.equals(garchompGender)) {
+                            continue;
+                        }
+                        System.out.println("numGarchomps");
+                        System.out.println(numGarchomps);
+                        Vector2 edge = desertEdges.get(index);
+                        Pokemon pokemon = new Pokemon("garchomp", 50);
+                        pokemon.gender = gender;
+                        pokemon.position = edge.cpy();
+                        pokemon.mapTiles = game.map.overworldTiles;
+                        pokemon.standingAction = pokemon.new Standing();
+                        game.insertAction(pokemon.standingAction);
+                        game.map.pokemon.put(pokemon.position.cpy(), pokemon);
                     }
                 }
             }
@@ -588,6 +623,9 @@ class CycleDayNight extends Action {
                                 continue;
                             }
                             if (!nextTile.name.equals("desert4") || !nextTile.nameUpper.equals("")) {
+                                continue;
+                            }
+                            if (nextTile.attrs.get("solid")) {
                                 continue;
                             }
                             if (Game.rand.nextInt(256) < 32) {
@@ -2197,7 +2235,7 @@ class DrawPlayerLower extends Action {
 
     @Override
     public void step(Game game) {
-        if (game.player.isSleeping || game.player.isFlying) {
+        if (game.player.isSleeping || game.player.currFieldMove.equals("FLY")) {
             return;
         }
 
@@ -2246,7 +2284,7 @@ class DrawPlayerUpper extends Action {
             }
             return;
         }
-        if (game.player.isFlying) {
+        if (game.player.currFieldMove.equals("FLY")) {
             return;
         }
         // Have draw sleeping bag on ground separately for 'getting into sleeping bag' animation.
@@ -2850,7 +2888,7 @@ public class Player {
     public boolean isCrafting = false;
     public boolean isSleeping = false;
     public Vector2 sleepingDir = null;
-    public boolean isFlying = false;
+//    public boolean isFlying = false;
     public Flying flyingAction = null;
     public boolean drawSleepingBag = false;
     public boolean acceptInput = true;
@@ -3009,6 +3047,12 @@ public class Player {
         //
         craft = new Craft("thin paper", 1);
         craft.requirements.add(new Craft("log", 1));
+        Player.crafts.add(craft);
+        //
+        craft = new Craft("ragecandybar", 1);
+        craft.requirements.add(new Craft("honey", 2));
+//        craft.requirements.add(new Craft("miracle seed", 1));
+        craft.requirements.add(new Craft("charcoal", 1));
         Player.crafts.add(craft);
     }
 
@@ -3425,7 +3469,9 @@ public class Player {
         else {
             this.network.tiles = Game.staticGame.map.overworldTiles;
         }
-        this.isFlying = playerData.isFlying;
+        if (playerData.isFlying) {
+            this.currFieldMove = "FLY";
+        }
     }
 
     /**
@@ -3888,7 +3934,7 @@ public class Player {
 //                    Flying.this.takingOff = false; // this causes issue where player will move once at bottom.
                     game.actionStack.remove(this);
                     game.insertAction(this.nextAction);
-                    Player.this.isFlying = false;
+                    Player.this.currFieldMove = "";
                     game.player.hmPokemon = null;  // TODO: test this
 //                    game.cam.translate(0f, -16f);
                     game.actionStack.remove(Flying.this);
@@ -4950,8 +4996,14 @@ class PlayerMoving extends Action {
             if (nextTile != null && nextTile.routeBelongsTo != null) {
                 Route newRoute = nextTile.routeBelongsTo;
                 String newBiome = nextTile.biome;
+
+                // TODO: some flag to denote music transition
+                if (!game.map.currRoute.type.equals(newRoute.type) && !game.map.timeOfDay.equals("night")) {
+                    game.musicController.fadeToDungeon = true;
+                }
+
                 if (game.map.currRoute != newRoute) {
-                    // TODO: testing
+                    // TODO: try removing this stuff, don't think it does anything
                     // only fade to new music if route is different name
                     // ie, don't fade if going from forest1->forest1, but
                     // do fade if going from forest1->snow1
@@ -4975,6 +5027,9 @@ class PlayerMoving extends Action {
                     }
                     game.map.currRoute = newRoute;
                 }
+                
+                
+                
                 game.map.currBiome = newBiome;
 //                System.out.println("New Biome: " + newBiome);
             }
@@ -5247,6 +5302,12 @@ class PlayerRunning extends Action {
             if (game.map.tiles.get(this.targetPos) != null && game.map.tiles.get(this.targetPos).routeBelongsTo != null) {
                 Route newRoute = game.map.tiles.get(this.targetPos).routeBelongsTo;
                 String newBiome = game.map.tiles.get(this.targetPos).biome;
+
+                // TODO: some flag to denote music transition
+                if (!game.map.currRoute.type.equals(newRoute.type) && !game.map.timeOfDay.equals("night")) {
+                    game.musicController.fadeToDungeon = true;
+                }
+                
                 if (game.map.currRoute != newRoute) {
                     // TODO: testing
                     // only fade to new music if route is different name
@@ -5421,12 +5482,10 @@ class PlayerStanding extends Action {
         if (currTile != null && currTile.routeBelongsTo != null) {
             // If currently on grass
             if (currTile.attrs.get("grass")) {
-                
                 // Burrowed trapinch tiles have no wild encounters
                 if (currTile.items().containsKey("trapinch")) {
                     return null;
                 }
-                
                 // Chance wild encounter
                 int randomNum = game.map.rand.nextInt(100) + 1; // rate determine by player? // 1 - 100
                 int rate = 10;
@@ -5506,12 +5565,12 @@ class PlayerStanding extends Action {
                         pokemon.getCurrentAttacks();
                     }
                     // TODO: debug, remove
-//                    pokemon.attacks[0] = "crush grip";
-//                    pokemon.attacks[1] = "crush grip";
-//                    pokemon.attacks[2] = "crush grip";
-//                    pokemon.attacks[3] = "crush grip";
+                    pokemon = new Pokemon("numel", 60, Pokemon.Generation.CRYSTAL);
                     // TODO: debug, remove
-//                    pokemon = new Pokemon("numel", 46, Pokemon.Generation.CRYSTAL);
+                    pokemon.attacks[0] = "feint attack";
+                    pokemon.attacks[1] = "faint attack";
+                    pokemon.attacks[2] = "vital throw";
+                    pokemon.attacks[3] = "aerial ace";
                     return pokemon;
                 }
             }

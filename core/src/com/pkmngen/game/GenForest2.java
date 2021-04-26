@@ -11,6 +11,7 @@ import java.util.Random;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Sprite;
+import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.pkmngen.game.Pokemon.Burrowed;
 import com.pkmngen.game.Pokemon.Standing;
@@ -1533,41 +1534,39 @@ class GenIsland1 extends Action {
         Tile originTile = new Tile("sand1", this.origin.cpy());
         this.tilesToAdd.put(originTile.position.cpy(), originTile);
 
-//        Route blotchRoute = new Route("desert1", 40);
-//        ApplyBlotch(game, "desert", originTile, maxDist/36, this.tilesToAdd, 1, false, blotchRoute);
-
+        Route blotchRoute = new Route("desert1", 40);
+        ApplyBlotch(game, "desert", originTile, maxDist/36, this.tilesToAdd, 1, false, blotchRoute);
 
         // TODO: uncomment this for just giant island
 //        ApplyBlotch(game, "island", originTile, maxDist, this.tilesToAdd, 1, false, new Route("forest1", 22));
-        
-        
-        // TODO: debug, revert
-        ArrayList<Tile> endPoints = ApplyBlotchMountain(game, originTile, maxDist, this.mtnTiles);
-        System.out.println("endPoints size");
-        System.out.println(endPoints.size());
-        for (Tile tile : endPoints) {
 
-            if (GenIsland1.doneDesert == 1) {
-                // TODO: seems to be happening near middle of mountain, would like it to be elsewhere.
-                Route blotchRoute = new Route("desert1", 40);
-                ApplyBlotch(game, "desert", tile, maxDist/18 +maxDist/4, this.tilesToAdd, 1, true, blotchRoute);
-                continue;
-            }
-            else {
-                GenIsland1.doneDesert++;
-            }
-            
-              // TODO: this might be fixed, test
-            Route blotchRoute = new Route("forest1", 40); // TODO: mem usage too high
-            // TODO: maxDist/6 is too big I think for some islands.
-            // maxDist/6 for 100x100 island, it looked pretty good.
-            // maxDist/10 for 100x180 island
-            // maxDist/14 for 100x350 island
-            // maxDist/18 for 100x500 island
-            // TODO: could try adding more layers to mountains for larger islands.
-            // TODO: maxDist/18 is actually working pretty well for most sizes.
-            ApplyBlotch(game, "island", tile, maxDist/18, this.tilesToAdd, 1, true, blotchRoute); 
-        }
+//        // TODO: debug, revert
+//        ArrayList<Tile> endPoints = ApplyBlotchMountain(game, originTile, maxDist, this.mtnTiles);
+//        System.out.println("endPoints size");
+//        System.out.println(endPoints.size());
+//        for (Tile tile : endPoints) {
+//
+//            if (GenIsland1.doneDesert == 1) {
+//                // TODO: seems to be happening near middle of mountain, would like it to be elsewhere.
+//                Route blotchRoute = new Route("desert1", 40);
+//                ApplyBlotch(game, "desert", tile, maxDist/18 +maxDist/4, this.tilesToAdd, 1, true, blotchRoute);
+//                continue;
+//            }
+//            else {
+//                GenIsland1.doneDesert++;
+//            }
+//            
+//              // TODO: this might be fixed, test
+//            Route blotchRoute = new Route("forest1", 40); // TODO: mem usage too high
+//            // TODO: maxDist/6 is too big I think for some islands.
+//            // maxDist/6 for 100x100 island, it looked pretty good.
+//            // maxDist/10 for 100x180 island
+//            // maxDist/14 for 100x350 island
+//            // maxDist/18 for 100x500 island
+//            // TODO: could try adding more layers to mountains for larger islands.
+//            // TODO: maxDist/18 is actually working pretty well for most sizes.
+//            ApplyBlotch(game, "island", tile, maxDist/18, this.tilesToAdd, 1, true, blotchRoute); 
+//        }
 
         // TODO: this probably will tack on even more processing time.
         // TODO: doesn't really work, bleeds into upper mountain area
@@ -1593,6 +1592,8 @@ class GenIsland1 extends Action {
         }
 
         // Find max/min x and y tiles, add padding and add water tiles
+        ArrayList<Tile> desertTiles = new ArrayList<Tile>();
+        ArrayList<Tile> deepForestTiles = new ArrayList<Tile>();
         Vector2 maxPos = this.origin.cpy();
         Vector2 minPos = this.origin.cpy();
         for (Tile tile : new ArrayList<Tile>(this.tilesToAdd.values())) {
@@ -1607,6 +1608,14 @@ class GenIsland1 extends Action {
             }
             if (minPos.y > tile.position.y) {
                 minPos.y = tile.position.y;
+            }
+
+            // TODO: test
+            if (tile.name.contains("desert")) {
+                desertTiles.add(tile);
+            }
+            else if (tile.biome.equals("deep_forest")) {
+                deepForestTiles.add(tile);
             }
         }
         this.bottomLeft = minPos.cpy();
@@ -1626,11 +1635,74 @@ class GenIsland1 extends Action {
             }
         }
 
+        // Remove 'stray' overworld pokemon (again, this time from desert)
+        // Do this before placing Darmanitan, otherwise it will remove them.
+        for (Tile tile : desertTiles) {
+            if (this.pokemonToAdd.containsKey(tile.position)) {
+                this.pokemonToAdd.remove(tile.position);
+            }
+        }
+        
+        // TODO: add pokemon mansion, regi dungeon and mansion key here
+        Rectangle[] hitBoxes = new Rectangle[2];
+        hitBoxes[0] = new Rectangle(0, 0, 1056, 1056);  // Desert ruins; 1056 = 22*3*16
+        hitBoxes[1] = new Rectangle(0, 0, 40, 40);  // Oasis
+
+        Vector2[] origins = new Vector2[2];
+        origins[0] = null;  // Desert ruins
+        origins[1] = null;  // Oasis
+         
+        for (int i=0, tries=0; i < hitBoxes.length;) {
+            // Pick start point
+            origins[i] = desertTiles.get(this.rand.nextInt(desertTiles.size())).position;
+            // Special rules for Desert Ruins origin point
+            if (i == 0) {
+                int tries2 = 0;
+                while (tries2 < 80 && desertTiles.size() > 0) {
+                    // newTile.position.x % 64 == 0 looked neat
+//                     newTile.position.x % 64 == 32
+                    if (origins[i].x % 32 == 0 && origins[i].y % 32 == 16) {
+                        break;
+                    }
+                    origins[i] = desertTiles.get(this.rand.nextInt(desertTiles.size())).position;
+                    tries2++;
+                }
+            }
+            // Adjust hitbox to that position
+            hitBoxes[i].setCenter(origins[i]);
+            // Check that all previous hitboxes don't collide with the chosen point.
+            boolean worked = true;
+            for (int j=0; j < i; j++) {
+                if (hitBoxes[i].overlaps(hitBoxes[j])) {
+                    worked = false;
+                    break;
+                }
+            }
+            if (worked || tries > 10) {
+                i++;
+                tries = 0;
+                if (tries > 10) {
+                    // TODO: debug, remove
+                    System.out.println("Gave up.");
+                    System.out.println(i);
+                }
+            }
+            else {
+                tries++;
+            }
+        }
+
+        // Place desert ruins exterior and interior
+        this.generateDesertRuins(game, origins[0]);
+
+        // Place oasis exterior and interior
+        this.generateOasis(game, origins[1]);
+
+
         // post-process - remove stray trees
         // Might need a better way to store tiles bigger than 16x16
         // Timed this part, took 42 milliseconds for large map.
 //        for (int i=0; i < 1; i++) {
-        ArrayList<Tile> desertTiles = new ArrayList<Tile>();
         boolean complete = false;
         Vector2 keyLoc = null;
         while (!complete) {
@@ -1712,9 +1784,6 @@ class GenIsland1 extends Action {
                 }
 
 
-                if (tile.name.contains("desert")) {
-                    desertTiles.add(tile);
-                }
                 // Remove overworld pokemon that are currently inside something solid
                 //  Hard to remove them when they are being placed initially, this issue
                 //  happens when groups of tiles get merged together (I think).
@@ -1961,25 +2030,13 @@ class GenIsland1 extends Action {
             }
         }
 
-        // Remove 'stray' overworld pokemon (again, this time from desert)
-        for (Tile tile : desertTiles) {
-            if (this.pokemonToAdd.containsKey(tile.position)) {
-                this.pokemonToAdd.remove(tile.position);
-            }
-        }
-
-        // Place desert ruins exterior and interior
-        this.generateDesertRuins(game, desertTiles);
-
-        // Place oasis exterior and interior
-        this.generateOasis(game, desertTiles);
-
         // Yeet pokemon out of routes and into the overworld (using various criteria)
         for (Tile tile : this.tilesToAdd.values()) {
             if (tile.routeBelongsTo == null) {
                 continue;
             }
             for (Pokemon pokemon : new ArrayList<Pokemon>(tile.routeBelongsTo.pokemon)) {
+                //
                 boolean isBaseSpecies = Pokemon.baseSpecies.get(pokemon.specie.name.toLowerCase()).equalsIgnoreCase(pokemon.specie.name);
                 boolean hasEvo = !Specie.gen2Evos.get(pokemon.specie.name).isEmpty();
 
@@ -1990,7 +2047,6 @@ class GenIsland1 extends Action {
                     isBaseSpecies = false;
                     hasEvo = false;  // yeet everything
                 }
-
                 if (tile.routeBelongsTo.name.equals("desert1")) {
                     if (this.rand.nextInt(2048) >= 2047) {
                         tile.routeBelongsTo.pokemon.remove(pokemon);
@@ -2010,6 +2066,9 @@ class GenIsland1 extends Action {
                 if (!headbuttable && !isBaseSpecies && !hasEvo) {
                     tile.routeBelongsTo.pokemon.remove(pokemon);
                     int baseChance = 192;
+                    // TODO: headbuttable may have messed with yeeting beach pokemon, because
+                    // they seem rarer now.
+                    
                     if (tile.routeBelongsTo.name.contains("forest")) {
                         baseChance = 224;  // 1/8 chance if it's forest biome
                     }
@@ -2131,16 +2190,22 @@ class GenIsland1 extends Action {
                 if (nextTile.name.equals("water2")) {
 //                    this.edges.add(tile);
                     // Add a 'ring' of sand around the island
-                    Tile newTile = new Tile("sand3", nextTile.position.cpy(), true, tempRoute);
+                    String name = "sand3";
+                    if (tile.name.contains("desert")) {
+                        name = "sand3_desertEdge";
+                    }
+
+//                    Tile newTile = new Tile(name, nextTile.position.cpy(), true, tempRoute);  // TODO: test changes
+                    Tile newTile = new Tile(name, nextTile.position.cpy(), true, tile.routeBelongsTo);
                     this.tilesToAdd.put(newTile.position.cpy(), newTile);
                     // Don't place edges next to desert or in oasis
 
                     // TODO: re-enable
-                    if (!tile.name.contains("desert") &&
-                        (tile.routeBelongsTo == null || (!tile.routeBelongsTo.name.equals("oasis1") &&
-                                                         !tile.routeBelongsTo.name.equals("ruins1_outer")))) {
+//                    if (!tile.name.contains("desert") &&
+//                        (tile.routeBelongsTo == null || (!tile.routeBelongsTo.name.equals("oasis1") &&
+//                                                         !tile.routeBelongsTo.name.equals("ruins1_outer")))) {
                         this.edges.add(newTile);
-                    }
+//                    }
                 }
             }
         }
@@ -2315,8 +2380,13 @@ class GenIsland1 extends Action {
         // Picking a random spot should be okay, tiles are concetrated near center (?)
         int doneOasis = maxDist;  // TODO: remove
         int numDarms = 10;  // TODO: would like this to only apply to desert ruins
-        int invulnTimer = 0;
+//        int invulnTimer = 0;  // TODO: remove
 
+        Route beachRoute = null;
+        if (type.equals("island")) {
+            beachRoute = new Route("", 2);
+//            beachRoute = new Route("beach1", 3);  // had no visible effect
+        }
 
         while (!edgeTiles.isEmpty()) {
             for (Tile tile : new ArrayList<Tile>(edgeTiles.values())) {
@@ -2391,7 +2461,7 @@ class GenIsland1 extends Action {
                                 else if (this.rand.nextInt(maxDist) < 3) {
                                     newTile = new Tile("desert4", "desert4_cracked", edge, true, currRoute);
                                 }
-                                
+
                                 // TODO: remove
                                 // TODO: not sure if should limit to 1. definitely want minimum of one
 //                                else if (distance > maxDist/8 && doneOasis > 0 && this.rand.nextInt(doneOasis) < 1) {
@@ -2455,7 +2525,7 @@ class GenIsland1 extends Action {
 
                             // trees in middle, grass near middle, sand and rock on edges
                             else if (type.equals("island")) {
-                                Tile newTile = new Tile("sand1", edge);
+                                Tile newTile = new Tile("sand1", edge, true, beachRoute);
                                 int isRock = this.rand.nextInt(maxDist) + (int)distance;
                                 if (isRock > maxDist + maxDist/2) {
 //                                    Vector2 left = edge.cpy().add(-16f, 0f);
@@ -2736,11 +2806,9 @@ class GenIsland1 extends Action {
                             else if (type.equals("sand_pit1")) {
                                 Tile newTile = new Tile("desert4", edge);
                                 if (distance < 2*maxDist/3) {
-                                    // TODO: special sand pit route
                                     newTile = new Tile("desert2", edge, true, currRoute);
-
                                     // Chance to put trapinch in this tile
-                                    if (this.rand.nextInt(256) < 32) {
+                                    if (this.rand.nextInt(256) < 8) {  // 32
                                         this.trapinchSpawns.add(edge.cpy());
                                     }
                                 }
@@ -3881,9 +3949,10 @@ class GenIsland1 extends Action {
     /**
      * Desert oasis.
      */
-    public void generateOasis(Game game, ArrayList<Tile> desertTiles) {
+    public void generateOasis(Game game, Vector2 origin) {
         Route blotchRoute = new Route("oasis1", 30);
-        Tile newTile = desertTiles.remove(this.rand.nextInt(desertTiles.size()));
+//        Tile newTile = desertTiles.remove(this.rand.nextInt(desertTiles.size()));  // TODO: remove
+        Tile newTile = this.tilesToAdd.get(origin);
         newTile.biome = "desert";
         int nextSize = 250 + this.rand.nextInt(50);
         HashMap<Vector2, Tile> newTiles = new HashMap<Vector2, Tile>();
@@ -4008,21 +4077,25 @@ class GenIsland1 extends Action {
     /**
      * Ruins exterior.
      */
-    public void generateDesertRuins(Game game, ArrayList<Tile> desertTiles) {
+    public void generateDesertRuins(Game game, Vector2 origin) {
         // Start ruins upper/outer placement
         int nextSize = 230;
         Route currRoute = new Route("ruins1_outer", 44);
-        int tries = 0;
-        Tile newTile = desertTiles.remove(this.rand.nextInt(desertTiles.size()));
-        while (tries < 80 && desertTiles.size() > 0) {
-            // newTile.position.x % 64 == 0 looked neat
-//             newTile.position.x % 64 == 32
-            if (newTile.position.x % 32 == 0 && newTile.position.y % 32 == 16) {  
-                break;
-            }
-            newTile = desertTiles.remove(this.rand.nextInt(desertTiles.size()));
-            tries++;
-        }
+
+        // TODO: remove
+//        int tries = 0;
+//        Tile newTile = desertTiles.remove(this.rand.nextInt(desertTiles.size()));
+//        while (tries < 80 && desertTiles.size() > 0) {
+//            // newTile.position.x % 64 == 0 looked neat
+////             newTile.position.x % 64 == 32
+//            if (newTile.position.x % 32 == 0 && newTile.position.y % 32 == 16) {  
+//                break;
+//            }
+//            newTile = desertTiles.remove(this.rand.nextInt(desertTiles.size()));
+//            tries++;
+//        }
+        //
+        Tile newTile = this.tilesToAdd.get(origin);
         HashMap<Vector2, Tile> newTiles = new HashMap<Vector2, Tile>();
         HashMap<Vector2, Tile> newTiles2 = new HashMap<Vector2, Tile>();
         ApplyBlotch(game, "ruins1_upper2", newTile, nextSize, newTiles2, 0, false, currRoute);
@@ -5931,7 +6004,6 @@ class GenIsland1 extends Action {
             if (!tile.name.equals("desert2")) {
                 continue;
             }
-            System.out.println("hoi");
             Pokemon trapinch = new Pokemon("trapinch", 22, Pokemon.Generation.CRYSTAL);
             trapinch.mapTiles = game.map.overworldTiles;
             trapinch.position = position.cpy();

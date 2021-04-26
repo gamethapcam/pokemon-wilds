@@ -864,7 +864,7 @@ public class Game extends ApplicationAdapter {
 //            this.player.pokemon.get(1).attacks[1] = "confuse ray";
 //            this.player.pokemon.get(1).attacks[2] = "toxic";
 //            this.player.pokemon.get(1).attacks[3] = "sweet scent";
-//            this.player.pokemon.add(new Pokemon("pidgeot", 60, Pokemon.Generation.CRYSTAL));
+            this.player.pokemon.add(new Pokemon("pidgeot", 60, Pokemon.Generation.CRYSTAL));
 //            this.player.pokemon.add(new Pokemon("meganium", 60, Pokemon.Generation.CRYSTAL));
 //            this.player.pokemon.add(new Pokemon("ursaring", 60, Pokemon.Generation.CRYSTAL));
 //            this.player.pokemon.add(new Pokemon("golem", 60, Pokemon.Generation.CRYSTAL));
@@ -883,21 +883,22 @@ public class Game extends ApplicationAdapter {
 //            this.player.pokemon.add(new Pokemon("masquerain", 60, Pokemon.Generation.CRYSTAL));
 
 //            this.player.pokemon.add(new Pokemon("ampharos", 70, Pokemon.Generation.CRYSTAL));
-            this.player.pokemon.add(new Pokemon("rhydon", 46, Pokemon.Generation.CRYSTAL));
+//            this.player.pokemon.add(new Pokemon("rhydon", 46, Pokemon.Generation.CRYSTAL));
             this.player.pokemon.add(new Pokemon("meganium", 46, Pokemon.Generation.CRYSTAL));
 //            this.player.pokemon.add(new Pokemon("ursaring", 46, Pokemon.Generation.CRYSTAL));
 
-            this.player.pokemon.add(new Pokemon("gabite", 11, Pokemon.Generation.CRYSTAL, true, false));
+            this.player.pokemon.add(new Pokemon("volcarona", 11, Pokemon.Generation.CRYSTAL, true, false));
             this.player.pokemon.get(4).gender = "female";
-//            this.player.pokemon.add(new Pokemon("garchomp", 11, Pokemon.Generation.CRYSTAL, true, false));
-//            this.player.pokemon.get(5).gender = "male";
-            this.player.pokemon.add(new Pokemon("dusclops", 46, Pokemon.Generation.CRYSTAL));
+            this.player.pokemon.add(new Pokemon("volcarona", 11, Pokemon.Generation.CRYSTAL, true, false));
+            this.player.pokemon.get(5).gender = "male";
+//            this.player.pokemon.add(new Pokemon("dusclops", 46, Pokemon.Generation.CRYSTAL));
 //            this.player.pokemon.add(new Pokemon("darmanitan", 46, Pokemon.Generation.CRYSTAL, true, false));
 //            Pokemon temp = new Pokemon("combee_female", 46, Pokemon.Generation.CRYSTAL, false, false);
 //            temp.gender = "female";
 //            this.player.pokemon.add(temp);
 //            this.player.pokemon.add(new Pokemon("combee", 46, Pokemon.Generation.CRYSTAL, false, false));
-            this.player.pokemon.get(2).attacks[0] = "seismic toss";
+            this.player.pokemon.get(2).attacks[0] = "morning sun";
+            this.player.pokemon.get(2).attacks[1] = "moonlight";
 //            this.player.pokemon.get(2).currentStats.put("hp", 10);
 
             // TODO: remove
@@ -912,6 +913,26 @@ public class Game extends ApplicationAdapter {
 //            this.player.pokemon.get(4).happiness = 1;  // test egg cycle hatching works
 //            this.player.pokemon.add(new Pokemon("egg", 1, Pokemon.Generation.CRYSTAL, false, "skarmory"));
 //            this.player.pokemon.get(5).happiness = 1;  // test egg cycle hatching works
+            
+            // TODO: remove
+            // This seems to indicate that number of zeros is roughly equal to number of ones.
+//            int numZeros = 0;
+//            int numOnes = 0;
+//            int randNum = 0;
+//            for (int i=0; i < 300; i++) {
+//                randNum = Game.rand.nextInt(2);
+//                if (randNum == 0) {
+//                    numZeros++;
+//                }
+//                else if (randNum == 1) {
+//                    numOnes++;
+//                }
+//            }
+//            System.out.println("numZeros");
+//            System.out.println(numZeros);
+//            System.out.println("numOnes");
+//            System.out.println(numOnes);
+            
             Log.set(Log.LEVEL_DEBUG);
         }
         for (Pokemon pokemon : this.player.pokemon) {

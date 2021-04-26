@@ -772,7 +772,7 @@ public class Network {
             this.dirFacing = player.dirFacing;
             this.spawnLoc = player.spawnLoc;
             this.displayedMaxPartyText = player.displayedMaxPartyText;
-            this.isFlying = player.isFlying;
+            this.isFlying = player.currFieldMove.equals("FLY");
             if (player.flyingAction != null) {
                 this.flyingIndex = player.pokemon.indexOf(player.flyingAction.pokemon);
             }

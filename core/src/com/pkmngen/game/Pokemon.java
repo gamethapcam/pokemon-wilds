@@ -66,7 +66,7 @@ public class Pokemon {
         attacksImplemented.add("egg bomb");
         attacksImplemented.add("ember");
         attacksImplemented.add("explosion");
-        attacksImplemented.add("extreme speed");
+        attacksImplemented.add("extremespeed");
         attacksImplemented.add("faint attack");
         attacksImplemented.add("false swipe");
         attacksImplemented.add("fire blast");
@@ -207,9 +207,15 @@ public class Pokemon {
         attacksImplemented.add("air cutter");
 
         // 'prism' attacks
+        attacksImplemented.add("aqua jet");
+        attacksImplemented.add("aura sphere");
+        attacksImplemented.add("aerial ace");
+        attacksImplemented.add("bullet punch");
         attacksImplemented.add("zen headbutt");
         attacksImplemented.add("iron defense");
         attacksImplemented.add("bug buzz");
+        // Prism spells it correctly. However crystal evos_attacks uses 'faint' spelling.
+        attacksImplemented.add("feint attack");
         attacksImplemented.add("dragon pulse");
         attacksImplemented.add("drain punch");
         attacksImplemented.add("hyper voice");
@@ -2305,11 +2311,12 @@ public class Pokemon {
             // If standing on top of player, then initiate battle.
             if (dst2 < 64 &&
                 this.aggroTimer > 32 &&
-                !game.player.isFlying &&
+                !game.player.currFieldMove.equals("FLY") &&
                 game.player.acceptInput) {
                 game.playerCanMove = false;
                 this.aggroTimer = 0;
-//                game.musicController.startBattle = "wild";
+                // Required so that musicController sets inBattle = true
+                game.musicController.startBattle = "wild";
                 game.battle.oppPokemon = Pokemon.this;
                 game.player.setCurrPokemon();
                 game.insertAction(Battle.getIntroAction(game));
@@ -2866,7 +2873,7 @@ public class Pokemon {
                     // If standing on top of player, then initiate battle.
                     if (dst2 < 64 &&
                         this.aggroTimer > 32 &&
-                        !game.player.isFlying &&
+                        !game.player.currFieldMove.equals("FLY") &&
                         game.player.acceptInput) {
                         game.playerCanMove = false;
                         this.aggroTimer = 0;

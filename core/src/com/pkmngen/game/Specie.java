@@ -593,6 +593,12 @@ public class Specie {
 //                else {
                     SpriteProxy tempSprite = new SpriteProxy(Specie.textures.get(name+"_front"),
                                                              0, 0, text.getWidth(), text.getWidth());
+                    // TODO: debug, remove
+                    if (tempSprite.color1.r +  tempSprite.color1.g +  tempSprite.color1.b ==
+                            tempSprite.color2.r +  tempSprite.color2.g +  tempSprite.color2.b) {
+                        System.out.println("TODO: verify that this Pokemon's shiny is correct: " + this.name);
+                    }
+                    
                     //                    normalColor1 = tempSprite.color1;
                     //                    normalColor2 = tempSprite.color2;
                     // TODO: these should be floats from 0-1, not from 0-32

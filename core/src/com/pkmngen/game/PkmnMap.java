@@ -896,6 +896,12 @@ class EnterBuilding extends Action {
 //                        game.fadeMusicAction = nextMusic;
                         game.map.currRoute = newRoute;
                     }
+                    // Used for desert music transition atm
+                    else if (newRoute != null && newRoute.type.equals("desert") && !game.map.timeOfDay.equals("night")) {
+                        game.musicController.fadeToDungeon = true;
+                        game.map.currRoute = newRoute;
+                    }
+
                     if (newRoute != null && newRoute.name.contains("pkmnmansion")) {
                         game.mapBatch.setColor(new Color(0.8f, 0.8f, 0.8f, 1f));
                     }
@@ -2416,7 +2422,7 @@ public class PkmnMap {
             if (saveData.playerData.isInterior) {
                 game.map.tiles = game.map.interiorTiles.get(game.map.interiorTilesIndex);
             }
-            if (game.player.isFlying) {
+            if (game.player.currFieldMove.equals("FLY")) {
                 // TODO: this is a hack
                 PlayerStanding standingAction = null;
                 for (Action action : game.actionStack) {
@@ -2671,6 +2677,9 @@ class Route {
 
     boolean isDungeon = false;  // some routes require music transition. ie, cave, pokemon mansion
 
+    // Currently only used for transitioning music between routes.
+    String type = "";
+    
     // TODO: remove
 //    Random rand;
 
@@ -2701,6 +2710,19 @@ class Route {
             this.musics.clear();
             this.musics.add("relic_castle2");
             this.musics.add("relic_castle2");
+        }
+        if (name.equals("desert1")) {
+            this.musics.clear();
+            this.musics.add("route_111-2");
+            this.musics.add("route_111-2");
+//            this.isDungeon = true;  // TODO: remove
+            this.type = "desert";
+        }
+        if (name.equals("ruins1_outer") || name.equals("oasis1") || name.equals("sand_pit1")) {
+            this.musics.clear();
+            this.musics.add("route_111-2");
+            this.musics.add("route_111-2");
+            this.type = "desert";
         }
     }
 
@@ -2954,6 +2976,11 @@ class Route {
 //            this.allowedPokemon.add("drapion");    // high-level
 //            this.allowedPokemon.add("trapinch");  // TODO: was prism, remove
 //            this.allowedPokemon.add("vibrava");
+            this.musics.clear();
+            this.musics.add("route_111-2");
+            this.musics.add("route_111-2");
+            this.isDungeon = true;
+            this.type = "desert";
         }
         // 
         else if (name.equals("sand_pit1")) {
@@ -2961,6 +2988,10 @@ class Route {
             this.allowedPokemon.add("sandile");
             // Gible? Gabite?
             // Hippowdon line
+            this.type = "desert";
+            this.musics.clear();
+            this.musics.add("route_111-2");
+            this.musics.add("route_111-2");
             
         }
         else if (name.equals("oasis1")) {
@@ -2971,6 +3002,10 @@ class Route {
             this.allowedPokemon.add("zigzagoon");  // TODO: need ow sprite
             this.allowedPokemon.add("sandshrew");
             this.allowedPokemon.add("exeggcute");
+            this.type = "desert";
+            this.musics.clear();
+            this.musics.add("route_111-2");
+            this.musics.add("route_111-2");
         }
         else if (name.equals("ruins1_outer")) {
             this.allowedPokemon.add("sigilyph");
@@ -2980,6 +3015,10 @@ class Route {
             this.allowedPokemon.add("metang");
             this.allowedPokemon.add("smeargle");
             this.allowedPokemon.add("solrock");
+            this.type = "desert";
+            this.musics.clear();
+            this.musics.add("route_111-2");
+            this.musics.add("route_111-2");
         }
         else if (name.equals("ruins1_inner")) {
             // TODO
@@ -4030,7 +4069,7 @@ class Tile {
         } else if (tileName.equals("sand2")) {
             Texture playerText = TextureCache.get(Gdx.files.internal("tiles/sand2.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
-        } else if (tileName.equals("sand3")) {
+        } else if (tileName.equals("sand3") || tileName.equals("sand3_desertEdge")) {
             Texture playerText = TextureCache.get(Gdx.files.internal("tiles/sand3.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
         } else if (tileName.equals("path1")) {
