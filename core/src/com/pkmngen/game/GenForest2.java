@@ -1534,39 +1534,39 @@ class GenIsland1 extends Action {
         Tile originTile = new Tile("sand1", this.origin.cpy());
         this.tilesToAdd.put(originTile.position.cpy(), originTile);
 
-        Route blotchRoute = new Route("desert1", 40);
-        ApplyBlotch(game, "desert", originTile, maxDist/36, this.tilesToAdd, 1, false, blotchRoute);
+//        Route blotchRoute = new Route("desert1", 40);
+//        ApplyBlotch(game, "desert", originTile, maxDist/36, this.tilesToAdd, 1, false, blotchRoute);
 
         // TODO: uncomment this for just giant island
 //        ApplyBlotch(game, "island", originTile, maxDist, this.tilesToAdd, 1, false, new Route("forest1", 22));
 
-//        // TODO: debug, revert
-//        ArrayList<Tile> endPoints = ApplyBlotchMountain(game, originTile, maxDist, this.mtnTiles);
-//        System.out.println("endPoints size");
-//        System.out.println(endPoints.size());
-//        for (Tile tile : endPoints) {
-//
-//            if (GenIsland1.doneDesert == 1) {
-//                // TODO: seems to be happening near middle of mountain, would like it to be elsewhere.
-//                Route blotchRoute = new Route("desert1", 40);
-//                ApplyBlotch(game, "desert", tile, maxDist/18 +maxDist/4, this.tilesToAdd, 1, true, blotchRoute);
-//                continue;
-//            }
-//            else {
-//                GenIsland1.doneDesert++;
-//            }
-//            
-//              // TODO: this might be fixed, test
-//            Route blotchRoute = new Route("forest1", 40); // TODO: mem usage too high
-//            // TODO: maxDist/6 is too big I think for some islands.
-//            // maxDist/6 for 100x100 island, it looked pretty good.
-//            // maxDist/10 for 100x180 island
-//            // maxDist/14 for 100x350 island
-//            // maxDist/18 for 100x500 island
-//            // TODO: could try adding more layers to mountains for larger islands.
-//            // TODO: maxDist/18 is actually working pretty well for most sizes.
-//            ApplyBlotch(game, "island", tile, maxDist/18, this.tilesToAdd, 1, true, blotchRoute); 
-//        }
+        // TODO: debug, revert
+        ArrayList<Tile> endPoints = ApplyBlotchMountain(game, originTile, maxDist, this.mtnTiles);
+        System.out.println("endPoints size");
+        System.out.println(endPoints.size());
+        for (Tile tile : endPoints) {
+
+            if (GenIsland1.doneDesert == 1) {
+                // TODO: seems to be happening near middle of mountain, would like it to be elsewhere.
+                Route blotchRoute = new Route("desert1", 40);
+                ApplyBlotch(game, "desert", tile, maxDist/18 +maxDist/4, this.tilesToAdd, 1, true, blotchRoute);
+                continue;
+            }
+            else {
+                GenIsland1.doneDesert++;
+            }
+            
+              // TODO: this might be fixed, test
+            Route blotchRoute = new Route("forest1", 40); // TODO: mem usage too high
+            // TODO: maxDist/6 is too big I think for some islands.
+            // maxDist/6 for 100x100 island, it looked pretty good.
+            // maxDist/10 for 100x180 island
+            // maxDist/14 for 100x350 island
+            // maxDist/18 for 100x500 island
+            // TODO: could try adding more layers to mountains for larger islands.
+            // TODO: maxDist/18 is actually working pretty well for most sizes.
+            ApplyBlotch(game, "island", tile, maxDist/18, this.tilesToAdd, 1, true, blotchRoute); 
+        }
 
         // TODO: this probably will tack on even more processing time.
         // TODO: doesn't really work, bleeds into upper mountain area
@@ -2201,11 +2201,11 @@ class GenIsland1 extends Action {
                     // Don't place edges next to desert or in oasis
 
                     // TODO: re-enable
-//                    if (!tile.name.contains("desert") &&
-//                        (tile.routeBelongsTo == null || (!tile.routeBelongsTo.name.equals("oasis1") &&
-//                                                         !tile.routeBelongsTo.name.equals("ruins1_outer")))) {
+                    if (!tile.name.contains("desert") &&
+                        (tile.routeBelongsTo == null || (!tile.routeBelongsTo.name.equals("oasis1") &&
+                                                         !tile.routeBelongsTo.name.equals("ruins1_outer")))) {
                         this.edges.add(newTile);
-//                    }
+                    }
                 }
             }
         }

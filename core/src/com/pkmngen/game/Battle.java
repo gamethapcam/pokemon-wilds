@@ -9559,6 +9559,16 @@ class DrawPokemonMenu extends MenuAction {
                        new DisplayText(game, pokemon.nickname.toUpperCase()+" is using ROCK SMASH!", null, null,
                        null)));
             }
+            else if (word.equals("REPEL")) {
+                Pokemon pokemon = game.player.pokemon.get(DrawPokemonMenu.currIndex);
+                game.player.swapSprites(pokemon);
+                game.insertAction(pokemon.new Follow(game.player));
+                game.player.currFieldMove = "REPEL";
+                return new SelectedMenu.ExitAfterActions(this.prevMenu,
+                       new PlaySound(pokemon,
+                       new DisplayText(game, pokemon.nickname.toUpperCase()+" is using REPEL!", null, null,
+                       null)));
+            }
             else if (word.equals("POWER")) {
                 Pokemon pokemon = game.player.pokemon.get(DrawPokemonMenu.currIndex);
                 game.player.swapSprites(pokemon);

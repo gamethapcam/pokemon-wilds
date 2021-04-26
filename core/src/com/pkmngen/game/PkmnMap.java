@@ -2672,6 +2672,8 @@ class Route {
 
     // try this for now?
     Music music;
+    // TODO: probably should be = null, then initialize if used in constructor
+    //       to save memory.
     ArrayList<String> musics = new ArrayList<String>();
     int musicsIndex = 0;
 
@@ -2679,11 +2681,31 @@ class Route {
 
     // Currently only used for transitioning music between routes.
     String type = "";
-    
-    // TODO: remove
-//    Random rand;
 
-    /*
+    /**
+     * NOTE: not doing an encounter table like the games currently. Each 
+     * pokemon has an equal chance of being encountered. If switching to
+     * encounter table in the future, do something like:
+     * 
+     * HashMap<String, Integer> pokemon = HashMap<String, Integer>;  // Integers must add up to 256
+     * pokemon.put("bulbasaur", 32);  // 1/8 encounter rate, 32/256 == 1/8
+     * pokemon.put("gible", 8);       // 1/32 encounter rate, 8/256 == 1/32
+     * 
+     * Then in checkWildEncounter:
+     * 
+     * int counter = 0;
+     * int randomNum = Game.rand.nextInt(256);
+     * for (String name : pokemon.keySet()) {
+     *     counter += currRoute.pokemon.get(name);
+     *     if (randomNum < counter) {
+     *         pokemon = new Pokemon(name, ...);
+     *         break;
+     *     }
+     * }
+     * 
+     */
+
+    /**
      * Constructor for loading from file or loading over network.
      */
     public Route(Network.RouteData routeData) {
@@ -2826,7 +2848,7 @@ class Route {
             // lunatone, zubat?
             this.allowedPokemon.add("cubone");
             this.allowedPokemon.add("phanpy");
-            this.allowedPokemon.add("skarmory");  // <- fly animation doesn't look great for now.
+            this.allowedPokemon.add("skarmory");  // <- fly animation doesn't look great for now, need ow sprites.
             this.allowedPokemon.add("whismur");   // nuuk
             this.allowedPokemon.add("makuhita");  // nuuk
             // TODO: remove
@@ -2852,7 +2874,8 @@ class Route {
           this.allowedPokemon.add("breloom");  // nuuk
           this.allowedPokemon.add("sableye");  // nuuk
 //          this.allowedPokemon.add("litwick");  // Goose // nuuk  TODO: remove, silph scope now
-          this.allowedPokemon.add("ralts");
+          this.allowedPokemon.add("ralts");  // nuuk
+          this.allowedPokemon.add("gastly");
         }
         else if (name.equals("forest1")) {
             this.allowedPokemon.add("oddish");
@@ -2876,6 +2899,7 @@ class Route {
             this.allowedPokemon.add("hoothoot");
             this.allowedPokemon.add("mankey");
             this.allowedPokemon.add("shroomish");  // nuuk
+            //
 //            this.allowedPokemon.add("girafarig");  // TODO: enable when decent overworld sprite
 
             // TODO: test with these removed
@@ -3296,6 +3320,76 @@ class Route {
         return this.musics.get(this.musicsIndex);
     }
 
+    /**
+     * Day-only pokemon
+     */
+    public ArrayList<String> dayPokemon() {
+        ArrayList<String> dayPokemon = new ArrayList<String>();
+        // TODO: probably if-block for different routes in the future.
+        dayPokemon.add("ledyba");
+        dayPokemon.add("ledian");
+        dayPokemon.add("sunkern");
+        dayPokemon.add("sunflora");
+        dayPokemon.add("spearow");
+        dayPokemon.add("fearow");
+        dayPokemon.add("pidgey");
+        dayPokemon.add("pidgeotto");
+        dayPokemon.add("pidgeot");
+        dayPokemon.add("ponyta");
+        dayPokemon.add("rapidash");
+        dayPokemon.add("growlithe");
+        dayPokemon.add("arcanine");
+        dayPokemon.add("doduo");
+        dayPokemon.add("dodrio");
+        dayPokemon.add("hoppip");
+        dayPokemon.add("skiploom");
+        dayPokemon.add("jumpluff");
+        dayPokemon.add("miltank");
+        dayPokemon.add("tauros");
+        dayPokemon.add("solrock");
+        dayPokemon.add("sentret");
+        dayPokemon.add("furret");
+        dayPokemon.add("bellossom");
+        dayPokemon.add("mawile");
+        dayPokemon.add("yanma");
+        return dayPokemon;
+    }
+
+    /**
+     * Night-only pokemon
+     */
+    public ArrayList<String> nightPokemon() {
+        ArrayList<String> nightPokemon = new ArrayList<String>();
+        nightPokemon.add("hoothoot");
+        nightPokemon.add("noctowl");
+        nightPokemon.add("spinarak");
+        nightPokemon.add("ariados");
+        nightPokemon.add("houndour");
+        nightPokemon.add("houndoom");
+        nightPokemon.add("poochyena");
+        nightPokemon.add("mightyena");
+        nightPokemon.add("oddish");
+        nightPokemon.add("gloom");
+        nightPokemon.add("vileplume");
+        nightPokemon.add("murkrow");
+        nightPokemon.add("honchkrow");
+        nightPokemon.add("sneasel");
+        nightPokemon.add("zubat");
+        nightPokemon.add("golbat");
+        nightPokemon.add("crobat");
+        nightPokemon.add("lunatone");
+        nightPokemon.add("cleffa");
+        nightPokemon.add("clefairy");
+        nightPokemon.add("clefable");
+        nightPokemon.add("igglybuff");
+        nightPokemon.add("jigglypuff");
+        nightPokemon.add("wigglytuff");
+        nightPokemon.add("sableye");
+        nightPokemon.add("gastly");
+        nightPokemon.add("haunter");
+        nightPokemon.add("gengar");
+        return nightPokemon;
+    }
 }
 
 //class SpecialMewtwoTile extends Tile {

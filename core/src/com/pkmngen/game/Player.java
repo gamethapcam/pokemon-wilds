@@ -3002,11 +3002,12 @@ public class Player {
 //        craft.requirements.add(new Craft("soft wool", 3));
 //        Player.crafts.add(craft);
         craft = new Craft("repel", 1);
-        craft.requirements.add(new Craft("manure", 2));  // + charcoal? moomoo milk?
+        craft.requirements.add(new Craft("charcoal", 1));
+        craft.requirements.add(new Craft("manure", 1));
         Player.crafts.add(craft);  // max repel? gloom - foul ooze?
         // charcoal makes sense b/c it's like it makes it go farther by making it a 'powder'
         craft = new Craft("max repel", 1);
-        craft.requirements.add(new Craft("charcoal", 2));
+        craft.requirements.add(new Craft("poison barb", 1));
         craft.requirements.add(new Craft("repel", 1));
         Player.crafts.add(craft);
         // TODO: make harder to get, maybe add gold berry to reqs
@@ -5503,21 +5504,33 @@ class PlayerStanding extends Action {
                     
 
                     // get list of pokemon not in battle
-                    ArrayList<Pokemon> notInBattle = new ArrayList<Pokemon>();
+                    ArrayList<Pokemon> eligiblePokemon = new ArrayList<Pokemon>();
 //                    for (Pokemon pokemon : game.map.currRoute.pokemon) {  // TODO: remove
                     for (Pokemon pokemon : currTile.routeBelongsTo.pokemon) {
-                        if (!pokemon.inBattle) {
-                            notInBattle.add(pokemon);
+                        if (pokemon.inBattle) {
+                            continue;
                         }
+                        // TODO: will need refactored if/when moving to encounter-table method.
+                        if (!currTile.routeBelongsTo.isDungeon) {
+                            if (!game.map.timeOfDay.equals("day") &&
+                                currTile.routeBelongsTo.dayPokemon().contains(pokemon.specie.name)) {
+                                continue;
+                            }
+                            if (!game.map.timeOfDay.equals("night") &&
+                                currTile.routeBelongsTo.nightPokemon().contains(pokemon.specie.name)) {
+                                continue;
+                            }
+                        }
+                        eligiblePokemon.add(pokemon);
 //                        System.out.println(pokemon.nickname);  // TODO: debug, remove
                     }
                     // If all pokemon are in battle, return null for now.
-                    if (notInBattle.size() <= 0) {
+                    if (eligiblePokemon.size() <= 0) {
                         return null;
                     }
                     // select new pokemon to encounter, put it in battle struct
-                    int index = game.map.rand.nextInt(notInBattle.size());
-                    Pokemon pokemon = notInBattle.get(index);
+                    int index = game.map.rand.nextInt(eligiblePokemon.size());
+                    Pokemon pokemon = eligiblePokemon.get(index);
                     
                     // TODO: this breaks a lot of things, refactor in
                     //       the future. I don't think this is set back
@@ -5564,13 +5577,13 @@ class PlayerStanding extends Action {
                         // Re-learn all attacks
                         pokemon.getCurrentAttacks();
                     }
-                    // TODO: debug, remove
-                    pokemon = new Pokemon("numel", 60, Pokemon.Generation.CRYSTAL);
-                    // TODO: debug, remove
-                    pokemon.attacks[0] = "feint attack";
-                    pokemon.attacks[1] = "faint attack";
-                    pokemon.attacks[2] = "vital throw";
-                    pokemon.attacks[3] = "aerial ace";
+//                    // TODO: debug, remove
+//                    pokemon = new Pokemon("numel", 60, Pokemon.Generation.CRYSTAL);
+//                    // TODO: debug, remove
+//                    pokemon.attacks[0] = "feint attack";
+//                    pokemon.attacks[1] = "faint attack";
+//                    pokemon.attacks[2] = "vital throw";
+//                    pokemon.attacks[3] = "aerial ace";
                     return pokemon;
                 }
             }
@@ -5807,9 +5820,12 @@ class PlayerStanding extends Action {
                 
                 // TODO: should this just go in checkWildEncounter?
                 boolean repelling = game.player.repelCounter > 0 && game.battle.oppPokemon.level < game.player.currPokemon.level;
+                // If player has poison type repelling, also repel.
+                repelling = repelling || (game.player.hmPokemon != null &&
+                                          game.player.currFieldMove.equals("REPEL") &&
+                                          game.battle.oppPokemon.level < game.player.hmPokemon.level);
                 if (!repelling) {
                     game.playerCanMove = false;
-                    
                     game.musicController.startBattle = "wild";
                     // TODO: remove
 //                    if (game.map.unownSpawn == null) {

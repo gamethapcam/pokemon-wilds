@@ -288,6 +288,9 @@ public class Specie {
             if (this.types.contains("FIGHTING")) {
                 this.hms.add("BUILD");
             }
+            if (this.types.contains("POISON")) {
+                this.hms.add("REPEL");
+            }
             if (this.types.contains("FIRE") ||
                     // TODO: pokemon that can light
                     name.equals("chinchou") ||
@@ -1724,6 +1727,7 @@ public class Specie {
             this.harvestables.add("hard stone");
             this.harvestables.add("charcoal");
             this.harvestables.add("grass");
+            this.harvestables.add("honey");
         }
         else if (name.contains("unown")) {
             this.harvestables.clear();

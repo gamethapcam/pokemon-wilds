@@ -887,7 +887,7 @@ public class Game extends ApplicationAdapter {
             this.player.pokemon.add(new Pokemon("meganium", 46, Pokemon.Generation.CRYSTAL));
 //            this.player.pokemon.add(new Pokemon("ursaring", 46, Pokemon.Generation.CRYSTAL));
 
-            this.player.pokemon.add(new Pokemon("volcarona", 11, Pokemon.Generation.CRYSTAL, true, false));
+            this.player.pokemon.add(new Pokemon("drapion", 66, Pokemon.Generation.CRYSTAL, true, false));
             this.player.pokemon.get(4).gender = "female";
             this.player.pokemon.add(new Pokemon("volcarona", 11, Pokemon.Generation.CRYSTAL, true, false));
             this.player.pokemon.get(5).gender = "male";
