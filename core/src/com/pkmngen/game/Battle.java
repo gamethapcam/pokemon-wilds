@@ -156,19 +156,33 @@ class AfterFriendlyFaint extends Action {
 class Attack {
     String name;
     String effect;
-    int power;
     String type;
     int accuracy;
     int pp;
     int effectChance; // chance to paralyze, lower speed, poison, etc.
     boolean isPhysical = false;
-    boolean isCrit = false;
     int priority = 0;
 
-    // Network-related things
+    // Mutable stuff
+    int power;
     int damage;
+    boolean isCrit = false;
 
     public Attack() {}
+
+    public Attack(Attack attack) {
+        this.name = attack.name;
+        this.effect = attack.effect;
+        this.power = attack.power;
+        this.type = attack.type;
+        this.accuracy = attack.accuracy;
+        this.pp = attack.pp;
+        this.effectChance = attack.effectChance;
+        this.isCrit = attack.isCrit;
+        this.damage = attack.damage;
+        this.priority = attack.priority;
+        this.isPhysical = attack.isPhysical;
+    }
 
     public Attack(String name, String effect, int power, String type, int accuracy, int pp, int effectChance) {
         this.name = name;
@@ -2843,6 +2857,55 @@ public class Battle {
                         attack.damage = 1;
                     }
                 }
+                
+                // Multi-hit attacks
+                // They are all handled the same, I think.
+                if (attack.effect.equals("EFFECT_MULTI_HIT") ||
+                	attack.effect.equals("EFFECT_DOUBLE_HIT")) {
+                	int numHits = 1;  // <-- EFFECT_DOUBLE_HIT
+                	if (attack.effect.equals("EFFECT_MULTI_HIT")) {
+                    	// Determine the number of extra hits
+                    	numHits = Game.rand.nextInt(256);
+                        // https://bulbapedia.bulbagarden.net/wiki/Double_Slap_(move)#Generation_II
+                    	// 2-5 hits. Theres already one guaranteed hit after this if-block, so
+                    	// number of hits range from 1-4 here.
+                    	if (numHits < 96) {
+                    		numHits = 1;
+                    	}
+                    	else if (numHits < 192) {
+                    		numHits = 2;
+                    	}
+                    	else if (numHits < 224) {
+                    		numHits = 3;
+                    	}
+                    	else {
+                    		numHits = 4;
+                    	}
+                	}
+                	for (int i=0; i < numHits; i++) {
+                    	// Use previous isCrit value, then set again after animation.
+                        attackAction.append(new LoadAndPlayAnimation(game, attack.name, enemyPokemon, null));
+                        attackAction.append(Battle.depleteHealth(game, isFriendly, attack.damage, false,
+                        			        new WaitFrames(game, 13,
+                        			        // TODO: this is just because no attack anims yet for multi-hit attacks.
+                        			        // Remove later.
+                                			new WaitFrames(game, 30,
+                        			        null))));
+                        // If crit, display text.
+                        if (attack.isCrit) {
+                            attackAction.append(new DisplayText.Clear(game,
+                                                new WaitFrames(game, 3,
+                                                new DisplayText(game, "Critical hit!", null, null,
+                                                null))));
+                        }
+                        // Just faint enemy pokemon if it takes enough damage to faint
+                        attackAction.append(Battle.detectFaint(game, isFriendly, null));
+                    	// Re-set isCrit and damage for next hit
+                        attack.isCrit = Battle.gen2DetermineCrit(friendlyPokemon, attack);
+                        attack.damage = Battle.gen2CalcDamage(friendlyPokemon, attack, enemyPokemon);
+                	}
+                }
+                // TODO: "Hit <numHits> times!" text?
 
                 attackAction.append(new LoadAndPlayAnimation(game, attack.name, enemyPokemon, null));
                 attackAction.append(new LoadAndPlayAnimation(game, effectiveness, enemyPokemon,
@@ -4232,8 +4295,10 @@ public class Battle {
             game.player.currPokemon.flinched = false;
             game.battle.oppPokemon.flinched = false;
 
-            boolean oppFirst = false;  // opponent doesn't go first in case of run, item, or switch,
-                                       // so default to false.
+            // Opponent doesn't go first in case of run, item, or switch,
+            // so default to false.
+            boolean enemyFirst = false;  
+                                         
             boolean isFriendly = true;
             Attack enemyAttack;
             Action playerAction;
@@ -4260,7 +4325,7 @@ public class Battle {
                 else {
                     attackChoice = validAttacks.get(game.map.rand.nextInt(validAttacks.size()));
                 }
-                enemyAttack = game.battle.attacks.get(attackChoice.toLowerCase());
+                enemyAttack = new Attack(game.battle.attacks.get(attackChoice.toLowerCase()));
                 // TODO: debug, remove
 //                for (int i=0; i<game.battle.oppPokemon.attacks.length;i++) {
 //                    System.out.println(game.battle.oppPokemon.attacks[i]);
@@ -4288,10 +4353,10 @@ public class Battle {
 
             if (this.type == Type.SWITCH) {
                 game.player.numFlees = 0;
-                // stop drawing friendly healthbar
+                // Stop drawing friendly healthbar
                 game.actionStack.remove(game.battle.drawAction.drawFriendlyHealthAction);
                 game.battle.drawAction.drawFriendlyHealthAction = null;
-                // stop drawing friendly sprite
+                // Stop drawing friendly sprite
                 game.actionStack.remove(game.battle.drawAction.drawFriendlyPokemonAction);
                 game.battle.drawAction.drawFriendlyPokemonAction = null;
 
@@ -4308,6 +4373,14 @@ public class Battle {
 //                               new WaitFrames(game, 15,
 //                               new DrawBattleMenuNormal(game,
                                null))))));
+
+                // If pursuit, then enemyFirst = true and effects get applied
+                if (enemyAttack.name.equals("pursuit")) {
+                    enemyFirst = true;
+                	enemyAttack.power *= 2;
+                	// TODO: probably should just have .damage() property
+                    enemyAttack.damage = Battle.gen2CalcDamage(game.battle.oppPokemon, enemyAttack, game.player.currPokemon);
+                }
             }
             else if (this.type == Type.ITEM) {
                 game.player.numFlees = 0;
@@ -4447,25 +4520,25 @@ public class Battle {
                     // If player and enemy attack aren't the same priority, 
                     // the move with the higher priority goes first.
                     if (playerAttack.priority != enemyAttack.priority) {
-                        oppFirst = enemyAttack.priority > playerAttack.priority;
+                        enemyFirst = enemyAttack.priority > playerAttack.priority;
                     }
                     else if (yourSpeed > oppSpeed) {
-                        oppFirst = false;
+                        enemyFirst = false;
                     }
                     else if (yourSpeed < oppSpeed) {
-                        oppFirst = true;
+                        enemyFirst = true;
                     }
                     else {
                         int randNum = game.map.rand.nextInt(2);
                         if (randNum == 0) {
-                            oppFirst = true;
+                            enemyFirst = true;
                         }
                     }
                 }
                 // If this is a CLIENT, get all outcomes of attacks etc from the server.
                 else {
                     BattleTurnData turnData = game.battle.network.turnData;
-                    oppFirst = turnData.oppFirst;
+                    enemyFirst = turnData.oppFirst;
                     playerAttack = turnData.playerAttack;
                     game.player.currPokemon.trappedBy = turnData.playerTrappedBy;
                     game.player.currPokemon.trapCounter = turnData.playerTrapCounter;
@@ -4484,7 +4557,7 @@ public class Battle {
                 game.battle.network.turnData = null;
                 return;
             }
-            if (!oppFirst) {
+            if (!enemyFirst) {
                 doTurn = playerAction;
                 doTurn.append(new DisplayText.Clear(game,
                               new WaitFrames(game, 3,
@@ -6344,8 +6417,8 @@ class CatchPokemonWobblesThenCatch extends Action {
                         break;
                     }
                 }
-                System.out.println("hererererere");
-                System.out.println(game.battle.oppPokemon.position);
+//                System.out.println("hererererere");
+//                System.out.println(game.battle.oppPokemon.position);
                 game.map.tiles.remove(regiTile.position);
                 newAction.append(new SetField(game, "playerCanMove", true, null));
 //                game.map.tiles.remove(game.battle.oppPokemon.position);
@@ -8862,7 +8935,8 @@ class DrawPokemonMenu extends MenuAction {
             // TODO: I just need to implement real vs displayed name, somehow
             //       Displayed is probably the nickname, whereas real probably
             //       should be an enum, maybe.
-            char[] textArray = currPokemon.nickname.split("_")[0].toUpperCase().toCharArray();
+//            char[] textArray = currPokemon.nickname.split("_")[0].toUpperCase().toCharArray();  // TODO: remove
+            char[] textArray = currPokemon.nickname.toUpperCase().toCharArray();
             Sprite letterSprite;
             for (int j=0; j < textArray.length; j++) {
                 letterSprite = game.textDict.get(textArray[j]);
@@ -10987,11 +11061,12 @@ class EnemyFaint extends Action {
                     System.out.println(pokemon.specie.name);
                 }
                 game.map.currRoute.genPokemon(256);
+
                 // TODO: debug, remove
-                System.out.println("here2");
-                for (Pokemon pokemon : game.map.currRoute.pokemon) {
-                    System.out.println(pokemon.specie.name);
-                }
+//                System.out.println("here2");
+//                for (Pokemon pokemon : game.map.currRoute.pokemon) {
+//                    System.out.println(pokemon.specie.name);
+//                }
             }
 
             // stop drawing enemy healthbar

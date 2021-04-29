@@ -818,6 +818,9 @@ public class Network {
         // gold, kris, red, green
         String character = "gold";
         Color skinColor = new Color(1f, 0.8078431372549019607843137254902f, 0.28235294117647058823529411764706f, 1f);
+        // Whether or not player has entered the desert biome yet
+        // (message is displayed if not)
+        boolean enteredDesertBiome = false;
 
         // TODO: deprecated, remove
 //        public static PlayerData get(PlayerDataBase base) {
@@ -836,6 +839,7 @@ public class Network {
             super(player);
             this.character = player.character;
             this.skinColor = player.skinColor;
+            this.enteredDesertBiome = player.enteredDesertBiome;
         }
         
     }

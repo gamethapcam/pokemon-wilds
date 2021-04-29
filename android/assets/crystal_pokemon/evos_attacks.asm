@@ -405,7 +405,7 @@ SandslashEvosAttacks:
 	db 52, SANDSTORM
 	db 0 ; no more level-up moves
 
-NidoranFEvosAttacks:
+Nidoran_FEvosAttacks:
 	db EVOLVE_LEVEL, 16, NIDORINA
 	db 0 ; no more evolutions
 	db 1, GROWL
@@ -440,7 +440,7 @@ NidoqueenEvosAttacks:
 	db 23, BODY_SLAM
 	db 0 ; no more level-up moves
 
-NidoranMEvosAttacks:
+Nidoran_MEvosAttacks:
 	db EVOLVE_LEVEL, 16, NIDORINO
 	db 0 ; no more evolutions
 	db 1, LEER

@@ -39,15 +39,19 @@ public class Pokemon {
         attacksImplemented.add("ancientpower");
         attacksImplemented.add("attract");
         attacksImplemented.add("aurora beam");
+        attacksImplemented.add("barrage");
         attacksImplemented.add("barrier");
         attacksImplemented.add("bind");
         attacksImplemented.add("bite");
         attacksImplemented.add("blizzard");
         attacksImplemented.add("body slam");
         attacksImplemented.add("bone club");
+        attacksImplemented.add("bone rush");
+        attacksImplemented.add("bonemerang");
         attacksImplemented.add("bubble");
         attacksImplemented.add("bubblebeam");
         attacksImplemented.add("clamp");
+        attacksImplemented.add("comet punch");
         attacksImplemented.add("confuse ray");
         attacksImplemented.add("constrict");
         attacksImplemented.add("cotton spore");
@@ -59,6 +63,8 @@ public class Pokemon {
         attacksImplemented.add("disable");
         attacksImplemented.add("dizzy punch");
         attacksImplemented.add("double team");
+        attacksImplemented.add("double kick");
+        attacksImplemented.add("doubleslap");
         attacksImplemented.add("dragonbreath");
         attacksImplemented.add("drill peck");
         attacksImplemented.add("dynamicpunch");
@@ -74,6 +80,8 @@ public class Pokemon {
         attacksImplemented.add("fire spin");
         attacksImplemented.add("flamethrower");
         attacksImplemented.add("flash");
+        attacksImplemented.add("fury attack");
+        attacksImplemented.add("fury swipes");
         attacksImplemented.add("giga drain");
         attacksImplemented.add("glare");
         attacksImplemented.add("growl");
@@ -117,6 +125,7 @@ public class Pokemon {
         attacksImplemented.add("outrage");
         attacksImplemented.add("payday");
         attacksImplemented.add("peck");
+        attacksImplemented.add("pin missile");
         attacksImplemented.add("poison gas");
         attacksImplemented.add("poison powder");
         attacksImplemented.add("poison sting");
@@ -157,6 +166,7 @@ public class Pokemon {
         attacksImplemented.add("softboiled");
         attacksImplemented.add("sonicboom");
         attacksImplemented.add("spark");
+        attacksImplemented.add("spike cannon");
         attacksImplemented.add("splash");
         attacksImplemented.add("spore");
         attacksImplemented.add("steel wing");
@@ -196,7 +206,8 @@ public class Pokemon {
         attacksImplemented.add("withdraw");
         attacksImplemented.add("wrap");
         attacksImplemented.add("zap cannon");
-        //
+
+        // Other attacks not from crystal
         attacksImplemented.add("dragon energy");
         attacksImplemented.add("thunder cage");
         attacksImplemented.add("crush grip");
@@ -206,7 +217,7 @@ public class Pokemon {
         attacksImplemented.add("fairy wind");
         attacksImplemented.add("air cutter");
 
-        // 'prism' attacks
+        // Attacks from prism/moves.asm
         attacksImplemented.add("aqua jet");
         attacksImplemented.add("aura sphere");
         attacksImplemented.add("aerial ace");
@@ -375,12 +386,13 @@ public class Pokemon {
                                 currMon = line.split("EvosAttacks:")[0].toLowerCase();
                                 // Fix some formatting exceptions (evos_attacks entries are camelcase,
                                 // everything else seems to use underscore formatting).
-                                if (currMon.equals("nidoranf")) {
-                                    currMon = "nidoran_f";
-                                }
-                                else if (currMon.equals("nidoranm")) {
-                                    currMon = "nidoran_m";
-                                }
+                                // TODO: remove
+//                                if (currMon.equals("nidoranf")) {
+//                                    currMon = "nidoran_f";
+//                                }
+//                                else if (currMon.equals("nidoranm")) {
+//                                    currMon = "nidoran_m";
+//                                }
                                 continue;
                             }
                             if (currMon == null) {
@@ -417,12 +429,13 @@ public class Pokemon {
                             currMon = line.split("EvosAttacks:")[0].toLowerCase();
                             // Fix some formatting exceptions (evos_attacks entries are camelcase,
                             // everything else seems to use underscore formatting).
-                            if (currMon.equals("nidoranf")) {
-                                currMon = "nidoran_f";
-                            }
-                            else if (currMon.equals("nidoranm")) {
-                                currMon = "nidoran_m";
-                            }
+                            // TODO: remove
+//                            if (currMon.equals("nidoranf")) {
+//                                currMon = "nidoran_f";
+//                            }
+//                            else if (currMon.equals("nidoranm")) {
+//                                currMon = "nidoran_m";
+//                            }
                             continue;
                         }
                         if (currMon == null) {
@@ -469,14 +482,13 @@ public class Pokemon {
                 while ((line = br.readLine()) != null)   {
                     if (line.contains("EggMoves:")) {
                         currMon = line.split("EggMoves:")[0].toLowerCase();
-                        // Fix some formatting exceptions (evos_attacks entries are camelcase,
-                        // everything else seems to use underscore formatting).
-                        if (currMon.equals("nidoranf")) {
-                            currMon = "nidoran_f";
-                        }
-                        else if (currMon.equals("nidoranm")) {
-                            currMon = "nidoran_m";
-                        }
+                        // TODO: remove
+//                        if (currMon.equals("nidoranf")) {
+//                            currMon = "nidoran_f";
+//                        }
+//                        else if (currMon.equals("nidoranm")) {
+//                            currMon = "nidoran_m";
+//                        }
                         Pokemon.eggMoves.put(currMon, new ArrayList<String>());
                         continue;
                     }
@@ -781,20 +793,6 @@ public class Pokemon {
     }
 
     public void updateSpecieInfo(String specieName) {
-        this.nickname = specieName.toLowerCase();
-        if (this.nickname.equals("aexeggutor")) {
-            this.nickname = "exeggutor";
-        }
-        else if (this.nickname.equals("darmanitanzen")) {
-            this.nickname = "darmanitan";
-        }
-        else if (this.nickname.equals("combee_female")) {
-            this.nickname = "combee";
-        }
-        else if (this.nickname.contains("unown")) {
-            this.nickname = "unown";
-        }
-
         if (!Specie.species.containsKey(specieName)) {
             // Very clunky looking, but I don't know of a better way
             if (Thread.currentThread() != Game.staticGame.gameThread) {
@@ -828,6 +826,9 @@ public class Pokemon {
         if (this.specie == null) {
             System.out.println("No such specie exists: " + specieName);
         }
+
+        // Set nickname
+        this.nickname = this.getNickname();
 
         // Set sprites, backsprites, & intro animations
         if (isEgg) {
@@ -1112,13 +1113,39 @@ public class Pokemon {
         }
     }
 
+    /**
+     * Some species have names that need to be converted to a nickname,
+     * like aexeggutor --> exeggutor
+     */
+    public String getNickname() {
+        String nickname = this.specie.name;
+        if (nickname.equals("aexeggutor")) {
+            nickname = "exeggutor";
+        }
+        else if (nickname.equals("darmanitanzen")) {
+            nickname = "darmanitan";
+        }
+        else if (nickname.equals("combee_female")) {
+            nickname = "combee";
+        }
+        else if (nickname.contains("unown")) {
+            nickname = "unown";
+        }
+        // Technically the name has the male/female symbol in gen 2,
+        // not doing for now.
+        else if (nickname.equals("nidoran_f") || nickname.equals("nidoran_m")) {
+        	nickname = "nidoran";
+        }
+        return nickname;
+    }
+
     /*
      * Turn off egg flag & reset overworld textures
      * */
     void hatch() {
         this.isEgg = false;
         this.loadOverworldSprites();
-        this.nickname = this.specie.name;
+        this.nickname = this.getNickname();
         this.hms = this.specie.hms;
         if (this.isShiny)
         {

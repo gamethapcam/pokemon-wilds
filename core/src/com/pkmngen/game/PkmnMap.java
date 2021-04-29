@@ -45,7 +45,7 @@ import com.pkmngen.game.util.LinkedMusic;
 import com.pkmngen.game.util.SpriteProxy;
 import com.pkmngen.game.util.TextureCache;
 
-import box2dLight.PointLight;
+//import box2dLight.PointLight;
 
 // grass -
 // part of player's head is above grass,
@@ -185,13 +185,7 @@ class DrawMap extends Action {
             else {
                 game.mapBatch.draw(tile.sprite, tile.sprite.getX(), tile.sprite.getY());
             }
-            
-            // TODO: might cause performance issue
-            // TODO: flag this in tile init()
-//            if (tile.nameUpper.contains("stairs") ||
-//                tile.nameUpper.contains("door") ||
-//                tile.nameUpper.contains("cracked") ||
-//                tile.nameUpper.contains("stool")) {
+
             if (tile.drawUpperBelowPlayer) {
                 game.mapBatch.draw(tile.overSprite, tile.overSprite.getX(), tile.overSprite.getY());
             }
@@ -903,7 +897,14 @@ class EnterBuilding extends Action {
                     }
 
                     if (newRoute != null && newRoute.name.contains("pkmnmansion")) {
+                        // TODO: test
                         game.mapBatch.setColor(new Color(0.8f, 0.8f, 0.8f, 1f));
+
+                        // TODO: remove
+//                        game.mapBatch.setColor(new Color(0.1f, 0.1f, 0.1f, 1f));
+//                        System.out.println("game.mapBatch.getPackedColor()");
+//                        System.out.println(game.mapBatch.getPackedColor());
+//                        System.out.println(new Color(0.1f, 0.1f, 0.1f, 1f).toFloatBits());
                     }
                     else if (newRoute != null && newRoute.name.equals("fossil_lab1")) {
                         game.mapBatch.setColor(new Color(0.8f, 0.8f, 0.8f, 1f));
@@ -2938,6 +2939,7 @@ class Route {
                 this.allowedPokemon.add("rattata");
                 this.allowedPokemon.add("yanma");
                 this.allowedPokemon.add("poochyena");  // nuuk
+                this.allowedPokemon.add("eevee");  // TODO: test
             }
             // feels like it's getting too diluted
 //            this.allowedPokemon.add("snubbul");
@@ -5152,7 +5154,6 @@ class Tile {
             }
 //                              new DisplayText(game, "Put "+pokemon.name.toUpperCase()+" in it' POKÈBALL?", null, true, false,
             String text = pokemon.isEgg ? "Pick it up?" : "Add "+pokemon.nickname.toUpperCase()+" to your party?";
-            game.player.displayedMaxPartyText = false; // tODO: debug, remove
             nextAction.append(new DisplayText(game, text, null, true, false,
                               new DrawYesNoMenu(null,
                                   new DisplayText.Clear(game,

@@ -1927,11 +1927,12 @@ class DrawSetupMenu extends Action {
                                     System.exit(0);
                                 }
                                 // Reload game logfile
-                                try {
-                                    game.logFile = new FileWriter(game.map.id+".log");
-                                } catch (IOException e) {
-                                    e.printStackTrace();
-                                }
+                                // TODO: revisit
+//                                try {
+//                                    game.logFile = new FileWriter(game.map.id+".log");
+//                                } catch (IOException e) {
+//                                    e.printStackTrace();
+//                                }
                                 EnterBuilding enterBuilding = new EnterBuilding(game, "", null);
                                 enterBuilding.slow = 8;
                                 game.insertAction(enterBuilding);

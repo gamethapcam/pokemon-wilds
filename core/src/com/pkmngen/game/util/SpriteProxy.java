@@ -5,6 +5,7 @@ import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.TextureData;
 import com.badlogic.gdx.graphics.g2d.Batch;
+import com.badlogic.gdx.graphics.g2d.Sprite;
 
 
 /**
@@ -16,7 +17,7 @@ import com.badlogic.gdx.graphics.g2d.Batch;
  * instead of creating a new texture for each effect. Oh well, maybe
  * improve this in the future.
  */
-public class SpriteProxy extends com.badlogic.gdx.graphics.g2d.Sprite {
+public class SpriteProxy extends Sprite {  // com.badlogic.gdx.graphics.g2d.Sprite
     public static boolean inverseColors = false;
 
     // Used by some attacks, like Toxic

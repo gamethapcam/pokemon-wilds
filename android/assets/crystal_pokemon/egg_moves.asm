@@ -78,7 +78,7 @@ SandshrewEggMoves:
 	db METAL_CLAW
 	db -1 ; end
 
-NidoranFEggMoves:
+Nidoran_FEggMoves:
 	db SUPERSONIC
 	db DISABLE
 	db TAKE_DOWN
@@ -88,7 +88,7 @@ NidoranFEggMoves:
 	db BEAT_UP
 	db -1 ; end
 
-NidoranMEggMoves:
+Nidoran_MEggMoves:
 	db SUPERSONIC
 	db DISABLE
 	db TAKE_DOWN

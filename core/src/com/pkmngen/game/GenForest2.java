@@ -2272,12 +2272,13 @@ class GenIsland1 extends Action {
 //            System.out.println(tile.position);
         }
 
-        try {
-            game.logFile = new FileWriter(game.map.id+".log");
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
+        // TODO: revisit
+//        try {
+//            game.logFile = new FileWriter(game.map.id+".log");
+//        } catch (IOException e) {
+//            // TODO Auto-generated catch block
+//            e.printStackTrace();
+//        }
     }
 
     public void AddMtnLayer(HashMap<Vector2, Tile> levelTiles,

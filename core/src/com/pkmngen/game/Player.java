@@ -18,8 +18,10 @@ import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.pkmngen.game.DrawPokemonMenu.SelectedMenu;
 import com.pkmngen.game.DrawPokemonMenu.SelectedMenu.Switch;
+import com.pkmngen.game.Network.PlayerData;
 import com.pkmngen.game.Network.PlayerDataBase;
 import com.pkmngen.game.Network.PlayerDataV06;
+import com.pkmngen.game.Player.Emote;
 import com.pkmngen.game.Pokemon.Burrowed;
 import com.pkmngen.game.Pokemon.LedgeJump;
 import com.pkmngen.game.Pokemon.Moving;
@@ -28,7 +30,7 @@ import com.pkmngen.game.util.LoadingZone;
 import com.pkmngen.game.util.SpriteProxy;
 import com.pkmngen.game.util.TextureCache;
 import com.pkmngen.game.util.Direction;
-import com.sun.xml.internal.bind.v2.runtime.Name;
+// import com.sun.xml.internal.bind.v2.runtime.Name;  // TODO: no idea what this did
 
 /*
  * TODO: remove this, not using.
@@ -2915,6 +2917,7 @@ public class Player {
     int spawnIndex = -1;  // -1 == overworld, anything else is the interiorTilesIndex
     PlayerStanding standingAction;
     public boolean displayedMaxPartyText = false;
+    public boolean enteredDesertBiome = false;
     
     public int eggStepTimer = 0;
     public boolean nearAggroPokemon = false;
@@ -3472,6 +3475,10 @@ public class Player {
         }
         if (playerData.isFlying) {
             this.currFieldMove = "FLY";
+        }
+        // TODO: this must be changed to PlayerDataV07 when going to V08
+        if (playerData instanceof PlayerData) {
+            this.enteredDesertBiome = ((PlayerData)playerData).enteredDesertBiome;
         }
     }
 
@@ -5001,6 +5008,18 @@ class PlayerMoving extends Action {
                 // TODO: some flag to denote music transition
                 if (!game.map.currRoute.type.equals(newRoute.type) && !game.map.timeOfDay.equals("night")) {
                     game.musicController.fadeToDungeon = true;
+
+                    // If first time player visiting desert, display some text
+                    System.out.println("game.player.enteredDesertBiome");
+                    System.out.println(game.player.enteredDesertBiome);
+                    if (newRoute.type.equals("desert") && !game.player.enteredDesertBiome) {
+                    	game.player.enteredDesertBiome = true;
+                    	game.playerCanMove = false;
+                    	game.insertAction(game.player.new Emote("!",
+                    			          new DisplayText(game, "The sun is scorching hot! This region feels dangerous...", null, null,
+                    			          new SetField(game, "playerCanMove", true,
+                    			          null))));
+                    }
                 }
 
                 if (game.map.currRoute != newRoute) {
@@ -5307,6 +5326,18 @@ class PlayerRunning extends Action {
                 // TODO: some flag to denote music transition
                 if (!game.map.currRoute.type.equals(newRoute.type) && !game.map.timeOfDay.equals("night")) {
                     game.musicController.fadeToDungeon = true;
+
+                    // If first time player visiting desert, display some text
+                    System.out.println("game.player.enteredDesertBiome");
+                    System.out.println(game.player.enteredDesertBiome);
+                    if (newRoute.type.equals("desert") && !game.player.enteredDesertBiome) {
+                    	game.player.enteredDesertBiome = true;
+                    	game.playerCanMove = false;
+                    	game.insertAction(game.player.new Emote("!",
+                    			          new DisplayText(game, "The sun is scorching hot! This region feels dangerous...", null, null,
+                    			          new SetField(game, "playerCanMove", true,
+                    			          null))));
+                    }
                 }
                 
                 if (game.map.currRoute != newRoute) {
@@ -5578,12 +5609,12 @@ class PlayerStanding extends Action {
                         pokemon.getCurrentAttacks();
                     }
 //                    // TODO: debug, remove
-//                    pokemon = new Pokemon("numel", 60, Pokemon.Generation.CRYSTAL);
+                    pokemon = new Pokemon("eevee", 60, Pokemon.Generation.CRYSTAL);
 //                    // TODO: debug, remove
-//                    pokemon.attacks[0] = "feint attack";
-//                    pokemon.attacks[1] = "faint attack";
-//                    pokemon.attacks[2] = "vital throw";
-//                    pokemon.attacks[3] = "aerial ace";
+                    pokemon.attacks[0] = "pursuit";
+                    pokemon.attacks[1] = "pursuit";
+                    pokemon.attacks[2] = "pursuit";
+                    pokemon.attacks[3] = "pursuit";
                     return pokemon;
                 }
             }
@@ -5704,11 +5735,18 @@ class PlayerStanding extends Action {
             }
             // Check if any eggs hatch this step
             game.player.eggStepTimer++;
+
+            // Debug - Eggs hatch faster while space is held
+            if (Gdx.input.isKeyPressed(Input.Keys.SPACE) && game.debugInputEnabled) {
+                game.player.eggStepTimer += 16;
+            }
+
             // NOTE: vgc makes this check every 256 steps but that is way too high
             if (game.player.eggStepTimer >= 16) {  //either 16 or 32, not sure which  //16) {  // 256
                 for (Pokemon pokemon : game.player.pokemon) {
                     if (pokemon.isEgg) {
                         pokemon.happiness -= 1;
+                        System.out.println(pokemon.nickname);
                         System.out.println(pokemon.specie.name);
                         System.out.println(pokemon.happiness);
                         if (pokemon.happiness <= 0) {
@@ -5729,7 +5767,7 @@ class PlayerStanding extends Action {
                                                                     null)),
                                                     new PokemonIntroAnim(
                                                     new WaitFrames(game, 4,
-                                                    new DisplayText(game, pokemon.specie.name.toUpperCase()+" came out of its EGG!",
+                                                    new DisplayText(game, pokemon.getNickname().toUpperCase()+" came out of its EGG!",
                                                                     "fanfare2.ogg", false, true,
                                                     // Commented block is more accurate to the game, but feels weird
                                                     // b/c fadeout is so quick

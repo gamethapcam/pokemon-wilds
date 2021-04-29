@@ -1,6 +1,5 @@
 package com.pkmngen.game;
 
-import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -8,7 +7,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 
-import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 
 import com.badlogic.gdx.Application.ApplicationType;
@@ -21,19 +19,15 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Pixmap;
-import com.badlogic.gdx.graphics.Pixmap.Format;
 import com.badlogic.gdx.graphics.PixmapIO;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.TextureData;
 import com.badlogic.gdx.graphics.Texture.TextureFilter;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
-import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator.FreeTypeFontParameter;
-import com.badlogic.gdx.graphics.glutils.FrameBuffer;
-import com.badlogic.gdx.math.Matrix4;
-import com.badlogic.gdx.math.Quaternion;
+import com.badlogic.gdx.graphics.glutils.ShaderProgram;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.GdxRuntimeException;
@@ -81,7 +75,11 @@ public class Game extends ApplicationAdapter {
     HashMap<String, Player> players = new HashMap<String, Player>();
     // Server determines outcome of all actions done in battle
     HashMap<String, Battle> battles = new HashMap<String, Battle>();
-    FileWriter logFile;
+
+
+    // TODO: revisit this
+//    FileWriter logFile;
+
 //    Action fadeMusicAction = null;
     // Network
     public Client client;
@@ -93,7 +91,7 @@ public class Game extends ApplicationAdapter {
     DrawCampfireAuras drawCampfireAuras;
     Texture shadow;
     public SpriteBatch lightingBatch;
-    public FrameBuffer frameBuffer;  // TODO: I don't think this is used.
+//    public FrameBuffer frameBuffer;  // TODO: I don't think this is used.
     // TODO: in the future, advanced option to toggle this (?) idk.
     //       would have to be saved with the map I think
     public boolean levelScalingEnabled = true; 
@@ -123,7 +121,10 @@ public class Game extends ApplicationAdapter {
 
         this.mapBatch = new ProxyBatch(); //new SpriteBatch();  <-- does this need to be a proxyBatch? not sure
         this.uiBatch = new ProxyBatch();
-        this.frameBuffer = new FrameBuffer(Format.RGBA8888, Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), false);
+        this.mapBatch.enableBlending();
+        this.uiBatch.enableBlending();
+        // TODO: remove
+//        this.frameBuffer = new FrameBuffer(Format.RGBA8888, Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), false);
         this.lightingBatch = new SpriteBatch();
 //        this.lightingBatch.setBlendFunction(GL20.GL_DST_COLOR, GL20.GL_SRC_ALPHA);  // TODO: mess with this
 //        this.lightingBatch.setBlendFunction(GL20.GL_SRC_ALPHA, GL20.GL_BLEND_COLOR); 
@@ -149,7 +150,7 @@ public class Game extends ApplicationAdapter {
         this.font = gen.generateFont(parameter);
         this.font.getRegion().getTexture().setFilter(TextureFilter.Linear, TextureFilter.Linear);
         this.font.setColor(Color.BLACK);
-        this.font.setScale(0.5f, 0.5f);
+//        this.font.setScale(0.5f, 0.5f);
 
         this.player = new Player();
         this.battle = new Battle();
@@ -167,18 +168,33 @@ public class Game extends ApplicationAdapter {
 
         Gdx.gl.glClearColor(1, 1, 1, 1);
 //        Gdx.gl.glClearColor(0, 0, 0, 1);
+
+        // TODO: I wasn't able to repro this issue on jre 15 or jdk 1.8
+        // AngyFrog was using jre 1.8, so it's possible (?) there's some difference there?
+        //  -- I used their exact version, nope didn't repro.
+        ShaderProgram.pedantic = false;
+
+        // TODO: probably won't work for other versions of java.
+        System.out.println("java version info");
+        System.out.println(System.getProperty("java.version"));
+        System.out.println(System.getProperty("java.specification.version"));
+
+        // Graphics processor info
+        System.out.println("graphics processor info");
+        System.out.println(Gdx.gl.glGetString(GL20.GL_VENDOR));
+        System.out.println(Gdx.gl.glGetString(GL20.GL_RENDERER));
     }
 
     @Override
     public void dispose() {
-        if (this.logFile != null) {
-            // These constant try/catches are such a joy
-            try {
-                this.logFile.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
+//        if (this.logFile != null) {
+//            // These constant try/catches are such a joy
+//            try {
+//                this.logFile.close();
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//            }
+//        }
         mapBatch.dispose();
         uiBatch.dispose();
         lightingBatch.dispose();
@@ -695,8 +711,7 @@ public class Game extends ApplicationAdapter {
         this.mapBatch.begin();
         // Iterate through the action stack and call the step() fn of each Action.
         for (Action action : new ArrayList<Action>(this.actionStack)) {
-            // TODO: what is causing this?
-            /// Something to do with displaytext.
+            // TODO: what is causing this? - was game.insertAction from another thread.
             if (action == null) {
                 continue;
             }
@@ -710,13 +725,13 @@ public class Game extends ApplicationAdapter {
                 }
                 catch (Exception e) {
                     e.printStackTrace();
-                    if (this.logFile != null) {
-                        try {
-                            this.logFile.append(e.toString());
-                        } catch (IOException e1) {
-                            e1.printStackTrace();
-                        }
-                    }
+//                    if (this.logFile != null) {
+//                        try {
+//                            this.logFile.append(e.toString());
+//                        } catch (IOException e1) {
+//                            e1.printStackTrace();
+//                        }
+//                    }
                 }
             }
         }
@@ -742,13 +757,13 @@ public class Game extends ApplicationAdapter {
             catch (Exception e) {
                 e.printStackTrace();
                 System.out.println(action);
-                if (this.logFile != null) {
-                    try {
-                        this.logFile.append(e.toString());
-                    } catch (IOException e1) {
-                        e1.printStackTrace();
-                    }
-                }
+//                if (this.logFile != null) {
+//                    try {
+//                        this.logFile.append(e.toString());
+//                    } catch (IOException e1) {
+//                        e1.printStackTrace();
+//                    }
+//                }
             }
         }
 //        font.draw(this.uiBatch, "input: " + new Vector2(Gdx.input.getX(), Gdx.input.getY()), 0, 20);
@@ -887,9 +902,9 @@ public class Game extends ApplicationAdapter {
             this.player.pokemon.add(new Pokemon("meganium", 46, Pokemon.Generation.CRYSTAL));
 //            this.player.pokemon.add(new Pokemon("ursaring", 46, Pokemon.Generation.CRYSTAL));
 
-            this.player.pokemon.add(new Pokemon("drapion", 66, Pokemon.Generation.CRYSTAL, true, false));
+            this.player.pokemon.add(new Pokemon("nidoqueen", 66, Pokemon.Generation.CRYSTAL, true, false));
             this.player.pokemon.get(4).gender = "female";
-            this.player.pokemon.add(new Pokemon("volcarona", 11, Pokemon.Generation.CRYSTAL, true, false));
+            this.player.pokemon.add(new Pokemon("nidoking", 11, Pokemon.Generation.CRYSTAL, true, false));
             this.player.pokemon.get(5).gender = "male";
 //            this.player.pokemon.add(new Pokemon("dusclops", 46, Pokemon.Generation.CRYSTAL));
 //            this.player.pokemon.add(new Pokemon("darmanitan", 46, Pokemon.Generation.CRYSTAL, true, false));
@@ -897,8 +912,8 @@ public class Game extends ApplicationAdapter {
 //            temp.gender = "female";
 //            this.player.pokemon.add(temp);
 //            this.player.pokemon.add(new Pokemon("combee", 46, Pokemon.Generation.CRYSTAL, false, false));
-            this.player.pokemon.get(2).attacks[0] = "morning sun";
-            this.player.pokemon.get(2).attacks[1] = "moonlight";
+            this.player.pokemon.get(2).attacks[0] = "bonemerang";
+            this.player.pokemon.get(2).attacks[1] = "double kick";
 //            this.player.pokemon.get(2).currentStats.put("hp", 10);
 
             // TODO: remove

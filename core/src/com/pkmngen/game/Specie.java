@@ -42,8 +42,6 @@ public class Specie {
                                      "corphish",  // sir-feralipogchamp (discord)
                                      "crawdaunt",  // sir-feralipogchamp, Mr Dustman, Goose (discord)
                                      "mimikyu",  // boomtox-the-boombox (discord)
-                                     "scorbunny",  // Internet_Goblin on discord
-                                     "raboot",  // Internet_Goblin on discord
                                      "regieleki", "regidrago", "registeel", "regirock", "regice", "regigigas", // Mr Dustman and Sadfish on discord
                                      "bronzor", "bronzong",  // SkwovetSquire on discord
                                      "darumaka",  // Goose on discord
@@ -55,6 +53,7 @@ public class Specie {
                                      "nosepass",  // nuuk, ow sadfish on discord
                                      "sigilyph",  // sadfish on discord, ow dustman on discord
                                      "snover",
+                                     "zigzagoon",  // Kabigon, Miserable Pile Of Secrets on discord
                                      "larvesta", "volcarona"};  // TODO: sep loading method
         for (String t : temp) {
             nuukPokemon.add(t);
@@ -899,14 +898,15 @@ public class Specie {
                     found = true;
                     flip = false;
                 }
-                else if (name.equals("scorbunny")) {
-                    i = 325;
-                    found = true;
-                }
-                else if (name.equals("raboot")) {
-                    i = 326;
-                    found = true;
-                }
+                // Removed atm
+//                else if (name.equals("scorbunny")) {
+//                    i = 325;
+//                    found = true;
+//                }
+//                else if (name.equals("raboot")) {
+//                    i = 326;
+//                    found = true;
+//                }
                 else if (name.equals("cinderace")) {
                     i = 327;
                     found = true;
@@ -1004,6 +1004,11 @@ public class Specie {
                 }
                 else if (name.equals("beheeyem")) {
                     i = 349;
+                    found = true;
+                    flip = false;
+                }
+                else if (name.equals("zigzagoon")) {
+                    i = 350;
                     found = true;
                     flip = false;
                 }
