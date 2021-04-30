@@ -2665,13 +2665,19 @@ class Route {
     String name;
     int level;
 
-    // multiple entries to increase encounter rate
-    ArrayList<Pokemon> pokemon = new ArrayList<Pokemon>();
+    // TODO: not positive that this will be permanently removed.
+    // TODO: probably rename to storedPokemon
+//    ArrayList<Pokemon> pokemon = new ArrayList<Pokemon>();
 
-    // pokemon list to pick from when populating route
-    ArrayList<String> allowedPokemon;
+    // Still used for headbutt and rock smash
+    // TODO: need to init when using
+    ArrayList<Pokemon> storedPokemon = new ArrayList<Pokemon>();
 
-    // try this for now?
+    // Pokemon list to pick from when encountering Pokemon
+    // Multiple entries to increase encounter rate
+    ArrayList<String> allowedPokemon = null;
+
+    // Try this for now?
     Music music;
     // TODO: probably should be = null, then initialize if used in constructor
     //       to save memory.
@@ -2685,12 +2691,13 @@ class Route {
 
     /**
      * NOTE: not doing an encounter table like the games currently. Each 
-     * pokemon has an equal chance of being encountered. If switching to
-     * encounter table in the future, do something like:
+     * pokemon has an equal chance of being encountered in Wilds. If switching
+     * to using an encounter table in the future, do something like:
      * 
      * HashMap<String, Integer> pokemon = HashMap<String, Integer>;  // Integers must add up to 256
      * pokemon.put("bulbasaur", 32);  // 1/8 encounter rate, 32/256 == 1/8
      * pokemon.put("gible", 8);       // 1/32 encounter rate, 8/256 == 1/32
+     * ...
      * 
      * Then in checkWildEncounter:
      * 
@@ -2716,9 +2723,10 @@ class Route {
         this.allowedPokemon = new ArrayList<String>(routeData.allowedPokemon);
         this.musics = new ArrayList<String>(routeData.musics);
         this.musicsIndex = routeData.musicsIndex;
-        for (Network.PokemonDataBase pokemonData : routeData.pokemon) {
-            this.pokemon.add(new Pokemon(pokemonData));
-        }
+        // TODO: may revisit later
+//        for (Network.PokemonDataBase pokemonData : routeData.pokemon) {
+//            this.pokemon.add(new Pokemon(pokemonData));
+//        }
         if (name.equals("pkmnmansion1")) {
             this.isDungeon = true;
         }
@@ -2753,7 +2761,7 @@ class Route {
         this.name = name;
         this.level = level;
 
-        this.pokemon = new ArrayList<Pokemon>();
+//        this.pokemon = new ArrayList<Pokemon>();  // TODO: remove
         this.allowedPokemon = new ArrayList<String>();
 
         // TODO: possibly different per-route
@@ -3127,12 +3135,13 @@ class Route {
         }
         else {
             this.allowedPokemon.clear();
+            // TODO: remove
 //            this.pokemon.add(new Pokemon("kangaskhan", 22, Pokemon.Generation.CRYSTAL));
 //            this.pokemon.add(new Pokemon("togekiss", 22, Pokemon.Generation.CRYSTAL));
-            this.pokemon.add(new Pokemon("rhydon", 22));
-            this.pokemon.add(new Pokemon("rhyhorn", 22));
-            this.pokemon.add(new Pokemon("onix", 22));
-            this.pokemon.add(new Pokemon("machop", 22));
+//            this.pokemon.add(new Pokemon("rhydon", 22));
+//            this.pokemon.add(new Pokemon("rhyhorn", 22));
+//            this.pokemon.add(new Pokemon("onix", 22));
+//            this.pokemon.add(new Pokemon("machop", 22));
             this.allowedPokemon.add("mamoswine");
             this.allowedPokemon.add("weavile");
             this.allowedPokemon.add("magmortar");
@@ -3143,7 +3152,9 @@ class Route {
 //            this.music.setLooping(true);
 //            this.music.setVolume(.3f);
         }
-        this.genPokemon(256);
+        
+        // TODO: remove
+//        this.genPokemon(256);
 
         // TODO: victory road theme thing
 
@@ -3175,128 +3186,6 @@ class Route {
          * this.allowedPokemon) { randomNum = rand.nextInt(3); // 0, 1, 2
          * this.pokemon.add(new Pokemon(pokemonName, this.level+randomNum)); }
          */
-    }
-
-    /*
-     * This will bring the route pkmn count back to 4.
-     *
-     * TODO: probably should have more than 4 pokemon.
-     */
-    public void genPokemon(int maxCatchRate) {
-        this.genPokemon(maxCatchRate, true);
-    }
-
-    public void genPokemon(int maxCatchRate, boolean shouldEvo) {
-        // TODO - bug if maxed out on catch rates, and need to repeat a pkmn
-
-        // If less than needed pokemon for randomization, just use them all.
-        // TODO: test
-        // TODO: remove
-//        if (this.allowedPokemon.size() < 4) {
-//            for (String pokemonName : this.allowedPokemon) {
-//                this.pokemon.add(new Pokemon(pokemonName,
-//                                             this.level + Game.rand.nextInt(3),
-//                                             Pokemon.Generation.CRYSTAL));
-//            }
-//            return;
-//        }
-
-        int randomNum;
-        int randomLevel;
-        String pokemonName;
-        ArrayList<String> usedPokemon = new ArrayList<String>();
-        for (Pokemon pkmn : this.pokemon) {
-            usedPokemon.add(pkmn.specie.name);
-        }
-
-        // Below will add from allowed pkmn based on catchRate
-        // 4 total pokemon in route
-        while (this.pokemon.size() < 4 && this.pokemon.size() < this.allowedPokemon.size()) {
-            // TODO: debug, remove
-//            System.out.println("debug:");
-//            System.out.println(this.allowedPokemon);
-//            System.out.println(Game.staticGame.map.rand);
-            randomNum = Game.rand.nextInt(this.allowedPokemon.size());
-            randomLevel = Game.rand.nextInt(3);
-            pokemonName = this.allowedPokemon.get(randomNum);
-            // TODO: this forces all pokemon to be unique, which is a weird choice
-            //       I don't see how one pokemon could be more common than another,
-            //       then.
-            if (usedPokemon.contains(pokemonName) && this.allowedPokemon.size() > 4) {
-                continue;
-            }
-            Pokemon tempPokemon = new Pokemon(pokemonName, this.level + randomLevel);
-            // Evolve as high as possible. Notch level up by 10 whenever evolved.
-            // (this makes it so that fully evolved pokemon are 'hazards')
-            String evolveTo = null;
-            int timesEvolved = 0;
-            Map<String, String> evos; // = Pokemon.gen2Evos.get(tempPokemon.name.toLowerCase());
-            boolean failed = false;
-            while (!failed && shouldEvo) {
-                failed = true;
-                evos = Specie.gen2Evos.get(tempPokemon.specie.name.toLowerCase());
-                for (String evo : evos.keySet()) {
-                    try {
-                        int evoLevel = Integer.valueOf(evo);
-                        // TODO: was Game.rand.nextInt(2) == 0 check
-                        // Game.rand.nextInt(256) >= 128
-                        // TODO: evoLevel <= tempPokemon.level && 
-                        if (evoLevel <= tempPokemon.level +(10*(timesEvolved+1)) && Game.rand.nextInt(256) >= 128) {
-                            evolveTo = evos.get(evo);
-                            tempPokemon.evolveTo(evolveTo);
-                            timesEvolved++;
-                            failed = false;
-                            break;
-                        }
-                    }
-                    catch (NumberFormatException e) {
-//                        System.out.println(tempPokemon.name);
-//                        e.printStackTrace();
-                        // item-based or other type of evo, so just do it regardless of requirement
-//                        if (Game.rand.nextInt(2) == 0) {  // TODO: remove
-                        if (Game.rand.nextInt(256) >= 192) {
-                            evolveTo = evos.get(evo);
-                            tempPokemon.evolveTo(evolveTo);
-                            timesEvolved++;
-                            failed = false;
-                            break;
-                        }
-                    }
-//                    for (int i=1; i <= tempPokemon.level; i++) {
-//                        if (evos.containsKey(String.valueOf(i)) && 
-//                            Game.rand.nextInt(2) == 0) {
-//                            evolveTo = Pokemon.gen2Evos.get(tempPokemon.name.toLowerCase()).get(String.valueOf(i));
-//                            tempPokemon.evolveTo(evolveTo);
-//                            timesEvolved++;
-//                        }
-//                    }
-                }
-            }
-            if (evolveTo != null) {
-                tempPokemon.level += 10*timesEvolved;
-                tempPokemon.exp = tempPokemon.gen2CalcExpForLevel(tempPokemon.level);
-                tempPokemon.calcMaxStats();
-                tempPokemon.currentStats.put("hp", tempPokemon.maxStats.get("hp"));
-            }
-            usedPokemon.add(pokemonName);
-            this.pokemon.add(tempPokemon);
-
-            // no idea what this stuff did - comment for now
-//            if (tempPokemon.baseStats.get("catchRate") > maxCatchRate) {
-//                continue;
-//            }
-//            // add it based on pokemon catchRate
-//            randomNum = rand.nextInt(256);
-//            if (randomNum < tempPokemon.baseStats.get("catchRate")) {
-//                usedPokemon.add(pokemonName);
-//                this.pokemon.add(tempPokemon);
-//            }
-        }
-        // TODO: debug, remove
-//        for (Pokemon pokemon : this.pokemon) {
-//            System.out.println("curr route pokemon: "
-//                    + String.valueOf(pokemon.name));
-//        }
     }
 
     // get next music. if random == true, get random one that isn't same as current

@@ -2812,6 +2812,11 @@ public class Battle {
 //                if (enemyPokemon.types.size() > 1) {
 //                    multiplier *= game.battle.gen2TypeEffectiveness.get(attack.type).get(enemyPokemon.types.get(1).toLowerCase());
 //                }
+
+                // is Crit must be determined before damage is calculated.
+                attack.isCrit = Battle.gen2DetermineCrit(friendlyPokemon, attack);
+                attack.damage = Battle.gen2CalcDamage(friendlyPokemon, attack, enemyPokemon);
+                
                 multiplier = 1f;
                 String prevType = "";
                 for (String type : enemyPokemon.types){
@@ -4332,8 +4337,12 @@ public class Battle {
 //                }
 //                System.out.println(attackChoice);
 //                System.out.println(enemyAttack.name);
-                enemyAttack.isCrit = Battle.gen2DetermineCrit(game.battle.oppPokemon, enemyAttack);
-                enemyAttack.damage = Battle.gen2CalcDamage(game.battle.oppPokemon, enemyAttack, game.player.currPokemon);
+                
+                // TODO: this needs to be calculated later. currently if player switches pokemon,
+                // it calculates damage based on the current mon out, not the switched one.
+                // TODO: remove
+//                enemyAttack.isCrit = Battle.gen2DetermineCrit(game.battle.oppPokemon, enemyAttack);
+//                enemyAttack.damage = Battle.gen2CalcDamage(game.battle.oppPokemon, enemyAttack, game.player.currPokemon);
                 // Debug function
                 if (game.debugInputEnabled && Gdx.input.isKeyPressed(Input.Keys.SPACE)) {
                     enemyAttack.damage = 0;
@@ -4374,6 +4383,7 @@ public class Battle {
 //                               new DrawBattleMenuNormal(game,
                                null))))));
 
+                // TODO: enemyAttack.damage no longer known here
                 // If pursuit, then enemyFirst = true and effects get applied
                 if (enemyAttack.name.equals("pursuit")) {
                     enemyFirst = true;
@@ -4511,8 +4521,9 @@ public class Battle {
                         attackName = "struggle";
                     }
                     playerAttack = game.battle.attacks.get(attackName.toLowerCase());
-                    playerAttack.isCrit = Battle.gen2DetermineCrit(game.player.currPokemon, playerAttack);
-                    playerAttack.damage = Battle.gen2CalcDamage(game.player.currPokemon, playerAttack, game.battle.oppPokemon);
+                    // TODO: remove
+//                    playerAttack.isCrit = Battle.gen2DetermineCrit(game.player.currPokemon, playerAttack);
+//                    playerAttack.damage = Battle.gen2CalcDamage(game.player.currPokemon, playerAttack, game.battle.oppPokemon);
 
                     int yourSpeed = game.player.currPokemon.currentStats.get("speed");
                     int oppSpeed = game.battle.oppPokemon.currentStats.get("speed");
@@ -4570,11 +4581,10 @@ public class Battle {
                               new WaitFrames(game, 3,
                               playerAction)));
             }
-            
-            // TODO: probably move this to checktrapped or something
-            
+
             // Always goes you, then opponent for trap check
-            // This has to be checked after hit/miss has been determined
+            // This has to be checked after the trapping attack's 
+            // hit/miss has been determined
             doTurn.append(game.battle.new CheckTrapped(game, null));
 
             doTurn.append(new DisplayText.Clear(game,
@@ -6396,9 +6406,9 @@ class CatchPokemonWobblesThenCatch extends Action {
                 tile.init(tile.name, tile.nameUpper, tile.position, true, tile.routeBelongsTo);
             }
             else {
-                // Remove this pokemon from the map
-                game.map.currRoute.pokemon.remove(game.battle.oppPokemon);
-                game.map.currRoute.genPokemon(game.battle.oppPokemon.baseStats.get("catchRate"));
+                // Remove from storedPokemon (still used for headbutt)
+                game.map.currRoute.storedPokemon.remove(game.battle.oppPokemon);
+//                game.map.currRoute.genPokemon(game.battle.oppPokemon.baseStats.get("catchRate"));  // TODO: remove
             }
             if (game.player.pokemon.size() >= 6 && !game.player.displayedMaxPartyText) {
                 game.player.displayedMaxPartyText = true;
@@ -11055,12 +11065,14 @@ class EnemyFaint extends Action {
         if (positions.isEmpty() || repeats.isEmpty()) {
             // Remove enemy from route, and add a new pokemon in route
             if (game.type != Game.Type.CLIENT) {
-                game.map.currRoute.pokemon.remove(game.battle.oppPokemon);
-                System.out.println(game.battle.oppPokemon.specie.name);
-                for (Pokemon pokemon : game.map.currRoute.pokemon) {
-                    System.out.println(pokemon.specie.name);
-                }
-                game.map.currRoute.genPokemon(256);
+            	// Still used for headbutt
+                game.map.currRoute.storedPokemon.remove(game.battle.oppPokemon);
+//                System.out.println(game.battle.oppPokemon.specie.name);
+                // TODO: remove
+//                for (Pokemon pokemon : game.map.currRoute.pokemon) {
+//                    System.out.println(pokemon.specie.name);
+//                }
+//                game.map.currRoute.genPokemon(256);
 
                 // TODO: debug, remove
 //                System.out.println("here2");
@@ -11069,7 +11081,7 @@ class EnemyFaint extends Action {
 //                }
             }
 
-            // stop drawing enemy healthbar
+            // Stop drawing enemy healthbar
             game.actionStack.remove(game.battle.drawAction.drawEnemyHealthAction);
             game.battle.drawAction.drawEnemyHealthAction = null;
 

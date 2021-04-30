@@ -1016,7 +1016,7 @@ public class Network {
             this.allowedPokemon = new ArrayList<String>(route.allowedPokemon);
             this.musics = new ArrayList<String>(route.musics);
             this.musicsIndex = route.musicsIndex;
-            for (Pokemon pokemon : route.pokemon) {
+            for (Pokemon pokemon : route.storedPokemon) {
                 this.pokemon.add(new PokemonData(pokemon));
             }
         }
@@ -1484,8 +1484,9 @@ class ServerBroadcast extends Action {
                                         if (turnData.numWobbles == -1) {
                                             player.pokemon.add(battle.oppPokemon);
                                             Route currRoute = game.map.tiles.get(player.position).routeBelongsTo;
-                                            currRoute.pokemon.remove(battle.oppPokemon);
-                                            currRoute.genPokemon(256);
+                                            // TODO: likely not using this code anymore.
+//                                            currRoute.pokemon.remove(battle.oppPokemon);
+//                                            currRoute.genPokemon(256);
                                         }
                                     }
                                 }
@@ -1561,8 +1562,9 @@ class ServerBroadcast extends Action {
                                             // TODO: currRoute == null will cause crash, which would happen if player isn't on
                                             // grass (ie trainer battle?)
                                             Route currRoute = game.map.tiles.get(player.position).routeBelongsTo;
-                                            currRoute.pokemon.remove(battle.oppPokemon);
-                                            currRoute.genPokemon(256);
+                                            // TODO: likely not using this code anymore
+//                                            currRoute.pokemon.remove(battle.oppPokemon);
+//                                            currRoute.genPokemon(256);
                                             player.currPokemon.exp += battle.calcFaintExp(1);
                                             while (player.currPokemon.level < 100 && player.currPokemon.gen2CalcExpForLevel(player.currPokemon.level+1) <= player.currPokemon.exp) {
                                                 player.currPokemon.level += 1;
@@ -1608,8 +1610,9 @@ class ServerBroadcast extends Action {
                                         if (finalHealth <= 0) {
                                             // TODO: this is some duplicate code with an if block above
                                             Route currRoute = game.map.tiles.get(player.position).routeBelongsTo;
-                                            currRoute.pokemon.remove(battle.oppPokemon);
-                                            currRoute.genPokemon(256);
+                                            // TODO: likely not using this code anymore
+//                                            currRoute.pokemon.remove(battle.oppPokemon);
+//                                            currRoute.genPokemon(256);
                                             player.currPokemon.exp += battle.calcFaintExp(1);
                                             while (player.currPokemon.level < 100 && player.currPokemon.gen2CalcExpForLevel(player.currPokemon.level+1) <= player.currPokemon.exp) {
                                                 player.currPokemon.level += 1;

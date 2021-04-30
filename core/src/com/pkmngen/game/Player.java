@@ -5508,9 +5508,7 @@ class PlayerStanding extends Action {
 //        if (game.map.timeOfDay == "Night") {
 //            return null;
 //        }
-
         Tile currTile = game.map.tiles.get(position);
-
         if (currTile != null && currTile.routeBelongsTo != null) {
             // If currently on grass
             if (currTile.attrs.get("grass")) {
@@ -5528,40 +5526,38 @@ class PlayerStanding extends Action {
                 else if (currTile.name.contains("desert2")) {
                     rate = 7;
                 }
-                if (randomNum < rate) { //  < 20
-                    // disable player movement
-                    // game.actionStack.remove(this); // using flag now, delete this
-
-                    
-
-                    // get list of pokemon not in battle
-                    ArrayList<Pokemon> eligiblePokemon = new ArrayList<Pokemon>();
+                if (randomNum < rate) {
+                    // Get list of pokemon not in battle
+                    ArrayList<String> eligiblePokemon = new ArrayList<String>();
 //                    for (Pokemon pokemon : game.map.currRoute.pokemon) {  // TODO: remove
-                    for (Pokemon pokemon : currTile.routeBelongsTo.pokemon) {
-                        if (pokemon.inBattle) {
-                            continue;
-                        }
+                    for (String name : currTile.routeBelongsTo.allowedPokemon) {
+                    	name = name.toLowerCase();  // For safety
+                    	// TODO: may revisit
+//                        if (pokemon.inBattle) {
+//                            continue;
+//                        }
                         // TODO: will need refactored if/when moving to encounter-table method.
                         if (!currTile.routeBelongsTo.isDungeon) {
                             if (!game.map.timeOfDay.equals("day") &&
-                                currTile.routeBelongsTo.dayPokemon().contains(pokemon.specie.name)) {
+                                currTile.routeBelongsTo.dayPokemon().contains(name)) {
                                 continue;
                             }
                             if (!game.map.timeOfDay.equals("night") &&
-                                currTile.routeBelongsTo.nightPokemon().contains(pokemon.specie.name)) {
+                                currTile.routeBelongsTo.nightPokemon().contains(name)) {
                                 continue;
                             }
                         }
-                        eligiblePokemon.add(pokemon);
-//                        System.out.println(pokemon.nickname);  // TODO: debug, remove
+                        eligiblePokemon.add(name);
                     }
-                    // If all pokemon are in battle, return null for now.
+
+                    // 
                     if (eligiblePokemon.size() <= 0) {
                         return null;
                     }
-                    // select new pokemon to encounter, put it in battle struct
+                    // Select new pokemon to encounter, put it in battle struct
                     int index = game.map.rand.nextInt(eligiblePokemon.size());
-                    Pokemon pokemon = eligiblePokemon.get(index);
+                    String name = eligiblePokemon.get(index);
+                    int level = currTile.routeBelongsTo.level +Game.rand.nextInt(3);
                     
                     // TODO: this breaks a lot of things, refactor in
                     //       the future. I don't think this is set back
@@ -5571,8 +5567,7 @@ class PlayerStanding extends Action {
 
                     // Scale level if that's enabled
                     // Don't scale levels for dungeons
-                    if (game.levelScalingEnabled && 
-                        !currTile.routeBelongsTo.isDungeon) {
+                    if (game.levelScalingEnabled && !currTile.routeBelongsTo.isDungeon) {
                         int averageLevel = 0;
                         int numberPokemon = 0;
                         for (Pokemon mon : game.player.pokemon) {
@@ -5597,24 +5592,93 @@ class PlayerStanding extends Action {
                         if (averageLevel < 2) {
                             averageLevel = 2;
                         }
-                        // Reset all of the Pokemon's stat values (including health).
-                        // TODO: not sure if I'm evolving mons here or not
-                        //       would be cool in the beach biome.
-                        pokemon.level = averageLevel;
+                        level = averageLevel;
+                        
+                        // TODO: may revisit
+                        // This would take an existing Pokemon and adjust it's level
+//                        // Reset all of the Pokemon's stat values (including health).
+//                        // TODO: not sure if I'm evolving mons here or not
+//                        //       would be cool in the beach biome.
+//                        pokemon.level = averageLevel;
+//                        pokemon.exp = pokemon.gen2CalcExpForLevel(pokemon.level);
+//                        pokemon.calcMaxStats();
+//                        pokemon.currentStats.clear();
+//                        pokemon.currentStats.putAll(pokemon.maxStats);
+//                        // Re-learn all attacks
+//                        pokemon.getCurrentAttacks();
+                    }
+                    Pokemon pokemon = new Pokemon(name, level, Pokemon.Generation.CRYSTAL);
+
+                    // Potentially evo the Pokemon
+                    // Evolve as high as possible. Notch level up by 10 whenever evolved (in dungeons).
+                    // (this makes it so that fully evolved pokemon are 'hazards')
+                    String evolveTo = null;
+                    int extraLevel = 0;
+                    int timesEvolved = 0;
+                    Map<String, String> evos;
+                    boolean failed = false;
+                    // Some routes require that wild encounters don't evolve.
+                    if (currTile.routeBelongsTo.name.equals("ruins1_inner")) {
+                    	failed = true;
+                    }
+                    while (!failed) {
+                        failed = true;
+                        evos = Specie.gen2Evos.get(pokemon.specie.name);
+                        for (String evo : evos.keySet()) {
+                            if (currTile.routeBelongsTo.isDungeon) {
+                            	extraLevel = (10*(timesEvolved+1));
+                            }
+                            // Don't allow encounters with fully-evolved Pokemon outside of dungeons.
+                            else {
+                            	name = evos.get(evo).toLowerCase();
+                            	// Specie may not be loaded yet.
+                                if (!Specie.species.containsKey(name)) {
+                                    Specie.species.put(name, new Specie(name));
+                                }
+                                boolean isBaseSpecies = Pokemon.baseSpecies.get(name).equalsIgnoreCase(name);
+                                boolean hasEvo = !Specie.gen2Evos.get(name).isEmpty();
+                                if (!isBaseSpecies && !hasEvo) {
+                                	continue;
+                                }
+                            }
+                            try {
+                                int evoLevel = Integer.valueOf(evo);
+                                if (evoLevel <= pokemon.level +extraLevel && Game.rand.nextInt(256) >= 128) {
+                                    evolveTo = evos.get(evo);
+                                    pokemon.evolveTo(evolveTo);
+                                    timesEvolved++;
+                                    failed = false;
+                                    break;
+                                }
+                            }
+                            catch (NumberFormatException e) {
+                                // Item-based or other type of evo, so just do it regardless of requirement
+                                if (Game.rand.nextInt(256) >= 192) {
+                                    evolveTo = evos.get(evo);
+                                    pokemon.evolveTo(evolveTo);
+                                    timesEvolved++;
+                                    failed = false;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    if (evolveTo != null) {
+                    	if (currTile.routeBelongsTo.isDungeon) {
+                            pokemon.level += 10*timesEvolved;
+                    	}
                         pokemon.exp = pokemon.gen2CalcExpForLevel(pokemon.level);
                         pokemon.calcMaxStats();
-                        pokemon.currentStats.clear();
-                        pokemon.currentStats.putAll(pokemon.maxStats);
-                        // Re-learn all attacks
-                        pokemon.getCurrentAttacks();
+                        pokemon.currentStats.put("hp", pokemon.maxStats.get("hp"));
                     }
+
 //                    // TODO: debug, remove
-                    pokemon = new Pokemon("eevee", 60, Pokemon.Generation.CRYSTAL);
+//                    pokemon = new Pokemon("eevee", 60, Pokemon.Generation.CRYSTAL);
 //                    // TODO: debug, remove
-                    pokemon.attacks[0] = "pursuit";
-                    pokemon.attacks[1] = "pursuit";
-                    pokemon.attacks[2] = "pursuit";
-                    pokemon.attacks[3] = "pursuit";
+//                    pokemon.attacks[0] = "pursuit";
+//                    pokemon.attacks[1] = "pursuit";
+//                    pokemon.attacks[2] = "pursuit";
+//                    pokemon.attacks[3] = "pursuit";
                     return pokemon;
                 }
             }
@@ -6666,10 +6730,10 @@ class PlayerStanding extends Action {
                     // Choose if found anything
                     Action nextAction = new PlayerCanMove(game, null);  // TODO: use SetField
 //                    int randInt = game.map.rand.nextInt(4);
-                    if (currTile.routeBelongsTo != null && !currTile.routeBelongsTo.pokemon.isEmpty()) {
+                    if (currTile.routeBelongsTo != null && !currTile.routeBelongsTo.storedPokemon.isEmpty()) {
                         // TODO: need to be static per-tree somehow.
                         game.playerCanMove = false;
-                        game.battle.oppPokemon = currTile.routeBelongsTo.pokemon.get(0);
+                        game.battle.oppPokemon = currTile.routeBelongsTo.storedPokemon.get(0);
                         game.player.setCurrPokemon();
                         // Required by EnemyFaint and others, so they can remove the caught/fainted pokemon.
                         // Route name == "" in this case, so no new Pokemon are added when route.genPokemon() is called.
@@ -6791,11 +6855,11 @@ class PlayerStanding extends Action {
                     }
                     // TODO: why the rand check? should just make the route empty, or null
                     if (currTile.routeBelongsTo != null &&
-                        !currTile.routeBelongsTo.pokemon.isEmpty()) {
+                        !currTile.routeBelongsTo.storedPokemon.isEmpty()) {
                         game.player.setCurrPokemon();
                         game.playerCanMove = false;
 //                        game.battle.oppPokemon = currTile.routeBelongsTo.pokemon.get(game.map.rand.nextInt(currTile.routeBelongsTo.pokemon.size()));  // TODO: remove
-                        game.battle.oppPokemon = currTile.routeBelongsTo.pokemon.get(0);
+                        game.battle.oppPokemon = currTile.routeBelongsTo.storedPokemon.get(0);
 //                        game.insertAction(Battle_Actions.get(game));
                         // new DisplayText(game, "A wild pokémon attacked!", null, null,
 //                        game.musicController.startBattle = "wild";  // TODO: remove

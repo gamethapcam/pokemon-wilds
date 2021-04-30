@@ -1427,15 +1427,13 @@ public class GenForest2 extends Action {
                                 // TODO - add small tree here
                                 // each bush gets it's own route consisting of one pokemon
                                 Route tempRoute = new Route("", 11);
-                                tempRoute.allowedPokemon.clear();
-                                tempRoute.pokemon.clear();
                                 String[] pokemon = new String[]{"pineco", "aipom", "kakuna", "metapod", "spinarak", "heracross",
                                                                 "ledyba", "hoothoot", "zubat", "pidgey", "spearow", "forretress"};
                                 // 1 in 3 ish bushes has a pokemon
                                 int randInt = this.rand.nextInt(3);
                                 if (randInt == 2) {
                                     randInt = this.rand.nextInt(pokemon.length);
-                                    tempRoute.pokemon.add(new Pokemon(pokemon[randInt], 10+this.rand.nextInt(4)));
+                                    tempRoute.storedPokemon.add(new Pokemon(pokemon[randInt], 10+this.rand.nextInt(4)));
                                 }
                                 this.tilesToAdd.put(temp.position.cpy().add(0,0), new Tile("bush1", temp.position.cpy().add(0,0), this.color, tempRoute));
                             }
@@ -2032,65 +2030,196 @@ class GenIsland1 extends Action {
 
         // Yeet pokemon out of routes and into the overworld (using various criteria)
         for (Tile tile : this.tilesToAdd.values()) {
+            if (tile.attrs.get("solid")) {
+            	continue;
+            }
             if (tile.routeBelongsTo == null) {
                 continue;
             }
-            for (Pokemon pokemon : new ArrayList<Pokemon>(tile.routeBelongsTo.pokemon)) {
-                //
-                boolean isBaseSpecies = Pokemon.baseSpecies.get(pokemon.specie.name.toLowerCase()).equalsIgnoreCase(pokemon.specie.name);
+            if (tile.routeBelongsTo.name.equals("")) {
+                continue;
+            }
+            if (tile.routeBelongsTo.allowedPokemon.size() <= 0) {
+                continue;
+            }
+            // Should be handled by "solid" check now
+//            boolean headbuttable = tile.attrs.containsKey("headbuttable") && tile.attrs.get("headbuttable");
+//            if (headbuttable) {
+//            	continue;
+//            }
+            // Small chance to yeet
+            // If succeeded, evolve pokemon all the way (depending on some rules)
+            //  -- that will result in more 3-stages than usual.
+            // Not sure what to do in case of beach spawns.
+            //  -- probably just evo once at random. even tho that results in starmie
+            // ruins1_upper - evo at random?
+
+            if (tile.routeBelongsTo.name.equals("desert1")) {
+            	// Odds probably have to be increased *4
+//                if (this.rand.nextInt(2048) >= 2047) {  // TODO: remove
+//                if (this.rand.nextInt(256) >= 255) {
+                if (this.rand.nextInt(512) >= 511) {
+                    String name = tile.routeBelongsTo.allowedPokemon.get(this.rand.nextInt(tile.routeBelongsTo.allowedPokemon.size()));
+                    int level = tile.routeBelongsTo.level +Game.rand.nextInt(3);
+                    Pokemon pokemon = new Pokemon(name, level, Pokemon.Generation.CRYSTAL);
+                    pokemon.position = tile.position.cpy();
+                    pokemon.mapTiles = game.map.overworldTiles;
+                    pokemon.standingAction = pokemon.new Standing();
+                    this.pokemonToAdd.put(tile.position.cpy(), pokemon);
+                    if (pokemon.specie.name.equals("drapion")) {
+                        pokemon.aggroPlayer = true;
+                    }
+                }
+                continue;
+            }
+
+            // TODO: headbuttable may have messed with yeeting beach pokemon, because
+            // they seem rarer now.
+            int baseChance = 506;
+            if (tile.routeBelongsTo.name.contains("forest")) {
+//                baseChance = 224;
+            	baseChance = 509;
+            }
+            else if (tile.routeBelongsTo.name.contains("oasis")) {
+                baseChance = 460;
+            }
+            else if (tile.routeBelongsTo.name.contains("ruins")) {
+                baseChance = 480;
+            }
+            else if (tile.routeBelongsTo.name.contains("beach")) {
+                baseChance = 480;
+            }
+
+         if (this.rand.nextInt(512) >= baseChance) {
+            	// Grab a pokemon and evo it at random.
+            	// TODO: this is technically somewhat inefficient but preserves previous behavior.
+                String name = tile.routeBelongsTo.allowedPokemon.get(this.rand.nextInt(tile.routeBelongsTo.allowedPokemon.size()));
+                int level = tile.routeBelongsTo.level +Game.rand.nextInt(3);
+
+                Pokemon pokemon = new Pokemon(name, level, Pokemon.Generation.CRYSTAL);
+                String evolveTo = null;
+                int timesEvolved = 0;
+                Map<String, String> evos;
+                boolean failed = false;
+                while (!failed) {
+                    failed = true;
+                    evos = Specie.gen2Evos.get(pokemon.specie.name);
+                    for (String evo : evos.keySet()) {
+                        try {
+                            int evoLevel = Integer.valueOf(evo);
+                            if (evoLevel <= pokemon.level +(10*(timesEvolved+1)) && Game.rand.nextInt(256) >= 128) {
+                                evolveTo = evos.get(evo);
+                                pokemon.evolveTo(evolveTo);
+                                timesEvolved++;
+                                failed = false;
+                                break;
+                            }
+                        }
+                        catch (NumberFormatException e) {
+                            // Item-based or other type of evo, so just do it regardless of requirement
+                            if (Game.rand.nextInt(256) >= 192) {
+                                evolveTo = evos.get(evo);
+                                pokemon.evolveTo(evolveTo);
+                                timesEvolved++;
+                                failed = false;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (evolveTo != null) {
+                    pokemon.level += 10*timesEvolved;
+                    pokemon.exp = pokemon.gen2CalcExpForLevel(pokemon.level);
+                    pokemon.calcMaxStats();
+                    pokemon.currentStats.put("hp", pokemon.maxStats.get("hp"));
+                }
+
+//                boolean isBaseSpecies = Pokemon.baseSpecies.get(pokemon.specie.name.toLowerCase()).equalsIgnoreCase(pokemon.specie.name);
                 boolean hasEvo = !Specie.gen2Evos.get(pokemon.specie.name).isEmpty();
+
+                // TODO: debug, remove
+//                if (tile.routeBelongsTo.name.equals("sand_pit1")) {
+//                	System.out.println(pokemon.nickname);
+//                	System.out.println(pokemon.level);
+//                	System.out.println(timesEvolved);
+//                	System.out.println(isBaseSpecies);
+//                	System.out.println(hasEvo);
+//                }
 
                 if (tile.routeBelongsTo.name.contains("beach")) {
                     hasEvo = !hasEvo;  // want wartortle, croconaw, etc to walk around
                 }
                 if (tile.routeBelongsTo.name.contains("ruins")) {
-                    isBaseSpecies = false;
+//                    isBaseSpecies = false;
                     hasEvo = false;  // yeet everything
                 }
-                if (tile.routeBelongsTo.name.equals("desert1")) {
-                    if (this.rand.nextInt(2048) >= 2047) {
-                        tile.routeBelongsTo.pokemon.remove(pokemon);
-                        pokemon.position = tile.position.cpy();
-                        pokemon.mapTiles = game.map.overworldTiles;
-                        pokemon.standingAction = pokemon.new Standing();
-                        this.pokemonToAdd.put(tile.position.cpy(), pokemon);
-                        if (pokemon.specie.name.equals("drapion")) {
-                            pokemon.aggroPlayer = true;
-                        }
-                        break;
-                    }
-                    continue;
-                }
-                // Don't yeet pokemon out of the routes contained in headbutt trees.
-                boolean headbuttable = tile.attrs.containsKey("headbuttable") && tile.attrs.get("headbuttable");
-                if (!headbuttable && !isBaseSpecies && !hasEvo) {
-                    tile.routeBelongsTo.pokemon.remove(pokemon);
-                    int baseChance = 192;
-                    // TODO: headbuttable may have messed with yeeting beach pokemon, because
-                    // they seem rarer now.
-                    
-                    if (tile.routeBelongsTo.name.contains("forest")) {
-                        baseChance = 224;  // 1/8 chance if it's forest biome
-                    }
-                    if (tile.routeBelongsTo.name.contains("oasis")) {
-//                        baseChance = 248;
-                        baseChance = 100;  // Had to change this after some refactors
-                    }
-                    if (tile.routeBelongsTo.name.contains("ruins")) {
-                        baseChance = 253;
-                    }
-                    // 25% chance to yeet it out to the overworld
-                    // TODO: Jynx and Piloswine are very prolific.. maybe have to
-                    // introduce special rule
-                    if (this.rand.nextInt(256) >= baseChance) {
-                        pokemon.position = tile.position.cpy();
-                        pokemon.mapTiles = game.map.overworldTiles;
-                        pokemon.standingAction = pokemon.new Standing();
-                        this.pokemonToAdd.put(tile.position.cpy(), pokemon);
-                    }
+
+                if (!hasEvo) {  // !isBaseSpecies && 
+                    pokemon.position = tile.position.cpy();
+                    pokemon.mapTiles = game.map.overworldTiles;
+                    pokemon.standingAction = pokemon.new Standing();
+                    this.pokemonToAdd.put(tile.position.cpy(), pokemon);
                 }
             }
-            tile.routeBelongsTo.genPokemon(256, false);
+            
+            
+            // TODO: old behavior, remove
+//            for (Pokemon pokemon : new ArrayList<Pokemon>(tile.routeBelongsTo.pokemon)) {
+//                //
+//                boolean isBaseSpecies = Pokemon.baseSpecies.get(pokemon.specie.name.toLowerCase()).equalsIgnoreCase(pokemon.specie.name);
+//                boolean hasEvo = !Specie.gen2Evos.get(pokemon.specie.name).isEmpty();
+//
+//                if (tile.routeBelongsTo.name.contains("beach")) {
+//                    hasEvo = !hasEvo;  // want wartortle, croconaw, etc to walk around
+//                }
+//                if (tile.routeBelongsTo.name.contains("ruins")) {
+//                    isBaseSpecies = false;
+//                    hasEvo = false;  // yeet everything
+//                }
+//                if (tile.routeBelongsTo.name.equals("desert1")) {
+//                    if (this.rand.nextInt(2048) >= 2047) {
+//                        tile.routeBelongsTo.pokemon.remove(pokemon);
+//                        pokemon.position = tile.position.cpy();
+//                        pokemon.mapTiles = game.map.overworldTiles;
+//                        pokemon.standingAction = pokemon.new Standing();
+//                        this.pokemonToAdd.put(tile.position.cpy(), pokemon);
+//                        if (pokemon.specie.name.equals("drapion")) {
+//                            pokemon.aggroPlayer = true;
+//                        }
+//                        break;
+//                    }
+//                    continue;
+//                }
+//                // Don't yeet pokemon out of the routes contained in headbutt trees.
+//                boolean headbuttable = tile.attrs.containsKey("headbuttable") && tile.attrs.get("headbuttable");
+//                if (!headbuttable && !isBaseSpecies && !hasEvo) {
+//                    tile.routeBelongsTo.pokemon.remove(pokemon);
+//                    int baseChance = 192;
+//                    // TODO: headbuttable may have messed with yeeting beach pokemon, because
+//                    // they seem rarer now.
+//                    
+//                    if (tile.routeBelongsTo.name.contains("forest")) {
+//                        baseChance = 224;  // 1/8 chance if it's forest biome
+//                    }
+//                    if (tile.routeBelongsTo.name.contains("oasis")) {
+////                        baseChance = 248;
+//                        baseChance = 100;  // Had to change this after some refactors
+//                    }
+//                    if (tile.routeBelongsTo.name.contains("ruins")) {
+//                        baseChance = 253;
+//                    }
+//                    // 25% chance to yeet it out to the overworld
+//                    // TODO: Jynx and Piloswine are very prolific.. maybe have to
+//                    // introduce special rule
+//                    if (this.rand.nextInt(256) >= baseChance) {
+//                        pokemon.position = tile.position.cpy();
+//                        pokemon.mapTiles = game.map.overworldTiles;
+//                        pokemon.standingAction = pokemon.new Standing();
+//                        this.pokemonToAdd.put(tile.position.cpy(), pokemon);
+//                    }
+//                }
+//            }
+//            tile.routeBelongsTo.genPokemon(256, false);
         }
 
 
@@ -2524,7 +2653,7 @@ class GenIsland1 extends Action {
 //                                }
                             }
 
-                            // trees in middle, grass near middle, sand and rock on edges
+                            // Trees in middle, grass near middle, sand and rock on edges
                             else if (type.equals("island")) {
                                 Tile newTile = new Tile("sand1", edge, true, beachRoute);
                                 int isRock = this.rand.nextInt(maxDist) + (int)distance;
@@ -2557,13 +2686,12 @@ class GenIsland1 extends Action {
                                     int randInt = this.rand.nextInt(3);
                                     if (randInt == 2) {
                                         tempRoute = new Route("", 11);
-                                        tempRoute.allowedPokemon.clear();
-                                        tempRoute.pokemon.clear();
                                         String[] pokemon = new String[]{"shellder", "krabby", "staryu", "dwebble"};
                                         randInt = this.rand.nextInt(pokemon.length);
-                                        tempRoute.allowedPokemon.add(pokemon[randInt]);
-                                        tempRoute.genPokemon(256);
+                                        tempRoute.storedPokemon.add(new Pokemon(pokemon[randInt], 11+this.rand.nextInt(3)));
                                         // TODO: remove
+//                                        tempRoute.allowedPokemon.add(pokemon[randInt]);
+//                                        tempRoute.genPokemon(256);
 //                                        tempRoute.pokemon.add(new Pokemon(pokemon[randInt], 20+this.rand.nextInt(4), Pokemon.Generation.CRYSTAL));
                                     }
                                     newTile = new Tile("rock1", edge, true, tempRoute);
@@ -2596,16 +2724,14 @@ class GenIsland1 extends Action {
                                     }
                                 }
                                 else if (isRock <= maxDist + maxDist/2 && isGrass < maxDist - maxDist/4 && this.rand.nextInt(40) == 0) {
-                                    // palm tree has it's own route with exeggcute or exeggutor in it.
+                                    // Palm tree has it's own route with exeggcute or exeggutor in it.
                                     Route tempRoute = new Route("", 11);
-                                    tempRoute.allowedPokemon.clear();
-                                    tempRoute.pokemon.clear();
                                     int randInt = this.rand.nextInt(5);
                                     if (randInt == 4) {
-                                        tempRoute.pokemon.add(new Pokemon("Exeggutor", 10+this.rand.nextInt(4)));
+                                        tempRoute.storedPokemon.add(new Pokemon("Exeggutor", 10+this.rand.nextInt(4)));
                                     }
                                     else if (randInt > 1) {
-                                        tempRoute.pokemon.add(new Pokemon("Exeggcute", 10+this.rand.nextInt(4)));
+                                        tempRoute.storedPokemon.add(new Pokemon("Exeggcute", 10+this.rand.nextInt(4)));
                                     }
                                     // TODO: probably will just make puddles spawn pokemon, not sure
                                     if (this.rand.nextInt(2) == 0) {
@@ -2648,18 +2774,17 @@ class GenIsland1 extends Action {
                                     else {
                                         blotchRoute = new Route("savanna1", level);
                                     }
-//                                    String[] candidates = new String[]{"oddish", "charmander", "squirtle", "bulbasaur"};
-//                                    Pokemon pokemon = new Pokemon(candidates[game.map.rand.nextInt(candidates.length)],
-//                                                                  6, Pokemon.Generation.CRYSTAL);
-                                    Pokemon pokemon = blotchRoute.pokemon.remove(0);
-//                                    blotchRoute.genPokemon(256);
+//                                    Pokemon pokemon = blotchRoute.pokemon.remove(0);  // TODO: previous behavior, remove
+                                    Pokemon pokemon = new Pokemon(blotchRoute.allowedPokemon.remove(this.rand.nextInt(blotchRoute.allowedPokemon.size())),
+                                    							  blotchRoute.level +this.rand.nextInt(3), Pokemon.Generation.CRYSTAL);
                                     pokemon.position = edge.cpy();
 //                                    pokemon.mapTiles = game.map.tiles;  // TODO: test
                                     pokemon.mapTiles = game.map.overworldTiles;
                                     //pokemon.name.toLowerCase().equals("tauros") || 
-                                    if (pokemon.specie.name.toLowerCase().equals("ekans")
-                                            || pokemon.specie.name.toLowerCase().equals("pidgey") || pokemon.specie.name.toLowerCase().equals("spearow")
-                                            || pokemon.specie.name.toLowerCase().equals("rattata")) {
+                                    if (pokemon.specie.name.toLowerCase().equals("ekans") ||
+                                        pokemon.specie.name.toLowerCase().equals("pidgey") ||
+                                        pokemon.specie.name.toLowerCase().equals("spearow") ||
+                                        pokemon.specie.name.toLowerCase().equals("rattata")) {
                                         pokemon.happiness = 0;
                                     }
                                     pokemon.standingAction = pokemon.new Standing();
@@ -2945,11 +3070,9 @@ class GenIsland1 extends Action {
                                     if (randInt == 0) {
                                         String[] pokemon = new String[]{"aexeggutor"};
                                         randInt = this.rand.nextInt(pokemon.length);
-//                                        tempRoute.allowedPokemon.add(pokemon[randInt]);
-//                                        tempRoute.genPokemon(256);
-                                        tempRoute.pokemon.add(new Pokemon(pokemon[randInt],
-                                                                          tempRoute.level,
-                                                                          Pokemon.Generation.CRYSTAL));
+                                        tempRoute.storedPokemon.add(new Pokemon(pokemon[randInt],
+		                                                                        tempRoute.level,
+		                                                                        Pokemon.Generation.CRYSTAL));
                                     }
                                     newTile = new Tile("tree5", edge, true, tempRoute);
                                 }
@@ -2961,17 +3084,11 @@ class GenIsland1 extends Action {
                                     tempRoute.name = "oasis1";
                                     int randInt = this.rand.nextInt(2);
                                     if (randInt == 0) {
-                                          // TODO: remove the commented stuff
-//                                        tempRoute = new Route("oasis1", 22);  
-//                                        tempRoute.allowedPokemon.clear();
-//                                        tempRoute.pokemon.clear();
                                         String[] pokemon = new String[]{"shellder", "krabby", "staryu", "dwebble"};
                                         randInt = this.rand.nextInt(pokemon.length);
-//                                        tempRoute.allowedPokemon.add(pokemon[randInt]);
-//                                        tempRoute.genPokemon(256);
-                                        tempRoute.pokemon.add(new Pokemon(pokemon[randInt],
-                                                                          tempRoute.level,
-                                                                          Pokemon.Generation.CRYSTAL));
+                                        tempRoute.storedPokemon.add(new Pokemon(pokemon[randInt],
+		                                                                        tempRoute.level,
+		                                                                        Pokemon.Generation.CRYSTAL));
                                     }
                                     newTile = new Tile(newTile.name, "rock1_color", edge.cpy(), true, tempRoute);
                                 }
@@ -3077,14 +3194,12 @@ class GenIsland1 extends Action {
                                         int randInt = this.rand.nextInt(3);
                                         if (randInt == 2) {
                                             tempRoute = new Route("", 22);
-                                            tempRoute.allowedPokemon.clear();
-                                            tempRoute.pokemon.clear();
                                             String[] pokemon = new String[]{
 //                                                                            "pineco", "aipom", "kakuna", "metapod", "spinarak", "heracross",
 //                                                                            "ledyba", "hoothoot", "zubat", "pidgey", "spearow", "forretress",
                                                                             "snover"};
                                             randInt = this.rand.nextInt(pokemon.length);
-                                            tempRoute.pokemon.add(new Pokemon(pokemon[randInt], 20+this.rand.nextInt(4)));
+                                            tempRoute.storedPokemon.add(new Pokemon(pokemon[randInt], 20+this.rand.nextInt(4)));
                                         }
                                         newTile = new Tile("tree4", edge, true, tempRoute);
                                     }
@@ -3093,12 +3208,10 @@ class GenIsland1 extends Action {
                                         int randInt = this.rand.nextInt(3);
                                         if (randInt == 2) {
                                             tempRoute = new Route("", 22);
-                                            tempRoute.allowedPokemon.clear();
-                                            tempRoute.pokemon.clear();
                                             String[] pokemon = new String[]{"pineco", "aipom", "kakuna", "metapod", "spinarak", "heracross",
                                                                             "ledyba", "hoothoot", "zubat", "pidgey", "spearow", "forretress"};
                                             randInt = this.rand.nextInt(pokemon.length);
-                                            tempRoute.pokemon.add(new Pokemon(pokemon[randInt], 20+this.rand.nextInt(4)));
+                                            tempRoute.storedPokemon.add(new Pokemon(pokemon[randInt], 20+this.rand.nextInt(4)));
                                         }
                                         newTile = new Tile("tree2", edge, true, tempRoute);
                                     }
@@ -3119,13 +3232,12 @@ class GenIsland1 extends Action {
                                     int randInt = this.rand.nextInt(2);
                                     if (randInt == 0) {
                                         tempRoute = new Route("", 22);
-                                        tempRoute.allowedPokemon.clear();
-                                        tempRoute.pokemon.clear();
                                         String[] pokemon = new String[]{"slugma", "geodude", "shuckle"};
                                         randInt = this.rand.nextInt(pokemon.length);
-                                        tempRoute.allowedPokemon.add(pokemon[randInt]);
-                                        tempRoute.genPokemon(256);
+                                        tempRoute.storedPokemon.add(new Pokemon(pokemon[randInt], tempRoute.level+this.rand.nextInt(3)));
                                         // TODO: remove
+//                                        tempRoute.allowedPokemon.add(pokemon[randInt]);
+//                                        tempRoute.genPokemon(256);
 //                                        tempRoute.pokemon.add(new Pokemon(pokemon[randInt], currRoute.level+this.rand.nextInt(4), Pokemon.Generation.CRYSTAL));
                                     }
                                     if (type.equals("mtn_snow1")) {
@@ -3829,13 +3941,12 @@ class GenIsland1 extends Action {
                 int randInt = this.rand.nextInt(2);
                 if (randInt == 0) {
                     tempRoute = new Route("", 22);
-                    tempRoute.allowedPokemon.clear();
-                    tempRoute.pokemon.clear();
                     String[] pokemon = new String[]{"slugma", "geodude", "shuckle"};
                     randInt = this.rand.nextInt(pokemon.length);
-                    tempRoute.allowedPokemon.add(pokemon[randInt]);
-                    tempRoute.genPokemon(256);
+                    tempRoute.storedPokemon.add(new Pokemon(pokemon[randInt], tempRoute.level+this.rand.nextInt(3)));
                     // TODO: remove
+//                    tempRoute.allowedPokemon.add(pokemon[randInt]);
+//                    tempRoute.genPokemon(256);
 //                    tempRoute.pokemon.add(new Pokemon(pokemon[randInt], tile.routeBelongsTo.level+this.rand.nextInt(4), Pokemon.Generation.CRYSTAL));
                 }
                 Tile newTile = new Tile(tile.name, "rock1_color", tile.position.cpy(), true, tempRoute);
@@ -4183,7 +4294,9 @@ class GenIsland1 extends Action {
         endPoints.add(startLoc);
         boolean[][] maze;
         Route currRoute = new Route("ruins1_inner", 22);
-        currRoute.genPokemon(256, false);  // Don't evolve pokemon in the route
+
+        // TODO: remove
+//        currRoute.genPokemon(256, false);  // Don't evolve pokemon in the route
         // Start from top level, work downward
         for (int levelNum=interiorTiles.size()-1; levelNum >= 0; levelNum--) {
             currLayer = interiorTiles.get(levelNum);

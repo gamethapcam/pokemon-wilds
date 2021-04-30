@@ -3016,7 +3016,8 @@ public class Pokemon {
                     Tile tile = Pokemon.this.mapTiles.get(Pokemon.this.position);
                     if (tile.attrs.get("grass")) {
                         Pokemon.this.isRunning = false;
-                        tile.routeBelongsTo.pokemon.add(Pokemon.this);
+                        // TODO: may revisit this in the future
+//                        tile.routeBelongsTo.pokemon.add(Pokemon.this);
                         game.map.pokemon.remove(Pokemon.this.position);
                         game.actionStack.remove(Pokemon.this.standingAction);
                         return;
