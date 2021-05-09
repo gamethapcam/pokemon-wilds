@@ -14,5 +14,5 @@
 	dn 7, 7 ;picture dimensions
 	db 0, 0 ;padding
 	db MEDIUM_FAST ;growth rate
-	dn EGG_INSECT, EGG_AMPHIBIAN ;egg groups
+	dn EGG_BUG, EGG_WATER_1 ;egg groups
 

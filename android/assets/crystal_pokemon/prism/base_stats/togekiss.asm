@@ -1,6 +1,6 @@
 	db TOGEKISS
 	db 85, 50, 95, 80, 120, 115
-	db FAIRY_T, FLYING
+	db FAIRY, FLYING
 	db 30 ;catch rate
 	db 220 ;exp rate
 	db NO_ITEM

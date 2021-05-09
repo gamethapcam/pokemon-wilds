@@ -13,5 +13,5 @@
 	db ABILITY_HYPER_CUTTER, ABILITY_ARENA_TRAP ;abilities
 	db 0, 0 ;padding
 	db MEDIUM_SLOW ;growth rate
-	dn FIELD, FIELD ;egg groups
+	dn EGG_BUG, EGG_DRAGON ;egg groups
 

@@ -12,6 +12,6 @@
 	dn 7, 7 ;picture dimensions
 	db ABILITY_CLEAR_BODY, ABILITY_CLEAR_BODY ;abilities
 	db 0, 0 ;padding
-	db FAST ;growth rate
-	dn INANIMATE, INANIMATE ;egg groups
+	db SLOW ;growth rate
+	dn EGG_MINERAL, EGG_MINERAL ;egg groups
 

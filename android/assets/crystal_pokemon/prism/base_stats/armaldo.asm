@@ -13,5 +13,5 @@
 	db ABILITY_BATTLE_ARMOR, ABILITY_BATTLE_ARMOR ;abilities
 	db 0, 0 ;padding
 	db ERRATIC ;growth rate
-	dn INVERTEBRATE, INVERTEBRATE ;egg groups
+	dn EGG_WATER_3, EGG_WATER_3 ;egg groups
 

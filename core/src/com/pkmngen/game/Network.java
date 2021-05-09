@@ -1003,7 +1003,9 @@ public class Network {
         String name;
         int level;
         ArrayList<PokemonDataBase> pokemon = new ArrayList<PokemonDataBase>();
+        // TODO: this is a deprecated field, but removing will break previous saves.
         ArrayList<String> allowedPokemon;
+        // TODO: this is a deprecated field, but removing will break previous saves.
         ArrayList<String> musics;
         int musicsIndex = 0;
 
@@ -1013,8 +1015,8 @@ public class Network {
             this.classId = route.toString();
             this.name = route.name;
             this.level = route.level;
-            this.allowedPokemon = new ArrayList<String>(route.allowedPokemon);
-            this.musics = new ArrayList<String>(route.musics);
+//            this.allowedPokemon = new ArrayList<String>(route.allowedPokemon);  // TODO: remove
+//            this.musics = new ArrayList<String>(route.musics);  // TODO: remove
             this.musicsIndex = route.musicsIndex;
             for (Pokemon pokemon : route.storedPokemon) {
                 this.pokemon.add(new PokemonData(pokemon));

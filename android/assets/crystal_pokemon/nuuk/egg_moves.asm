@@ -141,6 +141,10 @@ CutieflyEggMoves:
 BeheeyemEggMoves:
 
 SandileEggMoves:
+	db AQUA_TAIL
+	db COUNTER
+	db DOUBLE_EDGE
+	db SPITE
 
 ZigzagoonEggMoves:
 	db EXTREMESPEED
@@ -169,3 +173,28 @@ LarvestaEggMoves:
 	db ABSORB
 	db HARDEN
 	db THRASH
+
+MaractusEggMoves:
+	db WOOD_HAMMER
+	db WORRY_SEED
+
+AzurillEggMoves:
+	db AQUA_JET
+	db BELLY_DRUM
+	db COPYCAT
+	db PERISH_SONG
+	db PRESENT
+	db SING
+	db SOAK
+	db SUPERSONIC
+	db TICKLE
+
+GoomyEggMoves:
+	db COUNTER
+	db LIFE_DEW
+
+SwirlixEggMoves:
+	db AFTER_YOU
+	db COPYCAT
+	db STICKY_WEB
+	db YAWN

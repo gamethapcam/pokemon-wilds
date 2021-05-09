@@ -13,5 +13,5 @@
 	db ABILITY_STURDY, ABILITY_STURDY ;abilities
 	db 0, 0 ;padding
 	db ERRATIC ;growth rate
-	dn MONSTER, MONSTER ;egg groups
+	dn EGG_MONSTER, EGG_MONSTER ;egg groups
 

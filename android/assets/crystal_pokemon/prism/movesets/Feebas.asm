@@ -1,5 +1,5 @@
 FeebasEvosAttacks:
-	db EVOLVE_TRADE, PRISM_SCALE, MILOTIC
+	db EVOLVE_ITEM, SHINY_STONE, MILOTIC
 	db 0 ; no more evolutions
 	db 1, TACKLE
 	db 1, SPLASH

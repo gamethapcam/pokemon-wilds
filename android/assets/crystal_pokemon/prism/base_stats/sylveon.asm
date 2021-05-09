@@ -1,6 +1,6 @@
 	db SYLVEON
 	db 95, 65, 65, 60, 110, 130
-	db FAIRY_T, FAIRY_T
+	db FAIRY, FAIRY
 	db 45 ;catch rate
 	db 184 ;exp rate
 	db NO_ITEM
@@ -12,6 +12,6 @@
 	dn 7, 7 ;picture dimensions
 	db ABILITY_CUTE_CHARM, ABILITY_CUTE_CHARM ;abilities
 	db 0, 0 ;padding
-	db FAST ;growth rate
-	dn NO_EGGS, NO_EGGS ;egg groups
+	db MEDIUM_FAST ;growth rate
+	dn EGG_FIELD, EGG_FIELD ;egg groups
 

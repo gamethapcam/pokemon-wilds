@@ -13,5 +13,5 @@
 	db ABILITY_LIGHTNINGROD, ABILITY_SOLID_ROCK ;abilities
 	db 0, 0 ;padding
 	db FAST ;growth rate
-	dn FIELD, MONSTER ;egg groups
+	dn EGG_FIELD, EGG_MONSTER ;egg groups
 

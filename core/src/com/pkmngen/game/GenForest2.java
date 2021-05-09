@@ -1555,7 +1555,7 @@ class GenIsland1 extends Action {
             }
             
               // TODO: this might be fixed, test
-            Route blotchRoute = new Route("forest1", 40); // TODO: mem usage too high
+            Route blotchRoute = new Route("forest1", 40);
             // TODO: maxDist/6 is too big I think for some islands.
             // maxDist/6 for 100x100 island, it looked pretty good.
             // maxDist/10 for 100x180 island
@@ -1608,7 +1608,7 @@ class GenIsland1 extends Action {
                 minPos.y = tile.position.y;
             }
 
-            // TODO: test
+            // TODO: use deep_forest tiles for regi/pokemon mansion placement.
             if (tile.name.contains("desert")) {
                 desertTiles.add(tile);
             }
@@ -1616,11 +1616,13 @@ class GenIsland1 extends Action {
                 deepForestTiles.add(tile);
             }
         }
-        this.bottomLeft = minPos.cpy();
-        this.topRight = maxPos.cpy();
-        maxPos.add(16*14, 16*14);
-        minPos.sub(16*14, 16*14);
+        // TODO: test. Needed more water tile padding.
+//        maxPos.add(16*14, 16*14);
+//        minPos.sub(16*14, 16*14);
+        maxPos.add(16*56, 16*56);
+        minPos.sub(16*56, 16*56);
         Vector2 pos;
+//        Route seaRoute = new Route("sea1", 10);  // TODO: remove, unused (?)
         for (float i=minPos.x; i < maxPos.x; i+=16) {
             for (float j=minPos.y; j < maxPos.y; j+=16) {
                 pos = new Vector2(i, j);
@@ -1632,6 +1634,9 @@ class GenIsland1 extends Action {
 //                game.map.interiorTiles.get(game.map.interiorTilesIndex).put(pos.cpy(), new Tile("black1", pos.cpy()));
             }
         }
+        // TODO: test
+        this.bottomLeft = minPos.cpy();
+        this.topRight = maxPos.cpy();
 
         // Remove 'stray' overworld pokemon (again, this time from desert)
         // Do this before placing Darmanitan, otherwise it will remove them.
@@ -1642,17 +1647,28 @@ class GenIsland1 extends Action {
         }
         
         // TODO: add pokemon mansion, regi dungeon and mansion key here
-        Rectangle[] hitBoxes = new Rectangle[2];
+        Rectangle[] hitBoxes = new Rectangle[3];
         hitBoxes[0] = new Rectangle(0, 0, 1056, 1056);  // Desert ruins; 1056 = 22*3*16
+        // TODO: did I mean 40*16 here?
+        // Likely works because the ruins hitbox is so big
         hitBoxes[1] = new Rectangle(0, 0, 40, 40);  // Oasis
+        // TODO: placing dungeon origin but not using it atm.
+        hitBoxes[2] = new Rectangle(0, 0, 13*16, 10*16);  // Regi dungeon
 
-        Vector2[] origins = new Vector2[2];
+        Vector2[] origins = new Vector2[3];
         origins[0] = null;  // Desert ruins
         origins[1] = null;  // Oasis
+        origins[2] = null;  // Regi dungeon
          
         for (int i=0, tries=0; i < hitBoxes.length;) {
             // Pick start point
-            origins[i] = desertTiles.get(this.rand.nextInt(desertTiles.size())).position;
+        	if (i < 2) {
+                origins[i] = desertTiles.get(this.rand.nextInt(desertTiles.size())).position;
+        	}
+        	else {
+                origins[i] = deepForestTiles.get(this.rand.nextInt(deepForestTiles.size())).position;
+        	}
+            
             // Special rules for Desert Ruins origin point
             if (i == 0) {
                 int tries2 = 0;
@@ -1668,6 +1684,19 @@ class GenIsland1 extends Action {
             }
             // Adjust hitbox to that position
             hitBoxes[i].setCenter(origins[i]);
+            // Regi dungeon avoids mountains
+            if (i > 1) {
+            	boolean hitsMountain = false;
+            	for (Vector2 position : this.mtnTiles.keySet()) {
+            		if (hitBoxes[i].contains(position)) {
+            			hitsMountain = true;
+            			break;
+            		}
+            	}
+            	if (hitsMountain) {
+            		continue;
+            	}
+            }
             // Check that all previous hitboxes don't collide with the chosen point.
             boolean worked = true;
             for (int j=0; j < i; j++) {
@@ -1696,6 +1725,12 @@ class GenIsland1 extends Action {
         // Place oasis exterior and interior
         this.generateOasis(game, origins[1]);
 
+        // Place regi dungeon
+        // TODO: was not able to get this fully working (mansion spawned over it a lot)
+        // TODO: various issues with hitbox method
+        //  - Mansion has weird hitbox for mountains. Basically it needs 2 hitboxes
+        //   - possible that all dungeons could use separate mountains/non-mountains hitbox
+//        this.generateRegiDungeon(game, origins[2]);
 
         // post-process - remove stray trees
         // Might need a better way to store tiles bigger than 16x16
@@ -1703,6 +1738,8 @@ class GenIsland1 extends Action {
 //        for (int i=0; i < 1; i++) {
         boolean complete = false;
         Vector2 keyLoc = null;
+        HashMap<Vector2, Tile> mansionExteriorTiles = new HashMap<Vector2, Tile>();
+        ArrayList<HashMap<Vector2, Tile>> mansionInteriorTiles = new ArrayList<HashMap<Vector2, Tile>>();
         while (!complete) {
             complete = true;
             Vector2 tl;
@@ -1782,14 +1819,24 @@ class GenIsland1 extends Action {
                 }
 
 
+                
+                // TODO: should probably just move all pokemon spawning logic
+                // to the route-yeeting section. That way pokemon don't spawn 
+                // overtop of stuff. Would need special rules to allow
+                // non-evolved pokemon to spawn.
+                
                 // Remove overworld pokemon that are currently inside something solid
                 //  Hard to remove them when they are being placed initially, this issue
                 //  happens when groups of tiles get merged together (I think).
                 if (this.pokemonToAdd.containsKey(tile.position) && 
-                    (tile.attrs.get("solid") || tile.name.contains("ledge"))) {
+                    ((tile.attrs.get("solid") && !tile.name.contains("water")) ||
+                     tile.name.contains("ledge") ||
+                     // Pokemon could spawn on top of regi dungeon
+                     tile.name.contains("door") ||
+                     tile.nameUpper.contains("door"))) {
                     Pokemon pokemon = this.pokemonToAdd.remove(tile.position);
-//                    game.actionStack.remove(pokemon.standingAction);
                 }
+
                 // Generate the pokemon mansion dungeon
                 if (tile.biome.equals("deep_forest") && !GenIsland1.donePkmnMansion
                     && !this.mtnTiles.containsKey(tile.position.cpy().add(0, -16*23))
@@ -1798,8 +1845,6 @@ class GenIsland1 extends Action {
                     GenIsland1.donePkmnMansion = true;
 //                    i = -1;  // start over. it's iterating on a copy of tilesToAdd right now.
                     complete = false;
-                    HashMap<Vector2, Tile> mansionExteriorTiles = new HashMap<Vector2, Tile>();
-                    ArrayList<HashMap<Vector2, Tile>> mansionInteriorTiles = new ArrayList<HashMap<Vector2, Tile>>();
                     Vector2 mansionPos = tile.position.cpy();
                     if (this.radius < 100*100*(4)) {
                         mansionPos = new Vector2(0, 16*14);
@@ -1873,158 +1918,23 @@ class GenIsland1 extends Action {
                     && !this.mtnTiles.containsKey(tile.position.cpy().add(32, -32))
                     && !this.mtnTiles.containsKey(tile.position.cpy().add(-32, -32))
                     && this.rand.nextInt(3) == 2) {
+                    Vector2 regiPos = tile.position.cpy();
+                	boolean collidesWithMansion = false;
+                	for (Tile mansionTile : mansionExteriorTiles.values()) {
+                		hitBoxes[2].setCenter(regiPos);
+                		if (hitBoxes[2].contains(mansionTile.position)) {
+                			collidesWithMansion = true;
+                			break;
+                		}
+                	}
+                	if (collidesWithMansion) {
+                		continue;
+                	}
                     GenIsland1.doneRegiDungeon = true;
                     complete = false;
-                    HashMap<Vector2, Tile> regiExteriorTiles = new HashMap<Vector2, Tile>();
-                    ArrayList<HashMap<Vector2, Tile>> regiInteriorTiles = new ArrayList<HashMap<Vector2, Tile>>();
-                    Vector2 regiPos = tile.position.cpy();
-                    this.generateRegiDungeon(game, regiExteriorTiles, regiInteriorTiles, regiPos);
-                    //
-                    for (Tile tile2 : regiExteriorTiles.values()) {
-                        Tile currTile = tilesToAdd.get(tile2.position);
-                        // TODO: not sure if using
-//                        if (currTile != null &&
-//                            (currTile.name.contains("mountain") || currTile.nameUpper.contains("mountain")) &&
-//                            (tile2.name.contains("alternate") || tile2.name.equals("cave2_br") || tile2.name.equals("cave2_bl"))) {
-//                            continue;
-//                        }
-                                
-                        if (currTile != null && currTile.nameUpper.equals("pokemon_mansion_key")) {
-                            tilesToAdd.put(tile2.position.cpy(), new Tile(tile2.name, currTile.nameUpper, currTile.position, true, currTile.routeBelongsTo));
-                            continue;
-                        }
-                        tilesToAdd.put(tile2.position.cpy(), tile2);
-                    }
-                    for (int i=0; i < regiInteriorTiles.size(); i++) {
-                        HashMap<Vector2, Tile> currLayer = regiInteriorTiles.get(i);
-                        if (currLayer == null) {
-                            continue;
-                        }
-                        if (this.interiorTilesToAdd.get(i) == null) {
-                            this.interiorTilesToAdd.remove(i);
-                            this.interiorTilesToAdd.add(i, currLayer);
-                            continue;
-                        }
-                        for (Vector2 key : currLayer.keySet()) {
-                            this.interiorTilesToAdd.get(i).put(key, currLayer.get(key));
-                        }
-                    }
+                    this.generateRegiDungeon(game, regiPos);
                     break;  // if you don't do this, then dungeon gets replaced by trees.
                 }
-
-                // TODO: remove
-//                if (!GenIsland1.doneFossilBuilding &&
-//                    tile.routeBelongsTo != null &&
-//                    tile.routeBelongsTo.name.equals("oasis1")) {
-//                    GenIsland1.doneFossilBuilding = true;
-//                    complete = false;
-//                    HashMap<Vector2, Tile> exteriorTiles = new HashMap<Vector2, Tile>();
-//                    ArrayList<HashMap<Vector2, Tile>> interiorTiles = new ArrayList<HashMap<Vector2, Tile>>();
-//                    for (int i=0; i < 100; i++) {
-//                        interiorTiles.add(null);
-//                    }
-//                    HashMap<Vector2, Tile> currLayer = new HashMap<Vector2, Tile>();
-//                    Vector2 tl2 = tile.position.cpy();
-////                    String[][] names = new String[][]{{null, null, "building1_wall1", "building1_wall1"},
-////                                                      {"building1_pokecenter1", null, "building1_cables1", "building1_fossilreviver1"},
-////                                                      {"building1_floor2", "building1_floor2", "building1_floor1", "building1_floor2"},
-////                                                      {"building1_floor1", "rug2", "rug2", "building1_floor1"}
-////                                                      };
-////                    String[][] names = new String[][]{{"building1_wall1", "building1_wall1", "building1_wall1", "building1_wall1"},
-////                                                      {"building1_cables1", "building1_cables1", "building1_cables1", "pkmnmansion_shelf1"},
-////                                                      {"building1_fossilreviver1", "building1_floor1", null, null},
-////                                                      {"building1_floor2", "rug2", "building1_pokecenter1", null}
-////                                                      };
-//                    String[][] names = new String[][]{{"building1_wall1", "building1_wall1", "building1_wall1", "building1_wall1", "building1_wall1", "building1_wall1"},
-//                                                      {"building1_machine2", null, null, null, null, null},
-//                                                      {"building1_fossilreviver1", "building1_cables1", "building1_cables1", "building1_cables1", "building1_pokecenter1", "building1_pokecenter1_right"},
-//                                                      {"building1_floor2", "building1_floor1", "rug2", "building1_floor1", "building1_floor2", "building1_floor2"}
-//                                                      };
-//                    Route interiorRoute = new Route("fossil_lab1", 11);
-//                    Vector2 pos2;
-//                    for (int i=0; i < names.length; i++) {
-//                        for (int j=0; j < names[i].length; j++) {
-//                            if (names[i][j] == null) {
-//                                continue;
-//                            }
-//                            pos2 = new Vector2(tl2.x -6*16 +j*16, tl2.y +5*16 -i*16);
-//                            currLayer.put(pos2, new Tile(names[i][j], pos2, true, interiorRoute));
-//                        }
-//                    }
-//                    interiorTiles.add(currLayer);
-////                    names = new String[][]{{"pkmnmansion_roof_NW", "pkmnmansion_roof_N", "pkmnmansion_roof_N", "pkmnmansion_roof_NE"},
-////                                           {"pkmnmansion_roof_SW", "pkmnmansion_roof_S", "pkmnmansion_roof_S", "pkmnmansion_roof_SE"},
-////                                           {"pkmnmansion_ext_W", "pkmnmansion_ext", "pkmnmansion_ext", "pkmnmansion_ext_E"},
-////                                           {"pkmnmansion_ext_SW", "pkmnmansion_ext_door", "pkmnmansion_ext_S", "pkmnmansion_ext_SE"},
-////                                           {"sand1", "sand1", "sand1", "sand1"},
-////                                           };
-//                    // Non-damaged building
-////                    names = new String[][]{{"pkmnmansion_roof_NW", "pkmnmansion_roof_N", "pkmnmansion_roof_N", "pkmnmansion_roof_N", "pkmnmansion_roof_N", "pkmnmansion_roof_NE"},
-////                                           {"pkmnmansion_roof_SW", "pkmnmansion_roof_S", "pkmnmansion_roof_S", "pkmnmansion_roof_S", "pkmnmansion_roof_S", "pkmnmansion_roof_SE"},
-////                                           {"pkmnmansion_ext_W_window", "pkmnmansion_ext_windows", "pkmnmansion_ext_windows_W", "pkmnmansion_ext_windows_E", "pkmnmansion_ext_windows", "pkmnmansion_ext_E_window"},
-////                                           {"pkmnmansion_ext_SW", "pkmnmansion_ext_S", "pkmnmansion_ext_door", "pkmnmansion_ext_S_windows", "pkmnmansion_ext_S", "pkmnmansion_ext_SE"},
-////                                           {"sand1", "sand1", "sand1", "sand1", "sand1", "sand1"},
-////                                           };
-//                    names = new String[][]{{"pkmnmansion_roof_NW", "pkmnmansion_roof_N", "pkmnmansion_roof_N", "pkmnmansion_roof_N_damaged", "pkmnmansion_roof_N", "pkmnmansion_roof_NE"},
-//                                           {"pkmnmansion_roof_SW", "pkmnmansion_roof_S_damaged", "pkmnmansion_roof_S", "pkmnmansion_roof_S", "pkmnmansion_roof_S", "pkmnmansion_roof_SE"},
-//                                           {"pkmnmansion_ext_W_window", "pkmnmansion_ext_windows", "pkmnmansion_ext_windows_W_damaged", "pkmnmansion_ext_windows_E_damaged", "pkmnmansion_ext_windows", "pkmnmansion_ext_E_window_damaged"},
-//                                           {"pkmnmansion_ext_SW", "pkmnmansion_ext_S", "pkmnmansion_ext_door", "pkmnmansion_ext_S_windows_damaged", "pkmnmansion_ext_S", "pkmnmansion_ext_SE_damaged"},
-//                                           {"sand1", "sand1", "sand1", "sand1", "sand1", "sand1"},
-//                                           };
-//                    for (int i=0; i < names.length; i++) {
-//                        for (int j=0; j < names[i].length; j++) {
-//                            if (names[i][j] == null) {
-//                                continue;
-//                            }
-//                            pos2 = new Vector2(tl2.x -6*16 +j*16, tl2.y +5*16 -i*16);
-//
-//                            // Below block is to get rid of aloe plants
-//                            Tile currTile = exteriorTiles.get(pos2);
-//                            if (currTile != null && currTile.name.equals("aloe_large1")) {
-//                                Vector2[] nexts = new Vector2[]{new Vector2(16, 0), new Vector2(0, 16), new Vector2(16, 16)};
-//                                for (Vector2 next : nexts) {
-//                                    Vector2 nextPos = pos2.cpy().add(next);
-//                                    Tile nextTile = exteriorTiles.get(nextPos);
-//                                    if (nextTile.nameUpper.equals("solid")) {
-//                                        nextTile.nameUpper = "";
-//                                        nextTile.attrs.put("solid", false);
-//                                    }
-//                                }
-//                            }
-//
-//                            exteriorTiles.put(pos2, new Tile(names[i][j], pos2, true, tile.routeBelongsTo));
-//                        }
-//                    }
-//                    for (Tile tile2 : exteriorTiles.values()) {
-//                        Tile currTile = tilesToAdd.get(tile2.position);
-//                        if (currTile != null && currTile.nameUpper.equals("pokemon_mansion_key")) {
-//                            tilesToAdd.put(tile2.position.cpy(), new Tile(tile2.name, currTile.nameUpper, currTile.position, true, currTile.routeBelongsTo));
-//                            continue;
-//                        }
-//                        tilesToAdd.put(tile2.position.cpy(), tile2);
-//                    }
-//                    for (int i=0; i < interiorTiles.size(); i++) {
-//                        currLayer = interiorTiles.get(i);
-//                        // TODO: uncomment, I think
-//                        // TODO: this has to be uncommented or game won't work when generating full island
-//                        if (currLayer == null) {
-//                            continue;
-//                        }
-//                        if (i >= this.interiorTilesToAdd.size()) {
-//                            this.interiorTilesToAdd.add(currLayer);
-//                            continue;
-//                        }
-//                        if (this.interiorTilesToAdd.get(i) == null) {
-//                            this.interiorTilesToAdd.remove(i);
-//                            this.interiorTilesToAdd.add(i, currLayer);
-//                            continue;
-//                        }
-//                        for (Vector2 key : currLayer.keySet()) {
-//                            this.interiorTilesToAdd.get(i).put(key, currLayer.get(key));
-//                        }
-//                    }
-//                    break;  // If you don't do this, then dungeon gets replaced by trees.
-//                }
             }
         }
 
@@ -2039,7 +1949,7 @@ class GenIsland1 extends Action {
             if (tile.routeBelongsTo.name.equals("")) {
                 continue;
             }
-            if (tile.routeBelongsTo.allowedPokemon.size() <= 0) {
+            if (tile.routeBelongsTo.allowedPokemon().size() <= 0) {
                 continue;
             }
             // Should be handled by "solid" check now
@@ -2059,7 +1969,7 @@ class GenIsland1 extends Action {
 //                if (this.rand.nextInt(2048) >= 2047) {  // TODO: remove
 //                if (this.rand.nextInt(256) >= 255) {
                 if (this.rand.nextInt(512) >= 511) {
-                    String name = tile.routeBelongsTo.allowedPokemon.get(this.rand.nextInt(tile.routeBelongsTo.allowedPokemon.size()));
+                    String name = tile.routeBelongsTo.allowedPokemon().get(this.rand.nextInt(tile.routeBelongsTo.allowedPokemon().size()));
                     int level = tile.routeBelongsTo.level +Game.rand.nextInt(3);
                     Pokemon pokemon = new Pokemon(name, level, Pokemon.Generation.CRYSTAL);
                     pokemon.position = tile.position.cpy();
@@ -2075,9 +1985,9 @@ class GenIsland1 extends Action {
 
             // TODO: headbuttable may have messed with yeeting beach pokemon, because
             // they seem rarer now.
-            int baseChance = 506;
+//            int baseChance = 506;
+            int baseChance = 509;  // mountain and snow
             if (tile.routeBelongsTo.name.contains("forest")) {
-//                baseChance = 224;
             	baseChance = 509;
             }
             else if (tile.routeBelongsTo.name.contains("oasis")) {
@@ -2093,7 +2003,7 @@ class GenIsland1 extends Action {
          if (this.rand.nextInt(512) >= baseChance) {
             	// Grab a pokemon and evo it at random.
             	// TODO: this is technically somewhat inefficient but preserves previous behavior.
-                String name = tile.routeBelongsTo.allowedPokemon.get(this.rand.nextInt(tile.routeBelongsTo.allowedPokemon.size()));
+                String name = tile.routeBelongsTo.allowedPokemon().get(this.rand.nextInt(tile.routeBelongsTo.allowedPokemon().size()));
                 int level = tile.routeBelongsTo.level +Game.rand.nextInt(3);
 
                 Pokemon pokemon = new Pokemon(name, level, Pokemon.Generation.CRYSTAL);
@@ -2103,6 +2013,7 @@ class GenIsland1 extends Action {
                 boolean failed = false;
                 while (!failed) {
                     failed = true;
+//                    System.out.println(pokemon.specie.name);
                     evos = Specie.gen2Evos.get(pokemon.specie.name);
                     for (String evo : evos.keySet()) {
                         try {
@@ -2117,7 +2028,8 @@ class GenIsland1 extends Action {
                         }
                         catch (NumberFormatException e) {
                             // Item-based or other type of evo, so just do it regardless of requirement
-                            if (Game.rand.nextInt(256) >= 192) {
+                            if (Game.rand.nextInt(256) >= 192) {  // TODO: adjust
+//                        	if (Game.rand.nextInt(256) >= 128) {
                                 evolveTo = evos.get(evo);
                                 pokemon.evolveTo(evolveTo);
                                 timesEvolved++;
@@ -2146,15 +2058,28 @@ class GenIsland1 extends Action {
 //                	System.out.println(hasEvo);
 //                }
 
+                boolean requirementsMet = !hasEvo;
                 if (tile.routeBelongsTo.name.contains("beach")) {
-                    hasEvo = !hasEvo;  // want wartortle, croconaw, etc to walk around
+                	requirementsMet = hasEvo;  // want wartortle, croconaw, etc to walk around
                 }
                 if (tile.routeBelongsTo.name.contains("ruins")) {
-//                    isBaseSpecies = false;
-                    hasEvo = false;  // yeet everything
+                	requirementsMet = true;  // yeet everything
+                }
+                if (tile.routeBelongsTo.name.contains("mountain")) {
+                	// TODO: ideally would have better yeeting rules
+                	// 		 Maybe level-based.
+                	requirementsMet = !hasEvo ||
+                					  pokemon.specie.name.equals("machoke") ||
+                					  pokemon.specie.name.equals("rhydon") ||
+                					  pokemon.specie.name.equals("onix");
+                }
+                if (tile.routeBelongsTo.name.contains("snow")) {
+                	requirementsMet = !hasEvo ||
+      					  			  pokemon.specie.name.equals("sneasel") ||
+                					  pokemon.specie.name.equals("piloswine");
                 }
 
-                if (!hasEvo) {  // !isBaseSpecies && 
+                if (requirementsMet) {
                     pokemon.position = tile.position.cpy();
                     pokemon.mapTiles = game.map.overworldTiles;
                     pokemon.standingAction = pokemon.new Standing();
@@ -2712,6 +2637,9 @@ class GenIsland1 extends Action {
 //                                        if (this.rand.nextInt(12) == 0) {
 //                                            newTile = new Tile("green5", edge);
 //                                        }
+                                    	// TODO: this is one of the few uses of currRoute that I see
+                                    	// Would be nice to replace this route with a route that's
+                                    	// actually used and level-adjusted.
                                         if (this.rand.nextInt(24) == 0) {
                                             newTile = new Tile("flower4", edge, true, currRoute);
                                         }
@@ -2775,7 +2703,7 @@ class GenIsland1 extends Action {
                                         blotchRoute = new Route("savanna1", level);
                                     }
 //                                    Pokemon pokemon = blotchRoute.pokemon.remove(0);  // TODO: previous behavior, remove
-                                    Pokemon pokemon = new Pokemon(blotchRoute.allowedPokemon.remove(this.rand.nextInt(blotchRoute.allowedPokemon.size())),
+                                    Pokemon pokemon = new Pokemon(blotchRoute.allowedPokemon().get(this.rand.nextInt(blotchRoute.allowedPokemon().size())),
                                     							  blotchRoute.level +this.rand.nextInt(3), Pokemon.Generation.CRYSTAL);
                                     pokemon.position = edge.cpy();
 //                                    pokemon.mapTiles = game.map.tiles;  // TODO: test
@@ -3021,7 +2949,7 @@ class GenIsland1 extends Action {
                                 edgeTiles.put(newTile.position.cpy(), newTile);
                             }
                             else if (type.equals("pond1")) {
-                                Tile newTile = new Tile("water2", edge);
+                                Tile newTile = new Tile("water2", edge, true, currRoute);
                                 tilesToAdd.put(newTile.position.cpy(), newTile);
                                 edgeTiles.put(newTile.position.cpy(), newTile);
                             }
@@ -3104,11 +3032,21 @@ class GenIsland1 extends Action {
                                     doCactus = this.rand.nextInt((int)distance) < maxDist/8;
                                 }
                                 if (doCactus) {
-                                    Route tempRoute = null;  // TODO: headbutt?
+                                    Route tempRoute = null;
+                                    int randInt = this.rand.nextInt(2);
+                                    if (randInt == 0) {
+                                        String[] pokemon = new String[]{"maractus"};
+                                        randInt = this.rand.nextInt(pokemon.length);
+                                        tempRoute = new Route("", 22);
+                                        tempRoute.storedPokemon.add(new Pokemon(pokemon[randInt], tempRoute.level,
+		                                                                        Pokemon.Generation.CRYSTAL));
+                                    }
                                     if (distance < maxDist/4) {  //  && this.rand.nextInt(2) == 1
                                         newTile = new Tile("cactus2", edge, true, tempRoute);
                                     }
-                                    else {
+                                    // Don't place small cactus right above the center, looks weird.
+                                    else if (!(newTile.position.x == originTile.position.x &&
+                                    		   newTile.position.y == originTile.position.y+16)) {
                                         newTile = new Tile("cactus1", edge, true, tempRoute);
                                     }
                                 }
@@ -3479,10 +3417,13 @@ class GenIsland1 extends Action {
                 }
 
                 tilesToAdd.put(prevTiles.get(next).position.cpy(), prevTiles.get(next));
-                // TODO: remove once tested
-                String newType = "island";
-                if (!type.equals("desert")) {
-                    newType = type;
+                // TODO: this code is weird.
+                String newType = type;
+                if (type.equals("desert")) {
+                	newType = "island";
+                	// As far as I can tell, this route's level isn't used.
+                	// It is applied to flower and green tiles.
+                	currRoute = new Route("forest1", 40);
                 }
                 ApplyBlotch(game, newType, prevTiles.get(next), newSize, nextIslandTiles, 1, true, currRoute);
 //                int level = currRoute.level - (int)(10*(1f-(newSize/maxDist)));
@@ -3963,9 +3904,9 @@ class GenIsland1 extends Action {
     /**
      * Generate regi dungeon.
      */
-    public void generateRegiDungeon(Game game, HashMap<Vector2, Tile> exteriorTiles,
-                                    ArrayList<HashMap<Vector2, Tile>> interiorTiles, Vector2 tl) {
-//        exteriorTiles.put(tl.cpy(), new Tile("cave1_door1", tl.cpy()));  // TODO: remove
+    public void generateRegiDungeon(Game game, Vector2 origin) {
+        HashMap<Vector2, Tile> exteriorTiles = new HashMap<Vector2, Tile>();
+        ArrayList<HashMap<Vector2, Tile>> interiorTiles = new ArrayList<HashMap<Vector2, Tile>>();
         String[][] names = new String[][]{{null, null, null, "cave2_tl_alternate", "cave2_tr_alternate", null, null, null, "cave2_tl_alternate", "cave2_tr_alternate", null, null, null},
                                           {null, null, null, "cave2_bl", "cave2_br", null, null, null, "cave2_bl", "cave2_br", null, null, null},
                                           {null, null, null, null, null, "cave2_tl", "cave2_up", "cave2_tr", null, null, null, null, null},
@@ -3984,13 +3925,11 @@ class GenIsland1 extends Action {
                 if (names[i][j] == null) {
                     continue;
                 }
-                pos = new Vector2(tl.x -6*16 +j*16, tl.y +5*16 -i*16);
+                pos = new Vector2(origin.x -6*16 +j*16, origin.y +5*16 -i*16);
                 exteriorTiles.put(pos, new Tile(names[i][j], pos, true, currRoute));
             }
         }
-        tl.add(-19*16 +16, +11*16 +6*16 );
-//        for (int i=0; i < 99; i++) {
-        // 
+        origin.add(-19*16 +16, +11*16 +6*16 );
         for (int i=0; i < 99-9; i++) {
             interiorTiles.add(null);
         }
@@ -4042,7 +3981,7 @@ class GenIsland1 extends Action {
                 if (names[i][j] == null) {
                     continue;
                 }
-                pos = new Vector2(tl.x +j*16, tl.y -i*16);
+                pos = new Vector2(origin.x +j*16, origin.y -i*16);
                 Tile tile = new Tile(names[i][j], pos, true, currRoute);
                 // These are the regis that haven't been crafted yet.
                 if (names[i][j].equals("cave1_regipedistal1")) {
@@ -4056,6 +3995,35 @@ class GenIsland1 extends Action {
             }
         }
         interiorTiles.add(currLayer);
+
+        // TODO: not sure if needed
+        for (Tile tile : exteriorTiles.values()) {
+            Tile currTile = this.tilesToAdd.get(tile.position);
+            if (currTile != null && currTile.nameUpper.equals("pokemon_mansion_key")) {
+                this.tilesToAdd.put(tile.position.cpy(), new Tile(tile.name, currTile.nameUpper, currTile.position, true, currTile.routeBelongsTo));
+                continue;
+            }
+            this.tilesToAdd.put(tile.position.cpy(), tile);
+        }
+
+        for (int i=0; i < interiorTiles.size(); i++) {
+            currLayer = interiorTiles.get(i);
+            if (i >= this.interiorTilesToAdd.size()) {
+                this.interiorTilesToAdd.add(currLayer);
+                continue;
+            }
+            if (currLayer == null) {
+                continue;
+            }
+            if (this.interiorTilesToAdd.get(i) == null) {
+                this.interiorTilesToAdd.remove(i);
+                this.interiorTilesToAdd.add(i, currLayer);
+                continue;
+            }
+            for (Vector2 key : currLayer.keySet()) {
+                this.interiorTilesToAdd.get(i).put(key, currLayer.get(key));
+            }
+        }
     }
 
     /**
@@ -4072,6 +4040,13 @@ class GenIsland1 extends Action {
         HashMap<Vector2, Tile> newTiles2 = new HashMap<Vector2, Tile>();
         nextSize = nextSize/2;
         ApplyBlotch(game, "pond1", newTile, nextSize, newTiles2, 0, true, blotchRoute);
+        // Milotic in middle of pond.
+        Pokemon pokemon = new Pokemon("milotic", 44);
+        pokemon.position = newTile.position.cpy();
+        pokemon.mapTiles = game.map.overworldTiles;
+        pokemon.standingAction = pokemon.new Standing();
+        this.pokemonToAdd.put(pokemon.position.cpy(), pokemon);
+        //
         newTiles.putAll(newTiles2);
         for (Tile tile2 : new ArrayList<Tile>(newTiles.values())) {
             if (tile2.nameUpper.equals("aloe_large1")) {
@@ -4100,10 +4075,6 @@ class GenIsland1 extends Action {
 
         // Start fossil building stuff
         newTile = oasisTiles.remove(this.rand.nextInt(oasisTiles.size()));
-        System.out.println("newTile.name");
-        System.out.println(newTile.name);
-        System.out.println("newTile.routeBelongsTo.name");
-        System.out.println(newTile.routeBelongsTo.name);
         HashMap<Vector2, Tile> exteriorTiles = new HashMap<Vector2, Tile>();
         ArrayList<HashMap<Vector2, Tile>> interiorTiles = new ArrayList<HashMap<Vector2, Tile>>();
         for (int i=0; i < 100; i++) {
@@ -4158,6 +4129,8 @@ class GenIsland1 extends Action {
                 exteriorTiles.put(pos2, new Tile(names[i][j], pos2, true, newTile.routeBelongsTo));
             }
         }
+        // TODO: I don't think the secret key dodging stuff is used anymore
+        // Actually it might be
         for (Tile tile2 : exteriorTiles.values()) {
             Tile currTile = this.tilesToAdd.get(tile2.position);
             if (currTile != null && currTile.nameUpper.equals("pokemon_mansion_key")) {
@@ -4192,7 +4165,7 @@ class GenIsland1 extends Action {
     public void generateDesertRuins(Game game, Vector2 origin) {
         // Start ruins upper/outer placement
         int nextSize = 230;
-        Route currRoute = new Route("ruins1_outer", 44);
+        Route currRoute = new Route("ruins1_outer", 25);  // 44
 
         // TODO: remove
 //        int tries = 0;

@@ -968,56 +968,64 @@ RibombeeEvosAttacks:
 	db 0 ; no more level-up moves
 
 SandileEvosAttacks:
-	db EVOLVE_LEVEL, 11, KROKOROK
+	db EVOLVE_LEVEL, 29, KROKOROK
 	db 0 ; no more evolutions
-	db 1, TACKLE
-	db 4, DISABLE
-	db 7, CONFUSION
-	db 10, HYPNOSIS
-	db 13, FUTURE_SIGHT
-	db 17, FEINT_ATTACK
-	db 20, PSYBEAM
-	db 23, CONFUSE_RAY
-	db 26, FLASH_CANNON
-	db 32, ZEN_HEADBUTT
-	db 38, IRON_HEAD
-	db 41, IRON_DEFENSE
-	db 44, PSYCHIC
+	db 1, LEER
+	db 1, POWER_TRIP
+	db 3, SAND_ATTACK
+	db 6, HONE_CLAWS
+	db 9, SAND_TOMB
+	db 12, SCARY_FACE
+	db 15, BITE
+	db 18, TORMENT
+	db 21, DIG
+	db 24, SWAGGER
+	db 27, CRUNCH
+	db 30, SANDSTORM
+	db 33, FOUL_PLAY
+	db 36, EARTHQUAKE
+	db 39, THRASH
 	db 0 ; no more level-up moves
 
+
 KrokorokEvosAttacks:
-	db EVOLVE_LEVEL, 22, KROOKODILE
+	db EVOLVE_LEVEL, 40, KROOKODILE
 	db 0 ; no more evolutions
-	db 1, TACKLE
-	db 4, DISABLE
-	db 7, CONFUSION
-	db 10, HYPNOSIS
-	db 13, FUTURE_SIGHT
-	db 17, FEINT_ATTACK
-	db 20, PSYBEAM
-	db 23, CONFUSE_RAY
-	db 26, FLASH_CANNON
-	db 32, ZEN_HEADBUTT
-	db 38, IRON_HEAD
-	db 41, IRON_DEFENSE
-	db 44, PSYCHIC
+	db 1, HONE_CLAWS
+	db 1, LEER
+	db 1, POWER_TRIP
+	db 1, SAND_ATTACK
+	db 9, SAND_TOMB
+	db 12, SCARY_FACE
+	db 15, BITE
+	db 18, TORMENT
+	db 21, DIG
+	db 24, SWAGGER
+	db 27, CRUNCH
+	db 32, SANDSTORM
+	db 35, FOUL_PLAY
+	db 42, EARTHQUAKE
+	db 47, THRASH
 	db 0 ; no more level-up moves
 
 KrookodileEvosAttacks:
 	db 0 ; no more evolutions
-	db 1, TACKLE
-	db 4, DISABLE
-	db 7, CONFUSION
-	db 10, HYPNOSIS
-	db 13, FUTURE_SIGHT
-	db 17, FEINT_ATTACK
-	db 20, PSYBEAM
-	db 23, CONFUSE_RAY
-	db 26, FLASH_CANNON
-	db 32, ZEN_HEADBUTT
-	db 38, IRON_HEAD
-	db 41, IRON_DEFENSE
-	db 44, PSYCHIC
+	db 1, HONE_CLAWS
+	db 1, LEER
+	db 1, POWER_TRIP
+	db 1, SAND_ATTACK
+	db 9, SAND_TOMB
+	db 12, SCARY_FACE
+	db 15, BITE
+	db 18, TORMENT
+	db 21, DIG
+	db 24, SWAGGER
+	db 27, CRUNCH
+	db 32, SANDSTORM
+	db 35, FOUL_PLAY
+	db 44, EARTHQUAKE
+	db 51, THRASH
+	db 58, OUTRAGE
 	db 0 ; no more level-up moves
 
 ZigzagoonEvosAttacks:
@@ -1216,3 +1224,119 @@ VolcaronaEvosAttacks:
 	db 70, FIRE_BLAST
 	db 78, RAGE_POWDER
 	db 0 ; no more level-up moves
+
+MaractusEvosAttacks:
+	db 0 ; no more evolutions
+	db 1, ABSORB
+	db 1, AFTER_YOU
+	db 1, INGRAIN
+	db 1, PECK
+	db 1, SPIKY_SHIELD
+	db 4, GROWTH
+	db 8, MEGA_DRAIN
+	db 12, LEECH_SEED
+	db 16, SUCKER_PUNCH
+	db 20, PIN_MISSILE
+	db 24, GIGA_DRAIN
+	db 28, SWEET_SCENT
+	db 32, SYNTHESIS
+	db 36, PETAL_BLIZZARD
+	db 40, COTTON_SPORE
+	db 44, SUNNY_DAY
+	db 48, SOLAR_BEAM
+	db 52, ACUPRESSURE
+	db 56, PETAL_DANCE
+	db 60, COTTON_GUARD
+	db 0 ; no more level-up moves
+
+AzurillEvosAttacks:
+	db EVOLVE_HAPPINESS, TR_ANYTIME, MARILL
+	db 0 ; no more evolutions
+	db 1, SPLASH
+	db 1, TAIL_WHIP
+	db 1, WATER_GUN
+	db 3, HELPING_HAND
+	db 6, BUBBLE_BEAM
+	db 9, CHARM
+	db 12, SLAM
+	db 15, BOUNCE
+	db 0 ; no more level-up moves
+
+MarillEvosAttacks:
+	db EVOLVE_LEVEL, 18, AZUMARILL
+  db 0 ; no more evolutions
+	db 1, DEFENSE_CURL
+	db 1, HELPING_HAND
+	db 1, ROLLOUT
+	db 1, TACKLE
+	db 1, TAIL_WHIP
+	db 1, WATER_GUN
+	db 6, BUBBLE_BEAM
+	db 9, CHARM
+	db 12, SLAM
+	db 15, BOUNCE
+	db 19, AQUA_TAIL
+	db 21, PLAY_ROUGH
+	db 24, AQUA_RING
+	db 27, RAIN_DANCE
+	db 30, HYDRO_PUMP
+	db 33, DOUBLE_EDGE
+	db 36, SUPERPOWER
+	db 0 ; no more level-up moves
+
+AzumarillEvosAttacks:
+	db 0 ; no more evolutions
+	db 1, DEFENSE_CURL
+	db 1, HELPING_HAND
+	db 1, ROLLOUT
+	db 1, TACKLE
+	db 1, TAIL_WHIP
+	db 1, WATER_GUN
+	db 6, BUBBLE_BEAM
+	db 9, CHARM
+	db 12, SLAM
+	db 15, BOUNCE
+	db 21, AQUA_TAIL
+	db 25, PLAY_ROUGH
+	db 30, AQUA_RING
+	db 35, RAIN_DANCE
+	db 40, HYDRO_PUMP
+	db 45, DOUBLE_EDGE
+	db 50, SUPERPOWER
+	db 0 ; no more level-up moves
+
+GoomyEvosAttacks:
+  db 0 ; no more evolutions
+	db 1, ABSORB
+	db 1, TACKLE
+	db 5, WATER_GUN
+	db 10, DRAGON_BREATH
+	db 15, PROTECT
+	db 20, FLAIL
+	db 25, WATER_PULSE
+	db 30, RAIN_DANCE
+	db 35, DRAGON_PULSE
+	db 41, CURSE
+	db 45, BODY_SLAM
+	db 50, MUDDY_WATER
+	db 0 ; no more level-up moves
+
+SwirlixEvosAttacks:
+	db 0 ; no more evolutions
+	db 1, SWEET_SCENT
+	db 1, TACKLE
+	db 3, PLAY_NICE
+	db 6, FAIRY_WIND
+	db 9, AROMATHERAPY
+	db 12, DRAINING_KISS
+	db 15, FAKE_TEARS
+	db 18, ROUND
+	db 21, STRING_SHOT
+	db 24, COTTON_SPORE
+	db 27, ENERGY_BALL
+	db 30, WISH
+	db 33, PLAY_ROUGH
+	db 36, COTTON_GUARD
+	db 39, ENDEAVOR
+	db 0 ; no more level-up moves
+

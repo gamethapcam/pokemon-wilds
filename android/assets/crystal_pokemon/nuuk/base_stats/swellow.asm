@@ -14,5 +14,5 @@
 	dn 7, 7 ; picture dimensions
 	db 0, 0 ; padding
 	db MEDIUM_SLOW ; growth rate
-	dn EGG_AVIAN, EGG_AVIAN ; egg groups
+	dn EGG_FLYING, EGG_FLYING ; egg groups
 

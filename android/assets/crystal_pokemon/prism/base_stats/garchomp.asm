@@ -12,6 +12,6 @@
 	dn 7, 7 ;picture dimensions
 	db ABILITY_SAND_VEIL, ABILITY_SAND_VEIL ;abilities
 	db 0, 0 ;padding
-	db FAST ;growth rate
-	dn REPTILE, MONSTER ;egg groups
+	db SLOW ;growth rate
+	dn EGG_DRAGON, EGG_MONSTER ;egg groups
 

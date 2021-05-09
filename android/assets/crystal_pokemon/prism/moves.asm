@@ -13,7 +13,7 @@ ENDM
 
 	move POUND,         EFFECT_NORMAL_HIT,         40, NORMAL,   PHYSICAL,  100,    35,     0
 	move KARATE_CHOP,   EFFECT_NORMAL_HIT,         50, FIGHTING, PHYSICAL,  100,    25,     0
-	move DOUBLESLAP,    EFFECT_MULTI_HIT,          15, FAIRY_T,  PHYSICAL,   85,    10,     0
+	move DOUBLESLAP,    EFFECT_MULTI_HIT,          15, FAIRY,  PHYSICAL,   85,    10,     0
 	move FINAL_CHANCE,  EFFECT_FINAL_CHANCE,        0, CURSE_T,  STATUS,      0,     1,     0
 	move ZEN_HEADBUTT,  EFFECT_FLINCH_HIT,         80, PSYCHIC,  PHYSICAL,   90,    15,    20
 	move BULK_UP,       EFFECT_BULK_UP,             0, FIGHTING, STATUS,    100,    20,     0
@@ -21,8 +21,8 @@ ENDM
 	move ICE_PUNCH,     EFFECT_FREEZE_HIT,         75, ICE,      PHYSICAL,  100,    15,    10
 	move THUNDERPUNCH,  EFFECT_PARALYZE_HIT,       75, ELECTRIC, PHYSICAL,  100,    15,    10
 	move SCRATCH,       EFFECT_NORMAL_HIT,         40, NORMAL,   PHYSICAL,  100,    35,     0
-	move FAIRY_WIND,    EFFECT_NORMAL_HIT,         40, FAIRY_T,  SPECIAL,   100,    30,     0
-	move DRAININGKISS,  EFFECT_LEECH_HIT,          50, FAIRY_T,  SPECIAL,   100,    10,     0 ;needs special check for 3/4ths healing
+	move FAIRY_WIND,    EFFECT_NORMAL_HIT,         40, FAIRY,  SPECIAL,   100,    30,     0
+	move DRAININGKISS,  EFFECT_LEECH_HIT,          50, FAIRY,  SPECIAL,   100,    10,     0 ;needs special check for 3/4ths healing
 	move IRON_DEFENSE,  EFFECT_DEFENSE_UP_2,        0, STEEL,    STATUS,    100,    15,   100
 	move SWORDS_DANCE,  EFFECT_ATTACK_UP_2,         0, FIGHTING, STATUS,    100,    20,     0
 	move CUT,           EFFECT_NORMAL_HIT,         50, NORMAL,   PHYSICAL,   95,    30,     0
@@ -156,7 +156,7 @@ ENDM
 	move SKY_ATTACK,    EFFECT_SKY_ATTACK,        140, FLYING,   PHYSICAL,   90,     5,    30 ;add +crit if needed
 	move TRANSFORM,     EFFECT_TRANSFORM,           0, NORMAL,   STATUS,    100,    10,     0
 	move BUBBLE,        EFFECT_SPEED_DOWN_HIT,     40, WATER,    SPECIAL,   100,    30,    10
-	move DIZZY_PUNCH,   EFFECT_CONFUSE_HIT,        70, FAIRY_T,  PHYSICAL,  100,    10,    20
+	move DIZZY_PUNCH,   EFFECT_CONFUSE_HIT,        70, FAIRY,  PHYSICAL,  100,    10,    20
 	move SPRING_BUDS,   EFFECT_SPRING_BUDS,        75, GRASS,    PHYSICAL,   90,    10,    10 ;new
 	move FLASH,         EFFECT_ACCURACY_DOWN,       0, NORMAL,   STATUS,    100,    20,     0
 	move BASE_TREMOR,   EFFECT_NORMAL_HIT,        100, SOUND,    PHYSICAL,  100,    10,     0 ;new
@@ -262,6 +262,6 @@ ENDM
 	move ROCK_SMASH,    EFFECT_DEFENSE_DOWN_HIT,   20, FIGHTING, PHYSICAL,  100,    15,    50
 	move STEEL_EATER,   EFFECT_NORMAL_HIT,         65, POISON,   PHYSICAL,   95,    25,     0
 	move GHOST_HAMMER,  EFFECT_NORMAL_HIT,         80, GHOST,    PHYSICAL,   85,    10,     0 ;new
-	move MOONBLAST,     EFFECT_SP_ATK_DOWN_HIT,    95, FAIRY_T,  SPECIAL,   100,    15,    30
-	move PLAY_ROUGH,    EFFECT_ATTACK_DOWN_HIT,    90, FAIRY_T,  PHYSICAL,   90,    10,    10
+	move MOONBLAST,     EFFECT_SP_ATK_DOWN_HIT,    95, FAIRY,  SPECIAL,   100,    15,    30
+	move PLAY_ROUGH,    EFFECT_ATTACK_DOWN_HIT,    90, FAIRY,  PHYSICAL,   90,    10,    10
 	move NOISE_PULSE,   EFFECT_CONFUSE_HIT,        75, SOUND,    SPECIAL,    90,    20,    15

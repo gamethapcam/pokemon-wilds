@@ -14,5 +14,5 @@
 	dn 5, 5 ; picture dimensions
 	db 0, 0 ; padding
 	db MEDIUM_SLOW ; growth rate
-	dn EGG_PLANT, EGG_AMPHIBIAN ; egg groups
+	dn EGG_PLANT, EGG_WATER_1 ; egg groups
 

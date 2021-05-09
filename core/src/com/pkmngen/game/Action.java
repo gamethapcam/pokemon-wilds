@@ -20,7 +20,9 @@ import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Application.ApplicationType;
 import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.TextureData;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
@@ -1664,6 +1666,12 @@ class DrawSetupMenu extends Action {
                     if (InputProcessor.leftJustPressed) {
                         this.avatarColorIndex--;
                         if (this.avatarColorIndex < 0) {
+                        	if (game.player.character.equals("gold")) {
+                        		game.player.character = "kris";
+                        	}
+                        	else if (game.player.character.equals("kris")) {
+                        		game.player.character = "gold";
+                        	}
                             this.avatarColorIndex = this.colors.size()-1;
                         }
                         game.player.setColor(this.colors.get(this.avatarColorIndex));
@@ -1675,6 +1683,12 @@ class DrawSetupMenu extends Action {
                     if (InputProcessor.rightJustPressed) {
                         this.avatarColorIndex++;
                         if (this.avatarColorIndex >= this.colors.size()) {
+                        	if (game.player.character.equals("gold")) {
+                        		game.player.character = "kris";
+                        	}
+                        	else if (game.player.character.equals("kris")) {
+                        		game.player.character = "gold";
+                        	}
                             this.avatarColorIndex = 0;
                         }
                         game.player.setColor(this.colors.get(this.avatarColorIndex));
@@ -1683,7 +1697,6 @@ class DrawSetupMenu extends Action {
                         this.avatarSprites.add(game.player.movingSprites.get("down"));
                         this.avatarSprites.add(game.player.altMovingSprites.get("down"));
                     }
-
                 }
                 else {
                     avatarSprite = new Sprite(this.avatarSprites.get(0));
@@ -1850,6 +1863,32 @@ class DrawSetupMenu extends Action {
                                                     Game.staticGame.insertAction(new DisplayText.Clear(Game.staticGame,
                                                                                  new SetField(drawControls, "remove", true,
                                                                                  hostActionFinal)));
+
+                                                    // Save minimap
+                                                    int width = (int)(Game.staticGame.map.topRight.x - Game.staticGame.map.bottomLeft.x)/8;
+                                                    int height = (int)(Game.staticGame.map.topRight.y - Game.staticGame.map.bottomLeft.y)/8;
+                                                    Game.staticGame.map.minimap = new Pixmap(width, height, Pixmap.Format.RGBA8888);
+                                                    Game.staticGame.map.minimap.setColor(0, 0, 0, 1);
+                                                    Game.staticGame.map.minimap.fill();
+                                                    Vector2 startPos = game.player.position.cpy().add(-8*16, -8*16);
+                                                    startPos.x = (int)startPos.x - (int)startPos.x % 16;
+                                                    startPos.y = (int)startPos.y - (int)startPos.y % 16;
+                                                    Vector2 endPos = game.player.position.cpy().add(8*16, 8*16);
+                                                    endPos.x = (int)endPos.x - (int)endPos.x % 16;
+                                                    endPos.y = (int)endPos.y - (int)endPos.y % 16;
+                                                    for (Vector2 currPos = new Vector2(startPos.x, startPos.y); currPos.y < endPos.y;) {
+                                                        Tile tile = Game.staticGame.map.tiles.get(currPos);
+                                                        currPos.x += 16;
+                                                        if (currPos.x > endPos.x) {
+                                                            currPos.x = startPos.x;
+                                                            currPos.y += 16;
+                                                        }
+                                                        if (tile == null) {
+                                                            continue;
+                                                        }
+                                                        tile.updateMiniMap(game);
+                                                    }
+                                                    //
                                                 }
                                             };
                                             Gdx.app.postRunnable(runnable);
@@ -2388,6 +2427,14 @@ class InputProcessor extends Action {
     public int getLayer(){
         return -1;
     }
+
+    // TODO: remove
+//    public static void setPressed(String pressed) {
+//    	pressed = pressed.toLowerCase();
+//    	if (pressed.equals("a")) {
+//    		InputProcessor.aJustPressed = true;
+//    	}
+//    }
 }
 
 /**
@@ -2539,7 +2586,7 @@ class MusicController extends Action {
 //            if (!this.inTransition) {  // TODO: remove once tested
                 game.currMusic.pause();
                 boolean isDesert = game.map.currRoute != null &&
-                                   game.map.currRoute.type.equals("desert") &&
+                                   game.map.currRoute.type().equals("desert") &&
                                    !this.currDayTime.equals("night");
                 if (isDungeon || isDesert) {
                     String musicName = game.map.currRoute.getNextMusic(true);
@@ -2581,36 +2628,40 @@ class MusicController extends Action {
             this.playerFainted = false;
         }
         if (this.fadeToDungeon) {
-            System.out.println("fadeToDungeon");
-            // TODO: remove
-//            if (!this.currDayTime.equals("night")) {
-                String nextMusicName = this.currOverworldMusic;
-                // If previous overworld music was night, and it's not currently night, need to refresh.
-                if (isDungeon || nextMusicName.contains("night")) {
-                    nextMusicName = game.map.currRoute.getNextMusic(true);  // was false
-                }
-                System.out.println("nextMusicName");
-                System.out.println(nextMusicName);
-                System.out.println("currRoute.name");
-                System.out.println(game.map.currRoute.name);
-                // TODO: this was the previous behavior
-//                Action action = new FadeMusic(game.currMusic, -0.025f,
-//                                new WaitFrames(game, 10, 
-//                                null));
-                // This will accomodate musics that are at a different volume (hopefully)
-                float rate = game.currMusic.getVolume() * -0.025f;
-                Action action = new FadeMusic(game.currMusic, rate, null);
-                // TODO: potentially remove
-//                if (game.map.currRoute.isDungeon) {
-//                    action.append(new SetField(this, "startDungeonMusic", nextMusicName, null));
-//                }
-//                else {
-//                    action.append(new SetField(this, "startOverworldMusic", nextMusicName, null));
-//                }
-                action.append(new SetField(this, "resumeOverworldMusic", true, null));
-                game.insertAction(action);
-//            }
-            this.fadeToDungeon = false;
+//            System.out.println("fadeToDungeon");  // TODO: remove
+            // Would occasionally happen where player would step on tile,
+            // trigger battle and fadetodungeon at the same time.
+            if (!this.inBattle) {
+                // TODO: remove
+//              if (!this.currDayTime.equals("night")) {
+                  String nextMusicName = this.currOverworldMusic;
+                  // If previous overworld music was night, and it's not currently night, need to refresh.
+                  if (isDungeon || nextMusicName.contains("night")) {
+                      nextMusicName = game.map.currRoute.getNextMusic(true);  // was false
+                  }
+                  System.out.println("nextMusicName");
+                  System.out.println(nextMusicName);
+                  System.out.println("currRoute.name");
+                  System.out.println(game.map.currRoute.name);
+                  // TODO: this was the previous behavior
+//                  Action action = new FadeMusic(game.currMusic, -0.025f,
+//                                  new WaitFrames(game, 10, 
+//                                  null));
+                  // This will accomodate musics that are at a different volume (hopefully)
+                  float rate = game.currMusic.getVolume() * -0.025f;
+                  Action action = new FadeMusic(game.currMusic, rate, null);
+                  // TODO: potentially remove
+//                  if (game.map.currRoute.isDungeon) {
+//                      action.append(new SetField(this, "startDungeonMusic", nextMusicName, null));
+//                  }
+//                  else {
+//                      action.append(new SetField(this, "startOverworldMusic", nextMusicName, null));
+//                  }
+                  action.append(new SetField(this, "resumeOverworldMusic", true, null));
+                  game.insertAction(action);
+//              }
+              this.fadeToDungeon = false;
+            }
         }
         // TODO: potentially remove
 //        // Had to make this sep b/c overworld music fade was overriding the dungeon music
@@ -2648,11 +2699,25 @@ class MusicController extends Action {
         if (this.startOverworldMusic != null && !this.inBattle && !this.evolving) {
             System.out.println("startOverworldMusic");
             System.out.println(this.startOverworldMusic);
+            // TODO: remove
+//            boolean isDesert = game.map.currRoute != null &&
+//                               game.map.currRoute.type().equals("desert") &&
+//                               !this.currDayTime.equals("night");
             // Was a fade in, just starting music now.
             if (!isDungeon && !this.currDayTime.equals("night") && !this.unownMusic) {
                 game.currMusic.pause();
                 if (!game.loadedMusic.containsKey(this.startOverworldMusic)) {
-                    game.loadedMusic.put(this.startOverworldMusic, Gdx.audio.newMusic(Gdx.files.internal("music/"+this.startOverworldMusic+".ogg")));
+                	Music music;
+                	// Can't use currRoute for this; sometimes startOverworldMusic and currRoute are out of sync.
+                	if (this.startOverworldMusic.equals("route_111-2")) {
+                		// Desert music has an intro and must be looped (no completion listener)
+                        music = new LinkedMusic("music/"+this.startOverworldMusic+"_intro", "music/"+this.startOverworldMusic);
+                	}
+                	else {
+                		music = Gdx.audio.newMusic(Gdx.files.internal("music/"+this.startOverworldMusic+".ogg"));
+                		music.setOnCompletionListener(this.musicCompletionListener);
+                	}
+                	game.loadedMusic.put(this.startOverworldMusic, music);
                 }
                 game.currMusic = game.loadedMusic.get(this.startOverworldMusic);
 //                if (!this.startOverworldMusic.contains("pkmnmansion") &&
@@ -2661,7 +2726,6 @@ class MusicController extends Action {
 //                    game.currMusic.setLooping(true);
 //                }
 //                else {
-                game.currMusic.setOnCompletionListener(this.musicCompletionListener);
                 this.currOverworldMusic = this.startOverworldMusic;
 //                }
 //                // TODO: remove
@@ -3300,6 +3364,66 @@ class ChangePlayerColor extends Action {
     }
 }
 
+
+class ChangePlayerCharacter extends Action {
+    
+//    public static int colorIndex = 0;
+    int index = 0;
+    
+    ArrayList<String> characters = new ArrayList<String>();
+    {
+    	characters.add("gold");
+    	characters.add("kris");
+    }
+
+    public ChangePlayerCharacter(Action nextAction) {
+        this.nextAction = nextAction;
+    }
+
+    @Override
+    public void firstStep(Game game) {
+    	this.index = 0;
+    	for (String character : this.characters ) {
+    		if (character.equals(game.player.character)) {
+    			break;
+    		}
+    		this.index++;
+    	}
+    	// For safety
+        if (this.index >= this.characters.size()) {
+            this.index = this.characters.size()-1;
+        }
+    }
+
+    @Override
+    public void step(Game game) {
+    	//
+        if (InputProcessor.leftJustPressed) {
+            this.index--;
+            if (this.index < 0) {
+                this.index = this.characters.size()-1;
+            }
+            game.player.character = this.characters.get(this.index);
+            game.player.setColor(game.player.color);
+            game.player.currSprite = game.player.standingSprites.get(game.player.dirFacing);
+        }
+        else if (InputProcessor.rightJustPressed) {
+            this.index++;
+            if (this.index >= this.characters.size()) {
+                this.index = 0;
+            }
+            game.player.character = this.characters.get(this.index);
+            game.player.setColor(game.player.color);
+            game.player.currSprite = game.player.standingSprites.get(game.player.dirFacing);
+        }
+        if (InputProcessor.bJustPressed) {
+            game.actionStack.remove(this);
+            game.insertAction(this.nextAction);
+        }
+    }
+}
+
+
 /**
  * Just an experiment for drawing tiles.
  */
@@ -3317,6 +3441,7 @@ class TileEditor extends Action {
         overTiles.add("rock1_color");
         overTiles.add("tree7");
         overTiles.add("aloe_large1");
+        overTiles.add("tree_large1");
     }
     
     ArrayList<String> underTiles = new ArrayList<String>();
@@ -3378,6 +3503,9 @@ class TileEditor extends Action {
         overTiles.add("cactus4");
         overTiles.add("cactus5");
         overTiles.add("cactus6");
+
+        //
+        underTiles.add("grass3");
         
 
         underTiles.addAll(this.overTiles);
@@ -3682,6 +3810,80 @@ class CallMethod extends Action {
         game.insertAction(this.nextAction);
     }
 }
+
+
+/**
+ * TODO: maybe merge with CallMethod
+ */
+class CallStaticMethod extends Action {
+    Class<?> cls;
+    String methodName;
+    Object[] params;
+    Class<?>[] paramTypes;
+
+    /**
+     * Use this constructor if you want to pass null to a function (type can't be inferred from null, 
+     * so you need to pass the type manually).
+     */
+    public CallStaticMethod(Class<?> cls, String methodName, Class<?>[] paramTypes, Object[] params, Action nextAction) {
+        this.cls = cls;
+        this.methodName = methodName;
+        this.params = params;
+        this.paramTypes = paramTypes;
+        this.nextAction = nextAction;
+    }
+
+    public CallStaticMethod(Class<?> cls, String methodName, Object[] params, Action nextAction) {
+    	this.cls = cls;
+        this.methodName = methodName;
+        this.params = params;
+        this.nextAction = nextAction;
+        this.paramTypes = new Class[params.length];
+        for (int i = 0; i < params.length; i++) {
+            this.paramTypes[i] = params[i].getClass();
+            // For some reason generic types need to be converted.
+            // Can't figure out how to do this generically.
+            if (this.paramTypes[i].getName().equals("java.lang.Float")) {
+                this.paramTypes[i] = float.class;  // not sure how to do generically.
+            }
+            else if (this.paramTypes[i].getName().equals("java.lang.Integer")) {
+                this.paramTypes[i] = int.class;
+            }
+            else if (this.paramTypes[i].getName().equals("java.lang.Boolean")) {
+                this.paramTypes[i] = boolean.class;
+            }
+            else if (this.paramTypes[i].getName().equals("java.lang.Long")) {
+                this.paramTypes[i] = long.class;
+            }
+            else if (this.paramTypes[i].getName().equals("java.lang.Double")) {
+                this.paramTypes[i] = double.class;
+            }
+        }
+    }
+
+    @Override
+    public void firstStep(Game game) {
+        try {
+            Method method = this.cls.getMethod(this.methodName, this.paramTypes);
+            // https://stackoverflow.com/questions/2467544/invoking-a-static-method-using-reflection/2467562
+            method.invoke(null, this.params);
+        } catch (NoSuchMethodException e) {
+            e.printStackTrace();
+        } catch (SecurityException e) {
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (IllegalArgumentException e) {
+            e.printStackTrace();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        game.actionStack.remove(this);
+        game.insertAction(this.nextAction);
+    }
+}
+
+
 
 /**
  * Requires two actions, this will add both to the action stack.

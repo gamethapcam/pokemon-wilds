@@ -13,5 +13,5 @@
 	db ABILITY_LEVITATE, ABILITY_LEVITATE ;abilities
 	db 0, 0 ;padding
 	db SLOW ;growth rate
-	dn INANIMATE, INANIMATE ;egg groups
+	dn EGG_MINERAL, EGG_MINERAL ;egg groups
 

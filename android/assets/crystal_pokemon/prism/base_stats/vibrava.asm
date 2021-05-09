@@ -13,5 +13,5 @@
 	db ABILITY_LEVITATE, ABILITY_LEVITATE ;abilities
 	db 0, 0 ;padding
 	db MEDIUM_SLOW ;growth rate
-	dn INSECT, INSECT ;egg groups
+	dn EGG_BUG, EGG_DRAGON ;egg groups
 

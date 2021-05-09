@@ -53,10 +53,21 @@ public class Specie {
                                      "nosepass",  // nuuk, ow sadfish on discord
                                      "sigilyph",  // sadfish on discord, ow dustman on discord
                                      "snover",
-                                     "zigzagoon",  // Kabigon, Miserable Pile Of Secrets on discord
+                                     "maractus",
+                                     "goomy", "swirlix",  // SkwovetSquire on discord
+                                     "zigzagoon",  // Kabigon/Kalvinz, Miserable Pile Of Secrets on discord
                                      "larvesta", "volcarona"};  // TODO: sep loading method
         for (String t : temp) {
             nuukPokemon.add(t);
+        }
+        if (Game.fairyTypeEnabled) {
+        	// TODO: this is a placeholder
+        	// For adding fairy type, need gen 1/2 fairies to get fairy moves
+        	// Not sure what to do longterm here.
+        	temp = new String[]{"azurill", "marill", "azumarill"};
+            for (String t : temp) {
+                nuukPokemon.add(t);
+            }
         }
     }
 
@@ -67,6 +78,7 @@ public class Specie {
     String genderRatio;
     String[] eggGroups = new String[2];
     int baseHappiness = 70; //base is 70 for all pokemon in Gen II
+    int eggCycles = 0;
     ArrayList<String> types;
     //	String eggHatchInto = null;
     String growthRateGroup = "";
@@ -270,11 +282,16 @@ public class Specie {
                 this.hms.add("CUT");
             }
 
+            if (name.equals("smeargle")) {
+                this.hms.add("PAINT");
+            }
+
             //
             if (this.types.contains("GROUND")) {
                 this.hms.add("DIG");
             }
-            if (this.types.contains("ELECTRIC")) {
+            if (this.types.contains("ELECTRIC") ||
+            	this.name.contains("porygon")) {
                 this.hms.add("POWER");
             }
             // TODO: for now, all grass types can cut
@@ -286,6 +303,9 @@ public class Specie {
             }
             if (this.types.contains("FIGHTING")) {
                 this.hms.add("BUILD");
+            }
+            if (this.types.contains("FAIRY")) {
+                this.hms.add("CHARM");
             }
             if (this.types.contains("POISON")) {
                 this.hms.add("REPEL");
@@ -315,32 +335,35 @@ public class Specie {
                     name.equals("granbull") ||
                     name.equals("jynx") ||
                     name.equals("snorlax") ||
+                    name.equals("kangaskhan") ||
                     name.equals("ursaring")) {
                 this.hms.add("HEADBUTT");
             }
 
             // Custom attributes - better way to handle this?
             if (name.equals("stantler") ||
-                    name.equals("ponyta") ||
-                    name.equals("arcanine") ||
-                    name.equals("donphan") ||
-                    name.equals("girafarig") ||
-                    name.equals("houndoom") ||
-                    name.equals("rapidash") ||
-                    name.equals("tauros") ||
-                    name.equals("ninetales") ||
-                    name.equals("mamoswine") ||
-                    name.equals("dodrio") ||
-                    name.equals("mightyena") ||
-                    //
-                    name.equals("persian") ||
-                    name.equals("onix") ||
-                    name.equals("steelix") ||
-                    name.equals("haunter") ||
-                    name.equals("rhyhorn") ||
-                    name.equals("rhydon") ||
-                    //
-                    name.equals("luxray")) {
+                name.equals("ponyta") ||
+                name.equals("arcanine") ||
+                name.equals("donphan") ||
+                name.equals("girafarig") ||
+                name.equals("houndoom") ||
+                name.equals("rapidash") ||
+                name.equals("tauros") ||
+                name.equals("ninetales") ||
+                name.equals("mamoswine") ||
+                name.equals("dodrio") ||
+                name.equals("mightyena") ||
+                // 
+                name.equals("kangaskhan") ||
+                //
+                name.equals("persian") ||
+                name.equals("onix") ||
+                name.equals("steelix") ||
+                name.equals("haunter") ||
+                name.equals("rhyhorn") ||
+                name.equals("rhydon") ||
+                //
+                name.equals("luxray")) {
                 // TODO: change to 'RIDE' later. Making it 'JUMP' for now so that it's not confusing.
                 // Later, once there (hopefully) are riding sprites, this can be changed to ride.
                 // My current idea is that RIDE increases movement speed and can perform jumps up ledges.
@@ -373,6 +396,9 @@ public class Specie {
                     name.equals("drifblim") ||
                     name.equals("honchkrow") ||
                     name.equals("yanmega") ||
+                    //
+                    name.equals("garchomp") ||
+                    name.equals("volcarona") ||
                     name.equals("fearow")) {
                 //
                 this.hms.add("FLY");
@@ -381,9 +407,7 @@ public class Specie {
             if (this.types.contains("DARK") && !this.hms.contains("RIDE")) {
                 this.hms.add("ATTACK");
             }
-
         }
-
         else {
             return;
         }
@@ -477,7 +501,7 @@ public class Specie {
                 } else if (lineNum == 11) {
                     // TODO: I think need to have sep variable this.eggCycles here.
                     String eggCycles = line.split("db ")[1].split(" ;")[0];
-                    this.baseHappiness = Integer.valueOf(eggCycles);
+                    this.eggCycles = Integer.valueOf(eggCycles);
                 } else if (lineNum == 15) {
                     this.growthRateGroup = line.split("db ")[1].split(" ;")[0];
                 // Egg groups this pokemon belongs to
@@ -785,18 +809,19 @@ public class Specie {
                     else if (!line.contains("db 0")) {
                         String vals[] = line.split(", ");
                         String attack = vals[1].toLowerCase().replace('_', ' ');
-                        // TODO: eventually remove attacksNotImplemented check
+                        // TODO: eventually remove attacksImplemented check
                         // Prevent loading moves like Metronome, Mimic etc that arent
                         // implemented
                         if (Pokemon.attacksImplemented.contains(attack)) {
                             int level = Integer.valueOf(vals[0].split(" ")[1]);
                             String[] attacksArray = new String[]{attack};
                             if (attacks.containsKey(level)) {
-                                attacksArray = new String[attacks.get(level).length+1];
-                                for (int j=0; j<attacks.get(level).length; j++) {
-                                    attacksArray[j] = attacks.get(level)[j];
+                            	String[] oldArray = attacks.get(level);
+                                attacksArray = new String[oldArray.length+1];
+                                for (int j=0; j < oldArray.length; j++) {
+                                    attacksArray[j] = oldArray[j];
                                 }
-                                attacksArray[attacks.get(level).length] = attack;
+                                attacksArray[oldArray.length] = attack;
                             }
                             attacks.put(level, attacksArray);
                         }
@@ -810,11 +835,13 @@ public class Specie {
             }
             Specie.gen2Attacks.put(newName, attacks);
             // Only female combee evolves
-            String finalName = newName;
-            if (finalName.equals("combee")) {
-                finalName = "combee_female";
+            if (newName.equals("combee")) {
+                Specie.gen2Evos.put(newName, new HashMap<String, String>());
+                Specie.gen2Evos.put("combee_female", evos);
             }
-            Specie.gen2Evos.put(finalName, evos);
+            else {
+                Specie.gen2Evos.put(newName, evos);
+            }
         }
         this.learnSet = Specie.gen2Attacks.get(newName);
     }
@@ -1012,6 +1039,17 @@ public class Specie {
                     found = true;
                     flip = false;
                 }
+                else if (name.equals("volcarona")) {
+                    i = 351;
+                    found = true;
+                    flip = false;
+                }
+                // TODO: need dedicated overworld sprite. Using marill's for now.
+                else if (name.equals("azurill")) {
+                    i = 198;
+                    found = true;
+                    flip = false;
+                }
                 // TODO: debug, remove
                 else if (name.equals("whismur")) {
                     i = 343;
@@ -1019,11 +1057,6 @@ public class Specie {
                     flip = false;
                 }
                 else if (name.equals("larvesta")) {
-                    i = 343;
-                    found = true;
-                    flip = false;
-                }
-                else if (name.equals("volcarona")) {
                     i = 343;
                     found = true;
                     flip = false;
@@ -1216,8 +1249,12 @@ public class Specie {
         //            path = "crystal_pokemon/nuuk/";
         //        }
 
-        // load base stats
+        // Load base stats
         try {
+        	// TODO: a lot of prism's egg groups are wrong, have to manually fix.
+        	// TODO: each time you use new prism mons you have to check these and edit to have 'EGG_' prepended
+        	//       to the egg groups.
+        	// TODO: growth rate was also often wrong (beldum)
             FileHandle file = Gdx.files.internal("crystal_pokemon/prism/base_stats/" + name + ".asm");
             Reader reader = file.reader();
             BufferedReader br = new BufferedReader(reader);
@@ -1271,18 +1308,30 @@ public class Specie {
                     // Egg cycles to hatch
                 } else if (lineNum == 9) {
                     String eggCycles = line.split("db ")[1].split(" ;")[0];
-                    this.baseHappiness = Integer.valueOf(eggCycles);
+                    this.eggCycles = Integer.valueOf(eggCycles);
                 } else if (lineNum == 14) {
                     this.growthRateGroup = line.split("db ")[1].split(" ;")[0];
                     // Egg groups this pokemon belongs to
                 } else if (lineNum == 15) {
                     String groups = line.split("dn ")[1].split(" ;")[0];
                     this.eggGroups = groups.split(", ");
+                    for (int i=0; i < this.eggGroups.length; i++) {
+//                    	this.eggGroups[i] = "EGG_"+this.eggGroups[i];
+                    	if (!this.eggGroups[i].contains("EGG")) {
+                    		System.out.println(this.name);
+                    		System.out.println("WARNING: This prism mon has a bad egg group - " + this.eggGroups[i]);
+                    		System.out.println("Also check and fix the growth rate while you're fixing that.");
+                    		break;
+                    	}
+                    }
                 }
                 // TODO: other stats
                 lineNum++;
             }
             reader.close();
+            
+            
+            
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {
@@ -1297,6 +1346,16 @@ public class Specie {
 
             // Swap palette for shiny texture (load by appending '_shiny' to the texture name)
             // Load shiny palette from file
+            // Important note: the colors in shiny.pal and normal.pal do not always match
+            // up with the front/back sprite png files (this is also the case in the crystal
+            // decompile). However the sum of rgb values in normal/shiny.pal files is higher
+            // on the top row than bottom somewhat consistently, so just using the SpriteProxy
+            // method of coloring sprites (same as loadCrystalPokemon). Will manually need to
+            // adjust normal/shiny.pal files that don't follow this convention.
+
+            // Milotic's backsprite used a 'grey' black color of 24, 24, 24 in gimp.
+            // There might be others. Currently I'm just recoloring the png manually
+            // to keep things visually consistent.
             Color normalColor1 = null;
             Color normalColor2 = new Color();
             Color shinyColor1 = null;
@@ -1311,19 +1370,21 @@ public class Specie {
                         String[] vals = line.split("\tRGB ")[1].split(", ");
                         if (shinyColor1 == null) {
                             shinyColor1 = new Color();
-                            shinyColor1.r = Float.valueOf(vals[0]);
-                            shinyColor1.g = Float.valueOf(vals[1]);
-                            shinyColor1.b = Float.valueOf(vals[2]);
+                            shinyColor1.r = Float.valueOf(vals[0])/32f;
+                            shinyColor1.g = Float.valueOf(vals[1])/32f;
+                            shinyColor1.b = Float.valueOf(vals[2])/32f;
+                            shinyColor1.a = 1f;
                         }
                         else {
-                            shinyColor2.r = Float.valueOf(vals[0]);
-                            shinyColor2.g = Float.valueOf(vals[1]);
-                            shinyColor2.b = Float.valueOf(vals[2]);
+                            shinyColor2.r = Float.valueOf(vals[0])/32f;
+                            shinyColor2.g = Float.valueOf(vals[1])/32f;
+                            shinyColor2.b = Float.valueOf(vals[2])/32f;
+                            shinyColor2.a = 1f;
                         }
                     }
                 }
                 reader.close();
-
+                //
                 file = Gdx.files.internal("crystal_pokemon/prism/pics/" + name + "/normal.pal");
                 reader = file.reader();
                 br = new BufferedReader(reader);
@@ -1332,14 +1393,17 @@ public class Specie {
                         String[] vals = line.split("\tRGB ")[1].split(", ");
                         if (normalColor1 == null) {
                             normalColor1 = new Color();
-                            normalColor1.r = Float.valueOf(vals[0]);
-                            normalColor1.g = Float.valueOf(vals[1]);
-                            normalColor1.b = Float.valueOf(vals[2]);
+                            // was *8f)/255f.
+                            normalColor1.r = Float.valueOf(vals[0])/32f;
+                            normalColor1.g = Float.valueOf(vals[1])/32f;
+                            normalColor1.b = Float.valueOf(vals[2])/32f;
+                            normalColor1.a = 1f;
                         }
                         else {
-                            normalColor2.r = Float.valueOf(vals[0]);
-                            normalColor2.g = Float.valueOf(vals[1]);
-                            normalColor2.b = Float.valueOf(vals[2]);
+                            normalColor2.r = Float.valueOf(vals[0])/32f;
+                            normalColor2.g = Float.valueOf(vals[1])/32f;
+                            normalColor2.b = Float.valueOf(vals[2])/32f;
+                            normalColor2.a = 1f;
                         }
                     }
                 }
@@ -1347,9 +1411,10 @@ public class Specie {
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
             } catch (IOException e) {
-                // TODO Auto-generated catch block
                 e.printStackTrace();
             }
+            // TODO: probably want a SpriteProxy.colorReplace() method
+            SpriteProxy normalSprite = new SpriteProxy(text, 0, 0, text.getWidth(), text.getWidth());
             TextureData temp = text.getTextureData();
             if (!temp.isPrepared()) {
                 temp.prepare();
@@ -1358,31 +1423,28 @@ public class Specie {
             Pixmap newPixmap = new Pixmap(text.getWidth(), text.getHeight(), Pixmap.Format.RGBA8888);
             newPixmap.setColor(new Color(0, 0, 0, 0));
             newPixmap.fill();
+            Color color;
             for (int i=0, j=0; j < text.getHeight(); i++) {
                 if (i > text.getWidth()) {
                     i=-1;
                     j++;
                     continue;
                 }
-                Color color = new Color(currPixmap.getPixel(i, j));
-                if ((int)(color.r*32) == (int)normalColor1.r && (int)(color.g*32) == (int)normalColor1.g && (int)(color.b*32) == (int)normalColor1.b) {
-                    color.r = (shinyColor1.r*8f)/256f;
-                    color.g = (shinyColor1.g*8f)/256f;
-                    color.b = (shinyColor1.b*8f)/256f;
+                color = new Color(currPixmap.getPixel(i, j));
+                if (color.equals(normalSprite.color1)) {
+                	color = shinyColor1;
                 }
-                else if ((int)(color.r*32) == (int)normalColor2.r && (int)(color.g*32) == (int)normalColor2.g && (int)(color.b*32) == (int)normalColor2.b) {
-                    color.r = (shinyColor2.r*8f)/256f;
-                    color.g = (shinyColor2.g*8f)/256f;
-                    color.b = (shinyColor2.b*8f)/256f;
-                    //                    color = shinyColor2;
+                else if (color.equals(normalSprite.color2)) {
+                	color = shinyColor2;
                 }
-                newPixmap.drawPixel(i, j, Color.rgba8888(color.r, color.g, color.b, 1f));
+                newPixmap.drawPixel(i, j, Color.rgba8888(color));
             }
             text = TextureCache.get(newPixmap);
             Specie.textures.put(name+"_front_shiny", text);
 
             // Back sprites
             text = TextureCache.get(Gdx.files.internal("crystal_pokemon/prism/pics/" + name + "/back.png"));
+            SpriteProxy shinySprite = new SpriteProxy(text, 0, 0, text.getWidth(), text.getHeight());
 
             //also try to load Egg textures
             loadEggTextures("crystal_pokemon/prism/pics/" + name + "/back.png");
@@ -1397,24 +1459,30 @@ public class Specie {
             newPixmap = new Pixmap(text.getWidth(), text.getHeight(), Pixmap.Format.RGBA8888);
             newPixmap.setColor(new Color(0, 0, 0, 0));
             newPixmap.fill();
+//            System.out.println(Integer.toHexString(Color.rgba8888(normalColor1)));
+//            System.out.println(Integer.toHexString(Color.rgba8888(shinyColor1)));
+//            System.out.println(Integer.toHexString(Color.rgba8888(normalColor2)));
+//            System.out.println(Integer.toHexString(Color.rgba8888(shinyColor2)));
+//            System.out.println(Integer.toHexString(normalColor1.toIntBits()));
+//            System.out.println(Integer.toHexString(shinyColor1.toIntBits()));
+//            System.out.println(Integer.toHexString(normalColor2.toIntBits()));
+//            System.out.println(Integer.toHexString(shinyColor2.toIntBits()));
             for (int i=0, j=0; j < text.getHeight(); i++) {
                 if (i > text.getWidth()) {
                     i=-1;
                     j++;
                     continue;
                 }
-                Color color = new Color(currPixmap.getPixel(i, j));
-                if ((int)(color.r*32) == (int)shinyColor1.r && (int)(color.g*32) == (int)shinyColor1.g && (int)(color.b*32) == (int)shinyColor1.b) {
-                    color.r = (normalColor1.r*8f)/256f;
-                    color.g = (normalColor1.g*8f)/256f;
-                    color.b = (normalColor1.b*8f)/256f;
+                color = new Color(currPixmap.getPixel(i, j));
+                color.a = 1f;
+//                System.out.println(Integer.toHexString(color));
+                if (color.equals(shinySprite.color1)) {
+                    color = normalColor1;
                 }
-                else if ((int)(color.r*32) == (int)shinyColor2.r && (int)(color.g*32) == (int)shinyColor2.g && (int)(color.b*32) == (int)shinyColor2.b) {
-                    color.r = (normalColor2.r*8f)/256f;
-                    color.g = (normalColor2.g*8f)/256f;
-                    color.b = (normalColor2.b*8f)/256f;
+                if (color.equals(shinySprite.color2)) {
+                    color = normalColor2;
                 }
-                newPixmap.drawPixel(i, j, Color.rgba8888(color.r, color.g, color.b, 1f));
+                newPixmap.drawPixel(i, j,  Color.rgba8888(color));
             }
             text = TextureCache.get(newPixmap);
             Specie.textures.put(name+"_back", text);
@@ -1435,7 +1503,7 @@ public class Specie {
         //        pokemonText = new Texture(Gdx.files.internal("crystal_pokemon/prism/pics/" + name + "/back.png"));  // TODO: remove
         pokemonText = Specie.textures.get(name+"_back");
         this.backSprite = new SpriteProxy(pokemonText, 0, 0, 48, 48);
-        pokemonText = Specie.textures.get(name+"_back");
+        pokemonText = Specie.textures.get(name+"_back_shiny");
         this.backSpriteShiny = new SpriteProxy(pokemonText, 0, 0, 48, 48);
 
         // Load animation from file
@@ -1629,7 +1697,7 @@ public class Specie {
             this.harvestables.add("soft feather");
         }
         if (this.types.contains("ROCK")) {
-            this.habitats.add("rock");
+            this.habitats.add("rock|statue");
             this.harvestables.add("hard stone");
         }
         if (this.types.contains("FIRE")) {
@@ -1697,7 +1765,11 @@ public class Specie {
         //            this.harvestables.clear();
         //            this.harvestables.add("sweet nectar");
         //        }
-        else if (name.equals("beedrill") || name.contains("combee") || name.equals("vespiquen")) {
+        else if (name.equals("beedrill") ||
+        		 name.contains("combee") ||
+        		 name.equals("vespiquen") ||
+        		 name.equals("cutiefly") ||
+        		 name.equals("ribombee")) {
             this.harvestables.clear();
             this.harvestables.add("honey");
         }

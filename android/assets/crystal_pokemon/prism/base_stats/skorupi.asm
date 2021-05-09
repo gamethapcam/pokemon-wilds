@@ -13,5 +13,5 @@
 	db ABILITY_BATTLE_ARMOR, ABILITY_SNIPER ;abilities
 	db 0, 0 ;padding
 	db FAST ;growth rate
-	dn INVERTEBRATE, INSECT ;egg groups
+	dn EGG_BUG, EGG_WATER_3 ;egg groups
 

@@ -13,5 +13,5 @@
 	db ABILITY_SWIFT_SWIM, ABILITY_OBLIVIOUS ;abilities
 	db 0, 0 ;padding
 	db MEDIUM_FAST ;growth rate
-	dn HUMANSHAPE, HUMANSHAPE ;egg groups
+	dn EGG_DRAGON, EGG_WATER_1 ;egg groups
 

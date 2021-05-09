@@ -13,5 +13,5 @@
 	db ABILITY_LEAF_GUARD, ABILITY_LEAF_GUARD ;abilities
 	db 0, 0 ;padding
 	db MEDIUM_FAST ;growth rate
-	dn FIELD, FIELD ;egg groups
+	dn EGG_FIELD, EGG_FIELD ;egg groups
 

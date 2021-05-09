@@ -13,7 +13,7 @@
 	db 5 ; unknown 2
 	INCBIN "gfx/pokemon/aipom/front.dimensions"
 	db 0, 0, 0, 0 ; padding
-	db GROWTH_SLOW ; growth rate
+	db SLOW ; growth rate
 	dn EGG_GRASS, EGG_MONSTER ; egg groups
 
 	; tm/hm learnset TODO

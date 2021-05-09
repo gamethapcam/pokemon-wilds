@@ -14,5 +14,5 @@
 	dn 7, 7 ; picture dimensions
 	db 0, 0 ; padding
 	db SLOW ; growth rate
-	dn EGG_FIELD, EGG_FIELD ; egg groups
+	dn EGG_MONSTER, EGG_MONSTER ; egg groups
 

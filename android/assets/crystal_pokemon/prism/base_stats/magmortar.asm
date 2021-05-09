@@ -13,5 +13,5 @@
 	db ABILITY_FLAME_BODY, ABILITY_FLAME_BODY ;abilities
 	db 0, 0 ;padding
 	db MEDIUM_FAST ;growth rate
-	dn HUMANSHAPE, HUMANSHAPE ;egg groups
+	dn EGG_HUMANSHAPE, EGG_HUMANSHAPE ;egg groups
 

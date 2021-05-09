@@ -3,7 +3,7 @@
 	db 68, 65, 65, 80, 125, 115
 
 
-	db PSYCHIC, PSYCHIC ; FAIRY_T
+	db PSYCHIC, FAIRY
 	db 45 ; catch rate
 	db 208 ; exp rate
 	db NO_ITEM, NO_ITEM
@@ -13,6 +13,6 @@
 	db 5 ; unknown
 	dn 7, 7 ; picture dimensions
 	db 0, 0 ; padding
-	db FAST ; growth rate
-	dn EGG_AMORPHOUS, EGG_AMORPHOUS ; egg groups
+	db SLOW ; growth rate
+	dn EGG_AMORPHOUS, EGG_HUMANSHAPE ; egg groups
 

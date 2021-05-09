@@ -12,6 +12,10 @@ public class DesktopLauncher {
         config.width = scale * 160;
         config.height = scale * 144;
         config.title = "Pokémon Wilds";
+        // TODO: not sure if these are needed
+        config.vSyncEnabled = false;
+        config.useGL30 = false;
+        //
         config.addIcon("icon-256.png", FileType.Internal);
         config.addIcon("icon-64.png", FileType.Internal);
         config.addIcon("icon-32.png", FileType.Internal);

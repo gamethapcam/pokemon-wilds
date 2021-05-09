@@ -17,6 +17,7 @@ import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.GL30;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.PixmapIO;
@@ -95,10 +96,15 @@ public class Game extends ApplicationAdapter {
     // TODO: in the future, advanced option to toggle this (?) idk.
     //       would have to be saved with the map I think
     public boolean levelScalingEnabled = true; 
-    public static boolean fairyTypeEnabled = false; 
+    public static boolean fairyTypeEnabled = true;  // TODO: experimental
     public static boolean catchExpEnabled = true;
 
     HashMap<Character, SpriteProxy> brailleDict = new HashMap<Character, SpriteProxy>();
+    
+    // TODO: debug, remove
+    public long startTime = 0;
+    public long currTime = 0;
+    public HashMap<String, Long> timings = new HashMap<String, Long>();
 
     public Game() {
         super();
@@ -111,6 +117,21 @@ public class Game extends ApplicationAdapter {
                 this.debugInputEnabled = true;
             }
         }
+    }
+
+    // TODO: not sure where to put.
+    public static ArrayList<String> evoStones = new ArrayList<String>();
+    {
+        evoStones.add("water stone");
+        evoStones.add("fire stone");
+        evoStones.add("leaf stone");
+        evoStones.add("thunderstone");
+        evoStones.add("moon stone");
+        evoStones.add("sun stone");
+        evoStones.add("ice stone");
+        evoStones.add("dawn stone");
+        evoStones.add("dusk stone");
+        evoStones.add("shiny stone");
     }
 
     @Override
@@ -175,14 +196,20 @@ public class Game extends ApplicationAdapter {
         ShaderProgram.pedantic = false;
 
         // TODO: probably won't work for other versions of java.
-        System.out.println("java version info");
+        System.out.println("Java version info");
         System.out.println(System.getProperty("java.version"));
         System.out.println(System.getProperty("java.specification.version"));
 
         // Graphics processor info
-        System.out.println("graphics processor info");
+        System.out.println("Graphics processor info");
         System.out.println(Gdx.gl.glGetString(GL20.GL_VENDOR));
         System.out.println(Gdx.gl.glGetString(GL20.GL_RENDERER));
+
+        // OpenGL info
+        System.out.println("OpenGL info");
+        System.out.println(Gdx.gl.glGetString(GL20.GL_VERSION));
+//        System.out.println(Gdx.gl.glGetString(GL30.GL_VERSION));
+        
     }
 
     @Override
@@ -263,7 +290,12 @@ public class Game extends ApplicationAdapter {
             CycleDayNight.dayTimer = 100;
         }
         // Print action stack in layer-order
-        if (Gdx.input.isKeyPressed(Input.Keys.P)) {
+        if (Gdx.input.isKeyJustPressed(Input.Keys.P)) {
+
+        	for (String name : this.timings.keySet()) {
+        		System.out.println(name+": "+this.timings.get(name));
+        	}
+        	
             System.out.println("Layer, Name");
             for (Action action : this.actionStack) {
                 System.out.println(String.valueOf(action.getLayer()) + "  " + action.getClass().getName());
@@ -705,6 +737,8 @@ public class Game extends ApplicationAdapter {
 //        this.lightingBatch.end();
 //        this.frameBuffer.end();
         
+        // TODO: debug, remove
+//        this.timings.clear();
 
         this.mapBatch.setProjectionMatrix(cam.combined);
         // Iterate through this.actionStack twice, once for this.batch (map objects), once for this.uiBatch (ui objects)
@@ -717,11 +751,21 @@ public class Game extends ApplicationAdapter {
             }
             if (action.getCamera().equals("map")) {
                 try {
+                	// TODO: debug, remove
+//                	this.startTime = System.nanoTime();
+                	
                     if (action.firstStep) {
                         action.firstStep(this);
                         action.firstStep = false;
                     }
                     action.step(this);
+
+                	// TODO: debug, remove
+//                    this.currTime = System.nanoTime()-this.startTime;
+//                    if (!timings.containsKey(action.getClass().getName())) {
+//                    	timings.put(action.getClass().getName(), Long.valueOf(0));
+//                    }
+//                    timings.put(action.getClass().getName(), timings.get(action.getClass().getName()) + this.currTime);
                 }
                 catch (Exception e) {
                     e.printStackTrace();
@@ -747,11 +791,17 @@ public class Game extends ApplicationAdapter {
             }
             try {
                 if (action.getCamera().equals("gui")) {
+//                	this.startTime = System.nanoTime();
                     if (action.firstStep) {
                         action.firstStep(this);
                         action.firstStep = false;
                     }
                     action.step(this);
+//                    this.currTime = System.nanoTime()-this.startTime;
+//                    if (!timings.containsKey(action.getClass().getName())) {
+//                    	timings.put(action.getClass().getName(), Long.valueOf(0));
+//                    }
+//                    timings.put(action.getClass().getName(), timings.get(action.getClass().getName()) + this.currTime);
                 }
             }
             catch (Exception e) {
@@ -797,8 +847,10 @@ public class Game extends ApplicationAdapter {
             int menuWidth = (144*width)/height;  // height/width = 144/menuWidth
             int offsetX = (menuWidth-160)/2;
             this.uiBatch.getProjectionMatrix().setToOrtho2D(-offsetX, 0, menuWidth, 144);
-            this.cam.viewportWidth = width/3;
-            this.cam.viewportHeight = height/3;
+            // The -((width/3) % 2) stuff fixed the 'thin line' issue
+            // TODO: revisit this, not ideal. Might be fixed in later libgdx version? (current is 1.9.8)
+            this.cam.viewportWidth = width/3 -((width/3) % 2);
+            this.cam.viewportHeight = height/3 -((height/3) % 2);
         }
         this.currScreen = new Vector2(width, height);
     }
@@ -866,7 +918,7 @@ public class Game extends ApplicationAdapter {
         this.insertAction(new CycleDayNight(this));
 
         // If you join a game as a Client, these go away, so only affects local play.
-        this.player.pokemon.add(new Pokemon("Machop", 6));
+        this.player.pokemon.add(new Pokemon("machop", 6));
         if (this.debugInputEnabled) {
             // Some starting pokemon used for debugging
 //            this.player.pokemon.get(0).currentStats.put("hp", 1);
@@ -880,55 +932,23 @@ public class Game extends ApplicationAdapter {
 //            this.player.pokemon.get(1).attacks[2] = "toxic";
 //            this.player.pokemon.get(1).attacks[3] = "sweet scent";
             this.player.pokemon.add(new Pokemon("pidgeot", 60, Pokemon.Generation.CRYSTAL));
-//            this.player.pokemon.add(new Pokemon("meganium", 60, Pokemon.Generation.CRYSTAL));
-//            this.player.pokemon.add(new Pokemon("ursaring", 60, Pokemon.Generation.CRYSTAL));
 //            this.player.pokemon.add(new Pokemon("golem", 60, Pokemon.Generation.CRYSTAL));
 //            this.player.pokemon.get(1).currentStats.put("hp", 0);
 //            this.player.pokemon.get(2).currentStats.put("hp", 0);
 //            this.player.pokemon.get(3).currentStats.put("hp", 0);
 
-//            this.player.pokemon.add(new Pokemon("loudred", 60, Pokemon.Generation.CRYSTAL));
-//            this.player.pokemon.add(new Pokemon("loudred", 60, Pokemon.Generation.CRYSTAL));
-//            this.player.pokemon.get(3).gender = "male";
-//            this.player.pokemon.get(4).gender = "female";
-//            this.player.pokemon.add(new Pokemon("houndoom", 66, Pokemon.Generation.CRYSTAL));
-//            this.player.pokemon.add(new Pokemon("registeel", 40, Pokemon.Generation.CRYSTAL));
-//            this.player.pokemon.add(new Pokemon("egg", 1, Pokemon.Generation.CRYSTAL, false, "skarmory"));
-//            this.player.pokemon.add(new Pokemon("registeel", 40, Pokemon.Generation.CRYSTAL, true));
-//            this.player.pokemon.add(new Pokemon("masquerain", 60, Pokemon.Generation.CRYSTAL));
-
 //            this.player.pokemon.add(new Pokemon("ampharos", 70, Pokemon.Generation.CRYSTAL));
-//            this.player.pokemon.add(new Pokemon("rhydon", 46, Pokemon.Generation.CRYSTAL));
+            this.player.pokemon.add(new Pokemon("rhydon", 46, Pokemon.Generation.CRYSTAL));
             this.player.pokemon.add(new Pokemon("meganium", 46, Pokemon.Generation.CRYSTAL));
 //            this.player.pokemon.add(new Pokemon("ursaring", 46, Pokemon.Generation.CRYSTAL));
-
-            this.player.pokemon.add(new Pokemon("nidoqueen", 66, Pokemon.Generation.CRYSTAL, true, false));
-            this.player.pokemon.get(4).gender = "female";
-            this.player.pokemon.add(new Pokemon("nidoking", 11, Pokemon.Generation.CRYSTAL, true, false));
-            this.player.pokemon.get(5).gender = "male";
-//            this.player.pokemon.add(new Pokemon("dusclops", 46, Pokemon.Generation.CRYSTAL));
-//            this.player.pokemon.add(new Pokemon("darmanitan", 46, Pokemon.Generation.CRYSTAL, true, false));
-//            Pokemon temp = new Pokemon("combee_female", 46, Pokemon.Generation.CRYSTAL, false, false);
-//            temp.gender = "female";
-//            this.player.pokemon.add(temp);
-//            this.player.pokemon.add(new Pokemon("combee", 46, Pokemon.Generation.CRYSTAL, false, false));
-            this.player.pokemon.get(2).attacks[0] = "bonemerang";
-            this.player.pokemon.get(2).attacks[1] = "double kick";
-//            this.player.pokemon.get(2).currentStats.put("hp", 10);
-
-            // TODO: remove
-//            this.player.pokemon.add(new Pokemon("charizard", 60, Pokemon.Generation.CRYSTAL));
-//            this.player.pokemon.add(new Pokemon("charizard", 60, Pokemon.Generation.CRYSTAL));
-//            this.player.pokemon.add(new Pokemon("unown", 60, Pokemon.Generation.CRYSTAL));
-//            this.player.pokemon.get(4).gender = "male";
-//            this.player.pokemon.get(5).gender = "female";
+            this.player.pokemon.add(new Pokemon("volcarona", 46, Pokemon.Generation.CRYSTAL));
 
 //            this.player.pokemon.add(new Pokemon("egg", 1, Pokemon.Generation.CRYSTAL, false, "skarmory"));
 //            this.player.pokemon.add(new Pokemon("egg", 1, Pokemon.Generation.CRYSTAL, true, "skarmory"));
 //            this.player.pokemon.get(4).happiness = 1;  // test egg cycle hatching works
 //            this.player.pokemon.add(new Pokemon("egg", 1, Pokemon.Generation.CRYSTAL, false, "skarmory"));
 //            this.player.pokemon.get(5).happiness = 1;  // test egg cycle hatching works
-            
+
             // TODO: remove
             // This seems to indicate that number of zeros is roughly equal to number of ones.
 //            int numZeros = 0;
@@ -969,6 +989,7 @@ public class Game extends ApplicationAdapter {
 
         // TODO: debug, remove
 //        this.player.currPokemon.currentStats.put("hp", 10);
+        
     }
 
     public static class SetCamPos extends Action {
