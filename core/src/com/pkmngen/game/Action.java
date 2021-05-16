@@ -19,6 +19,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Application.ApplicationType;
 import com.badlogic.gdx.audio.Music;
+import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
@@ -1666,12 +1667,12 @@ class DrawSetupMenu extends Action {
                     if (InputProcessor.leftJustPressed) {
                         this.avatarColorIndex--;
                         if (this.avatarColorIndex < 0) {
-                        	if (game.player.character.equals("gold")) {
-                        		game.player.character = "kris";
-                        	}
-                        	else if (game.player.character.equals("kris")) {
-                        		game.player.character = "gold";
-                        	}
+                            if (game.player.character.equals("gold")) {
+                                game.player.character = "kris";
+                            }
+                            else if (game.player.character.equals("kris")) {
+                                game.player.character = "gold";
+                            }
                             this.avatarColorIndex = this.colors.size()-1;
                         }
                         game.player.setColor(this.colors.get(this.avatarColorIndex));
@@ -1683,12 +1684,12 @@ class DrawSetupMenu extends Action {
                     if (InputProcessor.rightJustPressed) {
                         this.avatarColorIndex++;
                         if (this.avatarColorIndex >= this.colors.size()) {
-                        	if (game.player.character.equals("gold")) {
-                        		game.player.character = "kris";
-                        	}
-                        	else if (game.player.character.equals("kris")) {
-                        		game.player.character = "gold";
-                        	}
+                            if (game.player.character.equals("gold")) {
+                                game.player.character = "kris";
+                            }
+                            else if (game.player.character.equals("kris")) {
+                                game.player.character = "gold";
+                            }
                             this.avatarColorIndex = 0;
                         }
                         game.player.setColor(this.colors.get(this.avatarColorIndex));
@@ -1977,7 +1978,7 @@ class DrawSetupMenu extends Action {
                                 game.insertAction(enterBuilding);
 
                                 if (game.debugInputEnabled) {
-                                	// TODO: may make this a separate command line argument ("editor"?)
+                                    // TODO: may make this a separate command line argument ("editor"?)
                                     game.insertAction(new TileEditor());  
                                 }
                             }
@@ -2430,10 +2431,10 @@ class InputProcessor extends Action {
 
     // TODO: remove
 //    public static void setPressed(String pressed) {
-//    	pressed = pressed.toLowerCase();
-//    	if (pressed.equals("a")) {
-//    		InputProcessor.aJustPressed = true;
-//    	}
+//        pressed = pressed.toLowerCase();
+//        if (pressed.equals("a")) {
+//            InputProcessor.aJustPressed = true;
+//        }
 //    }
 }
 
@@ -2707,17 +2708,17 @@ class MusicController extends Action {
             if (!isDungeon && !this.currDayTime.equals("night") && !this.unownMusic) {
                 game.currMusic.pause();
                 if (!game.loadedMusic.containsKey(this.startOverworldMusic)) {
-                	Music music;
-                	// Can't use currRoute for this; sometimes startOverworldMusic and currRoute are out of sync.
-                	if (this.startOverworldMusic.equals("route_111-2")) {
-                		// Desert music has an intro and must be looped (no completion listener)
+                    Music music;
+                    // Can't use currRoute for this; sometimes startOverworldMusic and currRoute are out of sync.
+                    if (this.startOverworldMusic.equals("route_111-2")) {
+                        // Desert music has an intro and must be looped (no completion listener)
                         music = new LinkedMusic("music/"+this.startOverworldMusic+"_intro", "music/"+this.startOverworldMusic);
-                	}
-                	else {
-                		music = Gdx.audio.newMusic(Gdx.files.internal("music/"+this.startOverworldMusic+".ogg"));
-                		music.setOnCompletionListener(this.musicCompletionListener);
-                	}
-                	game.loadedMusic.put(this.startOverworldMusic, music);
+                    }
+                    else {
+                        music = Gdx.audio.newMusic(Gdx.files.internal("music/"+this.startOverworldMusic+".ogg"));
+                        music.setOnCompletionListener(this.musicCompletionListener);
+                    }
+                    game.loadedMusic.put(this.startOverworldMusic, music);
                 }
                 game.currMusic = game.loadedMusic.get(this.startOverworldMusic);
 //                if (!this.startOverworldMusic.contains("pkmnmansion") &&
@@ -2872,18 +2873,27 @@ class PlaySound extends Action {
         }
         // if it's crystal pokemon, load from crystal dir
         else if (pokemon.generation == Pokemon.Generation.CRYSTAL) {
-        	if(pokemon.isGhost) {
-        		this.music = Gdx.audio.newMusic(Gdx.files.internal("crystal_pokemon/cries/000.ogg"));
-        		this.music.setVolume(0.9f);
-        	}
-        	else {
-        		this.music = Gdx.audio.newMusic(Gdx.files.internal("crystal_pokemon/cries/" + pokemon.dexNumber + ".ogg"));
-        		this.music.setVolume(0.5f);        		
-        	}
+            
+            // TODO: remove
+//            if (pokemon.isGhost) {
+//                this.music = Gdx.audio.newMusic(Gdx.files.internal("crystal_pokemon/cries/000.ogg"));
+//                this.music.setVolume(0.9f);
+//            }
+//            else {
+//                // TODO: this doesn't do anything.
+//                this.music = Gdx.audio.newMusic(Gdx.files.internal("crystal_pokemon/cries/" + pokemon.dexNumber + ".ogg"));
+//                this.music.setVolume(0.5f);                
+//            }
+
+            // Check for modded cry
+            FileHandle file = Gdx.files.local("mods/pokemon/"+pokemon.specie.name+"/cry.ogg");
+            if (!file.exists()) {
+                file = Gdx.files.internal("crystal_pokemon/cries/" + pokemon.dexNumber + ".ogg");
+            }
 
             if (cached) {
                 if (!Game.staticGame.loadedMusic.containsKey(sound)) {
-                    Game.staticGame.loadedMusic.put(sound, Gdx.audio.newMusic(Gdx.files.internal("crystal_pokemon/cries/" + pokemon.dexNumber + ".ogg")));
+                    Game.staticGame.loadedMusic.put(sound, Gdx.audio.newMusic(file));
                 }
                 this.music = Game.staticGame.loadedMusic.get(sound);
                 this.music.stop();
@@ -2892,13 +2902,14 @@ class PlaySound extends Action {
                 return;
             }
 
-            this.music = Gdx.audio.newMusic(Gdx.files.internal("crystal_pokemon/cries/" + pokemon.dexNumber + ".ogg"));
-            if(pokemon.isGhost) {
+            // TODO: remove
+//            this.music = Gdx.audio.newMusic(Gdx.files.internal("crystal_pokemon/cries/" + pokemon.dexNumber + ".ogg"));
+            if (pokemon.isGhost) {
                 this.music = Gdx.audio.newMusic(Gdx.files.internal("crystal_pokemon/cries/000.ogg"));
                 this.music.setVolume(0.9f);
             }
             else {
-                this.music = Gdx.audio.newMusic(Gdx.files.internal("crystal_pokemon/cries/" + pokemon.dexNumber + ".ogg"));
+                this.music = Gdx.audio.newMusic(file);
                 this.music.setVolume(0.5f);             
             }
             this.music.setLooping(false);
@@ -3372,8 +3383,8 @@ class ChangePlayerCharacter extends Action {
     
     ArrayList<String> characters = new ArrayList<String>();
     {
-    	characters.add("gold");
-    	characters.add("kris");
+        characters.add("gold");
+        characters.add("kris");
     }
 
     public ChangePlayerCharacter(Action nextAction) {
@@ -3382,14 +3393,14 @@ class ChangePlayerCharacter extends Action {
 
     @Override
     public void firstStep(Game game) {
-    	this.index = 0;
-    	for (String character : this.characters ) {
-    		if (character.equals(game.player.character)) {
-    			break;
-    		}
-    		this.index++;
-    	}
-    	// For safety
+        this.index = 0;
+        for (String character : this.characters ) {
+            if (character.equals(game.player.character)) {
+                break;
+            }
+            this.index++;
+        }
+        // For safety
         if (this.index >= this.characters.size()) {
             this.index = this.characters.size()-1;
         }
@@ -3397,7 +3408,7 @@ class ChangePlayerCharacter extends Action {
 
     @Override
     public void step(Game game) {
-    	//
+        //
         if (InputProcessor.leftJustPressed) {
             this.index--;
             if (this.index < 0) {
@@ -3423,17 +3434,16 @@ class ChangePlayerCharacter extends Action {
     }
 }
 
-
 /**
  * Just an experiment for drawing tiles.
  */
 class TileEditor extends Action {
-    
+
     Vector3 touchPos = new Vector3();
     boolean justTouched = false;
     public int timer = 0;
     public int brushSize = 1;
-    
+
     // List of pokemon, list of overtiles, list of undertiles
     ArrayList<String> overTiles = new ArrayList<String>();
     {
@@ -3443,7 +3453,7 @@ class TileEditor extends Action {
         overTiles.add("aloe_large1");
         overTiles.add("tree_large1");
     }
-    
+
     ArrayList<String> underTiles = new ArrayList<String>();
     {
         underTiles.add("green1");
@@ -3603,7 +3613,6 @@ class TileEditor extends Action {
         // Draw currently selected tile or pokemon at mouse cursor.
         
         if (this.currTile != null) {
-
             this.touchPos.x = Gdx.input.getX();
             this.touchPos.y = Gdx.input.getY();
             game.cam.unproject(this.touchPos);
@@ -3629,8 +3638,6 @@ class TileEditor extends Action {
                     }
                 }
             }
-            
-            
         }
         
 
@@ -3834,7 +3841,7 @@ class CallStaticMethod extends Action {
     }
 
     public CallStaticMethod(Class<?> cls, String methodName, Object[] params, Action nextAction) {
-    	this.cls = cls;
+        this.cls = cls;
         this.methodName = methodName;
         this.params = params;
         this.nextAction = nextAction;

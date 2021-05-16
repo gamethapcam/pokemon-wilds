@@ -105,11 +105,17 @@ class CutTreeAnim extends Action {
             else if (name.equals("grass4")) {
                 name = "green1";
             }
+            // TODO: test
+            else if (name.equals("grass_sand3")) {
+                name = "desert4";
+            }
             // TODO: tree5 should just use nameUpper.
             else if (name.equals("tree5")) {
                 name = "green1";
             }
-            else if (name.contains("bridge")) {
+            else if (name.contains("bridge") &&
+                     // Only cut the bridge if there isn't a building on it.
+                     this.tile.nameUpper.equals("")) {
                 name = name.split("_")[1];
                 this.tile.overSprite = this.tile.sprite;  // hack to make anim work
                 // If tile below is drawing bridge supports, make it stop
@@ -375,12 +381,22 @@ class CycleDayNight extends Action {
                     int numSnowHoles = 0;
 
                     ArrayList<Vector2> desertEdges = new ArrayList<Vector2>();
-                    
+
                     for (Tile tile : game.map.overworldTiles.values()) {
-                        if (tile.nameUpper.contains("tree_planted")) {
+                        if (tile.nameUpper.contains("tree_planted") ||
+                            tile.nameUpper.equals("bush2_color_fertilized")) {
                             Tile tree;
                             if (tile.name.contains("desert")) {
                                 tree = new Tile(tile.name, "tree7", tile.position.cpy(), true, tile.routeBelongsTo);
+                            }
+                            else if (tile.name.contains("sand")) {
+                                tree = new Tile(tile.name, "tree6", tile.position.cpy(), true, tile.routeBelongsTo);
+                            }
+                            else if (tile.name.contains("snow")) {
+                                tree = new Tile(tile.name, "tree4", tile.position.cpy(), true, tile.routeBelongsTo);
+                            }
+                            else if (tile.nameUpper.equals("bush2_color_fertilized")) {
+                                tree = new Tile("green1", "tree2", tile.position.cpy(), true, tile.routeBelongsTo);
                             }
                             else {
                                 tree = new Tile("bush1", "", tile.position.cpy(), true, tile.routeBelongsTo);
@@ -406,8 +422,20 @@ class CycleDayNight extends Action {
                                 tree.items().put(items[game.map.rand.nextInt(items.length)], 2);
                             }
                         }
-                        else if (tile.name.equals("grass_planted")) {
-                            Tile grass = new Tile("grass2", tile.position.cpy(), true, tile.routeBelongsTo);
+                        else if (tile.nameUpper.equals("grass_planted")) {
+                            Tile grass;
+                            if (tile.name.contains("desert")) {
+                                grass = new Tile("grass_sand3", tile.position.cpy(), true, tile.routeBelongsTo);
+                            }
+                            else if (tile.name.contains("sand")) {
+                                grass = new Tile("grass_sand1", tile.position.cpy(), true, tile.routeBelongsTo);
+                            }
+                            else if (tile.name.contains("snow")) {
+                                grass = new Tile("grass3", tile.position.cpy(), true, tile.routeBelongsTo);
+                            }
+                            else {
+                                grass = new Tile("grass2", tile.position.cpy(), true, tile.routeBelongsTo);
+                            }
                             game.map.overworldTiles.put(tile.position, grass);
                         }
                         else if (tile.nameUpper.equals("cactus2_cacturne")) {
@@ -416,7 +444,6 @@ class CycleDayNight extends Action {
                             tile.attrs.put("solid", false);
                         }
                         else if (tile.name.equals("desert2_trapinch_spawn")) {
-
                             Vector2 startPos = tile.position.cpy().add(-16*4, -16*4);
                             startPos.x = (int)startPos.x - (int)startPos.x % 16;
                             startPos.y = (int)startPos.y - (int)startPos.y % 16;
@@ -482,18 +509,21 @@ class CycleDayNight extends Action {
                             }
                         }
                         // Leaf stone
-                        // TODO: mine-able in the future
+                        // TODO: stones are mine-able instead in the future
                         else if (tile.name.equals("green1")) {
                             if (tile.nameUpper.equals("")) {
-                            	if (tile.biome.equals("deep_forest")) {
-                            		deepForestTiles.add(tile);
-                            	}
-                            	else {
+                                if (tile.biome.equals("deep_forest")) {
+                                    deepForestTiles.add(tile);
+                                }
+                                else {
                                     forestTiles.add(tile);
-                            	}
+                                }
                             }
                             else if (tile.nameUpper.equals("forest_cracked")) {
                                 numForestHoles++;
+                            }
+                            else if (tile.nameUpper.equals("deepforest_cracked")) {
+                                numDeepForestHoles++;
                             }
                         }
                         else if (tile.name.equals("sand1")) {
@@ -929,7 +959,7 @@ class DrawBuildRequirements extends Action {
     ArrayList<String> words = new ArrayList<String>(); // menu items
     ArrayList<Color> wordColors = new ArrayList<Color>(); // menu items
     Vector2 topLeft = new Vector2(89, 144);
-    String currBuilding = "";
+    public static String currBuilding = "";
     HashMap<String, String> namesMap = new HashMap<String, String>();
 
     public DrawBuildRequirements() {
@@ -1004,6 +1034,18 @@ class DrawBuildRequirements extends Action {
         namesMap.put("house_picture19", "Picture");
         namesMap.put("house_picture20", "Picture");
         namesMap.put("interiorwall1", "Wall");
+        namesMap.put("house_couch1", "Couch");
+        namesMap.put("house_couch2", "Couch");
+        namesMap.put("house_couch3", "Couch");
+        namesMap.put("house_couch4", "Couch");
+        namesMap.put("house_couch5", "Couch");
+        namesMap.put("house_trashcan1", "Trash");
+        namesMap.put("house_plushpichu", "Doll");
+        namesMap.put("house_plushduskull", "Doll");
+        namesMap.put("house_plushskitty", "Doll");
+        namesMap.put("house_plushjigglypuff", "Doll");
+        namesMap.put("house_window1", "Window");
+        namesMap.put("house_window2", "Window");
 
         // Terrain
         namesMap.put("sand1", "Sand");
@@ -1035,8 +1077,8 @@ class DrawBuildRequirements extends Action {
             return;
         }
         String curr = game.player.buildTiles.get(game.player.buildTileIndex).name;
-        if (curr != null && !this.currBuilding.equals(curr)) {
-            this.currBuilding = curr;
+        if (curr != null && !DrawBuildRequirements.currBuilding.equals(curr)) {
+        	DrawBuildRequirements.currBuilding = curr;
             this.words.clear();
             this.wordColors.clear();
             this.words.add("Need");
@@ -2223,7 +2265,7 @@ class DrawGhost extends Action {
                 foundCampfire = true;
                 break;
             }
-            else if (tile.items().containsKey("torch") &&
+            else if (tile.items != null && tile.items.containsKey("torch") &&
                      this.basePos.dst2(tile.position) < 1024) {
                 foundCampfire = true;
                 break;
@@ -2365,6 +2407,9 @@ class DrawPlayerLower extends Action {
 
     @Override
     public void step(Game game) {
+        if (game.player.isSitting) {
+        	return;
+        }
         if (game.player.isSleeping || game.player.currFieldMove.equals("FLY")) {
             return;
         }
@@ -2374,12 +2419,12 @@ class DrawPlayerLower extends Action {
         this.fishingOffsetX = 0;
         this.fishingOffsetY = 0;
         if (game.player.isFishing) {
-        	if (game.player.dirFacing.equals("left")) {
-        		this.fishingOffsetX = -8;
-        	}
-        	else if (game.player.dirFacing.equals("down")) {
-        		this.fishingOffsetY = -8;
-        	}
+            if (game.player.dirFacing.equals("left")) {
+                this.fishingOffsetX = -8;
+            }
+            else if (game.player.dirFacing.equals("down")) {
+                this.fishingOffsetY = -8;
+            }
         }
         
 
@@ -2413,6 +2458,9 @@ class DrawPlayerUpper extends Action {
 
     @Override
     public void step(Game game) {
+        if (game.player.isSitting) {
+        	return;
+        }
         if (game.player.isSleeping) {
             if (game.player.sleepingDir == null) {
                 game.player.zSprite.draw(game.mapBatch);
@@ -2449,7 +2497,8 @@ class DrawPlayerUpper extends Action {
             Tile nextTile = game.map.tiles.get(pos);
             boolean isTorch = nextTile != null && (game.player.currBuildTile.name.contains("torch") ||
                                                    game.player.currBuildTile.name.equals("house_clock1") ||
-                                                   game.player.currBuildTile.name.contains("picture"));
+                                                   game.player.currBuildTile.name.contains("picture") ||
+                                                   game.player.currBuildTile.name.contains("window"));
             if ((isTorch && !nextTile.attrs.get("solid")) ||
                 (nextTile != null && nextTile.attrs.get("solid"))) {
                 sprite.setColor(1f, 0.7f, 0.7f, 0.8f);
@@ -2468,7 +2517,7 @@ class DrawPlayerUpper extends Action {
             }
             if (nextTile != null && game.player.currBuildTile.name.contains("house")) {
                 Tile upTile = game.map.interiorTiles.get(game.map.interiorTilesIndex).get(nextTile.position.cpy().add(0, 16));
-                requirementsMet = requirementsMet && (upTile == null || upTile.name.contains("house"));
+                requirementsMet = requirementsMet && (upTile == null || upTile.name.contains("house") || upTile.name.contains("rug"));
             }
             if (isTorch) {
                 requirementsMet = requirementsMet &&
@@ -2477,7 +2526,7 @@ class DrawPlayerUpper extends Action {
                                   !nextTile.nameUpper.contains("roof");
                 // Bunch of tiles that aren't allowed
                 String[] notAllowedTiles = new String[]{"regi", "tree", "bush", "table",
-                                                        "bed", "shelf", "plant"};
+                                                        "bed", "shelf", "plant", "couch"};
                 for (String name : notAllowedTiles) {
                     requirementsMet = requirementsMet && !(nextTile.name.contains(name) || nextTile.nameUpper.contains(name));
                 }
@@ -2553,7 +2602,9 @@ class DrawPlayerUpper extends Action {
             if (game.player.currPlanting.contains("apricorn")) {
                 if (nextTile != null &&
                     (!(nextTile.name.equals("green1") || 
-                       nextTile.name.contains("flower") || 
+                       nextTile.name.contains("flower") ||
+                       nextTile.name.contains("sand") || 
+                       nextTile.name.contains("snow") || 
                        nextTile.name.contains("desert")) ||
                      nextTile.nameUpper.contains("tree") ||
                      nextTile.attrs.get("solid"))) {
@@ -2567,7 +2618,8 @@ class DrawPlayerUpper extends Action {
             else if (game.player.currPlanting.equals("manure")) {
                 if (nextTile != null &&
                     !nextTile.nameUpper.contains("fertilized") &&
-                    nextTile.nameUpper.contains("tree_planted")) {
+                    (nextTile.nameUpper.contains("tree_planted") ||
+                    nextTile.nameUpper.contains("bush2_color"))) {
                     Player.sproutSprite2.setColor(.7f, 1f, .7f, .7f);
                 }
                 else if (nextTile != null) {
@@ -2576,8 +2628,12 @@ class DrawPlayerUpper extends Action {
             }
             else if (game.player.currPlanting.equals("miracle seed")) {
                 if (nextTile != null &&
-                    !nextTile.name.contains("grass_planted") &&
-                    (nextTile.name.equals("green1") || nextTile.name.contains("flower"))) {
+                    nextTile.nameUpper.equals("") &&
+                    (nextTile.name.equals("green1") ||
+                     nextTile.name.contains("snow") ||
+                     nextTile.name.contains("sand") ||
+                     nextTile.name.contains("desert") ||
+                     nextTile.name.contains("flower"))) {
                     Player.sproutSprite2.setColor(.7f, 1f, .7f, .7f);
                 }
                 else if (nextTile != null) {
@@ -2610,12 +2666,12 @@ class DrawPlayerUpper extends Action {
         this.fishingOffsetX = 0;
         this.fishingOffsetY = 0;
         if (game.player.isFishing) {
-        	if (game.player.dirFacing.equals("left")) {
-        		this.fishingOffsetX = -8;
-        	}
-        	else if (game.player.dirFacing.equals("down")) {
-        		this.fishingOffsetY = -8;
-        	}
+            if (game.player.dirFacing.equals("left")) {
+                this.fishingOffsetX = -8;
+            }
+            else if (game.player.dirFacing.equals("down")) {
+                this.fishingOffsetY = -8;
+            }
         }
         if (DrawPlayerUpper.desertGrass) {
             this.spritePart.setRegionY(game.player.spriteOffsetY);
@@ -3010,6 +3066,7 @@ public class Player {
 
     SpriteProxy battleSprite;
     Sprite fishingSprites;
+    Sprite sittingSprites;
     Sprite sleepingSprite;
     Sprite sleepingBagSprite;
 
@@ -3019,7 +3076,7 @@ public class Player {
     // players pokemon
      // functions as pokemon storage in demo
     ArrayList<Pokemon> pokemon;
-    Pokemon currPokemon; // needed for displaying current pokemon
+    public Pokemon currPokemon; // needed for displaying current pokemon
 
     // items that player currently possesses
     ArrayList<String> itemsList;
@@ -3053,6 +3110,7 @@ public class Player {
     //
 
     public boolean isCrafting = false;
+    public boolean isSitting = false;
     public boolean isSleeping = false;
     public Vector2 sleepingDir = null;
 //    public boolean isFlying = false;
@@ -3350,6 +3408,9 @@ public class Player {
         //
         text = new Texture(Gdx.files.internal("red-fishing1.png"));
         this.fishingSprites = new SpriteProxy(text, 0, 0, 56, 24);
+        //
+        text = new Texture(Gdx.files.internal("red-sitting1.png"));
+        this.sittingSprites = new SpriteProxy(text, 0, 0, 48, 16);
 
         // Set initial position
         this.position = new Vector2(0,0);
@@ -3424,7 +3485,7 @@ public class Player {
         this.bridgeBuildTiles.add(new Tile("bridge1", new Vector2(0,0)));
         this.bridgeBuildTiles.add(new Tile("potted3", new Vector2(0,0)));
         this.bridgeBuildTiles.add(new Tile("potted4", new Vector2(0,0)));
-        
+
         // 
         this.indoorBuildTiles.add(new Tile("torch1", new Vector2(0,0)));
         this.indoorBuildTiles.add(new Tile("house_plant1", new Vector2(0,0)));
@@ -3449,6 +3510,20 @@ public class Player {
         //
         this.indoorBuildTiles.add(new Tile("house_clock1", new Vector2(0,0)));
         this.indoorBuildTiles.add(new Tile("interiorwall1", new Vector2(0,0)));
+        
+        //
+        this.indoorBuildTiles.add(new Tile("house_couch1", new Vector2(0,0)));
+        this.indoorBuildTiles.add(new Tile("house_couch2", new Vector2(0,0)));
+        this.indoorBuildTiles.add(new Tile("house_couch3", new Vector2(0,0)));
+        this.indoorBuildTiles.add(new Tile("house_couch4", new Vector2(0,0)));
+        this.indoorBuildTiles.add(new Tile("house_couch5", new Vector2(0,0)));
+        this.indoorBuildTiles.add(new Tile("house_trashcan1", new Vector2(0,0)));
+        this.indoorBuildTiles.add(new Tile("house_plushpichu", new Vector2(0,0)));
+        this.indoorBuildTiles.add(new Tile("house_plushduskull", new Vector2(0,0)));
+        this.indoorBuildTiles.add(new Tile("house_plushskitty", new Vector2(0,0)));
+        this.indoorBuildTiles.add(new Tile("house_plushjigglypuff", new Vector2(0,0)));
+        this.indoorBuildTiles.add(new Tile("house_window1", new Vector2(0,0)));
+        this.indoorBuildTiles.add(new Tile("house_window2", new Vector2(0,0)));
         
         // Smeargle does these now
         this.smeargleBuildTiles.add(new Tile("house_picture1", new Vector2(0,0)));
@@ -3523,6 +3598,11 @@ public class Player {
                 requirements.put("soft bedding", 1);
                 continue;
             }
+            else if (tile.name.contains("house_couch")) {
+                requirements.put("log", 1);
+                requirements.put("soft wool", 1);
+                continue;
+            }
             else if (tile.name.equals("house_gym1")) {
                 requirements.put("hard stone", 2);
                 continue;
@@ -3538,6 +3618,10 @@ public class Player {
             }
             else if (tile.name.contains("picture")) {
                 requirements.put("thin paper", 1);
+                continue;
+            }
+            else if (tile.name.contains("house_window")) {
+                requirements.put("clear glass", 1);
                 continue;
             }
             else if (tile.name.contains("clock")) {
@@ -3557,6 +3641,20 @@ public class Player {
             else if (tile.name.contains("vanity")) {
                 requirements.put("log", 1);
                 requirements.put("clear glass", 1);
+                continue;
+            }
+            else if (tile.name.contains("plush")) {
+//                requirements.put("grass", 1);
+            	if (tile.name.contains("pichu")) {
+            		requirements.put("magnet", 1);
+            	}
+            	else if (tile.name.contains("duskull")) {
+            		requirements.put("spell tag", 1);
+            	}
+            	else {
+            		requirements.put("grass", 1);
+            	}
+                requirements.put("soft wool", 1);
                 continue;
             }
             else if (tile.name.contains("house_")) {
@@ -3691,6 +3789,7 @@ public class Player {
             this.itemsDict.put("dusk stone", 99);
             this.itemsDict.put("shiny stone", 99);
             this.itemsDict.put("ice stone", 99);
+            this.itemsDict.put("soft wool", 99);
         }
 
         this.network = new Network(this.position);
@@ -3793,7 +3892,7 @@ public class Player {
             if (tile.nameUpper.contains("campfire")) {
                 foundCampfire = true;
             }
-            else if (tile.items().containsKey("torch")) {
+            else if (tile.items != null && tile.items.containsKey("torch")) {
                 // TODO: probably only check if within small radius
                 foundCampfire = true;
             }
@@ -3828,14 +3927,14 @@ public class Player {
         Vector2 facingPos = this.facingPos();
         Tile nextTile = game.map.tiles.get(facingPos);
         if (this.currFieldMove.equals("BUILD")) {
-        	if (game.map.tiles == game.map.overworldTiles) {
-        		if (this.hmPokemon != null && this.hmPokemon.specie.name.equals("smeargle")) {
+            if (game.map.tiles == game.map.overworldTiles) {
+                if (this.hmPokemon != null && this.hmPokemon.specie.name.equals("smeargle")) {
                     this.buildTiles = this.smeargleBuildTiles;
-            	}
-            	else if (nextTile.name.contains("desert")) {
+                }
+                else if (nextTile.name.contains("desert")) {
                     this.buildTiles = this.desertBuildTiles;
                 }
-            	else if (nextTile.name.contains("bridge")) {
+                else if (nextTile.name.contains("bridge")) {
                     this.buildTiles = this.bridgeBuildTiles;
                 }
                 else {
@@ -3843,26 +3942,26 @@ public class Player {
                 }
             }
             else {
-            	if (this.hmPokemon != null && this.hmPokemon.specie.name.equals("smeargle")) {
+                if (this.hmPokemon != null && this.hmPokemon.specie.name.equals("smeargle")) {
                     this.buildTiles = this.smeargleInteriorTiles;
-            	}
-            	else {
+                }
+                else {
                     this.buildTiles = this.indoorBuildTiles;
-            	}
+                }
             }
         }
         else if (this.currFieldMove.equals("DIG")) {
             this.buildTiles = this.terrainTiles;
             //
             if (nextTile == null) {
-            	
+                
             }
             else if (nextTile.nameUpper.contains("hole") ||
                 nextTile.name.contains("water5") ||
                 // TODO: potentially remove based on feedback
                 // Feedback was that ocean needs to be terraform-able.
                 nextTile.name.contains("water2")) {
-            	// Do nothing
+                // Do nothing
             }
             else {
                 game.player.currBuildTile = game.player.currDigTile;
@@ -3882,47 +3981,47 @@ public class Player {
         // Concerned about perf so leaving this as 'clunky' for now.
         // Once dirFacing is an enum, may be able to make this a single loop.
         if (this.dirFacing.equals("right")) {
-        	startPos = this.position.cpy().add(7*16, -8*16);
+            startPos = this.position.cpy().add(7*16, -8*16);
             for (int i=0; i < 16; i++) {
-            	startPos.y += 16;
-            	currTile = game.map.tiles.get(startPos);
-            	if (currTile == null) {
-            		continue;
-            	}
-            	game.map.minimapQueue.add(currTile);
+                startPos.y += 16;
+                currTile = game.map.tiles.get(startPos);
+                if (currTile == null) {
+                    continue;
+                }
+                game.map.minimapQueue.add(currTile);
             }
         }
         else if (this.dirFacing.equals("left")) {
-        	startPos = this.position.cpy().add(-7*16, -8*16);
+            startPos = this.position.cpy().add(-7*16, -8*16);
             for (int i=0; i < 16; i++) {
-            	startPos.y += 16;
-            	currTile = game.map.tiles.get(startPos);
-            	if (currTile == null) {
-            		continue;
-            	}
-            	game.map.minimapQueue.add(currTile);
+                startPos.y += 16;
+                currTile = game.map.tiles.get(startPos);
+                if (currTile == null) {
+                    continue;
+                }
+                game.map.minimapQueue.add(currTile);
             }
         }
         else if (this.dirFacing.equals("up")) {
-        	startPos = this.position.cpy().add(-8*16, 7*16);
+            startPos = this.position.cpy().add(-8*16, 7*16);
             for (int i=0; i < 16; i++) {
-            	startPos.x += 16;
-            	currTile = game.map.tiles.get(startPos);
-            	if (currTile == null) {
-            		continue;
-            	}
-            	game.map.minimapQueue.add(currTile);
+                startPos.x += 16;
+                currTile = game.map.tiles.get(startPos);
+                if (currTile == null) {
+                    continue;
+                }
+                game.map.minimapQueue.add(currTile);
             }
         }
         else if (this.dirFacing.equals("down")) {
-        	startPos = this.position.cpy().add(-8*16, -7*16);
+            startPos = this.position.cpy().add(-8*16, -7*16);
             for (int i=0; i < 16; i++) {
-            	startPos.x += 16;
-            	currTile = game.map.tiles.get(startPos);
-            	if (currTile == null) {
-            		continue;
-            	}
-            	game.map.minimapQueue.add(currTile);
+                startPos.x += 16;
+                currTile = game.map.tiles.get(startPos);
+                if (currTile == null) {
+                    continue;
+                }
+                game.map.minimapQueue.add(currTile);
             }
         }
     }
@@ -4017,10 +4116,10 @@ public class Player {
         @Override
         public void step(Game game) {
             if (this.timer % 4 == 0) {
-            	Player.this.position.y -= 1;
+                Player.this.position.y -= 1;
             }
             else if (this.timer % 4 == 2) {
-            	Player.this.position.y += 1;
+                Player.this.position.y += 1;
             }
             if (this.timer >= 63) {
                 game.actionStack.remove(this);
@@ -4073,14 +4172,14 @@ public class Player {
      * Currently used in desert to make footprints 'fade' into the sand.
      */
     public class FootPrintFade extends Action {
-    	// Below DrawPlayerLower
+        // Below DrawPlayerLower
         public int layer = 131;
-    	String dirFacing;
-    	Color color;
-    	// 0.4f;
-    	float alpha = 0.35f;
-    	Vector2 position;
-    	int timer = 0;
+        String dirFacing;
+        Color color;
+        // 0.4f;
+        float alpha = 0.35f;
+        Vector2 position;
+        int timer = 0;
 
         public Sprite sprite;
         {
@@ -4089,8 +4188,8 @@ public class Player {
         }
 
         public FootPrintFade(String dirFacing, Vector2 position, Action nextAction) {
-        	this.position = position;
-        	this.dirFacing = dirFacing;
+            this.position = position;
+            this.dirFacing = dirFacing;
             this.nextAction = nextAction;
         }
 
@@ -4100,43 +4199,104 @@ public class Player {
 
         @Override
         public void firstStep(Game game) {
-        	if (this.dirFacing.equals("left")) {
-        		this.sprite.setRegion(0, 0, 16, 16);
-        	}
-        	else if (this.dirFacing.equals("up")) {
-        		this.sprite.setRegion(16, 0, 16, 16);
-        	}
-        	else if (this.dirFacing.equals("right")) {
-        		this.sprite.setRegion(0, 0, 16, 16);
-        		this.sprite.flip(true, false);
-        	}
-        	else if (this.dirFacing.equals("down")) {
-        		this.sprite.setRegion(16, 0, 16, 16);
-        		this.sprite.flip(false, true);
-        	}
+            if (this.dirFacing.equals("left")) {
+                this.sprite.setRegion(0, 0, 16, 16);
+            }
+            else if (this.dirFacing.equals("up")) {
+                this.sprite.setRegion(16, 0, 16, 16);
+            }
+            else if (this.dirFacing.equals("right")) {
+                this.sprite.setRegion(0, 0, 16, 16);
+                this.sprite.flip(true, false);
+            }
+            else if (this.dirFacing.equals("down")) {
+                this.sprite.setRegion(16, 0, 16, 16);
+                this.sprite.flip(false, true);
+            }
         }
         
         @Override
         public void step(Game game) {
-        	this.color = game.mapBatch.getColor();
-        	game.mapBatch.setColor(this.color.r, this.color.g, this.color.b, this.alpha);
+            this.color = game.mapBatch.getColor();
+            game.mapBatch.setColor(this.color.r, this.color.g, this.color.b, this.alpha);
             game.mapBatch.draw(this.sprite, this.position.x, this.position.y);
-        	game.mapBatch.setColor(this.color);
-        	this.timer++;
-        	// Looked good but was too smooth for gen 2
-//        	if (this.timer > 60 && this.timer % 4 == 0) {
-//        		this.alpha -= 0.05f;
-//        	}
-        	if (this.timer > 60 && this.timer % 8 == 0) {
-        		this.alpha -= 0.1f;
+            game.mapBatch.setColor(this.color);
+            this.timer++;
+            // Looked good but was too smooth for gen 2
+//            if (this.timer > 60 && this.timer % 4 == 0) {
+//                this.alpha -= 0.05f;
+//            }
+            if (this.timer > 60 && this.timer % 8 == 0) {
+                this.alpha -= 0.1f;
+            }
+            if (this.alpha <= 0) {
+                game.actionStack.remove(this);
+                game.insertAction(this.nextAction);
+            }
+        }
+    }
+
+    /**
+     * Player sitting on chair/couch.
+     */
+    public class Sitting extends Action {
+    	Tile sittingOn;
+    	Action standingAction;
+    	Sprite sittingSprite;
+    	int stopTimer = 0;
+    	int offsetX = 0;
+    	int offsetY = 0;
+
+        public Sitting(Tile sittingOn) {
+        	this.sittingOn = sittingOn;
+//        	this.nextAction = nextAction;
+        	// 
+        	this.sittingSprite = new Sprite(Player.this.sittingSprites);
+        	if (this.sittingOn.nameUpper.equals("house_couch1")) {
+        		this.sittingSprite.setRegion(0, 0, 16, 16);
+        		this.offsetY = 3;
         	}
-        	if (this.alpha <= 0) {
-        		game.actionStack.remove(this);
-        		game.insertAction(this.nextAction);
+        	else if (this.sittingOn.nameUpper.equals("house_couch2") || 
+        			 this.sittingOn.nameUpper.equals("house_couch3")) {
+        		this.sittingSprite.setRegion(32, 0, 16, 16);
+        		this.sittingSprite.flip(true, false);
+        		this.offsetX = 3;
+        		this.offsetY = 5;
+        	}
+        	else if (this.sittingOn.nameUpper.equals("house_couch4") || 
+       			 this.sittingOn.nameUpper.equals("house_couch5")) {
+        		this.sittingSprite.setRegion(32, 0, 16, 16);
+        		this.offsetX = -3;
+        		this.offsetY = 5;
+        	}
+        }
+
+        @Override
+        public void firstStep(Game game) {
+        	Player.this.isSitting = true;
+        	this.standingAction = Player.this.standingAction;
+        	game.actionStack.remove(this.standingAction);
+        }
+
+        @Override
+        public void step(Game game) {
+        	game.mapBatch.draw(this.sittingSprite, this.sittingOn.position.x +this.offsetX, this.sittingOn.position.y +this.offsetY);
+        	//
+        	if (InputProcessor.bJustPressed) {
+        		this.stopTimer = 30;
+        	}
+        	if (this.stopTimer > 0) {
+        		this.stopTimer--;
+        		if (this.stopTimer <= 0) {
+            		game.actionStack.remove(this);
+            		game.insertAction(new SetField(Player.this, "isSitting", false,
+            						  new SetField(game, "playerCanMove", true,
+            						  this.standingAction)));
+        		}
         	}
         }
     }
-    
+
 
     public class Flying extends Action {
         Pokemon pokemon;
@@ -4365,9 +4525,9 @@ public class Player {
                 if (this.takingOff) {
                     game.insertAction(new PlaySound("fly_takingoff1", null));
                     // Gate open/close
-                	Tile currTile = game.map.tiles.get(Player.this.position);
+                    Tile currTile = game.map.tiles.get(Player.this.position);
                     if (currTile != null && currTile.nameUpper.contains("gate")) {
-                    	currTile.init(currTile.name, currTile.nameUpper, currTile.position, true, currTile.routeBelongsTo);
+                        currTile.init(currTile.name, currTile.nameUpper, currTile.position, true, currTile.routeBelongsTo);
                         game.insertAction(new PlaySound("sounds/gate2", null));
                     }
                 }
@@ -4422,7 +4582,7 @@ public class Player {
                     // Gate open/close
                     Tile currTile = game.map.tiles.get(Player.this.position);
                     if (currTile != null && currTile.nameUpper.contains("gate")) {
-                    	currTile.overSprite = null;
+                        currTile.overSprite = null;
                         game.insertAction(new PlaySound("sounds/gate1", null));
                     }
                     return;
@@ -4619,10 +4779,38 @@ public class Player {
         playerText = new Texture(coloredPixmap);
         this.fishingSprites = new SpriteProxy(playerText, 0, 0, 56, 24);
 
+        // Sitting sprites
+        if (this.character.equals("kris")) {
+            playerText = TextureCache.get(Gdx.files.internal("kris-sitting1.png"));
+        }
+        else {
+            playerText = TextureCache.get(Gdx.files.internal("red-sitting1.png"));
+        }
+        if (!playerText.getTextureData().isPrepared()) {
+            playerText.getTextureData().prepare();
+        }
+        pixmap = playerText.getTextureData().consumePixmap();
+        clearColor = new Color(0, 0, 0, 0);
+        coloredPixmap = new Pixmap(playerText.getWidth(), playerText.getHeight(), Pixmap.Format.RGBA8888);
+        coloredPixmap.setColor(clearColor);
+        coloredPixmap.fill();
+        for (int i = 0; i < playerText.getWidth(); i++) {
+            for (int j = 0; j < playerText.getHeight(); j++) {
+                Color color = new Color(pixmap.getPixel(i, j));
+                if (color.equals(replaceColor)) {
+                    color = replaceWith;
+                }
+                coloredPixmap.drawPixel(i, j, Color.rgba8888(color));
+
+            }
+        }
+        playerText = new Texture(coloredPixmap);
+        this.sittingSprites = new SpriteProxy(playerText, 0, 0, 48, 16);
+
         // Recolor battle sprite
         // TODO: this probably looks bad
         if (this.character.equals("kris")) {
-        	// TODO: the size of this is diff than gold.
+            // TODO: the size of this is diff than gold.
             playerText = TextureCache.get(Gdx.files.internal("kris_back.png"));
             replaceColor = new Color(80f/255f, 72f/255f, 248f/255f, 1f);
         }
@@ -5468,7 +5656,7 @@ class PlayerMoving extends Action {
         
         // Footprint fade if on desert currently
         if (game.map.tiles.containsKey(this.initialPos) && game.map.tiles.get(this.initialPos).name.equals("desert4")) {
-        	game.insertAction(this.player.new FootPrintFade(this.player.dirFacing, initialPos, null));
+            game.insertAction(this.player.new FootPrintFade(this.player.dirFacing, initialPos, null));
         }
     }
 
@@ -5542,14 +5730,14 @@ class PlayerMoving extends Action {
         if ((int)this.xDist == 6 || (int)this.yDist == 6) {
             Tile currTile = game.map.tiles.get(this.targetPos);
             if (currTile != null && currTile.nameUpper.contains("gate")) {
-            	currTile.overSprite = null;
+                currTile.overSprite = null;
                 game.insertAction(new PlaySound("sounds/gate1", null));
             }
         }
         else if ((int)this.xDist == 11 || (int)this.yDist == 11) {
-        	Tile currTile = game.map.tiles.get(this.initialPos);
+            Tile currTile = game.map.tiles.get(this.initialPos);
             if (currTile != null && currTile.nameUpper.contains("gate")) {
-            	currTile.init(currTile.name, currTile.nameUpper, currTile.position, true, currTile.routeBelongsTo);
+                currTile.init(currTile.name, currTile.nameUpper, currTile.position, true, currTile.routeBelongsTo);
                 game.insertAction(new PlaySound("sounds/gate2", null));
             }
         }
@@ -5574,13 +5762,20 @@ class PlayerMoving extends Action {
                     System.out.println("game.player.enteredDesertBiome");
                     System.out.println(game.player.enteredDesertBiome);
                     if (newRoute.type().equals("desert") && !game.player.enteredDesertBiome) {
-                    	game.player.enteredDesertBiome = true;
-                    	game.playerCanMove = false;
-                    	game.insertAction(game.player.new Emote("!",
-                    			          new DisplayText(game, "The sun is scorching hot! This region feels dangerous...", null, null,
-                    			          new SetField(game, "playerCanMove", true,
-                    			          null))));
+                        game.player.enteredDesertBiome = true;
+                        game.playerCanMove = false;
+                        game.insertAction(game.player.new Emote("!",
+                                          new DisplayText(game, "The sun is scorching hot! This region feels dangerous...", null, null,
+                                          new SetField(game, "playerCanMove", true,
+                                          null))));
                     }
+                    // TODO: was just messing around.
+//                    if (newRoute.type().equals("desert")) {
+//                        game.mapBatch.setColor(new Color(1f, 0.9f, 0.7f, 1f));
+//                    }
+//                    else {
+//                        game.mapBatch.setColor(new Color(1f, 1f, 1f, 1f));
+//                    }
                 }
 
                 if (game.map.currRoute != newRoute) {
@@ -5732,7 +5927,7 @@ class PlayerRunning extends Action {
 
         // Footprint fade if on desert currently
         if (game.map.tiles.containsKey(this.initialPos) && game.map.tiles.get(this.initialPos).name.equals("desert4")) {
-        	game.insertAction(this.player.new FootPrintFade(this.player.dirFacing, initialPos, null));
+            game.insertAction(this.player.new FootPrintFade(this.player.dirFacing, initialPos, null));
         }
     }
 
@@ -5860,14 +6055,14 @@ class PlayerRunning extends Action {
         if ((int)this.xDist == 6 || (int)this.yDist == 6) {
             Tile currTile = game.map.tiles.get(this.targetPos);
             if (currTile != null && currTile.nameUpper.contains("gate")) {
-            	currTile.overSprite = null;
+                currTile.overSprite = null;
                 game.insertAction(new PlaySound("sounds/gate1", null));
             }
         }
         else if ((int)this.xDist == 12 || (int)this.yDist == 12) {
-        	Tile currTile = game.map.tiles.get(this.initialPos);
+            Tile currTile = game.map.tiles.get(this.initialPos);
             if (currTile != null && currTile.nameUpper.contains("gate")) {
-            	currTile.init(currTile.name, currTile.nameUpper, currTile.position, true, currTile.routeBelongsTo);
+                currTile.init(currTile.name, currTile.nameUpper, currTile.position, true, currTile.routeBelongsTo);
                 game.insertAction(new PlaySound("sounds/gate2", null));
             }
         }
@@ -5892,12 +6087,12 @@ class PlayerRunning extends Action {
                     System.out.println("game.player.enteredDesertBiome");
                     System.out.println(game.player.enteredDesertBiome);
                     if (newRoute.type().equals("desert") && !game.player.enteredDesertBiome) {
-                    	game.player.enteredDesertBiome = true;
-                    	game.playerCanMove = false;
-                    	game.insertAction(game.player.new Emote("!",
-                    			          new DisplayText(game, "The sun is scorching hot! This region feels dangerous...", null, null,
-                    			          new SetField(game, "playerCanMove", true,
-                    			          null))));
+                        game.player.enteredDesertBiome = true;
+                        game.playerCanMove = false;
+                        game.insertAction(game.player.new Emote("!",
+                                          new DisplayText(game, "The sun is scorching hot! This region feels dangerous...", null, null,
+                                          new SetField(game, "playerCanMove", true,
+                                          null))));
                     }
                 }
                 
@@ -6092,8 +6287,8 @@ class PlayerStanding extends Action {
                     ArrayList<String> eligiblePokemon = new ArrayList<String>();
 //                    for (Pokemon pokemon : game.map.currRoute.pokemon) {  // TODO: remove
                     for (String name : currTile.routeBelongsTo.allowedPokemon()) {
-                    	name = name.toLowerCase();  // For safety
-                    	// TODO: may revisit
+                        name = name.toLowerCase();  // For safety
+                        // TODO: may revisit
 //                        if (pokemon.inBattle) {
 //                            continue;
 //                        }
@@ -6180,26 +6375,26 @@ class PlayerStanding extends Action {
                     boolean failed = false;
                     // Some routes require that wild encounters don't evolve.
                     if (currTile.routeBelongsTo.name.equals("ruins1_inner")) {
-                    	failed = true;
+                        failed = true;
                     }
                     while (!failed) {
                         failed = true;
                         evos = Specie.gen2Evos.get(pokemon.specie.name);
                         for (String evo : evos.keySet()) {
                             if (currTile.routeBelongsTo.isDungeon) {
-                            	extraLevel = (10*(timesEvolved+1));
+                                extraLevel = (10*(timesEvolved+1));
                             }
                             // Don't allow encounters with fully-evolved Pokemon outside of dungeons.
                             else {
-                            	name = evos.get(evo).toLowerCase();
-                            	// Specie may not be loaded yet.
+                                name = evos.get(evo).toLowerCase();
+                                // Specie may not be loaded yet.
                                 if (!Specie.species.containsKey(name)) {
                                     Specie.species.put(name, new Specie(name));
                                 }
                                 boolean isBaseSpecies = Pokemon.baseSpecies.get(name).equalsIgnoreCase(name);
                                 boolean hasEvo = !Specie.gen2Evos.get(name).isEmpty();
                                 if (!isBaseSpecies && !hasEvo) {
-                                	continue;
+                                    continue;
                                 }
                             }
                             try {
@@ -6225,21 +6420,21 @@ class PlayerStanding extends Action {
                         }
                     }
                     if (evolveTo != null) {
-                    	if (currTile.routeBelongsTo.isDungeon) {
+                        if (currTile.routeBelongsTo.isDungeon) {
                             pokemon.level += 10*timesEvolved;
-                    	}
+                        }
                         pokemon.exp = pokemon.gen2CalcExpForLevel(pokemon.level);
                         pokemon.calcMaxStats();
                         pokemon.currentStats.put("hp", pokemon.maxStats.get("hp"));
                     }
 
 //                    // TODO: debug, remove
-//                    pokemon = new Pokemon("camerupt", 11, Pokemon.Generation.CRYSTAL);
+//                    pokemon = new Pokemon("unown_qmark", 11, Pokemon.Generation.CRYSTAL, false, false);
 //                    // TODO: debug, remove
-//                    pokemon.attacks[0] = "present";
-//                    pokemon.attacks[1] = "present";
-//                    pokemon.attacks[2] = "present";
-//                    pokemon.attacks[3] = "present";
+//                    pokemon.attacks[0] = "pursuit";
+//                    pokemon.attacks[1] = "pursuit";
+//                    pokemon.attacks[2] = "pursuit";
+//                    pokemon.attacks[3] = "pursuit";
                     return pokemon;
                 }
             }
@@ -6333,8 +6528,8 @@ class PlayerStanding extends Action {
         Vector2 newPos = new Vector2();
 
         if (this.checkWildEncounter) {
-        	//
-        	game.player.updateBuildTiles(game);
+            //
+            game.player.updateBuildTiles(game);
             Tile tile = game.map.tiles.get(game.player.position);
             // If player is standing on stairs, stop moving and change interior index.
             if (tile != null && (tile.nameUpper.contains("stairs") || tile.name.contains("stairs"))) {
@@ -6455,12 +6650,12 @@ class PlayerStanding extends Action {
             // Friendship
             if (game.player.friendshipStepTimer >= 512) {  //either 16 or 32, not sure which  //16) {  // 256
                 for (Pokemon pokemon : game.player.pokemon) {
-                	if (pokemon.isEgg) {
-                		continue;
-                	}
-                	pokemon.happiness++;
-                	System.out.println(pokemon.nickname);
-                	System.out.println(pokemon.happiness);
+                    if (pokemon.isEgg) {
+                        continue;
+                    }
+                    pokemon.gainHappiness(1);
+                    System.out.println(pokemon.nickname);
+                    System.out.println(pokemon.happiness);
                 }
                 game.player.friendshipStepTimer = 0;
             }
@@ -6663,7 +6858,7 @@ class PlayerStanding extends Action {
             game.player.dirFacing = "up";
             newPos = new Vector2(game.player.position.x, game.player.position.y+16);
             if (PlayerStanding.moveTimer == 0) {
-            	game.player.updateBuildTiles(game);
+                game.player.updateBuildTiles(game);
             }
             else if (PlayerStanding.moveTimer > 2) {
                 shouldMove = true;
@@ -6674,7 +6869,7 @@ class PlayerStanding extends Action {
             game.player.dirFacing = "down";
             newPos = new Vector2(game.player.position.x, game.player.position.y-16);
             if (PlayerStanding.moveTimer == 0) {
-            	game.player.updateBuildTiles(game);
+                game.player.updateBuildTiles(game);
             }
             else if (PlayerStanding.moveTimer > 2) {
                 shouldMove = true;
@@ -6685,7 +6880,7 @@ class PlayerStanding extends Action {
             game.player.dirFacing = "left";
             newPos = new Vector2(game.player.position.x-16, game.player.position.y);
             if (PlayerStanding.moveTimer == 0) {
-            	game.player.updateBuildTiles(game);
+                game.player.updateBuildTiles(game);
             }
             else if (PlayerStanding.moveTimer > 2) {
                 shouldMove = true;
@@ -6696,7 +6891,7 @@ class PlayerStanding extends Action {
             game.player.dirFacing = "right";
             newPos = new Vector2(game.player.position.x+16, game.player.position.y);
             if (PlayerStanding.moveTimer == 0) {
-            	game.player.updateBuildTiles(game);
+                game.player.updateBuildTiles(game);
             }
             else if (PlayerStanding.moveTimer > 2) {
                 shouldMove = true;
@@ -6849,8 +7044,8 @@ class PlayerStanding extends Action {
                             game.player.hmPokemon.standingAction.append(new CallMethod(game.player, "swapSprites", new Object[]{game.player.hmPokemon}, null));
                         }
                         game.player.hmPokemon.standingAction.append(new CallMethod(game.player.hmPokemon, "removeDrawActions", new Object[]{game},
-                                									new SetField(game.player, "hmPokemon", null,
-                        										    new SetField(game, "playerCanMove", true,
+                                                                    new SetField(game.player, "hmPokemon", null,
+                                                                    new SetField(game, "playerCanMove", true,
                                                                     null))));
                         game.player.currFieldMove = "";
                         game.insertAction(game.player.hmPokemon.standingAction);
@@ -6979,7 +7174,8 @@ class PlayerStanding extends Action {
             else if (game.player.currPlanting != null) {
                 if (game.player.currPlanting.equals("manure")) {
                     if (!currTile.nameUpper.contains("fertilized") &&
-                        currTile.nameUpper.contains("tree_planted")) {
+                        (currTile.nameUpper.contains("tree_planted") ||
+                         currTile.nameUpper.contains("bush2_color"))) {
                         currTile.nameUpper = currTile.nameUpper+"_fertilized";
                         // Change currTile lower appearance
                         game.map.tiles.put(currTile.position, new Tile("mountain1", currTile.nameUpper, currTile.position.cpy(), true, currTile.routeBelongsTo));
@@ -6987,18 +7183,29 @@ class PlayerStanding extends Action {
                     }
                 }
                 else if (game.player.currPlanting.equals("miracle seed")) {
-                    if (!currTile.name.equals("grass_planted") &&
-                        (currTile.name.equals("green1") || currTile.name.contains("flower"))) {
-                        currTile.nameUpper = "grass_planted";
+                    if (currTile.nameUpper.equals("") &&
+//                        !currTile.name.equals("grass_planted") &&
+                        (currTile.name.equals("green1") ||
+                         currTile.name.contains("snow") ||
+                         currTile.name.contains("sand") ||
+                         currTile.name.contains("desert") ||
+                         currTile.name.contains("flower"))) {
                         // Change currTile appearance
-                        game.map.tiles.put(currTile.position, new Tile("grass_planted", currTile.position.cpy(), true, currTile.routeBelongsTo));
+                        // TODO: remove commented line
+//                      currTile.nameUpper = "grass_planted";
+//                        game.map.tiles.put(currTile.position, new Tile("grass_planted", currTile.position.cpy(), true, currTile.routeBelongsTo));
+                        game.map.tiles.put(currTile.position, new Tile(currTile.name, "grass_planted",
+                                                                       currTile.position.cpy(), true,
+                                                                       currTile.routeBelongsTo));
                         game.insertAction(new PlaySound("seed1", null));
                     }
                 }
                 else if (game.player.currPlanting.contains("apricorn")) {
                     if (!(currTile.name.equals("green1") || 
                             currTile.name.contains("flower") ||
-                            currTile.name.contains("desert")) ||  // TODO: unsure
+                            currTile.name.contains("sand") ||
+                            currTile.name.contains("snow") || 
+                            currTile.name.contains("desert")) ||
                         currTile.nameUpper.contains("tree") ||
                         currTile.attrs.get("solid")) {
                         // TODO: used to display hint text
@@ -7023,7 +7230,7 @@ class PlayerStanding extends Action {
                 // TODO: remove
 //                else if (game.player.currPlanting.contains("rod")) {
 //                    if (!currTile.name.contains("water")) {
-//                    	return;
+//                        return;
 //                    }
 //                    String rodName = game.player.currPlanting;
 //                    game.playerCanMove = false;
@@ -7034,69 +7241,69 @@ class PlayerStanding extends Action {
 //                    Vector2 initialPos = game.player.position.cpy();
 //                    Vector2 newPosition = initialPos.cpy();
 //                    if (dirFacing.equals("up")) {
-//                    	fishingSprite.setRegion(0, 0, 16, 24);
+//                        fishingSprite.setRegion(0, 0, 16, 24);
 //                    }
 //                    else if (dirFacing.equals("down")) {
-//                    	newPosition.y -= 8;
-//                    	fishingSprite.setRegion(16, 0, 16, 24);
+//                        newPosition.y -= 8;
+//                        fishingSprite.setRegion(16, 0, 16, 24);
 //                    }
 //                    else if (dirFacing.equals("left")) {
-//                    	newPosition.x -= 8;
-//                    	fishingSprite.setRegion(32, 0, 24, 16);
-//                    	fishingSprite.flip(true, false);
+//                        newPosition.x -= 8;
+//                        fishingSprite.setRegion(32, 0, 24, 16);
+//                        fishingSprite.flip(true, false);
 //                    }
 //                    else if (dirFacing.equals("right")) {
-//                    	fishingSprite.setRegion(32, 0, 24, 16);
+//                        fishingSprite.setRegion(32, 0, 24, 16);
 //                    }
 //
 //                    // Play the 'potion' sound effect
 //                    Action nextAction = new PlaySound("rod1",
-//                    					new SplitAction(
-//                    					    new SetField(game.player, "position", newPosition, null), 
-//                    			        new SetField(game.player, "currSprite", fishingSprite, 
-//                    			        null)));
+//                                        new SplitAction(
+//                                            new SetField(game.player, "position", newPosition, null), 
+//                                        new SetField(game.player, "currSprite", fishingSprite, 
+//                                        null)));
 //
 //                    if (Game.rand.nextInt(2) == 0) {
-//                    	// Get the encountered Pokemon.
-//                    	Route route = new Route("", 2);
-//                    	if (currTile.routeBelongsTo != null && currTile.routeBelongsTo.name.equals("oasis1")) {
-//                    		route.name = "oasis_pond1";
-//                    	}
-//                    	else if (currTile.name.equals("water2")) {
-//                    		route.name = "sea1";
-//                    	}
-//                    	else {
-//                    		route.name = "river1";
-//                    	}
-//                    	ArrayList<String> eligiblePokemon = new ArrayList<String>(route.allowedPokemon());
-//                    	// TODO: debug, remove
-//                		for (String name : eligiblePokemon) {
-//                			System.out.println(name);
-//                		}
-//                    	if (rodName.equals("old rod") || rodName.equals("good rod")) {
-//                    		for (String name : route.superRodPokemon()) {
-//                    			eligiblePokemon.remove(name);
-//                    		}
-//                    	}
-//                    	if (rodName.equals("old rod")) {
-//                    		for (String name : route.goodRodPokemon()) {
-//                    			eligiblePokemon.remove(name);
-//                    		}
-//                    	}
-//                    	// TODO: debug, remove
-//                		for (String name : eligiblePokemon) {
-//                			System.out.println(name);
-//                		}
-//                    	String name = eligiblePokemon.get(Game.rand.nextInt(eligiblePokemon.size()));
-//                    	// Level based on rod
-//                    	int level = 10;
-//                    	if (rodName.equals("good rod")) {
-//                    		level = 20;
-//                    	}
-//                    	else if (rodName.equals("super rod")) {
-//                    		level = 30;
-//                    	}
-//                    	// Evo the Pokemon if able (based on level requirement)
+//                        // Get the encountered Pokemon.
+//                        Route route = new Route("", 2);
+//                        if (currTile.routeBelongsTo != null && currTile.routeBelongsTo.name.equals("oasis1")) {
+//                            route.name = "oasis_pond1";
+//                        }
+//                        else if (currTile.name.equals("water2")) {
+//                            route.name = "sea1";
+//                        }
+//                        else {
+//                            route.name = "river1";
+//                        }
+//                        ArrayList<String> eligiblePokemon = new ArrayList<String>(route.allowedPokemon());
+//                        // TODO: debug, remove
+//                        for (String name : eligiblePokemon) {
+//                            System.out.println(name);
+//                        }
+//                        if (rodName.equals("old rod") || rodName.equals("good rod")) {
+//                            for (String name : route.superRodPokemon()) {
+//                                eligiblePokemon.remove(name);
+//                            }
+//                        }
+//                        if (rodName.equals("old rod")) {
+//                            for (String name : route.goodRodPokemon()) {
+//                                eligiblePokemon.remove(name);
+//                            }
+//                        }
+//                        // TODO: debug, remove
+//                        for (String name : eligiblePokemon) {
+//                            System.out.println(name);
+//                        }
+//                        String name = eligiblePokemon.get(Game.rand.nextInt(eligiblePokemon.size()));
+//                        // Level based on rod
+//                        int level = 10;
+//                        if (rodName.equals("good rod")) {
+//                            level = 20;
+//                        }
+//                        else if (rodName.equals("super rod")) {
+//                            level = 30;
+//                        }
+//                        // Evo the Pokemon if able (based on level requirement)
 //                        Pokemon pokemon = new Pokemon(name, level, Pokemon.Generation.CRYSTAL);
 //                        String evolveTo = null;
 //                        int timesEvolved = 0;
@@ -7136,37 +7343,37 @@ class PlayerStanding extends Action {
 ////                            pokemon.currentStats.put("hp", pokemon.maxStats.get("hp"));
 ////                        }
 //
-//                    	String[] huhs = new String[] {"Whoa!             ", "Oh!               ",
-//                    							      "Huh?              ", "What!?            "};
-//                    	String huh = huhs[Game.rand.nextInt(huhs.length)];
+//                        String[] huhs = new String[] {"Whoa!             ", "Oh!               ",
+//                                                      "Huh?              ", "What!?            "};
+//                        String huh = huhs[Game.rand.nextInt(huhs.length)];
 //                        game.player.setCurrPokemon();
 //                        game.battle.oppPokemon = pokemon;
-//                    	nextAction.append(new WaitFrames(game, 90,
-//          					              game.player.new CaughtFishAnim(
-//          					  	          game.player.new Emote("!",
-//                            			  new DisplayText(game, huh+"A bite!", null, null,
-//                    					  new WaitFrames(game, 30,
+//                        nextAction.append(new WaitFrames(game, 90,
+//                                            game.player.new CaughtFishAnim(
+//                                              game.player.new Emote("!",
+//                                          new DisplayText(game, huh+"A bite!", null, null,
+//                                          new WaitFrames(game, 30,
 //                                          new SetField(game.musicController, "startBattle", "wild",
 //                                          Battle.getIntroAction(game))))))));
 //                        game.insertAction(new WaitFrames(game, 600,
-//                        				  new SetField(game.player, "currPlanting", rodName,
-//                        				  new SetField(game.player, "position", initialPos,
-//                        				  null))));
+//                                          new SetField(game.player, "currPlanting", rodName,
+//                                          new SetField(game.player, "position", initialPos,
+//                                          null))));
 //                    }
 //                    else {
-//                    	String[] huhs = new String[] {"!", "..."};
-//                    	String huh = huhs[Game.rand.nextInt(huhs.length)];
-//                    	nextAction.append(new WaitFrames(game, 90,
-//                    					  new DisplayText(game, "Not even a nibble"+huh, null, null,
-//                    					  new SetField(game.player, "currPlanting", rodName,
-//                      					  new SplitAction(
-//                        			          new SetField(game.player, "position", initialPos, null), 
-//            							  new SetField(game, "playerCanMove", true,
+//                        String[] huhs = new String[] {"!", "..."};
+//                        String huh = huhs[Game.rand.nextInt(huhs.length)];
+//                        nextAction.append(new WaitFrames(game, 90,
+//                                          new DisplayText(game, "Not even a nibble"+huh, null, null,
+//                                          new SetField(game.player, "currPlanting", rodName,
+//                                            new SplitAction(
+//                                              new SetField(game.player, "position", initialPos, null), 
+//                                          new SetField(game, "playerCanMove", true,
 //                                          new WaitFrames(game, 20,
-//                    			          null)))))));
+//                                          null)))))));
 //                    }
 //                    game.insertAction(nextAction);
-//                	return;
+//                    return;
 //                }
                 // Deduct from inventory
                 game.player.itemsDict.put(game.player.currPlanting, game.player.itemsDict.get(game.player.currPlanting)-1);
@@ -7199,23 +7406,26 @@ class PlayerStanding extends Action {
                 // make sure the interior tile above is also either nothing or a house.
                 if (game.player.currBuildTile.name.contains("house")) {
                     Tile upTile = game.map.interiorTiles.get(game.map.interiorTilesIndex).get(currTile.position.cpy().add(0, 16));
-                    requirementsMet = requirementsMet && (upTile == null || upTile.name.contains("house"));
+                    requirementsMet = requirementsMet && (upTile == null ||
+                                                          upTile.name.contains("house") ||
+                                                          upTile.name.contains("rug"));
                 }
                 if (game.player.currBuildTile.name.contains("picture")) {
                     requirementsMet = requirementsMet &&
-                    		  	 	  !currTile.nameUpper.contains("_left") &&
-                    		  	 	  !currTile.nameUpper.contains("_right");
+                                         !currTile.nameUpper.contains("_left") &&
+                                         !currTile.nameUpper.contains("_right");
                 }
                 boolean isTorch = game.player.currBuildTile.name.contains("torch") ||
                                   game.player.currBuildTile.name.equals("house_clock1") ||
-                                  game.player.currBuildTile.name.contains("picture");
+                                  game.player.currBuildTile.name.contains("picture") ||
+                                  game.player.currBuildTile.name.contains("window");
                 if (isTorch) {
                     requirementsMet = requirementsMet &&
                                       !currTile.items().containsKey("torch") &&
                                       currTile.attrs.get("solid") &&
                                       !currTile.nameUpper.contains("roof");
                     String[] notAllowedTiles = new String[]{"regi", "tree", "bush", "table",
-                                                            "bed", "shelf", "plant"};
+                                                            "bed", "shelf", "plant", "couch"};
                     for (String name : notAllowedTiles) {
                         requirementsMet = requirementsMet && !(currTile.name.contains(name) || currTile.nameUpper.contains(name));
                     }
@@ -7284,7 +7494,7 @@ class PlayerStanding extends Action {
                         // TODO: hacky, find a different way in the future.
                         else if (currTile.nameUpper.contains("interiorwall") && !game.player.currBuildTile.name.contains("torch")) {
                             newTile = new Tile(currTile.name, currTile.nameUpper+"|"+game.player.currBuildTile.name,
-                                    	       currTile.position.cpy(), true, currTile.routeBelongsTo);
+                                               currTile.position.cpy(), true, currTile.routeBelongsTo);
                         }
                         else {
                             newTile = new Tile(currTile.name, game.player.currBuildTile.name,
@@ -7300,13 +7510,20 @@ class PlayerStanding extends Action {
                             game.map.tiles.remove(currTile.position.cpy());
                             game.map.tiles.put(currTile.position.cpy(), newTile);
                             game.map.adjustSurroundingTiles(newTile);
-                            if (game.player.currBuildTile.name.contains("bed")) {
+                            if (game.player.currBuildTile.name.contains("bed") ||
+                            	game.player.currBuildTile.name.equals("house_couch2") ||
+                            	game.player.currBuildTile.name.equals("house_couch4")) {
 //                                game.map.tiles.remove(currTile.position.cpy().add(0, 16));
 //                                Tile upTile = new Tile("black1", currTile.position.cpy().add(0, 16));
 //                                game.map.tiles.put(currTile.position.cpy().add(0, 16), upTile);
                                 Tile upTile = game.map.tiles.get(currTile.position.cpy().add(0, 16));
-                                upTile.nameUpper = "solid";
+                                upTile.nameUpper = "onpress_above";
                                 upTile.attrs.put("solid", true);
+                            }
+                            else if (game.player.currBuildTile.name.equals("house_couch1")) {
+                                Tile right = game.map.tiles.get(currTile.position.cpy().add(16, 0));
+                                right.nameUpper = "onpress_left";
+                                right.attrs.put("solid", true);
                             }
                             // 
                             game.player.updateBuildTiles(game);
@@ -7347,6 +7564,8 @@ class PlayerStanding extends Action {
                         }
                         newTile.items().put(name, value);
                     }
+                    // Trigger refresh for build tile requirements drawing
+                    DrawBuildRequirements.currBuilding = "";
                 }
             }
             else if (game.player.currFieldMove.equals("DIG")) {
@@ -7406,8 +7625,8 @@ class PlayerStanding extends Action {
                 else {
                     boolean requirementsMet = currTile.nameUpper.equals("") || currTile.nameUpper.contains("_cracked");
                     requirementsMet = requirementsMet && !currTile.attrs.get("solid") && 
-                    									 !currTile.name.contains("door") &&
-                    									 !currTile.name.contains("bridge");
+                                                         !currTile.name.contains("door") &&
+                                                         !currTile.name.contains("bridge");
                     if (requirementsMet) {
                         Tile newTile = new Tile(currTile.name, game.player.currDigTile.name,
                                                 currTile.position.cpy(), true, currTile.routeBelongsTo);
@@ -7548,19 +7767,26 @@ class PlayerStanding extends Action {
                     }
                     // Cutting tile with rug to the left/right
                     Tile left = game.map.tiles.get(pos.cpy().add(-16, 0));
-                    if (left != null && left.name.contains("rug") && currTile.nameUpper.contains("_E")) {
+                    if (left != null && left.name.contains("rug") && (currTile.nameUpper.contains("E"))) {
                         game.map.tiles.put(left.position.cpy(), new Tile("green1", left.position.cpy(),
                                                                          true, left.routeBelongsTo));
                     }
                     Tile right = game.map.tiles.get(pos.cpy().add(16, 0));
-                    if (right != null && right.name.contains("rug") && currTile.nameUpper.contains("_W")) {
+                    if (right != null && right.name.contains("rug") && currTile.nameUpper.contains("W")) {
                         game.map.tiles.put(right.position.cpy(), new Tile("green1", right.position.cpy(),
                                                                           true, right.routeBelongsTo));
                     }
                     // If cutting bed, remove the solid tile above
-                    if (upTile != null && currTile.nameUpper.contains("bed")) {
+                    if (upTile != null && (currTile.nameUpper.contains("bed") ||
+			                    		   currTile.nameUpper.equals("house_couch2") ||
+			                    		   currTile.nameUpper.equals("house_couch4"))) {
                         upTile.nameUpper = "";
                         upTile.attrs.put("solid", false);
+                    }
+                    // If cutting couch, remove the solid tile to the right
+                    if (right != null && currTile.nameUpper.equals("house_couch1")) {
+                    	right.nameUpper = "";
+                    	right.attrs.put("solid", false);
                     }
                     
                     if (game.map.tiles == game.map.overworldTiles) {
@@ -7622,7 +7848,8 @@ class PlayerStanding extends Action {
                         game.client.sendTCP(new Network.UseHM(game.player.network.id, 0, "CUT", game.player.dirFacing));
                     }
                 }
-                this.detectIsHouseBuilt(game, currTile);
+                // 
+//                this.detectIsHouseBuilt(game, currTile);
             }
             else if (game.player.currFieldMove.equals("SMASH")) {
                 if (currTile.attrs.get("smashable")) {
@@ -7674,7 +7901,7 @@ class PlayerStanding extends Action {
 //                        game.client.sendTCP(new Network.UseHM(game.player.network.id, 0, "CUT", game.player.dirFacing));
 //                    }
                 }
-                this.detectIsHouseBuilt(game, currTile);
+//                this.detectIsHouseBuilt(game, currTile);
             }
             else if (currTile.nameUpper.contains("campfire") && game.playerCanMove) {
                 game.playerCanMove = false;
@@ -7758,8 +7985,13 @@ class PlayerStanding extends Action {
                 }
             }
             // Check if traveling through interior door.
-            else if (game.player.dirFacing.equals("down") && 
-                (currTile.name.contains("rug") || (temp != null && temp.name.contains("entrance")))) {
+            // TODO: test
+//            else if (game.player.dirFacing.equals("down") && 
+//                     (currTile.name.contains("rug") || (temp != null && temp.name.contains("entrance")))) {
+            // TODO: refactor somehow
+            else if ((currTile.name.contains("rug") && temp == null) ||
+            		 (temp != null && temp.name.contains("entrance")) ||
+            		 (game.map.tiles == game.map.overworldTiles && game.player.dirFacing.equals("down") && currTile.name.contains("rug"))) {
                 if (game.map.tiles == game.map.overworldTiles) {
                     // Do enter building anim, then player travels down one space
                     game.insertAction(new EnterBuilding(game, "enter", game.map.interiorTiles.get(game.map.interiorTilesIndex),
@@ -7798,17 +8030,17 @@ class PlayerStanding extends Action {
                     }
                     else if (temp.ledgeDir.equals(game.player.dirFacing) || temp.ledgeDir.equals(oppDir)) {
                         // Bound over a fence if able.
-                    	if (temp.nameUpper.contains("fence")) {
+                        if (temp.nameUpper.contains("fence")) {
                             Vector2 diff = newPos.cpy().sub(game.player.position);
                             Tile fartherOutTile = game.map.tiles.get(newPos.cpy().add(diff));
                             if (fartherOutTile != null  && !fartherOutTile.attrs.get("solid")) {
                                 game.insertAction(new PlayerLedgeJump(game));
                             }
                             else {
-                            	game.insertAction(new PlayerBump(game));
+                                game.insertAction(new PlayerBump(game));
                             }
                             return;
-                    	}
+                        }
                         // Jump up the ledge
                         game.insertAction(new PlayerLedgeJumpFast(game));
                         return;

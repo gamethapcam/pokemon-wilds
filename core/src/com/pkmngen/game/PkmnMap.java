@@ -89,16 +89,16 @@ class DrawMap extends Action {
 
     @Override
     public void step(Game game) {
-    	
-    	// Draw pending tiles to the minimap
-		// Adjust i < val depending on framerate hit.
-		for (int i=0; !game.map.minimapQueue.isEmpty() && i < 2; i++) {
-//    	if (!game.map.minimapQueue.isEmpty()) {
-			game.map.minimapQueue.remove(0).updateMiniMap(game);
-    	}
+        
+        // Draw pending tiles to the minimap
+        // Adjust i < val depending on framerate hit.
+        for (int i=0; !game.map.minimapQueue.isEmpty() && i < 2; i++) {
+//        if (!game.map.minimapQueue.isEmpty()) {
+            game.map.minimapQueue.remove(0).updateMiniMap(game);
+        }
 
         // TODO: if player is in battle, don't do any of this
-        
+
         // TODO: debug, remove
 //        if (Gdx.input.isKeyPressed(Input.Keys.P)) {
 //            System.out.println("Camera unproject");
@@ -194,7 +194,7 @@ class DrawMap extends Action {
                 game.mapBatch.draw((SpriteProxy)tile.sprite, tile.sprite.getX(), tile.sprite.getY());
             }
             else {
-                game.mapBatch.draw(tile.sprite, tile.sprite.getX(), tile.sprite.getY());
+            	game.mapBatch.draw(tile.sprite, tile.sprite.getX(), tile.sprite.getY());
             }
 
             if (tile.drawUpperBelowPlayer) {
@@ -373,7 +373,6 @@ class DrawMap extends Action {
 //        }
 //        game.batch.draw(this.texture, 5, 5);
     }
-
 }
 
 // action is separate because grass in on different layer
@@ -458,33 +457,33 @@ class DrawMapGrass extends Action {
 
             if (tile.hasItem != null) {
                 
-            	if (tile.hasItem.contains("fossil") || tile.hasItem.equals("old amber")) {
-	                if (tile.hasItem.equals("helix fossil")) {
-	                    this.fossilSprite.setRegion(0, 16*1, 16, 16);
-	                }
-	                else if (tile.hasItem.equals("dome fossil")) {
-	                    this.fossilSprite.setRegion(0, 16*2, 16, 16);
-	                }
-	                else if (tile.hasItem.equals("old amber")) {
-	                    this.fossilSprite.setRegion(0, 0, 16, 16);
-	                }
-	                else if (tile.hasItem.equals("root fossil")) {
-	                    this.fossilSprite.setRegion(0, 16*3, 16, 16);
-	                }
-	                else if (tile.hasItem.equals("claw fossil")) {
-	                    this.fossilSprite.setRegion(0, 16*4, 16, 16);
-	                }
-	                else if (tile.hasItem.equals("shield fossil")) {
-	                    this.fossilSprite.setRegion(0, 16*5, 16, 16);
-	                }
-	                else if (tile.hasItem.equals("skull fossil")) {
-	                    this.fossilSprite.setRegion(0, 16*6, 16, 16);
-	                }
-	                game.mapBatch.draw(this.fossilSprite, tile.position.x, tile.position.y);
-            	}
-            	else if (tile.hasItem.contains("stone")) {
-	                game.mapBatch.draw(TextureCache.get(Gdx.files.internal("tiles/pokeball1.png")), tile.position.x, tile.position.y);
-            	}
+                if (tile.hasItem.contains("fossil") || tile.hasItem.equals("old amber")) {
+                    if (tile.hasItem.equals("helix fossil")) {
+                        this.fossilSprite.setRegion(0, 16*1, 16, 16);
+                    }
+                    else if (tile.hasItem.equals("dome fossil")) {
+                        this.fossilSprite.setRegion(0, 16*2, 16, 16);
+                    }
+                    else if (tile.hasItem.equals("old amber")) {
+                        this.fossilSprite.setRegion(0, 0, 16, 16);
+                    }
+                    else if (tile.hasItem.equals("root fossil")) {
+                        this.fossilSprite.setRegion(0, 16*3, 16, 16);
+                    }
+                    else if (tile.hasItem.equals("claw fossil")) {
+                        this.fossilSprite.setRegion(0, 16*4, 16, 16);
+                    }
+                    else if (tile.hasItem.equals("shield fossil")) {
+                        this.fossilSprite.setRegion(0, 16*5, 16, 16);
+                    }
+                    else if (tile.hasItem.equals("skull fossil")) {
+                        this.fossilSprite.setRegion(0, 16*6, 16, 16);
+                    }
+                    game.mapBatch.draw(this.fossilSprite, tile.position.x, tile.position.y);
+                }
+                else if (tile.hasItem.contains("stone")) {
+                    game.mapBatch.draw(TextureCache.get(Gdx.files.internal("tiles/pokeball1.png")), tile.position.x, tile.position.y);
+                }
             }
         }
     }
@@ -847,20 +846,20 @@ class EnterBuilding extends Action {
                 // Player buildtile stuff
                 // TODO: user Player.updateBuildTiles()
 //                if (game.map.tiles == game.map.overworldTiles) {
-//                	if (game.player.hmPokemon != null && game.player.hmPokemon.specie.name.equals("smeargle")) {
+//                    if (game.player.hmPokemon != null && game.player.hmPokemon.specie.name.equals("smeargle")) {
 //                        game.player.buildTiles = game.player.smeargleBuildTiles;
-//                	}
-//                	else {
+//                    }
+//                    else {
 //                        game.player.buildTiles = game.player.outdoorBuildTiles;
-//                	}
+//                    }
 //                }
 //                else {
-//                	if (game.player.hmPokemon != null && game.player.hmPokemon.specie.name.equals("smeargle")) {
+//                    if (game.player.hmPokemon != null && game.player.hmPokemon.specie.name.equals("smeargle")) {
 //                        game.player.buildTiles = game.player.smeargleInteriorTiles;
-//                	}
-//                	else {
+//                    }
+//                    else {
 //                        game.player.buildTiles = game.player.indoorBuildTiles;
-//                	}
+//                    }
 //                }
 //                while (game.player.buildTileIndex > 0 && game.player.buildTileIndex >= game.player.buildTiles.size()) {
 //                    game.player.buildTileIndex--;
@@ -1273,6 +1272,7 @@ class MoveWater extends Action {
                 tile.sprite.setRegionWidth((int)tile.sprite.getWidth());
             }
             else if (tile.name.contains("flower")) {
+//            else if (tile.is(Tile.Type.FLOWER)) {
                 if (this.timer == 0) {
                     tile.sprite.setRegion(0, 0, 16, 16);
                 }
@@ -1284,6 +1284,7 @@ class MoveWater extends Action {
             // Also animate campfire aura around fire type pokemon walking around.
             Pokemon pokemon = game.map.pokemon.get(tile.position);
             if (tile.nameUpper.equals("campfire1")) {
+//            if (tile.is(Tile.Type.CAMPFIRE)) {
                 if (this.campfireTimer == 0) {
                     Sprite newSprite = new Sprite(this.campfireSprites[0]);
                     newSprite.setPosition(tile.overSprite.getX(), tile.overSprite.getY());
@@ -1305,7 +1306,7 @@ class MoveWater extends Action {
                     }
                 }
             }
-            else if (tile.isTorch || (tile.items != null && tile.items().containsKey("torch"))) {
+            else if (tile.isTorch || (tile.items != null && tile.items.containsKey("torch"))) {
                 tile.isTorch = true;
                 Sprite newSprite;
                 if (this.campfireTimer < 40) {
@@ -1408,6 +1409,7 @@ class MoveWater extends Action {
 //                }
             }
             else if (tile.nameUpper.contains("revived_")) {
+//            else if (tile.is(Tile.Type.REVIVED)) {
                 String name = tile.nameUpper.split("_")[1];
                 if (!Specie.species.containsKey(name)) {
                     Specie.species.put(name, new Specie(name));
@@ -1419,6 +1421,7 @@ class MoveWater extends Action {
                 game.mapBatch.draw(Specie.species.get(name).avatarSprites.get(index), tile.position.x+8, tile.position.y+8);
             }
             else if (tile.nameUpper.equals("volcarona")) {
+//            else if (tile.is(Tile.Type.VOLCARONA)) {
                 // Campfire aura
                 if (this.campfireTimer % 10 == 0) {
                     if (game.mapBatch.getColor().r < .5f) {
@@ -1451,9 +1454,11 @@ class MoveWater extends Action {
                     }
                 }
             }
-            else if (tile.nameUpper.contains("hole1_water")) {
-                tile.overSprite.setTexture(Tile.dynamicTexts.get(tile.nameUpper)[(int)this.position.x]);
-            }
+            // TODO: is this used?
+            // TODO: I think this added 'round edges' to holes. Remove if not using.
+//            else if (tile.nameUpper.contains("hole1_water")) {
+//                tile.overSprite.setTexture(Tile.dynamicTexts.get(tile.nameUpper)[(int)this.position.x]);
+//            }
 
             if (pokemon != null &&
                 pokemon.mapTiles == game.map.tiles &&
@@ -1961,16 +1966,16 @@ public class PkmnMap {
 
         if (currTiles == this.overworldTiles) {
             if (currTile.nameUpper.contains("picture")) {
-            	return;
+                return;
             }
             else if (currTile.nameUpper.contains("house_plant")) {
-            	return;
+                return;
             }
             else if (currTile.nameUpper.contains("house_gym")) {
-            	return;
+                return;
             }
 //            else if (currTile.nameUpper.contains("window")) {
-//            	return;
+//                return;
 //            }
             else if (currTile.nameUpper.contains("hole")) {
                 // TODO: this is clunky
@@ -2084,8 +2089,8 @@ public class PkmnMap {
         //        currTile.overSprite.setPosition(pos.x, pos.y);
             }
             else if (currTile.nameUpper.contains("house") &&
-            		 !currTile.nameUpper.contains("roof") &&
-            		 !currTile.nameUpper.contains("door")) {
+                     !currTile.nameUpper.contains("roof") &&
+                     !currTile.nameUpper.contains("door")) {
                 if (currTile.nameUpper.equals("house5_middle1") && down.nameUpper.contains("fence1") &&
                     !(touchUp ^ touchDown)) {
                     Tile newTile = new Tile(currTile.name, "house5_middle1_fence1", 
@@ -2144,33 +2149,35 @@ public class PkmnMap {
                     return;
                 }
                 else if (currTile.nameUpper.contains("house7")) {
-                	if (touchUp) {
-                		ext += "N";
-                	}
-                	if (touchDown) {
-                		ext += "S";
-                	}
-                	if (touchRight) {
-                		ext += "E";
-                	}
-                	if (touchLeft) {
-                		ext += "W";
-                	}
-                	if (ext.length() <= 2) {
-                		ext += "S";
-                	}
-                	Tile newTile = new Tile(currTile.name, name+ext, 
-                						    currTile.position.cpy(), true,
-                						    currTile.routeBelongsTo);
-                	newTile.items = currTile.items;
-                	currTiles.put(currTile.position.cpy(), newTile);
+                    if (touchUp) {
+                        ext += "N";
+                    }
+                    if (touchDown) {
+                        ext += "S";
+                    }
+                    if (touchRight) {
+                        ext += "E";
+                    }
+                    if (touchLeft) {
+                        ext += "W";
+                    }
+                    if (ext.length() < 2) {
+                        ext += "S";
+                    }
+                    System.out.println(name+ext);
+                    System.out.println("");
+                    Tile newTile = new Tile(currTile.name, name+ext, 
+                                            currTile.position.cpy(), true,
+                                            currTile.routeBelongsTo);
+                    newTile.items = currTile.items;
+                    currTiles.put(currTile.position.cpy(), newTile);
 
-                	// Add to interiors if nothing there currently
-                	if (!interiorTiles.containsKey(currTile.position)) {
-                		Tile interiorTile = new Tile("house5_floor1", currTile.position.cpy());
-                		interiorTiles.put(currTile.position.cpy(), interiorTile);
-                	}
-                	return;
+                    // Add to interiors if nothing there currently
+                    if (!interiorTiles.containsKey(currTile.position)) {
+                        Tile interiorTile = new Tile("house5_floor1", currTile.position.cpy());
+                        interiorTiles.put(currTile.position.cpy(), interiorTile);
+                    }
+                    return;
                 }
                 
                 if (!touchLeft && !touchRight) {
@@ -2203,7 +2210,7 @@ public class PkmnMap {
                 }
             }
             else if (currTile.nameUpper.contains("house") &&
-            		 currTile.nameUpper.contains("roof")) {
+                     currTile.nameUpper.contains("roof")) {
                 if (!touchUp && !touchDown && !touchLeft && !touchRight) {
                     return;
                 }
@@ -2237,19 +2244,19 @@ public class PkmnMap {
 
                 // TODO: clean this stuff up
                 if (currTile.nameUpper.contains("house7")) {
-                	ext = "_";
-                	if (touchUp) {
-                		ext += "N";
-                	}
-                	if (touchDown) {
-                		ext += "S";
-                	}
-                	if (touchRight) {
-                		ext += "E";
-                	}
-                	if (touchLeft) {
-                		ext += "W";
-                	}
+                    ext = "_";
+                    if (touchUp) {
+                        ext += "N";
+                    }
+                    if (touchDown) {
+                        ext += "S";
+                    }
+                    if (touchRight) {
+                        ext += "E";
+                    }
+                    if (touchLeft) {
+                        ext += "W";
+                    }
                 }
                 
                 
@@ -2272,14 +2279,17 @@ public class PkmnMap {
             }
             else if (currTile.nameUpper.contains("door")) {
                 // Handle case where player puts a door on the roof, which should
-                // Make a 'back door' (red carpet on back of house that acts as door).
+                // make a 'back door' (red carpet on back of house that acts as door).
                 if ((left.nameUpper.contains("roof") || left.nameUpper.contains("door")) &&
                     (right.nameUpper.contains("roof") || right.nameUpper.contains("door")) &&
                     !(left.nameUpper.contains("door") && right.nameUpper.contains("door"))) {
-                	String name2 = "house5_roof_middle1";
-                	if (currTile.nameUpper.contains("house7")) {
-                    	name2 = "house7_roof_S";
-                	}
+                    String name2 = "house5_roof_middle1";
+                    if (currTile.nameUpper.contains("house6")) {
+                        name2 = "house6_roof_middle1";
+                    }
+                    else if (currTile.nameUpper.contains("house7")) {
+                        name2 = "house7_roof_S";
+                    }
                     Tile newTile =  new Tile(currTile.name, name2, 
                                              currTile.position.cpy(), true,
                                              currTile.routeBelongsTo);
@@ -2307,37 +2317,61 @@ public class PkmnMap {
                 // If player builds next to fences, turn the door into a 'gate'
                 if ((left.nameUpper.contains("fence") || left.nameUpper.contains("door")) &&
                     (right.nameUpper.contains("fence") || right.nameUpper.contains("door"))) {
-                	String fenceName = "fence1";
-                	if (name.contains("house6")) {
-                		fenceName = "fence2";
-                	}
+                    String fenceName = "fence1";
+                    if (name.contains("house6")) {
+                        fenceName = "fence2";
+                    }
                     Tile newTile =  new Tile(currTile.name, fenceName+"gate1", 
-				                             currTile.position.cpy(), true,
-				                             currTile.routeBelongsTo);
-					newTile.items = currTile.items;
-				    currTiles.put(currTile.position.cpy(), newTile);
-					this.adjustSurroundingTiles(currTile, currTiles);
-					return;
+                                             currTile.position.cpy(), true,
+                                             currTile.routeBelongsTo);
+                    newTile.items = currTile.items;
+                    currTiles.put(currTile.position.cpy(), newTile);
+                    this.adjustSurroundingTiles(currTile, currTiles);
+                    return;
                 }
                 if ((up.nameUpper.contains("fence") || up.nameUpper.contains("door")) &&
                     (down.nameUpper.contains("fence") || down.nameUpper.contains("door"))) {
-                	String fenceName = "fence1";
-                	if (name.contains("house6")) {
-                		fenceName = "fence2";
-                	}
+                    String fenceName = "fence1";
+                    if (name.contains("house6")) {
+                        fenceName = "fence2";
+                    }
                     Tile newTile =  new Tile(currTile.name, fenceName+"gate1_NS",
-				                             currTile.position.cpy(), true,
-				                             currTile.routeBelongsTo);
-					newTile.items = currTile.items;
-				    currTiles.put(currTile.position.cpy(), newTile);
-					this.adjustSurroundingTiles(currTile, currTiles);
-					return;
+                                             currTile.position.cpy(), true,
+                                             currTile.routeBelongsTo);
+                    newTile.items = currTile.items;
+                    currTiles.put(currTile.position.cpy(), newTile);
+                    this.adjustSurroundingTiles(currTile, currTiles);
+                    return;
                 }
-                if ((up.nameUpper.contains("roof") || up.nameUpper.contains("_E") || up.nameUpper.contains("_W") || up.nameUpper.contains("left") || up.nameUpper.contains("right") || up.nameUpper.contains("door")) &&
-                    (down.nameUpper.contains("roof") || down.nameUpper.contains("_E") || down.nameUpper.contains("_W") || down.nameUpper.contains("left") || down.nameUpper.contains("right") || down.nameUpper.contains("door")) &&
+                // Side doors
+                if ((up.nameUpper.contains("roof") || up.nameUpper.contains("E") || up.nameUpper.contains("W") || up.nameUpper.contains("left") || up.nameUpper.contains("right") || up.nameUpper.contains("door")) &&
+                    (down.nameUpper.contains("roof") || down.nameUpper.contains("E") || down.nameUpper.contains("W") || down.nameUpper.contains("left") || down.nameUpper.contains("right") || down.nameUpper.contains("door")) &&
                     !(up.nameUpper.contains("door") && down.nameUpper.contains("door"))) {
-                	//
-                    Tile newTile =  new Tile(currTile.name, "house5_middle1", 
+                    //
+                    int roofCount = 0;
+                    if (right != null && right.nameUpper.contains("roof")) {
+                        roofCount++;
+                    }
+                    if (left != null && left.nameUpper.contains("roof")) {
+                        roofCount++;
+                    }
+                    String name2 = "house5_middle1";
+                    if (roofCount > 0) {
+                        name2 = "house5_roof_middle1";
+                    }
+                    if (name.contains("house6")) {
+                        name2 = "house6_NS";
+                        if (roofCount > 0) {
+                            name2 = "house6_roof_NS";
+                        }
+                    }
+                    else if (name.contains("house7")) {
+                        name2 = "house7_wall_NS";
+                        if (roofCount > 0) {
+                            name2 = "house7_roof_NS";
+                        }
+                    }
+                    Tile newTile =  new Tile(currTile.name, name2, 
                                              currTile.position.cpy(), true,
                                              currTile.routeBelongsTo);
                     newTile.items = currTile.items;
@@ -2345,18 +2379,18 @@ public class PkmnMap {
                     this.adjustSurroundingTiles(currTile);
                     //
                     if (!left.attrs.get("solid")) {
-                    	this.tiles.put(left.position.cpy(), new Tile("rug2_right", "", left.position.cpy(), true, left.routeBelongsTo));
+                        this.tiles.put(left.position.cpy(), new Tile("rug2_right", "", left.position.cpy(), true, left.routeBelongsTo));
                         // Add to interiors
-                    	Tile interiorTile = interiorTiles.get(currTile.position);
+                        Tile interiorTile = interiorTiles.get(currTile.position);
                         if (interiorTile != null && interiorTile.name.contains("floor")) {
                             interiorTile = new Tile("rug2_left", currTile.position.cpy());
                             interiorTiles.put(currTile.position.cpy(), interiorTile);
                         }
                     }
                     else if (!right.attrs.get("solid")) {
-                    	this.tiles.put(right.position.cpy(), new Tile("rug2_left", "", right.position.cpy(), true, right.routeBelongsTo));
+                        this.tiles.put(right.position.cpy(), new Tile("rug2_left", "", right.position.cpy(), true, right.routeBelongsTo));
                         // Add to interiors
-                    	Tile interiorTile = interiorTiles.get(currTile.position);
+                        Tile interiorTile = interiorTiles.get(currTile.position);
                         if (interiorTile != null && interiorTile.name.contains("floor")) {
                             interiorTile = new Tile("rug2_right", currTile.position.cpy());
                             interiorTiles.put(currTile.position.cpy(), interiorTile);
@@ -2607,6 +2641,19 @@ public class PkmnMap {
                 game.insertAction(pokemon.new Standing());
             }
             
+
+            // TODO: remove
+            // This will hack data from other saves into current save
+//            inputStream = new InflaterInputStream(new FileInputStream("Pogtopia-charmeleon.sav"));
+//            input = new com.esotericsoftware.kryo.io.Input(inputStream);
+//            saveData = game.server.getKryo().readObject(input, Network.SaveData.class);
+//            input.close();
+//            // Load game.player
+//            Player oldPlayer = new Player(saveData.playerData);
+//            Pokemon oldMon = oldPlayer.pokemon.get(0);
+//            oldMon.previousOwner = game.player;
+//            game.player.pokemon.add(oldMon);
+
             //TODO: remove if unused
 //            Network.MapTiles mapTiles = game.server.getKryo().readObject(input, Network.MapTiles.class);
 //            input.close();
@@ -2671,7 +2718,7 @@ public class PkmnMap {
                 this.minimap = new Pixmap(file);
             }
             else {
-            	// TODO: update this section
+                // TODO: update this section
                 // Save minimap
                 int width = (int)(Game.staticGame.map.topRight.x - Game.staticGame.map.bottomLeft.x)/8;
                 int height = (int)(Game.staticGame.map.topRight.y - Game.staticGame.map.bottomLeft.y)/8;
@@ -2952,8 +2999,8 @@ class Route {
         // TODO: remove
 //        if (this.name.equals("desert1") ||
 //            this.name.equals("ruins1_outer") ||
-//        	this.name.equals("oasis1") ||
-//        	this.name.equals("sand_pit1")) {
+//            this.name.equals("oasis1") ||
+//            this.name.equals("sand_pit1")) {
 //        }
     }
     
@@ -2961,24 +3008,24 @@ class Route {
     public String type() {
         if (this.name.equals("desert1") ||
             this.name.equals("ruins1_outer") ||
-        	this.name.equals("oasis1") ||
-        	this.name.equals("sand_pit1")) {
-        	return "desert";
+            this.name.equals("oasis1") ||
+            this.name.equals("sand_pit1")) {
+            return "desert";
         }
         return "";
     }
 
     
     public ArrayList<String> musics() {
-    	if (!Route.musics.containsKey(this.name)) {
-    		ArrayList<String> musics = new ArrayList<String>();
+        if (!Route.musics.containsKey(this.name)) {
+            ArrayList<String> musics = new ArrayList<String>();
             if (this.name.equals("ruins1_inner")) {
                 musics.add("relic_castle2");
                 musics.add("relic_castle2");
             }
             else if (this.name.equals("fossil_lab1")) {
-            	musics.add("silence1");
-            	musics.add("silence1");
+                musics.add("silence1");
+                musics.add("silence1");
             }
             else if (this.name.equals("pkmnmansion1")) {
                 musics.add("pkmnmansion");
@@ -2989,11 +3036,11 @@ class Route {
                 musics.add("sealed_chamber2");
             }
             else if (this.name.equals("desert1") ||
-            		 this.name.equals("ruins1_outer") ||
-            		 this.name.equals("oasis1") ||
-            		 this.name.equals("sand_pit1")) {
-            	musics.add("route_111-2");
-            	musics.add("route_111-2");
+                     this.name.equals("ruins1_outer") ||
+                     this.name.equals("oasis1") ||
+                     this.name.equals("sand_pit1")) {
+                musics.add("route_111-2");
+                musics.add("route_111-2");
             }
             else {
                 // TODO: possibly different per-route
@@ -3010,16 +3057,16 @@ class Route {
 //              musics.add("littleroot_town");  // TODO: doesnt really fit
               // TODO: victory road theme thing
             }
-    		Route.musics.put(this.name, musics);
-    	}
-    	return Route.musics.get(this.name);
+            Route.musics.put(this.name, musics);
+        }
+        return Route.musics.get(this.name);
     }
     
     
     public ArrayList<String> allowedPokemon() {
-    	if (!Route.allowedPokemon.containsKey(this.name)) {
-    		ArrayList<String> allowedPokemon = new ArrayList<String>();
-    		if (this.name.equals("mountain1")) {
+        if (!Route.allowedPokemon.containsKey(this.name)) {
+            ArrayList<String> allowedPokemon = new ArrayList<String>();
+            if (this.name.equals("mountain1")) {
                 allowedPokemon.add("rhydon");
                 allowedPokemon.add("rhyhorn");
                 allowedPokemon.add("onix");
@@ -3040,22 +3087,22 @@ class Route {
             else if (this.name.equals("deep_forest")) {
                 // TODO: this is just an idea
                 // zubat, houndour, murkrow, nidorana/o, scyther, pinsir, stantler, tangela, teddiursa, weepinballowedPokemon    // absol, growlithe, vulpix,
-            	allowedPokemon.add("zubat");
-            	allowedPokemon.add("golbat");
-            	allowedPokemon.add("houndour");  // houndoom never spawns (probably level related)
-            	//              allowedPokemon.add("stantler");  // TODO: enable when decent overworld sprite
-            	allowedPokemon.add("murkrow");
-            	allowedPokemon.add("nidorina");
-            	allowedPokemon.add("nidorino");
-            	allowedPokemon.add("scyther");
-            	allowedPokemon.add("pinsir");
-            	allowedPokemon.add("growlithe");
-            	allowedPokemon.add("vulpix");
-            	allowedPokemon.add("breloom");  // nuuk
-            	allowedPokemon.add("sableye");  // nuuk
+                allowedPokemon.add("zubat");
+                allowedPokemon.add("golbat");
+                allowedPokemon.add("houndour");  // houndoom never spawns (probably level related)
+                //              allowedPokemon.add("stantler");  // TODO: enable when decent overworld sprite
+                allowedPokemon.add("murkrow");
+                allowedPokemon.add("nidorina");
+                allowedPokemon.add("nidorino");
+                allowedPokemon.add("scyther");
+                allowedPokemon.add("pinsir");
+                allowedPokemon.add("growlithe");
+                allowedPokemon.add("vulpix");
+                allowedPokemon.add("breloom");  // nuuk
+                allowedPokemon.add("sableye");  // nuuk
 //                allowedPokemon.add("litwick");  // Goose // nuuk  TODO: remove, silph scope now
-            	allowedPokemon.add("ralts");  // nuuk
-            	allowedPokemon.add("gastly");
+                allowedPokemon.add("ralts");  // nuuk
+                allowedPokemon.add("gastly");
             }
             else if (this.name.equals("forest1")) {
                 allowedPokemon.add("oddish");
@@ -3243,7 +3290,7 @@ class Route {
 //                this.music.setVolume(.3f);
             }
             else if (this.name.equals("fossil_lab1")) {
-            	// 
+                // 
             }
             else if (this.name.equals("pkmnmansion1")) {
                 allowedPokemon.add("magmar");
@@ -3265,7 +3312,7 @@ class Route {
                 allowedPokemon.add("remoraid");  // super rod
             }
             else if (this.name.equals("sea1")) { 
-            	// Relicanth, Wailmer, Chinchou, Mantine likely dive/surf spawns
+                // Relicanth, Wailmer, Chinchou, Mantine likely dive/surf spawns
                 allowedPokemon.add("tentacool");
                 allowedPokemon.add("magikarp");
                 allowedPokemon.add("corsola");  // good rod
@@ -3277,14 +3324,14 @@ class Route {
 //                allowedPokemon.add("krabby");
 //                allowedPokemon.add("staryu");
             }
-    		// Rivers made by the player.
+            // Rivers made by the player.
             else if (this.name.equals("river1")) {
                 allowedPokemon.add("magikarp");
                 allowedPokemon.add("poliwag");
                 allowedPokemon.add("goldeen");
                 allowedPokemon.add("remoraid");  // super rod
             }
-    		// TODO: this was just for fun. Potentially remove.
+            // TODO: this was just for fun. Potentially remove.
             else if (this.name.equals("sand_fishing1")) {
                 allowedPokemon.add("trapinch");
                 allowedPokemon.add("trapinch");
@@ -3324,9 +3371,9 @@ class Route {
 //                this.music.setLooping(true);
 //                this.music.setVolume(.3f);
             }
-    		Route.allowedPokemon.put(this.name, allowedPokemon);
-    	}
-    	return Route.allowedPokemon.get(this.name);
+            Route.allowedPokemon.put(this.name, allowedPokemon);
+        }
+        return Route.allowedPokemon.get(this.name);
     }
 
     // get next music. if random == true, get random one that isn't same as current
@@ -3560,8 +3607,8 @@ class SuicuneTile extends Tile {
 }
 
 class Tile {
-	
-	// Idea: name() property that will get Tile's enum name, and convert it to string.
+    
+    // Idea: name() property that will get Tile's enum name, and convert it to string.
 
     Map<String, Boolean> attrs;
 
@@ -3624,6 +3671,34 @@ class Tile {
     // Only used during map generation
     public boolean isBottomMtnLayer = false;
 
+    // TODO: this didn't really increase performance, remove probably
+//    public static enum Type {
+//    	FLOWER,
+//    	CAMPFIRE,
+//    	REVIVED,
+//    	VOLCARONA,
+//    }
+//    public static HashMap<String, ArrayList<Type>> types = new HashMap<String, ArrayList<Type>>();
+//    public boolean is(Type type) {
+//    	if (!Tile.types.containsKey(this.name+this.nameUpper)) {
+//    		ArrayList<Type> types = new ArrayList<Type>();
+//    		if (this.name.contains("flower")) {
+//    			types.add(Type.FLOWER);
+//    		}
+//    		if (this.nameUpper.equals("campfire1")) {
+//    			types.add(Type.CAMPFIRE);
+//    		}
+//    		if (this.nameUpper.contains("revived_")) {
+//    			types.add(Type.REVIVED);
+//    		}
+//    		if (this.nameUpper.equals("volcarona")) {
+//    			types.add(Type.VOLCARONA);
+//    		}
+//    		Tile.types.put(this.name+this.nameUpper, types);
+//    	}
+//    	return Tile.types.get(this.name+this.nameUpper).contains(type);
+//    }
+
     /**
      * Api intending to reduce memory usage.
      */
@@ -3648,11 +3723,14 @@ class Tile {
             else if (this.name.equals("grass_sand1")) {
                 this.items.put("grass", 1);
             }
+            else if (this.name.equals("grass_sand3")) {
+                this.items.put("grass", 2);
+            }
             else if (this.name.equals("tree5")) {
                 this.items.put("log", 2);
                 // TODO: might drop coconut in the future.
             }
-            else if (this.nameUpper.equals("bush2_color")) {
+            else if (this.nameUpper.contains("bush2_color")) {
                 this.items.put("log", 1);
                 String[] items = {"black apricorn", "blue apricorn", "green apricorn", "pink apricorn",
                                   "red apricorn", "white apricorn", "yellow apricorn"};
@@ -3676,6 +3754,9 @@ class Tile {
                     this.items.put(items[Game.staticGame.map.rand.nextInt(items.length)], 2);
                 }
             }
+            else if (this.nameUpper.equals("grass_planted")) {
+                this.items.put("miracle seed", 1);
+            }
             if (!this.nameUpper.equals("")) {
                 if (!this.nameUpper.contains("floor") &&
                     !this.nameUpper.contains("pokeball") &&
@@ -3684,6 +3765,7 @@ class Tile {
                     !this.nameUpper.contains("REGI") &&
                     !this.nameUpper.contains("tree") &&
                     !this.nameUpper.contains("rock") &&
+                    !this.nameUpper.equals("grass_planted") &&
                     !this.nameUpper.contains("campfire") &&
                     !this.nameUpper.contains("fence") &&
                     !this.nameUpper.contains("house")) {
@@ -4436,10 +4518,10 @@ class Tile {
             this.attrs.put("water", true);
         }
         else if (tileName.equals("water5")) {
-        	// TODO: ended up not going with this.
-        	// Could revisit in the future.
+            // TODO: ended up not going with this.
+            // Could revisit in the future.
 //            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/water5.png"));
-        	Texture playerText = TextureCache.get(Gdx.files.internal("tiles/water2.png"));
+            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/water2.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
             this.attrs.put("solid", true);
             this.attrs.put("water", true);
@@ -4524,6 +4606,16 @@ class Tile {
             this.attrs.put("solid", true);
         }
         else if (tileName.contains("house_vanity")) {
+            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/buildings/"+tileName+".png"));
+            this.sprite = new Sprite(playerText, 0, 0, 16, 32);
+            this.attrs.put("solid", true);
+        }
+        else if (tileName.contains("house_couch1")) {
+            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/buildings/"+tileName+".png"));
+            this.sprite = new Sprite(playerText, 0, 0, 32, 16);
+            this.attrs.put("solid", true);
+        }
+        else if (tileName.contains("house_couch")) {
             Texture playerText = TextureCache.get(Gdx.files.internal("tiles/buildings/"+tileName+".png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 32);
             this.attrs.put("solid", true);
@@ -4623,13 +4715,13 @@ class Tile {
             this.nameUpper = name;
         }
         else if (tileName.equals("statue1")) {
-        	Texture playerText = TextureCache.get(Gdx.files.internal("tiles/statue1.png"));
-        	this.sprite = new Sprite(playerText, 0, 0, 16, 32);
-        	this.attrs.put("solid", true);
+            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/statue1.png"));
+            this.sprite = new Sprite(playerText, 0, 0, 16, 32);
+            this.attrs.put("solid", true);
         }
         else if (tileName.contains("gate1")) {
-        	Texture playerText = TextureCache.get(Gdx.files.internal("tiles/"+tileName+".png"));
-        	this.sprite = new Sprite(playerText, 0, 0, 16, 16);
+            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/"+tileName+".png"));
+            this.sprite = new Sprite(playerText, 0, 0, 16, 16);
         }
         else if (tileName.equals("building1_fossilreviver1")) {
             Texture playerText = TextureCache.get(Gdx.files.internal("tiles/blank.png"));
@@ -4719,99 +4811,99 @@ class Tile {
 //                this.attrs.put("cuttable", true);
             }
             else if (this.nameUpper.contains("house7_roof")) {
-            	text = TextureCache.get(Gdx.files.internal("tiles/house7_all.png"));
+                text = TextureCache.get(Gdx.files.internal("tiles/house7_all.png"));
                 this.overSprite = new Sprite(text, 16, 16, 16, 16);
-            	String[] exts = this.nameUpper.split("_");
-            	if (exts.length > 1) {
-            		String ext = exts[exts.length-1];
-            		if (ext.equals("E")) {
-            			this.overSprite.setRegion(0, 0, 16, 16);
-            		}
-            		else if (ext.equals("EW")) {
-            			this.overSprite.setRegion(16, 0, 16, 16);
-            		}
-            		else if (ext.equals("SE")) {
-            			this.overSprite.setRegion(64, 0, 16, 16);
-            		}
-            		else if (ext.equals("W")) {
-            			this.overSprite.setRegion(48, 0, 16, 16);
-            		}
-            		else if (ext.equals("SW")) {
-            			this.overSprite.setRegion(96, 0, 16, 16);
-            		}
-            		else if (ext.equals("NE")) {
-            			this.overSprite.setRegion(64, 16, 16, 16);
-            		}
-            		else if (ext.equals("NEW") || ext.equals("N")) {
-            			this.overSprite.setRegion(80, 16, 16, 16);
-            		}
-            		else if (ext.equals("NW")) {
-            			this.overSprite.setRegion(96, 16, 16, 16);
-            		}
-            		else if (ext.equals("NSE")) {
-            			this.overSprite.setRegion(112, 0, 16, 16);
-            		}
-            		else if (ext.equals("S") || ext.equals("SEW")) {
-            			this.overSprite.setRegion(80, 0, 16, 16);
-            		}
-            		else if (ext.equals("NSEW")) {
-            			this.overSprite.setRegion(128, 0, 16, 16);
-            		}
-            		else if (ext.equals("NSW")) {
-            			this.overSprite.setRegion(144, 0, 16, 16);
-            		}
-            	}
+                String[] exts = this.nameUpper.split("_");
+                if (exts.length > 1) {
+                    String ext = exts[exts.length-1];
+                    if (ext.equals("E")) {
+                        this.overSprite.setRegion(0, 0, 16, 16);
+                    }
+                    else if (ext.equals("EW")) {
+                        this.overSprite.setRegion(16, 0, 16, 16);
+                    }
+                    else if (ext.equals("SE")) {
+                        this.overSprite.setRegion(64, 0, 16, 16);
+                    }
+                    else if (ext.equals("W")) {
+                        this.overSprite.setRegion(48, 0, 16, 16);
+                    }
+                    else if (ext.equals("SW")) {
+                        this.overSprite.setRegion(96, 0, 16, 16);
+                    }
+                    else if (ext.equals("NE")) {
+                        this.overSprite.setRegion(64, 16, 16, 16);
+                    }
+                    else if (ext.equals("NEW") || ext.equals("N")) {
+                        this.overSprite.setRegion(80, 16, 16, 16);
+                    }
+                    else if (ext.equals("NW")) {
+                        this.overSprite.setRegion(96, 16, 16, 16);
+                    }
+                    else if (ext.equals("NSE")) {
+                        this.overSprite.setRegion(112, 0, 16, 16);
+                    }
+                    else if (ext.equals("S") || ext.equals("SEW")) {
+                        this.overSprite.setRegion(80, 0, 16, 16);
+                    }
+                    else if (ext.equals("NSEW")) {
+                        this.overSprite.setRegion(128, 0, 16, 16);
+                    }
+                    else if (ext.equals("NSW")) {
+                        this.overSprite.setRegion(144, 0, 16, 16);
+                    }
+                }
             }
             else if (this.nameUpper.contains("house7")) {
-            	text = TextureCache.get(Gdx.files.internal("tiles/house7_all.png"));
+                text = TextureCache.get(Gdx.files.internal("tiles/house7_all.png"));
                 this.overSprite = new Sprite(text, 176, 16, 16, 16);
-            	String[] exts = this.nameUpper.split("_");
-            	if (exts.length > 1) {
-            		String ext = exts[exts.length-1];
-            		if (this.nameUpper.contains("door")) {
-            			this.overSprite.setRegion(208, 16, 16, 16);
-            		}
-//            		else if (this.nameUpper.contains("window")) {
-//            			this.overSprite.setRegion(208, 0, 16, 16);
-//            		}
-            		else if (ext.equals("E")) {
-            			this.overSprite.setRegion(0, 16, 16, 16);
-            		}
-            		else if (ext.equals("SE")) {
-            			this.overSprite.setRegion(16, 16, 16, 16);
-            		}
-            		else if (ext.equals("W")) {
-            			this.overSprite.setRegion(48, 16, 16, 16);
-            		}
-            		else if (ext.equals("SW")) {
-            			this.overSprite.setRegion(32, 16, 16, 16);
-            		}
-            		else if (ext.equals("NE")) {
-            			this.overSprite.setRegion(160, 16, 16, 16);
-            		}
-            		else if (ext.equals("NEW") || ext.equals("N")) {
-            			this.overSprite.setRegion(176, 16, 16, 16);
-            		}
-            		else if (ext.equals("NW")) {
-            			this.overSprite.setRegion(192, 16, 16, 16);
-            		}
-            		else if (ext.equals("NSE")) {
-            			this.overSprite.setRegion(160, 0, 16, 16);
-            		}
-            		else if (ext.equals("NSEW")) {
-            			this.overSprite.setRegion(176, 0, 16, 16);
-            		}
-            		else if (ext.equals("S") || ext.equals("SEW")) {
-            			this.overSprite.setRegion(32, 0, 16, 16);
-            		}
-            		else if (ext.equals("NSW")) {
-            			this.overSprite.setRegion(192, 0, 16, 16);
-            		}
-            		
-            	}
+                String[] exts = this.nameUpper.split("_");
+                if (exts.length > 1) {
+                    String ext = exts[exts.length-1];
+                    if (this.nameUpper.contains("door")) {
+                        this.overSprite.setRegion(208, 16, 16, 16);
+                    }
+//                    else if (this.nameUpper.contains("window")) {
+//                        this.overSprite.setRegion(208, 0, 16, 16);
+//                    }
+                    else if (ext.equals("E")) {
+                        this.overSprite.setRegion(0, 16, 16, 16);
+                    }
+                    else if (ext.equals("SE")) {
+                        this.overSprite.setRegion(16, 16, 16, 16);
+                    }
+                    else if (ext.equals("W")) {
+                        this.overSprite.setRegion(48, 16, 16, 16);
+                    }
+                    else if (ext.equals("SW")) {
+                        this.overSprite.setRegion(32, 16, 16, 16);
+                    }
+                    else if (ext.equals("NE")) {
+                        this.overSprite.setRegion(160, 16, 16, 16);
+                    }
+                    else if (ext.equals("NEW") || ext.equals("N")) {
+                        this.overSprite.setRegion(176, 16, 16, 16);
+                    }
+                    else if (ext.equals("NW")) {
+                        this.overSprite.setRegion(192, 16, 16, 16);
+                    }
+                    else if (ext.equals("NSE")) {
+                        this.overSprite.setRegion(160, 0, 16, 16);
+                    }
+                    else if (ext.equals("NSEW")) {
+                        this.overSprite.setRegion(176, 0, 16, 16);
+                    }
+                    else if (ext.equals("S") || ext.equals("SEW")) {
+                        this.overSprite.setRegion(32, 0, 16, 16);
+                    }
+                    else if (ext.equals("NSW")) {
+                        this.overSprite.setRegion(192, 0, 16, 16);
+                    }
+                    
+                }
 
-        		if (this.nameUpper.contains("window")) {
-        			// TODO: test
+                if (this.nameUpper.contains("window")) {
+                    // TODO: test
                     if (!Tile.dynamicTexts.containsKey(this.nameUpper)) {
                         Texture[] textures = new Texture[1];
                         TextureData temp = text.getTextureData();
@@ -4821,10 +4913,10 @@ class Tile {
                         Pixmap oldPixmap = temp.consumePixmap();
                         Pixmap newPixmap = new Pixmap(16, 16, Format.RGBA8888);
                         int left, bottom;
-                		left = this.overSprite.getRegionX();
-                		bottom = this.overSprite.getRegionY();
-//                		regionWidth = this.overSprite.getRegionWidth();
-//                		regionHeight = this.overSprite.getRegionHeight();
+                        left = this.overSprite.getRegionX();
+                        bottom = this.overSprite.getRegionY();
+//                        regionWidth = this.overSprite.getRegionWidth();
+//                        regionHeight = this.overSprite.getRegionHeight();
 
                         text = TextureCache.get(Gdx.files.internal("tiles/windows1.png"));
                         temp = text.getTextureData();
@@ -4835,23 +4927,23 @@ class Tile {
                         int color2;
                         for (int m=0; m < newPixmap.getWidth(); m++) {
                             for (int n=0; n < newPixmap.getHeight(); n++) {
-                            	if (n < 8) {
-                            		if (m < 8 && !this.nameUpper.contains("E")) {
-                                    	color2 = currPixmap.getPixel(m, n);
-                            		}
-                            		else if (m >= 8 && !this.nameUpper.contains("W")) {
-                                    	color2 = currPixmap.getPixel(m, n);
-                            		}
-                            		else if (this.nameUpper.contains("EW")) {
-                                    	color2 = currPixmap.getPixel(m, n);
-                            		}
-                            		else {
-                                    	color2 = oldPixmap.getPixel(left+m, bottom+n);
-                            		}
-                            	}
-                            	else {
-                                	color2 = oldPixmap.getPixel(left+m, bottom+n);
-                            	}
+                                if (n < 8) {
+                                    if (m < 8 && !this.nameUpper.contains("E")) {
+                                        color2 = currPixmap.getPixel(m, n);
+                                    }
+                                    else if (m >= 8 && !this.nameUpper.contains("W")) {
+                                        color2 = currPixmap.getPixel(m, n);
+                                    }
+                                    else if (this.nameUpper.contains("EW")) {
+                                        color2 = currPixmap.getPixel(m, n);
+                                    }
+                                    else {
+                                        color2 = oldPixmap.getPixel(left+m, bottom+n);
+                                    }
+                                }
+                                else {
+                                    color2 = oldPixmap.getPixel(left+m, bottom+n);
+                                }
                                 newPixmap.drawPixel(m, n, color2);
                             }
                         }
@@ -4860,16 +4952,16 @@ class Tile {
                     }
                     text = Tile.dynamicTexts.get(this.nameUpper)[0];
                     this.overSprite = new Sprite(text, 0, 0, 16, 16);
-        		}
-            	
+                }
+                
             }
             else if (this.nameUpper.contains("house") && !this.nameUpper.contains("|")) {
                 text = TextureCache.get(Gdx.files.internal("tiles/buildings/"+this.nameUpper+".png"));
                 this.overSprite = new Sprite(text, 0, 0, 16, 16);
             }
             else if (this.nameUpper.equals("pedistal1") ||
-            		 this.nameUpper.equals("ruins_statue1") ||
-            		 this.nameUpper.equals("statue1")) {
+                     this.nameUpper.equals("ruins_statue1") ||
+                     this.nameUpper.equals("statue1")) {
                 text = TextureCache.get(Gdx.files.internal("tiles/"+this.nameUpper+".png"));
                 this.overSprite = new Sprite(text, 0, 0, 16, 32);
                 this.drawAsTree = true;
@@ -4880,6 +4972,14 @@ class Tile {
                 this.overSprite = new Sprite(text, 0, 0, 16, 24);
             }
             else if (this.nameUpper.equals("solid")) {
+                // No sprite, just invisible solid block
+                text = TextureCache.get(Gdx.files.internal("tiles/blank3.png"));
+            }
+            else if (this.nameUpper.equals("onpress_above")) {
+                // No sprite, just invisible solid block
+                text = TextureCache.get(Gdx.files.internal("tiles/blank3.png"));
+            }
+            else if (this.nameUpper.equals("onpress_left")) {
                 // No sprite, just invisible solid block
                 text = TextureCache.get(Gdx.files.internal("tiles/blank3.png"));
             }
@@ -5012,16 +5112,16 @@ class Tile {
                     Vector2 bl = new Vector2(0, 0);
                     Vector2 tr = new Vector2(8, 8);
                     if (this.nameUpper.contains("N")) {
-                    	bl.add(0, 8);
+                        bl.add(0, 8);
                     }
                     if (this.nameUpper.contains("S")) {
-                    	tr.add(0, -8);
+                        tr.add(0, -8);
                     }
                     if (this.nameUpper.contains("E")) {
-                    	tr.add(-8, 0);
+                        tr.add(-8, 0);
                     }
                     if (this.nameUpper.contains("W")) {
-                    	bl.add(8, 0);
+                        bl.add(8, 0);
                     }
                     int offsetX=0, offsetY=0;
                     int color3;
@@ -5032,16 +5132,16 @@ class Tile {
                             continue;
                         }
                         if (i < 8) {
-                        	offsetX = (int)bl.x;
+                            offsetX = (int)bl.x;
                         }
                         else {
-                        	offsetX = (int)tr.x;
+                            offsetX = (int)tr.x;
                         }
                         if (j < 8) {
-                        	offsetY = (int)bl.y;
+                            offsetY = (int)bl.y;
                         }
                         else {
-                        	offsetY = (int)tr.y;
+                            offsetY = (int)tr.y;
                         }
                         color3 = currPixmap.getPixel(i+offsetX, j+offsetY);
                         newPixmap.drawPixel(i, j, color3);
@@ -5065,7 +5165,7 @@ class Tile {
                     // TODO: not ideal, hacky
                     String[] names = this.nameUpper.split("\\|");
                     if (names.length > 1) {
-                    	String name = names[1];
+                        String name = names[1];
                         text = TextureCache.get(Gdx.files.internal("tiles/buildings/"+name+".png"));
                         temp = text.getTextureData();
                         if (!temp.isPrepared()) {
@@ -5089,12 +5189,22 @@ class Tile {
                 this.overSprite = new Sprite(text, 0, 0, 16, 32);
             }
             else if (this.nameUpper.contains("_cracked")) {
-            	text = TextureCache.get(Gdx.files.internal("tiles/desert4_cracked.png"));
+                text = TextureCache.get(Gdx.files.internal("tiles/desert4_cracked.png"));
                 this.overSprite = new Sprite(text, 0, 0, 16, 16);
+            }
+            else if (this.nameUpper.equals("tree_large1")) {
+                text = TextureCache.get(Gdx.files.internal("tiles/tree_large1_color.png"));
+                this.overSprite = new Sprite(text, 0, 0, 32, 32);
             }
             else {
                 text = TextureCache.get(Gdx.files.internal("tiles/"+this.nameUpper+".png"));
                 this.overSprite = new Sprite(text, 0, 0, 16, 16);
+            }
+            if (this.nameUpper.equals("house_couch1")) {
+                this.overSprite = new Sprite(text, 0, 0, 32, 16);
+            }
+            else if (this.nameUpper.contains("house_couch")) {
+                this.overSprite = new Sprite(text, 0, 0, 16, 32);
             }
             if (this.nameUpper.equals("house_bed1") ||
                 this.nameUpper.contains("tree2") ||
@@ -5123,12 +5233,13 @@ class Tile {
                 !this.nameUpper.contains("tree_planted") &&
                 !this.nameUpper.contains("stool") &&
                 !this.nameUpper.contains("gate") &&
+                !this.nameUpper.equals("grass_planted") &&
                 !this.nameUpper.contains("_cracked")) {
                 this.attrs.put("solid", true);
             }
 
             if (this.nameUpper.contains("cactus1") ||
-            	this.nameUpper.contains("cactus2")) {
+                this.nameUpper.contains("cactus2")) {
                 this.attrs.put("headbuttable", true);
             }
 
@@ -5143,11 +5254,14 @@ class Tile {
                 !this.nameUpper.contains("tree") &&
                 !this.nameUpper.contains("rock") &&
                 !this.nameUpper.equals("aloe_large1") &&
+                !this.nameUpper.contains("onpress") &&
                 !this.nameUpper.equals("solid")) {
                 this.attrs.put("cuttable", true);
             }
-            if (this.nameUpper.contains("bush2_color") ||  // TODO: equals, not contains
+            if (this.nameUpper.contains("bush2_color") ||
                 this.nameUpper.equals("tree2") ||
+                this.nameUpper.equals("tree6") ||
+                this.nameUpper.equals("tree7") ||
                 this.nameUpper.equals("tree4")) {
                 this.attrs.put("headbuttable", true);
                 this.attrs.put("cuttable", true);
@@ -5195,12 +5309,12 @@ class Tile {
             // TODO: test
             if (this.nameUpper.contains("fence")) {
                 if (this.nameUpper.equals("fence1") ||
-                	this.nameUpper.equals("fence2")) {
+                    this.nameUpper.equals("fence2")) {
                     this.attrs.put("ledge", true);
                     this.ledgeDir = "down";
                 }
                 else if (this.nameUpper.equals("fence1_NS") ||
-                		 this.nameUpper.equals("fence2_NS")) {
+                         this.nameUpper.equals("fence2_NS")) {
                     this.attrs.put("ledge", true);
                     this.ledgeDir = "left";
                 }
@@ -5209,6 +5323,7 @@ class Tile {
             if (this.nameUpper.contains("stairs") ||
                 this.nameUpper.contains("door") ||
                 this.nameUpper.contains("cracked") ||
+                this.nameUpper.equals("grass_planted") ||
                 this.nameUpper.contains("stool")) {
                 this.drawUpperBelowPlayer = true;
             }
@@ -5254,45 +5369,45 @@ class Tile {
      * This method needs to get decent performance.
      */
     public void updateMiniMap(Game game) {
-    	// Some tiles don't get drawn to minimap.
-    	if (this.name.equals("tree_large1_noSprite") ||
-    		this.name.equals("blank1")) {
-    		return;
-    	}
+        // Some tiles don't get drawn to minimap.
+        if (this.name.equals("tree_large1_noSprite") ||
+            this.name.equals("blank1")) {
+            return;
+        }
 
-    	TextureData temp;
+        TextureData temp;
         int left, bottom, regionWidth, regionHeight;
-    	if (this.overSprite != null) {
-    		temp = this.overSprite.getTexture().getTextureData();
-    		left = this.overSprite.getRegionX();
-    		bottom = this.overSprite.getRegionY();
-    		regionWidth = this.overSprite.getRegionWidth();
-    		regionHeight = this.overSprite.getRegionHeight();
-    	}
-    	else {
-    		temp = this.sprite.getTexture().getTextureData();
-    		left = this.sprite.getRegionX();
-    		bottom = this.sprite.getRegionY();
-    		regionWidth = this.sprite.getRegionWidth();
-    		regionHeight = this.sprite.getRegionHeight();
-    	}
+        if (this.overSprite != null) {
+            temp = this.overSprite.getTexture().getTextureData();
+            left = this.overSprite.getRegionX();
+            bottom = this.overSprite.getRegionY();
+            regionWidth = this.overSprite.getRegionWidth();
+            regionHeight = this.overSprite.getRegionHeight();
+        }
+        else {
+            temp = this.sprite.getTexture().getTextureData();
+            left = this.sprite.getRegionX();
+            bottom = this.sprite.getRegionY();
+            regionWidth = this.sprite.getRegionWidth();
+            regionHeight = this.sprite.getRegionHeight();
+        }
         if (!temp.isPrepared()) {
             temp.prepare();
         }
 
-//    	if (this.name.equals("tree_large1")) {
-//    		System.out.println(regionWidth);
-//    		System.out.println(regionHeight);
-//    	}
-    			
+//        if (this.name.equals("tree_large1")) {
+//            System.out.println(regionWidth);
+//            System.out.println(regionHeight);
+//        }
+                
         Pixmap currPixmap = temp.consumePixmap();
         int offset = 7;
-    	if (this.name.contains("grass")) {
-    		offset = 4;
-    	}
-    	else if (this.name.equals("tree_large1")) {
-    		offset = 6;
-    	}
+        if (this.name.contains("grass")) {
+            offset = 4;
+        }
+        else if (this.name.equals("tree_large1")) {
+            offset = 6;
+        }
         int x = (int)(this.position.x-game.map.bottomLeft.x)/8;
         int y = (int)(game.map.topRight.y-this.position.y)/8;
         int color;
@@ -5390,8 +5505,8 @@ class Tile {
                 this.pickUpItem(game.player);
             }
         }
-        else if (game.map.pokemon.containsKey(this.position)
-                 && game.map.pokemon.get(this.position).mapTiles == game.map.tiles) {
+        else if (game.map.pokemon.containsKey(this.position) &&
+        		 game.map.pokemon.get(this.position).mapTiles == game.map.tiles) {
             Pokemon pokemon = game.map.pokemon.get(this.position);
             if (game.type == Game.Type.CLIENT) {
                 // Server will send a PausePokemon back if this succeeds.
@@ -5434,9 +5549,9 @@ class Tile {
                                       null)))))));
                 }
                 else {
-                	nextAction.append(new WaitFrames(game, 10,
-      							      new SetField(game, "playerCanMove", true,
-                				      null)));
+                    nextAction.append(new WaitFrames(game, 10,
+                                        new SetField(game, "playerCanMove", true,
+                                      null)));
                 }
                 game.insertAction(nextAction);
                 return;
@@ -5822,15 +5937,14 @@ class Tile {
                     return;
                 }
                 Action newAction = //new DisplayText(game, pokemon.nickname.toUpperCase()+" is charmed by "+game.player.hmPokemon.nickname.toUpperCase()+"!", null, null,
-                        	       new DisplayText(game, game.player.name+" received "+pokemon.nickname.toUpperCase()+"!", "fanfare1.ogg", null,
+                                   new DisplayText(game, game.player.name+" received "+pokemon.nickname.toUpperCase()+"!", "fanfare1.ogg", null,
                                    new SetField(game, "playerCanMove", true, null));
                 this.nameUpper = "";
                 game.player.pokemon.add(pokemon);
+                pokemon.previousOwner = game.player;
                 game.insertAction(newAction);
                 return;
             }
-            
-            
 
             game.playerCanMove = false;
             game.battle.oppPokemon = pokemon;
@@ -5868,9 +5982,9 @@ class Tile {
             game.playerCanMove = false;
             if (!game.player.currFieldMove.equals("")) {
                 game.insertAction(new PlaySound("error1",
-		                          new DisplayText(game, "Canì use this while using a Field Move.", null, null,
-		                          new WaitFrames(game, 6,
-		                          new SetField(game, "playerCanMove", true, null)))));
+                                  new DisplayText(game, "Canì use this while using a Field Move.", null, null,
+                                  new WaitFrames(game, 6,
+                                  new SetField(game, "playerCanMove", true, null)))));
                 return;
             }
             Action nextAction = new DisplayText(game, "Arrow left or right to change clothes color.", null, true, true,
@@ -5886,9 +6000,9 @@ class Tile {
             game.playerCanMove = false;
             if (!game.player.currFieldMove.equals("")) {
                 game.insertAction(new PlaySound("error1",
-		                          new DisplayText(game, "Canì use this while using a Field Move.", null, null,
-		                          new WaitFrames(game, 6,
-		                          new SetField(game, "playerCanMove", true, null)))));
+                                  new DisplayText(game, "Canì use this while using a Field Move.", null, null,
+                                  new WaitFrames(game, 6,
+                                  new SetField(game, "playerCanMove", true, null)))));
                 return;
             }
             Action nextAction = new DisplayText(game, "Arrow left or right to change appearance.", null, true, true,
@@ -5965,6 +6079,64 @@ class Tile {
                                                 null)))));
             game.insertAction(nextAction);
         }
+        else if (this.nameUpper.contains("onpress_above")) {
+    		Tile down = game.map.tiles.get(this.position.cpy().add(0, -16));
+    		String name = this.name;
+    		String nameUpper = this.nameUpper;
+    		this.name = down.name;
+    		this.nameUpper = down.nameUpper;
+    		this.onPressA(game);
+    		this.name = name;
+    		this.nameUpper = nameUpper;
+        }
+        else if (this.nameUpper.contains("onpress_left")) {
+        	Tile left = game.map.tiles.get(this.position.cpy().add(-16, 0));
+    		String name = this.name;
+    		String nameUpper = this.nameUpper;
+    		this.name = left.name;
+    		this.nameUpper = left.nameUpper;
+    		this.onPressA(game);
+    		this.name = name;
+    		this.nameUpper = nameUpper;
+        }
+        else if (this.nameUpper.contains("house_couch")) {
+            game.playerCanMove = false;
+            game.insertAction(new WaitFrames(game, 30,
+            			      game.player.new Sitting(this)));
+        }
+        else if (this.nameUpper.equals("house_window1")) {
+        	game.insertAction(new PlaySound("seed1", null));
+        	if (this.overSprite.getRegionX() == 0) {
+        		this.overSprite.setRegion(16, 0, 16, 16);
+        	}
+        	else if (this.overSprite.getRegionX() == 16) {
+        		this.overSprite.setRegion(32, 0, 16, 16);
+        	}
+        	else {
+        		this.overSprite.setRegion(0, 0, 16, 16);
+        	}
+        }
+        else if (this.nameUpper.equals("house_window2")) {
+        	game.insertAction(new PlaySound("seed1", null));
+        	if (this.overSprite.getRegionX() == 0) {
+        		this.overSprite.setRegion(16, 0, 16, 16);
+        	}
+        	else {
+        		this.overSprite.setRegion(0, 0, 16, 16);
+        	}
+        }
+        else if (this.nameUpper.contains("_plush")) {
+        	String name = "";
+        	String[] names = this.nameUpper.split("_plush");
+        	if (names.length > 1) {
+        		name = names[1];
+        	}
+            game.playerCanMove = false;
+            game.insertAction(new DisplayText(game, "A "+name.toUpperCase()+" doll. Cute!", null, null,
+				              new WaitFrames(game, 3, 
+				              new SetField(game, "playerCanMove", true,
+				              null))));
+        }
         else if (this.nameUpper.equals("mewtwo_overworld")) {
             game.playerCanMove = false;
             SpecialMewtwo1 mewtwo = new SpecialMewtwo1(50, this);
@@ -6021,80 +6193,80 @@ class Tile {
                               null))));
         }
         else if ((this.name.contains("water") || this.name.equals("desert2")) &&
-        		 game.player.currFieldMove.equals("") &&  // No Hm, or a Pokemon is following.
-        		 game.player.currRod.contains("rod")) {
+                 game.player.currFieldMove.equals("") &&  // No Hm, or a Pokemon is following.
+                 game.player.currRod.contains("rod")) {
             String rodName = game.player.currRod;
             game.playerCanMove = false;
             String dirFacing = game.player.dirFacing;
             Sprite fishingSprite = new Sprite(game.player.fishingSprites);
             if (dirFacing.equals("up")) {
-            	fishingSprite.setRegion(0, 0, 16, 24);
+                fishingSprite.setRegion(0, 0, 16, 24);
             }
             else if (dirFacing.equals("down")) {
-            	fishingSprite.setRegion(16, 0, 16, 24);
+                fishingSprite.setRegion(16, 0, 16, 24);
             }
             else if (dirFacing.equals("left")) {
-            	fishingSprite.setRegion(32, 0, 24, 16);
-            	fishingSprite.flip(true, false);
+                fishingSprite.setRegion(32, 0, 24, 16);
+                fishingSprite.flip(true, false);
             }
             else if (dirFacing.equals("right")) {
-            	fishingSprite.setRegion(32, 0, 24, 16);
+                fishingSprite.setRegion(32, 0, 24, 16);
             }
             // Play the 'potion' sound effect
             Action nextAction = new PlaySound("rod1",
-            					new SplitAction(
-            					    new SetField(game.player, "isFishing", true, null), 
-            			        new SetField(game.player, "currSprite", fishingSprite,
-            			        null)));
+                                new SplitAction(
+                                    new SetField(game.player, "isFishing", true, null), 
+                                new SetField(game.player, "currSprite", fishingSprite,
+                                null)));
             //
             if (Game.rand.nextInt(2) == 0) {
-            	// Get the encountered Pokemon.
-            	Route route = new Route("", 2);
-            	if (this.routeBelongsTo != null && this.routeBelongsTo.name.equals("oasis1")) {
-            		route.name = "oasis_pond1";
-            	}
-            	else if (this.name.equals("water2")) {
-            		route.name = "sea1";
-            	}
-            	// TODO: potentially remove depending on feedback
-            	else if (this.name.equals("desert2")) {
-            		route.name = "sand_fishing1";
-            	}
-            	// TODO: river fish should depend on the biome river is built through
-            	// Don't have enough river mons for that currently, tho (I think)
-            	// Maybe if river is in sand/beach, it contains shellder etc? idk.
-            	else {
-            		route.name = "river1";
-            	}
-            	ArrayList<String> eligiblePokemon = new ArrayList<String>(route.allowedPokemon());
-            	// TODO: debug, remove
-        		for (String name : eligiblePokemon) {
-        			System.out.println(name);
-        		}
-            	if (rodName.equals("old rod") || rodName.equals("good rod")) {
-            		for (String name : route.superRodPokemon()) {
-            			eligiblePokemon.remove(name);
-            		}
-            	}
-            	if (rodName.equals("old rod")) {
-            		for (String name : route.goodRodPokemon()) {
-            			eligiblePokemon.remove(name);
-            		}
-            	}
-            	// TODO: debug, remove
-        		for (String name : eligiblePokemon) {
-        			System.out.println(name);
-        		}
-            	String name = eligiblePokemon.get(Game.rand.nextInt(eligiblePokemon.size()));
-            	// Level based on rod
-            	int level = 10;
-            	if (rodName.equals("good rod")) {
-            		level = 20;
-            	}
-            	else if (rodName.equals("super rod")) {
-            		level = 30;
-            	}
-            	// Evo the Pokemon if able (based on level requirement)
+                // Get the encountered Pokemon.
+                Route route = new Route("", 2);
+                if (this.routeBelongsTo != null && this.routeBelongsTo.name.equals("oasis1")) {
+                    route.name = "oasis_pond1";
+                }
+                else if (this.name.equals("water2")) {
+                    route.name = "sea1";
+                }
+                // TODO: potentially remove depending on feedback
+                else if (this.name.equals("desert2")) {
+                    route.name = "sand_fishing1";
+                }
+                // TODO: river fish should depend on the biome river is built through
+                // Don't have enough river mons for that currently, tho (I think)
+                // Maybe if river is in sand/beach, it contains shellder etc? idk.
+                else {
+                    route.name = "river1";
+                }
+                ArrayList<String> eligiblePokemon = new ArrayList<String>(route.allowedPokemon());
+                // TODO: debug, remove
+                for (String name : eligiblePokemon) {
+                    System.out.println(name);
+                }
+                if (rodName.equals("old rod") || rodName.equals("good rod")) {
+                    for (String name : route.superRodPokemon()) {
+                        eligiblePokemon.remove(name);
+                    }
+                }
+                if (rodName.equals("old rod")) {
+                    for (String name : route.goodRodPokemon()) {
+                        eligiblePokemon.remove(name);
+                    }
+                }
+                // TODO: debug, remove
+                for (String name : eligiblePokemon) {
+                    System.out.println(name);
+                }
+                String name = eligiblePokemon.get(Game.rand.nextInt(eligiblePokemon.size()));
+                // Level based on rod
+                int level = 10;
+                if (rodName.equals("good rod")) {
+                    level = 20;
+                }
+                else if (rodName.equals("super rod")) {
+                    level = 30;
+                }
+                // Evo the Pokemon if able (based on level requirement)
                 Pokemon pokemon = new Pokemon(name, level, Pokemon.Generation.CRYSTAL);
                 String evolveTo = null;
                 int timesEvolved = 0;
@@ -6126,35 +6298,35 @@ class Tile {
                         }
                     }
                 }
-            	String[] huhs = new String[] {"Whoa!             ", "Oh!               ",
-            							      "Huh?              ", "What!?            "};
-            	String huh = huhs[Game.rand.nextInt(huhs.length)];
+                String[] huhs = new String[] {"Whoa!             ", "Oh!               ",
+                                              "Huh?              ", "What!?            "};
+                String huh = huhs[Game.rand.nextInt(huhs.length)];
                 game.player.setCurrPokemon();
                 game.battle.oppPokemon = pokemon;
-            	nextAction.append(new WaitFrames(game, 120, //  90,
-  					              game.player.new CaughtFishAnim(
-  					  	          game.player.new Emote("!",
-                    			  new DisplayText(game, huh+"A bite!", null, null,
-            					  new WaitFrames(game, 30,
-                      			  new SplitAction(
-              					      new SetField(game.player, "isFishing", false, null),
-                  			      new SetField(game.player, "currSprite", game.player.standingSprites.get(dirFacing), 
-              				      new SetField(game.musicController, "startBattle", "wild",
+                nextAction.append(new WaitFrames(game, 120, //  90,
+                                    game.player.new CaughtFishAnim(
+                                      game.player.new Emote("!",
+                                  new DisplayText(game, huh+"A bite!", null, null,
+                                  new WaitFrames(game, 30,
+                                    new SplitAction(
+                                        new SetField(game.player, "isFishing", false, null),
+                                    new SetField(game.player, "currSprite", game.player.standingSprites.get(dirFacing), 
+                                    new SetField(game.musicController, "startBattle", "wild",
                                   Battle.getIntroAction(game, true))))))))));
 //                game.insertAction(new WaitFrames(game, 600,
-//                				  new SetField(game.player, "isFishing", false,
-//                				  null)));
+//                                  new SetField(game.player, "isFishing", false,
+//                                  null)));
             }
             else {
-            	String[] huhs = new String[] {"!", "..."};
-            	String huh = huhs[Game.rand.nextInt(huhs.length)];
-            	nextAction.append(new WaitFrames(game, 120,
-            					  new DisplayText(game, "Not even a nibble"+huh, null, null,
-              					  new SplitAction(
-                			          new SetField(game.player, "isFishing", false, null), 
-    							  new SetField(game, "playerCanMove", true,
+                String[] huhs = new String[] {"!", "..."};
+                String huh = huhs[Game.rand.nextInt(huhs.length)];
+                nextAction.append(new WaitFrames(game, 120,
+                                  new DisplayText(game, "Not even a nibble"+huh, null, null,
+                                    new SplitAction(
+                                      new SetField(game.player, "isFishing", false, null), 
+                                  new SetField(game, "playerCanMove", true,
                                   new WaitFrames(game, 30,
-            			          null))))));
+                                  null))))));
             }
             game.insertAction(nextAction);
         }

@@ -72,7 +72,7 @@ public class Pokemon {
         attacksImplemented.add("earthquake");
         attacksImplemented.add("egg bomb");
         attacksImplemented.add("ember");
-        attacksImplemented.add("explosion");
+//        attacksImplemented.add("explosion");
         attacksImplemented.add("extremespeed");
         attacksImplemented.add("faint attack");
         attacksImplemented.add("false swipe");
@@ -154,7 +154,7 @@ public class Pokemon {
         attacksImplemented.add("scratch");
         attacksImplemented.add("screech");
         attacksImplemented.add("seismic toss");
-        attacksImplemented.add("selfdestruct");
+//        attacksImplemented.add("selfdestruct");
         attacksImplemented.add("shadow ball");
         attacksImplemented.add("sharpen");
         attacksImplemented.add("sing");
@@ -257,19 +257,19 @@ public class Pokemon {
     // Pokemon that can only be let out in water.
     public static ArrayList<String> onlySwim = new ArrayList<String>();
     static {
-    	onlySwim.add("magikarp");
-//    	onlySwim.add("gyarados");  // not sure
-    	onlySwim.add("remoraid");
-    	onlySwim.add("chinchou");
-    	onlySwim.add("lanturn");
-    	onlySwim.add("goldeen");
-    	onlySwim.add("seaking");
-    	onlySwim.add("mantine");
-    	onlySwim.add("horsea");
-    	onlySwim.add("seadra");
-    	onlySwim.add("kingdra");
-    	onlySwim.add("feebas");
-    	onlySwim.add("lapras");
+        onlySwim.add("magikarp");
+//        onlySwim.add("gyarados");  // not sure
+        onlySwim.add("remoraid");
+        onlySwim.add("chinchou");
+        onlySwim.add("lanturn");
+        onlySwim.add("goldeen");
+        onlySwim.add("seaking");
+        onlySwim.add("mantine");
+        onlySwim.add("horsea");
+        onlySwim.add("seadra");
+        onlySwim.add("kingdra");
+        onlySwim.add("feebas");
+        onlySwim.add("lapras");
     }
 
     /**
@@ -277,11 +277,11 @@ public class Pokemon {
      */
     public static ArrayList<String> aggroAnyway = new ArrayList<String>();
     static {
-    	aggroAnyway.add("poochyena");
-    	aggroAnyway.add("sneasel");
-    	aggroAnyway.add("skarmory");
-    	aggroAnyway.add("pinsir");
-    	aggroAnyway.add("tauros");
+        aggroAnyway.add("poochyena");
+        aggroAnyway.add("sneasel");
+        aggroAnyway.add("skarmory");
+        aggroAnyway.add("pinsir");
+        aggroAnyway.add("tauros");
     }
 
     /**
@@ -289,9 +289,9 @@ public class Pokemon {
      */
     public static ArrayList<String> dontAggro = new ArrayList<String>();
     static {
-    	dontAggro.add("bellossom");
-    	dontAggro.add("gardevoir");
-    	dontAggro.add("jumpluff");
+        dontAggro.add("bellossom");
+        dontAggro.add("gardevoir");
+        dontAggro.add("jumpluff");
     }
 
     /**
@@ -582,7 +582,7 @@ public class Pokemon {
             name = "farfetch’d";
         }
         if(name.equals("ho_oh")) {
-        	name = "ho-oh";
+            name = "ho-oh";
         }
         // TODO: handle all alolan forms here
         if (name.equals("aexeggutor")) {
@@ -1014,14 +1014,14 @@ public class Pokemon {
      */
     public String _baseSpecie = null;
     public String baseSpecie() {
-    	if (this._baseSpecie == null) {
-    		String name = this.specie.name;
-    		if (name.contains("unown")) {
-    			name = "unown";
-    		}
-    		this._baseSpecie = Pokemon.baseSpecies.get(name);
-    	}
-    	return this._baseSpecie;
+        if (this._baseSpecie == null) {
+            String name = this.specie.name;
+            if (name.contains("unown")) {
+                name = "unown";
+            }
+            this._baseSpecie = Pokemon.baseSpecies.get(name);
+        }
+        return this._baseSpecie;
     }
 
     // TODO - this doesn't take IV's or EV's into account.
@@ -1071,7 +1071,7 @@ public class Pokemon {
         this.nearbyEggs = 0;
 //        int habitatCount = 0;
         ArrayList<String> notFoundHabitats = new ArrayList<String>(Pokemon.this.habitats);
-        for (Vector2 currPos = new Vector2(startPos.x, startPos.y); currPos.y < endPos.y;) {
+        for (Vector2 currPos = new Vector2(startPos.x, startPos.y); currPos.y <= endPos.y;) {
 //            Tile tile = game.map.tiles.get(currPos);  // TODO: remove
 //            System.out.println(Pokemon.this.specie.name);
             Tile tile = Pokemon.this.mapTiles.get(currPos);
@@ -1174,28 +1174,42 @@ public class Pokemon {
      * Compute changes required by leveling up.
      */
     void gainLevel(int numLevels) {
-    	int prevMaxHp = this.maxStats.get("hp");
+        int prevMaxHp = this.maxStats.get("hp");
         this.level += numLevels;
         this.calcMaxStats();
         // TODO: remove when getting rid of currentStats.
 //        this.currentStats = new HashMap<String, Integer>(this.maxStats);
         for (String stat : this.maxStats.keySet()) {
             if (stat.equals("hp")) {
-            	int prevCurrentHp = this.currentStats.get("hp");
+                int prevCurrentHp = this.currentStats.get("hp");
                 this.currentStats.put(stat, prevCurrentHp + (this.maxStats.get("hp")-prevMaxHp));
             }
             else
-            	this.currentStats.put(stat, this.maxStats.get(stat));
+                this.currentStats.put(stat, this.maxStats.get(stat));
         }
         // https://bulbapedia.bulbagarden.net/wiki/Friendship#Generation_II
         if (this.happiness < 100) {
-            this.happiness += 5;
+            this.gainHappiness(5);
         }
         else if (this.happiness < 200) {
-            this.happiness += 3;
+            this.gainHappiness(3);
         }
         else {
-            this.happiness += 2;
+            this.gainHappiness(2);
+        }
+    }
+
+
+    /**
+     * Just ensures that the Pokemon's happiness is between 0 and 220;
+     */
+    void gainHappiness(int amount) {
+        this.happiness += amount;
+        if (this.happiness > 220) {
+            this.happiness = 220;
+        }
+        else if (this.happiness < 0) {
+            this.happiness = 0;
         }
     }
 
@@ -1220,7 +1234,7 @@ public class Pokemon {
         // Technically the name has the male/female symbol in gen 2,
         // not doing for now.
         else if (nickname.equals("nidoran_f") || nickname.equals("nidoran_m")) {
-        	nickname = "nidoran";
+            nickname = "nidoran";
         }
         return nickname;
     }
@@ -1290,17 +1304,17 @@ public class Pokemon {
      * TODO: ideally there would be a better way to do this.
      */
     public void removeDrawActions(Game game) {
-    	game.actionStack.remove(this.standingAction);
-    	game.actionStack.remove(this.drawUpper);
-    	game.actionStack.remove(this.drawLower);
+        game.actionStack.remove(this.standingAction);
+        game.actionStack.remove(this.drawUpper);
+        game.actionStack.remove(this.drawLower);
     }
     
     /**
      * Compute changes required by evolution.
      */
     void evolveTo(String targetName) {
-    	int prevMaxHp = this.maxStats.get("hp");
-    	int prevCurrentHp = this.currentStats.get("hp");
+        int prevMaxHp = this.maxStats.get("hp");
+        int prevCurrentHp = this.currentStats.get("hp");
         updateSpecieInfo(targetName);
 
         // Update base stats and various values.
@@ -1447,22 +1461,22 @@ public class Pokemon {
 //                    System.out.println(this.learnSet.get(level));
 //                }
                 if (level <= this.level) {
-                	// TODO: I'm not sure how the console games do this,
-                	// Prevent a pokemon from learning the same move twice.
-                	boolean foundMove = false;
-                	for (int j=0; j < this.attacks.length; j++) {
-                		if (attacks[j] == null) {
-                			continue;
-                		}
-                		if (attacks[j].equals(attack)) {
-                			foundMove = true;
-                			break;
-                		}
-                	}
-                	if (foundMove) {
-                		continue;
-                	}
-                	//
+                    // TODO: I'm not sure how the console games do this,
+                    // Prevent a pokemon from learning the same move twice.
+                    boolean foundMove = false;
+                    for (int j=0; j < this.attacks.length; j++) {
+                        if (attacks[j] == null) {
+                            continue;
+                        }
+                        if (attacks[j].equals(attack)) {
+                            foundMove = true;
+                            break;
+                        }
+                    }
+                    if (foundMove) {
+                        continue;
+                    }
+                    //
                     this.attacks[i] = attack;
                     i += 1;
                     if (i >= this.attacks.length) {
@@ -1478,14 +1492,14 @@ public class Pokemon {
     void loadOverworldSprites() {                
             // If this is an egg, load special texture for the overworld sprite
             if (this.isEgg) {
-            	this.movingSprites = specie.movingSpritesEgg;
+                this.movingSprites = specie.movingSpritesEgg;
                 this.altMovingSprites = specie.altMovingSpritesEgg;
                 this.standingSprites = specie.standingSpritesEgg;
                 this.avatarSprites = specie.avatarSpritesEgg;
             }
             else //otherwise, set normal overworld textures
             {
-            	this.spriteOffsetY = specie.spriteOffsetY;
+                this.spriteOffsetY = specie.spriteOffsetY;
                 this.movingSprites = specie.movingSprites;
                 this.altMovingSprites = specie.altMovingSprites;
                 this.standingSprites = specie.standingSprites;
@@ -1668,9 +1682,9 @@ public class Pokemon {
 
         @Override
         public void step(Game game) {
-        	// TODO: perf for this is bad. Need some way to notify that 
-        	// this should be removed.
-        	// TODO: remove
+            // TODO: perf for this is bad. Need some way to notify that 
+            // this should be removed.
+            // TODO: remove
 //            if (!game.actionStack.contains(Pokemon.this.standingAction)) {
 //                game.actionStack.remove(this);
 //                return;
@@ -1692,7 +1706,9 @@ public class Pokemon {
             // If pokemon is female and has a love interest, count down to lay egg
             if (Pokemon.this.loveInterest != null &&
                 Pokemon.this.inHabitat &&
-                Pokemon.this.nearbyEggs < 5 &&  // Don't lay eggs if too many are nearby
+                // TODO: still balancing this.
+//                Pokemon.this.nearbyEggs < 5 &&  // Don't lay eggs if too many are nearby
+                Pokemon.this.nearbyEggs < 3 &&
                 (Pokemon.this.gender.equals("female") || 
                 (Pokemon.this.eggGroups[0].equals("EGG_DITTO") && Pokemon.this.loveInterest.gender.equals("male"))) &&
                 Pokemon.this.layEggTimer > 0) {
@@ -1708,7 +1724,7 @@ public class Pokemon {
                 return;
             }
             if (Pokemon.this.inWater) {
-            	return;
+                return;
             }
             this.spritePart = new Sprite(Pokemon.this.currOwSprite);
 //            this.spritePart.setRegionY(Pokemon.this.spriteOffsetY+8);
@@ -1744,18 +1760,18 @@ public class Pokemon {
 
         @Override
         public void firstStep(Game game) {
-        	// TODO: other mons may need checked here.
-    		if (Pokemon.this.specie.name.equals("lapras")) {
-    			this.floatOffset2 = 5;
-    		}
-    		else if (Pokemon.this.specie.name.equals("anorith")) {
-    			this.floatOffset2 = 2;
-    		}
+            // TODO: other mons may need checked here.
+            if (Pokemon.this.specie.name.equals("lapras")) {
+                this.floatOffset2 = 5;
+            }
+            else if (Pokemon.this.specie.name.equals("anorith")) {
+                this.floatOffset2 = 2;
+            }
         }
 
         @Override
         public void step(Game game) {
-        	// TODO: remove
+            // TODO: remove
 //            if (!game.actionStack.contains(Pokemon.this.standingAction)) {
 //                game.actionStack.remove(this);
 //                return;
@@ -1777,16 +1793,16 @@ public class Pokemon {
 //                                      Pokemon.this.currOwSprite.getRegionWidth(), 8);
 
             if (Pokemon.this.inWater) {
-            	this.floatTimer++;
-            	if (this.floatTimer > 80) {
-            		this.floatTimer = 0;
-            	}
-            	if (this.floatTimer % 80 == 0) {
-            		this.floatOffset = 0;
-            	}
-            	else if (this.floatTimer % 80 == 40) {
-            		this.floatOffset = 1;
-            	}
+                this.floatTimer++;
+                if (this.floatTimer > 80) {
+                    this.floatTimer = 0;
+                }
+                if (this.floatTimer % 80 == 0) {
+                    this.floatOffset = 0;
+                }
+                else if (this.floatTimer % 80 == 40) {
+                    this.floatOffset = 1;
+                }
                 game.mapBatch.draw(this.spritePart, Pokemon.this.position.x, Pokemon.this.position.y+8);
             }
             else {
@@ -1869,18 +1885,8 @@ public class Pokemon {
             this.alternate = alternate;
             this.isFollowing = isFollowing;
             this.nextAction = nextAction;
-        }
-
-        public String getCamera() {
-            return "map";
-        }
-
-        public int getLayer(){
-            return this.layer;
-        }
-
-        @Override
-        public void firstStep(Game game) {
+            
+            // TODO: test, experimental change
             this.initialPos = new Vector2(Pokemon.this.position);
             if (this.dirFacing.equals("up")) {
                 this.targetPos = new Vector2(Pokemon.this.position.x, Pokemon.this.position.y+16);
@@ -1895,11 +1901,28 @@ public class Pokemon {
                 this.targetPos = new Vector2(Pokemon.this.position.x+16, Pokemon.this.position.y);
             }
             if (!this.isFollowing) {
-                if (game.map.pokemon.containsKey(Pokemon.this.position) && game.map.pokemon.get(Pokemon.this.position).equals(Pokemon.this)) {
-                    game.map.pokemon.remove(Pokemon.this.position);
+                if (Game.staticGame.map.pokemon.containsKey(Pokemon.this.position) &&
+                	Game.staticGame.map.pokemon.get(Pokemon.this.position).equals(Pokemon.this)) {
+                	Game.staticGame.map.pokemon.remove(Pokemon.this.position);
                 }
-                game.map.pokemon.put(this.targetPos.cpy(), Pokemon.this);
+                Game.staticGame.map.pokemon.put(this.targetPos.cpy(), Pokemon.this);
+            }
+            Pokemon.this.canMove = true;
+            //
+        }
 
+        public String getCamera() {
+            return "map";
+        }
+
+        public int getLayer(){
+            return this.layer;
+        }
+
+        @Override
+        public void firstStep(Game game) {
+
+            if (!this.isFollowing) {
                 // Play 'dash' sound if pokemon is moving fast
                 if (this.numMove <= 1) {
                     // TODO: this will get played incessantly, should only play if near player
@@ -1910,7 +1933,6 @@ public class Pokemon {
                     game.insertAction(new PlaySound("ride1", 1f, true, null));
                 }
             }
-            Pokemon.this.canMove = true;
 
             // Lay egg if able
             // TODO: pokemon following you may do this
@@ -2019,12 +2041,12 @@ public class Pokemon {
             // Check whether or not in water
             // TODO: difficult to do this without a timer. Need to use timer instead.
             if ((int)this.xDist == 8 || (int)this.yDist == 8 ||
-            	(int)this.xDist == 9 || (int)this.yDist == 9) {
+                (int)this.xDist == 9 || (int)this.yDist == 9) {
                 Tile currTile = Pokemon.this.mapTiles.get(this.targetPos);
-            	Pokemon.this.inWater = false;
+                Pokemon.this.inWater = false;
                 if (currTile != null && currTile.name.contains("water") && (!currTile.name.contains("bridge") ||
-                															currTile.name.contains("_lower"))) {
-                	Pokemon.this.inWater = true;
+                                                                            currTile.name.contains("_lower"))) {
+                    Pokemon.this.inWater = true;
                 }
             }
             
@@ -2132,9 +2154,14 @@ public class Pokemon {
 
             // This will be used while player is surfing (I think)
             Tile currTile = Pokemon.this.mapTiles.get(Pokemon.this.position);
-        	Pokemon.this.inWater = false;
-            if (currTile != null && currTile.name.contains("water")) {
-            	Pokemon.this.inWater = true;
+            Pokemon.this.inWater = false;
+            if (currTile != null &&
+                currTile.name.contains("water") &&
+                // Bridges have 'water' in the name.
+                // TODO: remove once fixed the issue where bridges require water type in the name.
+                (!currTile.name.contains("bridge") ||
+                 currTile.name.contains("_lower"))) {
+                Pokemon.this.inWater = true;
             }
         }
 
@@ -2295,7 +2322,7 @@ public class Pokemon {
                 game.insertAction(this.nextAction);
                 Pokemon.this.standingAction = this.nextAction;
                 if (!this.isFollowing) {
-                	Pokemon.this.checkHabitat(game);
+                    Pokemon.this.checkHabitat(game);
                 }
 //                if (this.isFollowing) {
                     this.nextAction.step(game);  // gets rid of 'jitter'
@@ -2553,7 +2580,6 @@ public class Pokemon {
                     !facingTile.nameUpper.contains("gate") &&
                     !facingTile.nameUpper.contains("door") &&
                     !game.map.pokemon.containsKey(newPos)) {
-                    
 
                     // Find out if near campfire
                     Vector2 startPos = Pokemon.this.position.cpy().add(-80, -80);
@@ -2576,7 +2602,7 @@ public class Pokemon {
                             this.campfireDespawn = 200;
                             return;
                         }
-                        else if (tile.items().containsKey("torch") &&
+                        else if (tile.items != null && tile.items.containsKey("torch") &&
                                  Pokemon.this.position.dst2(tile.position) < 1024) {
                             // TODO: probably only check if within small radius
                             this.campfireDespawn = 200;
@@ -2588,6 +2614,12 @@ public class Pokemon {
                                 this.campfireDespawn = 200;
                                 return;
                             }
+                        }
+                        else if (game.player.hmPokemon != null && 
+                                 Pokemon.this.position.dst2(game.player.position) < 4096 &&
+                                 game.player.hmPokemon.hms.contains("FLASH")) {
+                            this.campfireDespawn = 200;
+                            return;
                         }
                     }
 
@@ -2820,7 +2852,7 @@ public class Pokemon {
 
             @Override
             public void step(Game game) {
-            	// TODO: remove
+                // TODO: remove
 //                if (!game.actionStack.contains(Burrowed.this)) {
 //                    game.actionStack.remove(this);
 //                }
@@ -2900,14 +2932,14 @@ public class Pokemon {
 
             // Check if Pokemon is swimming
             Tile currTile = Pokemon.this.mapTiles.get(Pokemon.this.position);
-        	Pokemon.this.inWater = false;
+            Pokemon.this.inWater = false;
             if (currTile != null &&
-            	currTile.name.contains("water") &&
-            	// Bridges have 'water' in the name.
-            	// TODO: remove once fixed the issue where bridges require water type in the name.
-            	(!currTile.name.contains("bridge") ||
-				 currTile.name.contains("_lower"))) {
-            	Pokemon.this.inWater = true;
+                currTile.name.contains("water") &&
+                // Bridges have 'water' in the name.
+                // TODO: remove once fixed the issue where bridges require water type in the name.
+                (!currTile.name.contains("bridge") ||
+                 currTile.name.contains("_lower"))) {
+                Pokemon.this.inWater = true;
             }
         }
 
@@ -2976,16 +3008,16 @@ public class Pokemon {
             Pokemon.this.currOwSprite = Pokemon.this.standingSprites.get(Pokemon.this.dirFacing);
 
             // TODO: performance hit?
-        	this.charmTimer++;
-        	if (this.charmTimer > 240) {
-        		this.charmTimer = 0;
-        		Pokemon.this.isCharmed = game.player.currFieldMove.equals("CHARM") &&
-				    					 game.player.hmPokemon != null && 
-				    					 game.player.hmPokemon.level >= Pokemon.this.level;
-		        if (Pokemon.this.isCharmed) {
+            this.charmTimer++;
+            if (this.charmTimer > 240) {
+                this.charmTimer = 0;
+                Pokemon.this.isCharmed = game.player.currFieldMove.equals("CHARM") &&
+                                         game.player.hmPokemon != null && 
+                                         game.player.hmPokemon.level >= Pokemon.this.level;
+                if (Pokemon.this.isCharmed) {
                     game.insertAction(Pokemon.this.new Emote("heart", null));
-		        }
-		    }
+                }
+            }
 
             // If pokemon is aggro-ing the player, run towards the player
             // Don't aggro if player is indoors
@@ -2999,13 +3031,6 @@ public class Pokemon {
                 }
                 this.aggroTimer++;
 
-//                boolean isCharmed = game.player.currFieldMove.equals("CHARM") &&
-//                					game.player.hmPokemon != null && 
-//                					game.player.hmPokemon.level >= Pokemon.this.level;
-//                if (isCharmed) {
-//                	
-//                }
-
                 // Play skull emote + pokemon cry every so often
                 if (this.aggroTimer == 1) {
                     game.insertAction(Pokemon.this.new Emote("skull", null));
@@ -3016,7 +3041,7 @@ public class Pokemon {
                 // Check line-of-sight if indoors
                 if (Pokemon.this.mapTiles != game.map.overworldTiles) {
                     // losTimer used to check los only at certain intervals
-                    
+
                     if (dst2 < 16384 && this.losTimer <= 0) {
                         Vector2 startPos = Pokemon.this.position.cpy();
                         // Vector2 losVector = startPos.cpy().sub(game.player.position);
@@ -3515,8 +3540,8 @@ public class Pokemon {
                     String nearbyDir;
                     // TODO: could have the 'move towards same species' stuff just use loveInterest instead.
                     for (Vector2 currPos = new Vector2(startPos.x, startPos.y); currPos.y <= endPos.y;) {
-                    	tile = Pokemon.this.mapTiles.get(currPos);
-                    	pokemon = game.map.pokemon.get(currPos);
+                        tile = Pokemon.this.mapTiles.get(currPos);
+                        pokemon = game.map.pokemon.get(currPos);
                         currPos.x += 16;
                         if (currPos.x > endPos.x) {
                             currPos.x = startPos.x;
@@ -3529,7 +3554,7 @@ public class Pokemon {
                             continue;
                         }
                         if (pokemon == Pokemon.this) {
-                        	continue;
+                            continue;
                         }
                         sameBaseSpecie = pokemon.baseSpecie().equals(Pokemon.this.baseSpecie());
                         if (Pokemon.this.specie.name.equals("tauros")) {
@@ -3552,23 +3577,23 @@ public class Pokemon {
                             dy = Math.abs(Pokemon.this.position.y - pokemon.position.y);
                             if (dx < dy) {
                                 if (pokemon.position.y < Pokemon.this.position.y) {
-                                	nearbyDir = "down";
+                                    nearbyDir = "down";
                                 }
                                 else {
-                                	nearbyDir = "up";
+                                    nearbyDir = "up";
                                 }
                             }
                             else {
                                 if (pokemon.position.x < Pokemon.this.position.x) {
-                                	nearbyDir = "left";
+                                    nearbyDir = "left";
                                 }
                                 else {
-                                	nearbyDir = "right";
+                                    nearbyDir = "right";
                                 }
                             }
                             this.nearbyDir2 = nearbyDir;
                             if (this.nearbyDir == null) {
-                            	this.nearbyDir = nearbyDir;
+                                this.nearbyDir = nearbyDir;
                             }
                         }
                     }
@@ -3579,12 +3604,12 @@ public class Pokemon {
                 // 25% chance to move towards nearby pokemon, if one is nearby.
 //                if (nearbyDir != null && Game.rand.nextInt(100) < 25) {  
                 if (this.nearbyDir != null && Game.rand.nextInt(100) < 30) {
-                	if (this.nearbyDir2 != null && Game.rand.nextInt(100) < 50) {
+                    if (this.nearbyDir2 != null && Game.rand.nextInt(100) < 50) {
                         Pokemon.this.dirFacing = this.nearbyDir2;
-                	}
-                	else {
+                    }
+                    else {
                         Pokemon.this.dirFacing = this.nearbyDir;
-                	}
+                    }
                 }
                 Vector2 newPos = Pokemon.this.facingPos();
                 // Just checking overworldTiles for now, that way it will still
@@ -3599,55 +3624,55 @@ public class Pokemon {
                 }
                 Tile currTile = Pokemon.this.mapTiles.get(Pokemon.this.position);
                 if (Pokemon.this.inWater) {
-                	// Can only move to another shore tile,
-                	// unless it's not already touching shore.
-                	boolean foundShore = false;
-                	Tile tile;
-                	Vector2[] positions = new Vector2[]{new Vector2(-16, -16), new Vector2(0, -16), new Vector2(16, -16),
-							                			new Vector2(-16,   0), new Vector2(0,   0), new Vector2(16,   0),
-							                			new Vector2(-16,  16), new Vector2(0,  16), new Vector2(16,  16)};
-                	for (Vector2 position : positions) {
-                		tile = Pokemon.this.mapTiles.get(Pokemon.this.position.cpy().add(position));
-                		if (tile != null && (!tile.name.contains("water") || (tile.name.contains("bridge") && !tile.name.contains("_lower")))) {
-                			foundShore = true;
-                			break;
-                		}
-                	}
-                	if (foundShore) {
-                		foundShore = false;
-                    	for (Vector2 position : positions) {
-                    		tile = Pokemon.this.mapTiles.get(newPos.cpy().add(position));
-                    		if (tile != null && (!tile.name.contains("water") || (tile.name.contains("bridge") && !tile.name.contains("_lower")))) {
-                    			foundShore = true;
-                    			break;
-                    		}
-                    	}
-                    	//
-                    	if (temp == null ||
-                    	    !foundShore ||
-                    	    (!temp.name.contains("water") || (temp.name.contains("bridge") && !temp.name.contains("_lower"))) || 
-                    		game.map.pokemon.containsKey(newPos)) {
-                    		return;
-                    	}
-                	}
+                    // Can only move to another shore tile,
+                    // unless it's not already touching shore.
+                    boolean foundShore = false;
+                    Tile tile;
+                    Vector2[] positions = new Vector2[]{new Vector2(-16, -16), new Vector2(0, -16), new Vector2(16, -16),
+                                                        new Vector2(-16,   0), new Vector2(0,   0), new Vector2(16,   0),
+                                                        new Vector2(-16,  16), new Vector2(0,  16), new Vector2(16,  16)};
+                    for (Vector2 position : positions) {
+                        tile = Pokemon.this.mapTiles.get(Pokemon.this.position.cpy().add(position));
+                        if (tile != null && (!tile.name.contains("water") || (tile.name.contains("bridge") && !tile.name.contains("_lower")))) {
+                            foundShore = true;
+                            break;
+                        }
+                    }
+                    if (foundShore) {
+                        foundShore = false;
+                        for (Vector2 position : positions) {
+                            tile = Pokemon.this.mapTiles.get(newPos.cpy().add(position));
+                            if (tile != null && (!tile.name.contains("water") || (tile.name.contains("bridge") && !tile.name.contains("_lower")))) {
+                                foundShore = true;
+                                break;
+                            }
+                        }
+                        //
+                        if (temp == null ||
+                            !foundShore ||
+                            (!temp.name.contains("water") || (temp.name.contains("bridge") && !temp.name.contains("_lower"))) || 
+                            game.map.pokemon.containsKey(newPos)) {
+                            return;
+                        }
+                    }
                 }
                 else {
-                	boolean isLedge = (temp != null && temp.attrs.get("ledge")) ||
-                			(currTile != null && currTile.attrs.get("ledge") && currTile.ledgeDir.equals("up") && Pokemon.this.dirFacing.equals("up"));
-                	if (temp == null ||
-            			temp.attrs.get("solid") || 
-            			isLedge ||
-            			temp.name.contains("door") || 
+                    boolean isLedge = (temp != null && temp.attrs.get("ledge")) ||
+                            (currTile != null && currTile.attrs.get("ledge") && currTile.ledgeDir.equals("up") && Pokemon.this.dirFacing.equals("up"));
+                    if (temp == null ||
+                        temp.attrs.get("solid") || 
+                        isLedge ||
+                        temp.name.contains("door") || 
                         temp.nameUpper.contains("gate") ||
-            			temp.nameUpper.contains("door") || 
-            			game.map.pokemon.containsKey(newPos) ||
-            			// TODO: an indoor player will mess with an outdoor pokemon here
-            			// technically doesn't matter for now b/c indoor tiles won't
-            			// overlap with non-solid overworld areas.
-            			game.player.position.equals(newPos) ||
-            			collidesWithPlayer) {
-                		return;
-                	}
+                        temp.nameUpper.contains("door") || 
+                        game.map.pokemon.containsKey(newPos) ||
+                        // TODO: an indoor player will mess with an outdoor pokemon here
+                        // technically doesn't matter for now b/c indoor tiles won't
+                        // overlap with non-solid overworld areas.
+                        game.player.position.equals(newPos) ||
+                        collidesWithPlayer) {
+                        return;
+                    }
                 }
                 game.actionStack.remove(this);
                 Action action = Pokemon.this.new Moving(2, 1, true, null);

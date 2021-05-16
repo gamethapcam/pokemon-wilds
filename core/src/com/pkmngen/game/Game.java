@@ -292,10 +292,10 @@ public class Game extends ApplicationAdapter {
         // Print action stack in layer-order
         if (Gdx.input.isKeyJustPressed(Input.Keys.P)) {
 
-        	for (String name : this.timings.keySet()) {
-        		System.out.println(name+": "+this.timings.get(name));
-        	}
-        	
+            for (String name : this.timings.keySet()) {
+                System.out.println(name+": "+this.timings.get(name));
+            }
+            
             System.out.println("Layer, Name");
             for (Action action : this.actionStack) {
                 System.out.println(String.valueOf(action.getLayer()) + "  " + action.getClass().getName());
@@ -736,7 +736,7 @@ public class Game extends ApplicationAdapter {
 //        this.drawCampfireAuras.step(this);
 //        this.lightingBatch.end();
 //        this.frameBuffer.end();
-        
+
         // TODO: debug, remove
 //        this.timings.clear();
 
@@ -751,19 +751,19 @@ public class Game extends ApplicationAdapter {
             }
             if (action.getCamera().equals("map")) {
                 try {
-                	// TODO: debug, remove
-//                	this.startTime = System.nanoTime();
-                	
+                    // TODO: debug, remove
+//                    this.startTime = System.nanoTime();
+                    
                     if (action.firstStep) {
                         action.firstStep(this);
                         action.firstStep = false;
                     }
                     action.step(this);
 
-                	// TODO: debug, remove
+                    // TODO: debug, remove
 //                    this.currTime = System.nanoTime()-this.startTime;
 //                    if (!timings.containsKey(action.getClass().getName())) {
-//                    	timings.put(action.getClass().getName(), Long.valueOf(0));
+//                        timings.put(action.getClass().getName(), Long.valueOf(0));
 //                    }
 //                    timings.put(action.getClass().getName(), timings.get(action.getClass().getName()) + this.currTime);
                 }
@@ -791,7 +791,7 @@ public class Game extends ApplicationAdapter {
             }
             try {
                 if (action.getCamera().equals("gui")) {
-//                	this.startTime = System.nanoTime();
+//                    this.startTime = System.nanoTime();
                     if (action.firstStep) {
                         action.firstStep(this);
                         action.firstStep = false;
@@ -799,7 +799,7 @@ public class Game extends ApplicationAdapter {
                     action.step(this);
 //                    this.currTime = System.nanoTime()-this.startTime;
 //                    if (!timings.containsKey(action.getClass().getName())) {
-//                    	timings.put(action.getClass().getName(), Long.valueOf(0));
+//                        timings.put(action.getClass().getName(), Long.valueOf(0));
 //                    }
 //                    timings.put(action.getClass().getName(), timings.get(action.getClass().getName()) + this.currTime);
                 }
@@ -921,33 +921,15 @@ public class Game extends ApplicationAdapter {
         this.player.pokemon.add(new Pokemon("machop", 6));
         if (this.debugInputEnabled) {
             // Some starting pokemon used for debugging
-//            this.player.pokemon.get(0).currentStats.put("hp", 1);
-//            this.player.pokemon.get(0).attacks[2] = "recover";
-//            this.player.pokemon.get(0).attacks[3] = "slash";
             this.player.pokemon.add(new Pokemon("rapidash", 60));
-//            this.player.pokemon.get(1).attacks[0] = "crush grip";
-//            this.player.pokemon.get(1).attacks[1] = "dragon energy";
-//            this.player.pokemon.get(1).attacks[2] = "thunder cage";
-//            this.player.pokemon.get(1).attacks[1] = "confuse ray";
-//            this.player.pokemon.get(1).attacks[2] = "toxic";
-//            this.player.pokemon.get(1).attacks[3] = "sweet scent";
-            this.player.pokemon.add(new Pokemon("pidgeot", 60, Pokemon.Generation.CRYSTAL));
+//            this.player.pokemon.add(new Pokemon("pidgeot", 60, Pokemon.Generation.CRYSTAL));
 //            this.player.pokemon.add(new Pokemon("golem", 60, Pokemon.Generation.CRYSTAL));
-//            this.player.pokemon.get(1).currentStats.put("hp", 0);
-//            this.player.pokemon.get(2).currentStats.put("hp", 0);
-//            this.player.pokemon.get(3).currentStats.put("hp", 0);
-
 //            this.player.pokemon.add(new Pokemon("ampharos", 70, Pokemon.Generation.CRYSTAL));
             this.player.pokemon.add(new Pokemon("rhydon", 46, Pokemon.Generation.CRYSTAL));
             this.player.pokemon.add(new Pokemon("meganium", 46, Pokemon.Generation.CRYSTAL));
 //            this.player.pokemon.add(new Pokemon("ursaring", 46, Pokemon.Generation.CRYSTAL));
-            this.player.pokemon.add(new Pokemon("volcarona", 46, Pokemon.Generation.CRYSTAL));
-
-//            this.player.pokemon.add(new Pokemon("egg", 1, Pokemon.Generation.CRYSTAL, false, "skarmory"));
-//            this.player.pokemon.add(new Pokemon("egg", 1, Pokemon.Generation.CRYSTAL, true, "skarmory"));
-//            this.player.pokemon.get(4).happiness = 1;  // test egg cycle hatching works
-//            this.player.pokemon.add(new Pokemon("egg", 1, Pokemon.Generation.CRYSTAL, false, "skarmory"));
-//            this.player.pokemon.get(5).happiness = 1;  // test egg cycle hatching works
+            this.player.pokemon.add(new Pokemon("unown_!", 46, Pokemon.Generation.CRYSTAL, true, false));
+            this.player.pokemon.add(new Pokemon("unown_qmark", 46, Pokemon.Generation.CRYSTAL, true, false));
 
             // TODO: remove
             // This seems to indicate that number of zeros is roughly equal to number of ones.

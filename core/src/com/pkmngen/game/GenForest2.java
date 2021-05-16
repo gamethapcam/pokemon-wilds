@@ -1662,12 +1662,12 @@ class GenIsland1 extends Action {
          
         for (int i=0, tries=0; i < hitBoxes.length;) {
             // Pick start point
-        	if (i < 2) {
+            if (i < 2) {
                 origins[i] = desertTiles.get(this.rand.nextInt(desertTiles.size())).position;
-        	}
-        	else {
+            }
+            else {
                 origins[i] = deepForestTiles.get(this.rand.nextInt(deepForestTiles.size())).position;
-        	}
+            }
             
             // Special rules for Desert Ruins origin point
             if (i == 0) {
@@ -1686,16 +1686,16 @@ class GenIsland1 extends Action {
             hitBoxes[i].setCenter(origins[i]);
             // Regi dungeon avoids mountains
             if (i > 1) {
-            	boolean hitsMountain = false;
-            	for (Vector2 position : this.mtnTiles.keySet()) {
-            		if (hitBoxes[i].contains(position)) {
-            			hitsMountain = true;
-            			break;
-            		}
-            	}
-            	if (hitsMountain) {
-            		continue;
-            	}
+                boolean hitsMountain = false;
+                for (Vector2 position : this.mtnTiles.keySet()) {
+                    if (hitBoxes[i].contains(position)) {
+                        hitsMountain = true;
+                        break;
+                    }
+                }
+                if (hitsMountain) {
+                    continue;
+                }
             }
             // Check that all previous hitboxes don't collide with the chosen point.
             boolean worked = true;
@@ -1919,17 +1919,17 @@ class GenIsland1 extends Action {
                     && !this.mtnTiles.containsKey(tile.position.cpy().add(-32, -32))
                     && this.rand.nextInt(3) == 2) {
                     Vector2 regiPos = tile.position.cpy();
-                	boolean collidesWithMansion = false;
-                	for (Tile mansionTile : mansionExteriorTiles.values()) {
-                		hitBoxes[2].setCenter(regiPos);
-                		if (hitBoxes[2].contains(mansionTile.position)) {
-                			collidesWithMansion = true;
-                			break;
-                		}
-                	}
-                	if (collidesWithMansion) {
-                		continue;
-                	}
+                    boolean collidesWithMansion = false;
+                    for (Tile mansionTile : mansionExteriorTiles.values()) {
+                        hitBoxes[2].setCenter(regiPos);
+                        if (hitBoxes[2].contains(mansionTile.position)) {
+                            collidesWithMansion = true;
+                            break;
+                        }
+                    }
+                    if (collidesWithMansion) {
+                        continue;
+                    }
                     GenIsland1.doneRegiDungeon = true;
                     complete = false;
                     this.generateRegiDungeon(game, regiPos);
@@ -1941,7 +1941,7 @@ class GenIsland1 extends Action {
         // Yeet pokemon out of routes and into the overworld (using various criteria)
         for (Tile tile : this.tilesToAdd.values()) {
             if (tile.attrs.get("solid")) {
-            	continue;
+                continue;
             }
             if (tile.routeBelongsTo == null) {
                 continue;
@@ -1955,7 +1955,7 @@ class GenIsland1 extends Action {
             // Should be handled by "solid" check now
 //            boolean headbuttable = tile.attrs.containsKey("headbuttable") && tile.attrs.get("headbuttable");
 //            if (headbuttable) {
-//            	continue;
+//                continue;
 //            }
             // Small chance to yeet
             // If succeeded, evolve pokemon all the way (depending on some rules)
@@ -1965,7 +1965,7 @@ class GenIsland1 extends Action {
             // ruins1_upper - evo at random?
 
             if (tile.routeBelongsTo.name.equals("desert1")) {
-            	// Odds probably have to be increased *4
+                // Odds probably have to be increased *4
 //                if (this.rand.nextInt(2048) >= 2047) {  // TODO: remove
 //                if (this.rand.nextInt(256) >= 255) {
                 if (this.rand.nextInt(512) >= 511) {
@@ -1988,7 +1988,7 @@ class GenIsland1 extends Action {
 //            int baseChance = 506;
             int baseChance = 509;  // mountain and snow
             if (tile.routeBelongsTo.name.contains("forest")) {
-            	baseChance = 509;
+                baseChance = 509;
             }
             else if (tile.routeBelongsTo.name.contains("oasis")) {
                 baseChance = 460;
@@ -2001,8 +2001,8 @@ class GenIsland1 extends Action {
             }
 
          if (this.rand.nextInt(512) >= baseChance) {
-            	// Grab a pokemon and evo it at random.
-            	// TODO: this is technically somewhat inefficient but preserves previous behavior.
+                // Grab a pokemon and evo it at random.
+                // TODO: this is technically somewhat inefficient but preserves previous behavior.
                 String name = tile.routeBelongsTo.allowedPokemon().get(this.rand.nextInt(tile.routeBelongsTo.allowedPokemon().size()));
                 int level = tile.routeBelongsTo.level +Game.rand.nextInt(3);
 
@@ -2029,7 +2029,7 @@ class GenIsland1 extends Action {
                         catch (NumberFormatException e) {
                             // Item-based or other type of evo, so just do it regardless of requirement
                             if (Game.rand.nextInt(256) >= 192) {  // TODO: adjust
-//                        	if (Game.rand.nextInt(256) >= 128) {
+//                            if (Game.rand.nextInt(256) >= 128) {
                                 evolveTo = evos.get(evo);
                                 pokemon.evolveTo(evolveTo);
                                 timesEvolved++;
@@ -2051,32 +2051,32 @@ class GenIsland1 extends Action {
 
                 // TODO: debug, remove
 //                if (tile.routeBelongsTo.name.equals("sand_pit1")) {
-//                	System.out.println(pokemon.nickname);
-//                	System.out.println(pokemon.level);
-//                	System.out.println(timesEvolved);
-//                	System.out.println(isBaseSpecies);
-//                	System.out.println(hasEvo);
+//                    System.out.println(pokemon.nickname);
+//                    System.out.println(pokemon.level);
+//                    System.out.println(timesEvolved);
+//                    System.out.println(isBaseSpecies);
+//                    System.out.println(hasEvo);
 //                }
 
                 boolean requirementsMet = !hasEvo;
                 if (tile.routeBelongsTo.name.contains("beach")) {
-                	requirementsMet = hasEvo;  // want wartortle, croconaw, etc to walk around
+                    requirementsMet = hasEvo;  // want wartortle, croconaw, etc to walk around
                 }
                 if (tile.routeBelongsTo.name.contains("ruins")) {
-                	requirementsMet = true;  // yeet everything
+                    requirementsMet = true;  // yeet everything
                 }
                 if (tile.routeBelongsTo.name.contains("mountain")) {
-                	// TODO: ideally would have better yeeting rules
-                	// 		 Maybe level-based.
-                	requirementsMet = !hasEvo ||
-                					  pokemon.specie.name.equals("machoke") ||
-                					  pokemon.specie.name.equals("rhydon") ||
-                					  pokemon.specie.name.equals("onix");
+                    // TODO: ideally would have better yeeting rules
+                    //          Maybe level-based.
+                    requirementsMet = !hasEvo ||
+                                      pokemon.specie.name.equals("machoke") ||
+                                      pokemon.specie.name.equals("rhydon") ||
+                                      pokemon.specie.name.equals("onix");
                 }
                 if (tile.routeBelongsTo.name.contains("snow")) {
-                	requirementsMet = !hasEvo ||
-      					  			  pokemon.specie.name.equals("sneasel") ||
-                					  pokemon.specie.name.equals("piloswine");
+                    requirementsMet = !hasEvo ||
+                                          pokemon.specie.name.equals("sneasel") ||
+                                      pokemon.specie.name.equals("piloswine");
                 }
 
                 if (requirementsMet) {
@@ -2637,9 +2637,9 @@ class GenIsland1 extends Action {
 //                                        if (this.rand.nextInt(12) == 0) {
 //                                            newTile = new Tile("green5", edge);
 //                                        }
-                                    	// TODO: this is one of the few uses of currRoute that I see
-                                    	// Would be nice to replace this route with a route that's
-                                    	// actually used and level-adjusted.
+                                        // TODO: this is one of the few uses of currRoute that I see
+                                        // Would be nice to replace this route with a route that's
+                                        // actually used and level-adjusted.
                                         if (this.rand.nextInt(24) == 0) {
                                             newTile = new Tile("flower4", edge, true, currRoute);
                                         }
@@ -2704,7 +2704,7 @@ class GenIsland1 extends Action {
                                     }
 //                                    Pokemon pokemon = blotchRoute.pokemon.remove(0);  // TODO: previous behavior, remove
                                     Pokemon pokemon = new Pokemon(blotchRoute.allowedPokemon().get(this.rand.nextInt(blotchRoute.allowedPokemon().size())),
-                                    							  blotchRoute.level +this.rand.nextInt(3), Pokemon.Generation.CRYSTAL);
+                                                                  blotchRoute.level +this.rand.nextInt(3), Pokemon.Generation.CRYSTAL);
                                     pokemon.position = edge.cpy();
 //                                    pokemon.mapTiles = game.map.tiles;  // TODO: test
                                     pokemon.mapTiles = game.map.overworldTiles;
@@ -2999,8 +2999,8 @@ class GenIsland1 extends Action {
                                         String[] pokemon = new String[]{"aexeggutor"};
                                         randInt = this.rand.nextInt(pokemon.length);
                                         tempRoute.storedPokemon.add(new Pokemon(pokemon[randInt],
-		                                                                        tempRoute.level,
-		                                                                        Pokemon.Generation.CRYSTAL));
+                                                                                tempRoute.level,
+                                                                                Pokemon.Generation.CRYSTAL));
                                     }
                                     newTile = new Tile("tree5", edge, true, tempRoute);
                                 }
@@ -3015,8 +3015,8 @@ class GenIsland1 extends Action {
                                         String[] pokemon = new String[]{"shellder", "krabby", "staryu", "dwebble"};
                                         randInt = this.rand.nextInt(pokemon.length);
                                         tempRoute.storedPokemon.add(new Pokemon(pokemon[randInt],
-		                                                                        tempRoute.level,
-		                                                                        Pokemon.Generation.CRYSTAL));
+                                                                                tempRoute.level,
+                                                                                Pokemon.Generation.CRYSTAL));
                                     }
                                     newTile = new Tile(newTile.name, "rock1_color", edge.cpy(), true, tempRoute);
                                 }
@@ -3039,14 +3039,14 @@ class GenIsland1 extends Action {
                                         randInt = this.rand.nextInt(pokemon.length);
                                         tempRoute = new Route("", 22);
                                         tempRoute.storedPokemon.add(new Pokemon(pokemon[randInt], tempRoute.level,
-		                                                                        Pokemon.Generation.CRYSTAL));
+                                                                                Pokemon.Generation.CRYSTAL));
                                     }
                                     if (distance < maxDist/4) {  //  && this.rand.nextInt(2) == 1
                                         newTile = new Tile("cactus2", edge, true, tempRoute);
                                     }
                                     // Don't place small cactus right above the center, looks weird.
                                     else if (!(newTile.position.x == originTile.position.x &&
-                                    		   newTile.position.y == originTile.position.y+16)) {
+                                               newTile.position.y == originTile.position.y+16)) {
                                         newTile = new Tile("cactus1", edge, true, tempRoute);
                                     }
                                 }
@@ -3420,10 +3420,10 @@ class GenIsland1 extends Action {
                 // TODO: this code is weird.
                 String newType = type;
                 if (type.equals("desert")) {
-                	newType = "island";
-                	// As far as I can tell, this route's level isn't used.
-                	// It is applied to flower and green tiles.
-                	currRoute = new Route("forest1", 40);
+                    newType = "island";
+                    // As far as I can tell, this route's level isn't used.
+                    // It is applied to flower and green tiles.
+                    currRoute = new Route("forest1", 40);
                 }
                 ApplyBlotch(game, newType, prevTiles.get(next), newSize, nextIslandTiles, 1, true, currRoute);
 //                int level = currRoute.level - (int)(10*(1f-(newSize/maxDist)));
