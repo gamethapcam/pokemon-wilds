@@ -11,15 +11,15 @@
 11, enemy_healthbar_gone inverse_colors
 12, enemy_healthbar_gone inverse_colors
 13, enemy_healthbar_gone inverse_colors
-14, enemy_healthbar_gone
-15, enemy_healthbar_gone
+14, enemy_healthbar_gone inverse_colors
+15, enemy_healthbar_gone inverse_colors
 16, enemy_healthbar_gone inverse_colors
 17, enemy_healthbar_gone inverse_colors
 18, enemy_healthbar_gone inverse_colors
 19, enemy_healthbar_gone inverse_colors
 20, enemy_healthbar_gone inverse_colors
-21, enemy_healthbar_gone
-22, enemy_healthbar_gone
+21, enemy_healthbar_gone inverse_colors
+22, enemy_healthbar_gone inverse_colors
 23, enemy_healthbar_gone inverse_colors
 24, enemy_healthbar_gone inverse_colors
 25, enemy_healthbar_gone inverse_colors

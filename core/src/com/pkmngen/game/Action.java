@@ -3515,6 +3515,8 @@ class TileEditor extends Action {
         overTiles.add("cactus6");
 
         //
+        overTiles.add("stairs_down2");
+        //
         underTiles.add("grass3");
         
 

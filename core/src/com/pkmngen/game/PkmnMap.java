@@ -622,6 +622,7 @@ class EnteiTile extends Tile {
 class LightningFlash extends Action {
     Sprite sprite;
     int timer = 0;
+    Color color;
 
     public LightningFlash(Action nextAction) {
         this.nextAction = nextAction;
@@ -631,18 +632,23 @@ class LightningFlash extends Action {
     }
 
     public String getCamera() {return "gui";}
-    
+
     @Override
     public void step(Game game) {
-        if (this.timer % 4 < 2) {
+//        if (this.timer % 4 < 2) {  // TODO: remove, too much strobe
+        if (this.timer % 14 < 7) {
+        	this.color = game.uiBatch.getColor();
+        	game.uiBatch.setColor(.5f, .5f, .5f, 1f);
             for (int i = -1; i < 2; i+= 1) {
                 for (int j = -1; j < 2; j+= 1) {
                     game.uiBatch.draw(this.sprite, 160*i, 144*j);
                 }
             }
+            game.uiBatch.setColor(this.color);
         }
 
-        if (this.timer < 80) {
+//        if (this.timer < 80) {  // TODO: remove, too much strobe
+        if (this.timer < 14) {
             
         }
         else {
@@ -1720,6 +1726,8 @@ public class PkmnMap {
         for (int i=0; i < textArray.length; i++) {
             unownUsed.add(String.valueOf(textArray[i]));
         }
+        unownUsed.add("!");
+        unownUsed.add("qmark");
     }
 
     public Pixmap minimap;
@@ -2514,6 +2522,7 @@ public class PkmnMap {
 
     public void loadFromFile(Game game) {
         // If map exists as file, load it
+//    	System.out.println(this.id);
         try {
             // TODO: tile Route is not saved here.
             // Should be able to serialize route pokemon and save. Although might be ineffecient to save all
@@ -3168,6 +3177,7 @@ class Route {
                     allowedPokemon.add("poochyena");  // nuuk
                     allowedPokemon.add("eevee");
                     allowedPokemon.add("cutiefly");
+                    allowedPokemon.add("shinx");  // prism
                 }
                 // feels like it's getting too diluted
 //                allowedPokemon.add("snubbul");
@@ -5960,7 +5970,7 @@ class Tile {
         }
         // Tile for Volcarona battle
         // TODO: make this generic-ish
-        // Some things are specific, like battle theme, etc.
+        // Some things are specific, like battle theme, 'cry' text, etc.
         else if (this.nameUpper.equals("volcarona")) {
             String name = this.nameUpper;
             // TODO: it's level 70 in black/white, might change at some point
@@ -6012,7 +6022,7 @@ class Tile {
                                 new SetField(game, "playerCanMove", true, null)))));
             game.insertAction(nextAction);
         }
-        
+
         // Pokemon mansion (dungeon) door
         else if (this.name.contains("pkmnmansion_ext_locked")) {
             game.playerCanMove = false;

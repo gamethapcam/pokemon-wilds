@@ -119,7 +119,7 @@ Goldeen
 Seaking
 Staryu
 Starmie
-Mr__Mime
+MrMime
 Scyther
 Jynx
 Electabuzz

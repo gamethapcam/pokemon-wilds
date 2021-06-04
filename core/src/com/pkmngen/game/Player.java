@@ -381,6 +381,70 @@ class CycleDayNight extends Action {
                     int numSnowHoles = 0;
 
                     ArrayList<Vector2> desertEdges = new ArrayList<Vector2>();
+                    
+                    // This will grow interior trees
+                    // Likely going to have to add things for caves. May have to process
+                    // each interior layer 1 frame at a time (queued, maybe)
+                    HashMap<Vector2, Tile> interiorTiles2 = game.map.interiorTiles.get(100);
+                    if (interiorTiles2 != null) {
+                        for (Tile tile : interiorTiles2.values()) {
+                            if (tile.nameUpper.contains("tree_planted") ||
+                                tile.nameUpper.equals("bush2_color_fertilized")) {
+                                Tile tree;
+                                if (tile.name.contains("desert")) {
+                                    tree = new Tile(tile.name, "tree7", tile.position.cpy(), true, tile.routeBelongsTo);
+                                }
+                                else if (tile.name.contains("sand")) {
+                                    tree = new Tile(tile.name, "tree6", tile.position.cpy(), true, tile.routeBelongsTo);
+                                }
+                                else if (tile.name.contains("snow")) {
+                                    tree = new Tile(tile.name, "tree4", tile.position.cpy(), true, tile.routeBelongsTo);
+                                }
+                                else if (tile.nameUpper.equals("bush2_color_fertilized")) {
+                                    tree = new Tile("green1", "tree2", tile.position.cpy(), true, tile.routeBelongsTo);
+                                }
+                                else {
+                                    tree = new Tile("bush1", "", tile.position.cpy(), true, tile.routeBelongsTo);
+                                }
+                                interiorTiles2.put(tile.position, tree);
+                                // Just making planted trees yield 2 apricorns by default. 3 if fertilized.
+                                // If fertilized, double existing apricorns. If no apricorns, place 1.
+                                int amt = 1;
+                                if (tile.nameUpper.contains("fertilized")) {
+                                    amt = 2;
+                                }
+                                String[] items = {"black apricorn", "blue apricorn", "green apricorn", "pink apricorn",
+                                                  "red apricorn", "white apricorn", "yellow apricorn"};
+                                boolean found = false;
+                                for (String item : items) {
+                                    if (tree.items().containsKey(item)) {
+                                        tree.items().put(item, tree.items().get(item)+amt);
+                                        found = true;
+                                        break;
+                                    }
+                                }
+                                if (!found) {
+                                    tree.items().put(items[game.map.rand.nextInt(items.length)], 2);
+                                }
+                            }
+                            else if (tile.nameUpper.equals("grass_planted")) {
+                                Tile grass;
+                                if (tile.name.contains("desert")) {
+                                    grass = new Tile("grass_sand3", tile.position.cpy(), true, tile.routeBelongsTo);
+                                }
+                                else if (tile.name.contains("sand")) {
+                                    grass = new Tile("grass_sand1", tile.position.cpy(), true, tile.routeBelongsTo);
+                                }
+                                else if (tile.name.contains("snow")) {
+                                    grass = new Tile("grass3", tile.position.cpy(), true, tile.routeBelongsTo);
+                                }
+                                else {
+                                    grass = new Tile("grass2", tile.position.cpy(), true, tile.routeBelongsTo);
+                                }
+                                game.map.overworldTiles.put(tile.position, grass);
+                            }
+                        }
+                    }
 
                     for (Tile tile : game.map.overworldTiles.values()) {
                         if (tile.nameUpper.contains("tree_planted") ||
@@ -3954,13 +4018,14 @@ public class Player {
             this.buildTiles = this.terrainTiles;
             //
             if (nextTile == null) {
-                
+                game.player.currBuildTile = game.player.currDigTile;
+                return;
             }
             else if (nextTile.nameUpper.contains("hole") ||
-                nextTile.name.contains("water5") ||
-                // TODO: potentially remove based on feedback
-                // Feedback was that ocean needs to be terraform-able.
-                nextTile.name.contains("water2")) {
+	                 nextTile.name.contains("water5") ||
+	                 // TODO: potentially remove based on feedback
+	                 // Feedback was that ocean needs to be terraform-able.
+	                 nextTile.name.contains("water2")) {
                 // Do nothing
             }
             else {
@@ -6431,10 +6496,10 @@ class PlayerStanding extends Action {
 //                    // TODO: debug, remove
 //                    pokemon = new Pokemon("unown_qmark", 11, Pokemon.Generation.CRYSTAL, false, false);
 //                    // TODO: debug, remove
-//                    pokemon.attacks[0] = "pursuit";
-//                    pokemon.attacks[1] = "pursuit";
-//                    pokemon.attacks[2] = "pursuit";
-//                    pokemon.attacks[3] = "pursuit";
+//                    pokemon.attacks[0] = "thunder";
+//                    pokemon.attacks[1] = "thunder cage";
+//                    pokemon.attacks[2] = "low kick";
+//                    pokemon.attacks[3] = null;
                     return pokemon;
                 }
             }
@@ -7624,9 +7689,14 @@ class PlayerStanding extends Action {
                 }
                 else {
                     boolean requirementsMet = currTile.nameUpper.equals("") || currTile.nameUpper.contains("_cracked");
-                    requirementsMet = requirementsMet && !currTile.attrs.get("solid") && 
-                                                         !currTile.name.contains("door") &&
-                                                         !currTile.name.contains("bridge");
+                    // TODO: this is to make all ledges diggable
+                    // Change once ledges are handled differently
+                    if (!currTile.name.contains("mountain")) {
+                        requirementsMet = requirementsMet && !currTile.attrs.get("solid") && 
+		                                  !currTile.name.contains("door") &&
+		                                  !currTile.name.contains("bridge") &&
+		                                  !currTile.name.contains("rug");
+                    }
                     if (requirementsMet) {
                         Tile newTile = new Tile(currTile.name, game.player.currDigTile.name,
                                                 currTile.position.cpy(), true, currTile.routeBelongsTo);

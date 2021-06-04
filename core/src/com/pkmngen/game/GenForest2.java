@@ -1659,6 +1659,11 @@ class GenIsland1 extends Action {
         origins[0] = null;  // Desert ruins
         origins[1] = null;  // Oasis
         origins[2] = null;  // Regi dungeon
+
+        //
+        Vector2 mansionPos = new Vector2(0, 16*14);
+        Rectangle mansionBox = new Rectangle(0, 0, 33*16, 31*16);
+        mansionBox.setCenter(mansionPos);
          
         for (int i=0, tries=0; i < hitBoxes.length;) {
             // Pick start point
@@ -1684,6 +1689,12 @@ class GenIsland1 extends Action {
             }
             // Adjust hitbox to that position
             hitBoxes[i].setCenter(origins[i]);
+            // Avoid mansion if desert ruins
+            if (i == 0) {
+            	if (hitBoxes[i].overlaps(mansionBox)) {
+                    continue;
+            	}
+            }
             // Regi dungeon avoids mountains
             if (i > 1) {
                 boolean hitsMountain = false;
@@ -1842,13 +1853,17 @@ class GenIsland1 extends Action {
                     && !this.mtnTiles.containsKey(tile.position.cpy().add(0, -16*23))
                     && !this.mtnTiles.containsKey(tile.position.cpy().add(-16*14, 0))
                     && !this.mtnTiles.containsKey(tile.position.cpy().add(16*9, -16*15))) {
-                    GenIsland1.donePkmnMansion = true;
-//                    i = -1;  // start over. it's iterating on a copy of tilesToAdd right now.
-                    complete = false;
-                    Vector2 mansionPos = tile.position.cpy();
+                    mansionPos = tile.position.cpy();
                     if (this.radius < 100*100*(4)) {
                         mansionPos = new Vector2(0, 16*14);
                     }
+                    // If overlaps ruins, retry.
+                    mansionBox.setCenter(mansionPos);
+                	if (mansionBox.overlaps(hitBoxes[0])) {
+                		continue;
+                    }
+                    GenIsland1.donePkmnMansion = true;
+                    complete = false;
                     // TODO: occasional bug with mansion generation when it
                     // fails to find enough endpoint tiles for statues/stairs
                     int tries = 0;
@@ -1920,8 +1935,8 @@ class GenIsland1 extends Action {
                     && this.rand.nextInt(3) == 2) {
                     Vector2 regiPos = tile.position.cpy();
                     boolean collidesWithMansion = false;
+                    hitBoxes[2].setCenter(regiPos);
                     for (Tile mansionTile : mansionExteriorTiles.values()) {
-                        hitBoxes[2].setCenter(regiPos);
                         if (hitBoxes[2].contains(mansionTile.position)) {
                             collidesWithMansion = true;
                             break;
@@ -1971,6 +1986,12 @@ class GenIsland1 extends Action {
                 if (this.rand.nextInt(512) >= 511) {
                     String name = tile.routeBelongsTo.allowedPokemon().get(this.rand.nextInt(tile.routeBelongsTo.allowedPokemon().size()));
                     int level = tile.routeBelongsTo.level +Game.rand.nextInt(3);
+                    // If the Pokemon is 'join-able' then nerf it's level.
+                    if (name.equals("numel") ||
+                    	name.equals("kangaskhan") ||
+                    	name.equals("cubone")) {
+                    	level = 10;
+                    }
                     Pokemon pokemon = new Pokemon(name, level, Pokemon.Generation.CRYSTAL);
                     pokemon.position = tile.position.cpy();
                     pokemon.mapTiles = game.map.overworldTiles;
@@ -1979,6 +2000,7 @@ class GenIsland1 extends Action {
                     if (pokemon.specie.name.equals("drapion")) {
                         pokemon.aggroPlayer = true;
                     }
+
                 }
                 continue;
             }
@@ -2046,7 +2068,21 @@ class GenIsland1 extends Action {
                     pokemon.currentStats.put("hp", pokemon.maxStats.get("hp"));
                 }
 
-//                boolean isBaseSpecies = Pokemon.baseSpecies.get(pokemon.specie.name.toLowerCase()).equalsIgnoreCase(pokemon.specie.name);
+                boolean isBaseSpecies = Pokemon.baseSpecies.get(pokemon.specie.name.toLowerCase()).equalsIgnoreCase(pokemon.specie.name);
+                if (isBaseSpecies) {
+                	if (pokemon.level > 10) {
+                        pokemon.level = 10;
+                        pokemon.exp = pokemon.gen2CalcExpForLevel(pokemon.level);
+                        pokemon.calcMaxStats();
+                        pokemon.currentStats.put("hp", pokemon.maxStats.get("hp"));
+                	}
+                }
+                else if (Pokemon.dontAggro.contains(pokemon.specie.name) && pokemon.level > 30) {
+                    pokemon.level = 30;
+                    pokemon.exp = pokemon.gen2CalcExpForLevel(pokemon.level);
+                    pokemon.calcMaxStats();
+                    pokemon.currentStats.put("hp", pokemon.maxStats.get("hp"));
+                }
                 boolean hasEvo = !Specie.gen2Evos.get(pokemon.specie.name).isEmpty();
 
                 // TODO: debug, remove

@@ -4,6 +4,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Random;
 
@@ -922,14 +923,16 @@ public class Game extends ApplicationAdapter {
         if (this.debugInputEnabled) {
             // Some starting pokemon used for debugging
             this.player.pokemon.add(new Pokemon("rapidash", 60));
-//            this.player.pokemon.add(new Pokemon("pidgeot", 60, Pokemon.Generation.CRYSTAL));
+            this.player.pokemon.add(new Pokemon("pidgeot", 60, Pokemon.Generation.CRYSTAL));
 //            this.player.pokemon.add(new Pokemon("golem", 60, Pokemon.Generation.CRYSTAL));
 //            this.player.pokemon.add(new Pokemon("ampharos", 70, Pokemon.Generation.CRYSTAL));
             this.player.pokemon.add(new Pokemon("rhydon", 46, Pokemon.Generation.CRYSTAL));
             this.player.pokemon.add(new Pokemon("meganium", 46, Pokemon.Generation.CRYSTAL));
 //            this.player.pokemon.add(new Pokemon("ursaring", 46, Pokemon.Generation.CRYSTAL));
-            this.player.pokemon.add(new Pokemon("unown_!", 46, Pokemon.Generation.CRYSTAL, true, false));
-            this.player.pokemon.add(new Pokemon("unown_qmark", 46, Pokemon.Generation.CRYSTAL, true, false));
+//            this.player.pokemon.add(new Pokemon("cradily", 55, Pokemon.Generation.CRYSTAL));
+//            this.player.pokemon.get(2).attacks[0] = "thunder";
+//            this.player.pokemon.get(2).attacks[1] = "thunder cage";
+//            this.player.pokemon.get(2).attacks[2] = "low kick";
 
             // TODO: remove
             // This seems to indicate that number of zeros is roughly equal to number of ones.

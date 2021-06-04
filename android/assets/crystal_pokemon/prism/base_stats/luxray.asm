@@ -13,5 +13,5 @@
 	db ABILITY_RIVALRY, ABILITY_INTIMIDATE ;abilities
 	db 0, 0 ;padding
 	db MEDIUM_SLOW ;growth rate
-	dn FIELD, FIELD ;egg groups
+	dn EGG_FIELD, EGG_FIELD ;egg groups
 

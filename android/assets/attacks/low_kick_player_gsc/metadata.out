@@ -10,15 +10,15 @@
 10, player_healthbar_gone inverse_colors
 11, player_healthbar_gone inverse_colors
 12, player_healthbar_gone inverse_colors
-13, player_healthbar_gone
-14, player_healthbar_gone
+13, player_healthbar_gone inverse_colors
+14, player_healthbar_gone inverse_colors
 15, player_healthbar_gone inverse_colors
 16, player_healthbar_gone inverse_colors
 17, player_healthbar_gone inverse_colors
 18, player_healthbar_gone inverse_colors
 19, player_healthbar_gone inverse_colors
-20, player_healthbar_gone
-21, player_healthbar_gone
+20, player_healthbar_gone inverse_colors
+21, player_healthbar_gone inverse_colors
 22, player_healthbar_gone inverse_colors
 23, player_healthbar_gone inverse_colors
 24, player_healthbar_gone inverse_colors

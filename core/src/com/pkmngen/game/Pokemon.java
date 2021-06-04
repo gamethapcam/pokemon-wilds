@@ -258,7 +258,7 @@ public class Pokemon {
     public static ArrayList<String> onlySwim = new ArrayList<String>();
     static {
         onlySwim.add("magikarp");
-//        onlySwim.add("gyarados");  // not sure
+        onlySwim.add("gyarados");
         onlySwim.add("remoraid");
         onlySwim.add("chinchou");
         onlySwim.add("lanturn");
@@ -269,6 +269,7 @@ public class Pokemon {
         onlySwim.add("seadra");
         onlySwim.add("kingdra");
         onlySwim.add("feebas");
+        // TODO: milotic?
         onlySwim.add("lapras");
     }
 
@@ -285,13 +286,14 @@ public class Pokemon {
     }
 
     /**
-     * Pokemon that always aggro in the overworld.
+     * Pokemon that never aggro in the overworld.
      */
     public static ArrayList<String> dontAggro = new ArrayList<String>();
     static {
         dontAggro.add("bellossom");
         dontAggro.add("gardevoir");
         dontAggro.add("jumpluff");
+        dontAggro.add("marill");  // b/c azurill is base form
     }
 
     /**
@@ -1228,6 +1230,9 @@ public class Pokemon {
         else if (nickname.equals("combee_female")) {
             nickname = "combee";
         }
+        else if (nickname.equals("mrmime")) {
+            nickname = "mr.mime";
+        }
         else if (nickname.contains("unown")) {
             nickname = "unown";
         }
@@ -1605,27 +1610,34 @@ public class Pokemon {
                     if (pokemon.previousOwner == game.player) {
                         continue;
                     }
+                    // This handles baby Pokemon which have no egg group.
+                    boolean sameBaseSpecie = pokemon.baseSpecie().equals(Pokemon.this.baseSpecie());
+                    //
+                    boolean shareEggGroup = false;
                     // For now, anything sharing an egg group with the egg
                     // will be assumed to be a parent.
                     for (String group1 : pokemon.eggGroups) {
                         for (String group2 : Pokemon.this.eggGroups) {
                             if (group1.equals(group2)) {
-                                if (!playedSound) {
-                                    game.insertAction(new PlaySound("ledge2", null));
-                                    playedSound = true;
-                                }
-                                game.insertAction(new SetField(pokemon, "canMove", false,
-                                                  pokemon.new Emote("!",
-                                                  new SetField(pokemon, "canMove", true,
-                                                  new SetField(pokemon, "aggroPlayer", true,
-                                                  null)))));
-                                if (pokemon.standingAction != null && pokemon.standingAction instanceof Pokemon.Standing) {
-                                    ((Pokemon.Standing)pokemon.standingAction).aggroTimer = -2*offSet;
-                                }
-                                offSet++;
-                                break;
+                            	shareEggGroup = true;
+                            	break;
                             }
                         }
+                    }
+                    if (sameBaseSpecie || shareEggGroup) {
+                        if (!playedSound) {
+                            game.insertAction(new PlaySound("ledge2", null));
+                            playedSound = true;
+                        }
+                        game.insertAction(new SetField(pokemon, "canMove", false,
+                                          pokemon.new Emote("!",
+                                          new SetField(pokemon, "canMove", true,
+                                          new SetField(pokemon, "aggroPlayer", true,
+                                          null)))));
+                        if (pokemon.standingAction != null && pokemon.standingAction instanceof Pokemon.Standing) {
+                            ((Pokemon.Standing)pokemon.standingAction).aggroTimer = -2*offSet;
+                        }
+                        offSet++;
                     }
                 }
             }
@@ -3768,9 +3780,8 @@ class SpecialMewtwo1 extends Pokemon {
     Tile tile;
 
     public SpecialMewtwo1(int level, Tile tile) {
-        // initialize variables
-//        super("Mewtwo", level);
-        super("Mewtwo", level);
+    	// TODO: revert
+        super("mewtwo", level);  //, Pokemon.Generation.CRYSTAL, true, false
         this.tile = tile;
         // gen I properties
 //        this.baseStats.put("hp", 106);
@@ -3781,32 +3792,42 @@ class SpecialMewtwo1 extends Pokemon {
 //        this.baseStats.put("speed", 130);
 //        this.baseStats.put("catchRate", 3);
 
-        // sprite
-        Texture pokemonText = TextureCache.get(Gdx.files.internal("pokemon/mewtwo_special1.png"));
-        this.sprite = new SpriteProxy(pokemonText, 0, 0, 56, 56);
+        // Sprite
+        Texture text;
+        if (this.isShiny) {
+            text = TextureCache.get(Gdx.files.internal("pokemon/mewtwo_special1_shiny.png"));
+            this.sprite = new SpriteProxy(text, 0, 0, 56, 56);
+            text = TextureCache.get(Gdx.files.internal("pokemon/mewtwo_special2_shiny.png"));
+            this.breathingSprite = new SpriteProxy(text, 0, 0, 56, 56);
+        }
+        else {
+            text = TextureCache.get(Gdx.files.internal("pokemon/mewtwo_special1.png"));
+            this.sprite = new SpriteProxy(text, 0, 0, 56, 56);
+            text = TextureCache.get(Gdx.files.internal("pokemon/mewtwo_special2.png"));
+            this.breathingSprite = new SpriteProxy(text, 0, 0, 56, 56);
+        }
 
-        pokemonText = TextureCache.get(Gdx.files.internal("pokemon/mewtwo_special2.png"));
-        this.breathingSprite = new Sprite(pokemonText, 0, 0, 56, 56);
-
-        // Gen 1 moves instead of Gen 2
-        this.learnSet.clear();
-        this.learnSet.put(1, new String[]{"disable", "psychic", "swift", "recover"});  //"confusion", 
-        // Recover isn't in original moveset at lvl 1, but I want recover for a lvl 50 battle
-//        this.learnSet.put(1, new String[]{"recover"});  
-        this.learnSet.put(63, new String[]{"barrier"});
-        this.learnSet.put(66, new String[]{"psychic"});
-        this.learnSet.put(70, new String[]{"recover"});
-        this.learnSet.put(75, new String[]{"mist"});
-        this.learnSet.put(81, new String[]{"amnesia"});
-//        this.learnSet.put(50, new String[]{"psychic", "psychic", "psychic", "psychic"});
-//        this.types.add("Psychic");
-
-        getCurrentAttacks(); // fill this.attacks with what it can currently know
+        // TODO: remove
+//        // Gen 1 moves instead of Gen 2
+//        this.learnSet.clear();
+//        this.learnSet.put(1, new String[]{"disable", "psychic", "swift", "recover"});
+//        // Recover isn't in original moveset at lvl 1, but I want recover for a lvl 50 battle
+////        this.learnSet.put(1, new String[]{"recover"});  
+//        this.learnSet.put(63, new String[]{"barrier"});
+//        this.learnSet.put(66, new String[]{"psychic"});
+//        this.learnSet.put(70, new String[]{"recover"});
+//        this.learnSet.put(75, new String[]{"mist"});
+//        this.learnSet.put(81, new String[]{"amnesia"});
+//        this.getCurrentAttacks(); // fill this.attacks with what it can currently know
+        this.attacks[0] = "psychic";
+        this.attacks[1] = "recover";
+        this.attacks[2] = "swift";
+        this.attacks[3] = "disable";
 
         this.baseStats.put("catchRate", 55);
         this.initHabitatValues();
 
-//        // stats formulas here
+//        // Stats formulas here
 //        calcMaxStats();
 //        this.currentStats = new HashMap<String, Integer>(this.maxStats); // copy maxStats
 //        this.dexNumber = Pokemon.nameToIndex("mewtwo");

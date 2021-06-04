@@ -332,16 +332,72 @@ public class Specie {
             //                if (name.equals("machop")) {
             //                    this.hms.add("HEADBUTT");
             //                }
-            if (name.equals("hypno") ||
-                    name.equals("nidorina") ||
-                    name.equals("nidoqueen") ||
-                    name.equals("nidorino") ||
-                    name.equals("nidoking") ||
-                    name.equals("granbull") ||
-                    name.equals("jynx") ||
-                    name.equals("snorlax") ||
-                    name.equals("kangaskhan") ||
-                    name.equals("ursaring")) {
+//            if (name.equals("hypno") ||
+//                name.equals("nidorina") ||
+//                name.equals("nidoqueen") ||
+//                name.equals("nidorino") ||
+//                name.equals("nidoking") ||
+//                name.equals("granbull") ||
+//                name.equals("jynx") ||
+//                name.equals("snorlax") ||
+//                name.equals("kangaskhan") ||
+//                name.equals("ursaring")) {
+            if (name.equals("squirtle") ||
+        		name.equals("wartortle") ||
+        		name.equals("blastoise") ||
+        		name.equals("slowpoke") ||
+        		name.equals("slowbro") ||
+        		name.equals("slowking") ||
+        		name.equals("seel") ||
+        		name.equals("dewgong") ||
+        		name.equals("drowzee") ||
+        		name.equals("hypno") ||
+        		name.equals("cubone") ||
+        		name.equals("marowak") ||
+        		name.equals("kangaskhan") ||
+        		name.equals("munchlax") ||
+        		name.equals("snorlax") ||
+        		name.equals("snubbull") ||
+        		name.equals("granbull") ||
+        		name.equals("miltank") ||
+        		name.equals("aron") ||
+        		name.equals("lairon") ||
+        		name.equals("aggron") ||
+        		name.equals("bagon") ||
+        		name.equals("shelgon") ||
+        		name.equals("salamence") ||
+        		name.equals("bidoof") ||
+        		name.equals("bibarel") ||
+        		name.equals("cranidos") ||
+        		name.equals("rampardos") ||
+        		name.equals("darumaka") ||
+        		name.equals("darmanitan") ||
+        		name.equals("darmanitanzen") ||
+        		name.equals("scraggy") ||
+        		name.equals("scrafty") ||
+        		name.equals("elgyem") ||
+        		name.equals("beheeyem") ||
+        		name.equals("scorbunny") ||
+        		name.equals("raboot") ||
+        		name.equals("cinderace") ||
+        		name.equals("wooloo") ||
+        		name.equals("dubwool") ||
+        		name.equals("obstagoon") ||
+        		name.equals("nidoran_m") ||
+        		name.equals("nidoran_f") ||
+        		name.equals("nidorina") ||
+        		name.equals("nidorino") ||
+        		name.equals("nidoking") ||
+        		name.equals("nidoqueen") ||
+        		name.equals("whismur") ||
+        		name.equals("loudred") ||
+        		name.equals("exploud") ||
+        		name.equals("heracross") ||
+        		name.equals("shieldon") ||
+        		name.equals("bastiodon") ||
+        		name.equals("teddiursa") ||
+        		name.equals("ursaring") ||
+        		name.equals("tauros")) {
                 this.hms.add("HEADBUTT");
             }
 
@@ -367,6 +423,8 @@ public class Specie {
                 name.equals("haunter") ||
                 name.equals("rhyhorn") ||
                 name.equals("rhydon") ||
+                name.equals("rhyperior") ||
+                name.equals("bastiodon") ||
                 name.equals("camerupt") ||
                 //
                 name.equals("luxray")) {
@@ -886,6 +944,7 @@ public class Specie {
 
         // TODO: unify with the below
         // Try to load from mods directory
+    	// TODO: need way to denote flipped or not. 
         FileHandle filehandle = Gdx.files.local("mods/pokemon/" + this.name + "/overworld.png");
         if (filehandle.exists()) {
             boolean flip = true;
@@ -930,8 +989,53 @@ public class Specie {
                 this.altMovingSprites.put(key+"_running", this.altMovingSprites.get(key));
             }
             //
-            loadEggTextures("mods/pokemon/" + this.name + "/back.png");
+            this.loadEggTextures("mods/pokemon/" + this.name + "/back.png");
             //
+            return;
+        }
+        
+        // unown overworld sprites handled differently
+        if (this.name.contains("unown")) {
+            Texture text = TextureCache.get(Gdx.files.internal("crystal_pokemon/unown_ow.png"));
+            // These aren't consistent because sprite sheet is also inconsistent in ordering
+            String alphabet_lower = "abcdefghijklmnopqrstuvwxyz!";
+            String suffix = this.name.split("_")[1];
+            int col = alphabet_lower.indexOf(suffix);
+            int row = 0;
+            if (suffix.equals("qmark")) {
+            	col = 27;
+            }
+            this.standingSprites.put("down", new Sprite(text, col*16, row*16, 16, 16));
+            this.movingSprites.put("down", new Sprite(text, col*16, row*16, 16, 16));
+            this.altMovingSprites.put("down", new Sprite(text, col*16, row*16, 16, 16));
+            row++;
+            this.standingSprites.put("up", new Sprite(text, col*16, row*16, 16, 16));
+            this.movingSprites.put("up", new Sprite(text, col*16, row*16, 16, 16));
+            this.altMovingSprites.put("up", new Sprite(text, col*16, row*16, 16, 16));
+            row++;
+            this.standingSprites.put("left", new Sprite(text, col*16, row*16, 16, 16));
+            this.movingSprites.put("left", new Sprite(text, col*16, row*16, 16, 16));
+            this.altMovingSprites.put("left", new Sprite(text, col*16, row*16, 16, 16));
+            this.standingSprites.put("right", new Sprite(text, col*16, row*16, 16, 16));
+            this.movingSprites.put("right", new Sprite(text, col*16, row*16, 16, 16));
+            this.altMovingSprites.put("right", new Sprite(text, col*16, row*16, 16, 16));
+            this.standingSprites.get("right").flip(true, false);
+            this.movingSprites.get("right").flip(true, false);
+            this.altMovingSprites.get("right").flip(true, false);
+            //
+            this.avatarSprites.add(this.standingSprites.get("down"));
+            this.avatarSprites.add(this.movingSprites.get("down"));
+            this.avatarSprites.add(this.standingSprites.get("down"));
+            this.avatarSprites.add(this.altMovingSprites.get("down"));
+            for (String key : new ArrayList<String>(this.standingSprites.keySet())) {
+                this.standingSprites.put(key+"_running", this.standingSprites.get(key));
+            }
+            for (String key : new ArrayList<String>(this.movingSprites.keySet())) {
+                this.movingSprites.put(key+"_running", this.movingSprites.get(key));
+            }
+            for (String key : new ArrayList<String>(this.altMovingSprites.keySet())) {
+                this.altMovingSprites.put(key+"_running", this.altMovingSprites.get(key));
+            }
             return;
         }
 
@@ -1150,7 +1254,7 @@ public class Specie {
                 else if (name.equals("wooper")) {
                     i = 355;
                     found = true;
-                    flip = false;
+                    flip = true;
                 }
                 else if (name.equals("weedle")) {
                     i = 356;
@@ -1174,6 +1278,61 @@ public class Specie {
                 }
                 else if (name.equals("raticate")) {
                     i = 360;
+                    found = true;
+                    flip = true;
+                }
+                else if (name.equals("grimer")) {
+                    i = 361;
+                    found = true;
+                    flip = false;
+                }
+                else if (name.equals("muk")) {
+                    i = 362;
+                    found = true;
+                    flip = false;
+                }
+                else if (name.equals("miltank")) {
+                    i = 363;
+                    found = true;
+                    flip = true;
+                }
+                else if (name.equals("pinsir")) {
+                    i = 364;
+                    found = true;
+                    flip = true;
+                }
+                else if (name.equals("diglett")) {
+                    i = 365;
+                    found = true;
+                    flip = false;
+                }
+                else if (name.equals("dugtrio")) {
+                    i = 366;
+                    found = true;
+                    flip = false;
+                }
+                else if (name.equals("voltorb")) {
+                    i = 367;
+                    found = true;
+                    flip = false;
+                }
+                else if (name.equals("sudowoodo")) {
+                    i = 368;
+                    found = true;
+                    flip = true;
+                }
+                else if (name.equals("mrmime")) {
+                    i = 369;
+                    found = true;
+                    flip = true;
+                }
+                else if (name.equals("wooloo")) {
+                    i = 370;
+                    found = true;
+                    flip = true;
+                }
+                else if (name.equals("smoochum")) {
+                    i = 371;
                     found = true;
                     flip = true;
                 }
@@ -1256,7 +1415,7 @@ public class Specie {
                 path = "nuuk/";
             }
 
-            loadEggTextures("crystal_pokemon/"+path+"pokemon/" + this.name + "/back.png");
+            this.loadEggTextures("crystal_pokemon/"+path+"pokemon/" + this.name + "/back.png");
             //            }
             if (found) {
                 return;
@@ -1976,9 +2135,21 @@ public class Specie {
         //            this.harvestables.clear();
         //            this.harvestables.add("gold nugget");
         //        }
+        else if (name.equals("mewtwo")) {
+            this.harvestables.add("ancientpowder");
+        }
         else if (name.equals("shuckle")) {
             this.harvestables.clear();
             this.harvestables.add("berry juice");
+        }
+        else if (name.equals("sableye")) {
+            this.harvestables.clear();
+            for (String itemName : Game.evoStones) {
+            	// Keep even ratio of stones to other items
+                this.harvestables.add(itemName);
+                this.harvestables.add("dark energy");
+                this.harvestables.add("spell tag");
+            }
         }
         // Fill in with defaults
         if (this.habitats.size() <= 0) {

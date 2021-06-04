@@ -82,7 +82,28 @@ class AfterFriendlyFaint extends Action {
             interiorTilesIndex = game.player.spawnIndex;
         }
         Tile playerTile = tiles.get(game.player.spawnLoc);
-        
+
+        // Happens when player builds a house, sleeps, destroys the house, then faints.
+        if (playerTile == null) {
+        	tiles = game.map.overworldTiles;
+        	playerTile = tiles.get(game.player.spawnLoc);
+        }
+        // If player fainted while in the middle of moving, reset so that player is standing instead.
+        // Happens if the player faints while encountered with an aggro'd Pokemon (and player was 
+        // moving).
+        // TODO: use game.player.standingAction once that's available.
+        for (Action action : game.actionStack) {
+            if (action instanceof PlayerMoving ||
+            	action instanceof PlayerRunning ||
+            	action instanceof PlayerLedgeJump ||
+            	action instanceof PlayerLedgeJumpFast) {
+            	System.out.println("found standingaction");
+            	game.actionStack.remove(action);
+            	game.insertAction(new PlayerStanding(game, false, true));
+            	break;
+            }
+        }
+
         // Reset batch colors
         Route newRoute = playerTile.routeBelongsTo;
         if (newRoute != null && newRoute.name.contains("pkmnmansion")) {
@@ -101,7 +122,7 @@ class AfterFriendlyFaint extends Action {
         if (newRoute == null) {
             newRoute = new Route("", 2);
         }
-        // TODO: is it ok to set this here?
+        //
         if (game.player.hmPokemon != null) {
             game.player.hmPokemon.position = game.player.spawnLoc.cpy();
             game.player.hmPokemon.dirFacing = "down";
@@ -2144,7 +2165,17 @@ public class Battle {
      */
     static int gen2CalcDamage(Pokemon source, Attack attack, Pokemon target) {
         if (attack.name.equals("Mewtwo_Special1")) {
-            return 30;
+        	// Factor in type effectiveness (requested)
+            float multiplier = 1f;
+            String prevType = "";
+            for (String type : target.types){
+                if (type.equals(prevType)) {
+                    continue;
+                }
+                prevType = type;
+                multiplier *= Game.staticGame.battle.gen2TypeEffectiveness.get(attack.type).get(type.toLowerCase());
+            }
+            return (int)(30f * multiplier);
         }
         // TODO: remove if unused
 //        if (attack.power == 0) {
@@ -2211,7 +2242,7 @@ public class Battle {
         // TODO: using gen 8 mechanics here, I think
         else if (attack.name.equals("air cutter"))  {
             c += 1;
-        } 
+        }
         if (c == 0) {
             c = 17;
         }
@@ -5217,17 +5248,8 @@ class BattleFadeOut extends Action {
         if (frames.isEmpty()) {
             game.actionStack.remove(this);
             game.insertAction(this.nextAction);
-            
-            // TODO: remove
-            // TODO: test
-//            game.playerCanMove = true;
-            
-            
+            //
             DrawBattle.shouldDrawOppPokemon = true;
-            // TODO: gameboy game handles this differently
-            // TODO: remove
-//            game.player.currPokemon = game.player.pokemon.get(0);
-
             if (DisplayText.unownText) {
                 ArrayList<TrainerTipsTile> signTiles = new ArrayList<TrainerTipsTile>();
                 for (Tile tile : game.map.overworldTiles.values()) {
@@ -5248,7 +5270,9 @@ class BattleFadeOut extends Action {
             // Traps go away from player's current Pokemon
             game.player.currPokemon.trappedBy = null;
             game.player.currPokemon.trapCounter = 0;
-            // TODO: test
+            game.player.currPokemon.disabledIndex = -1;
+            game.player.currPokemon.disabledCounter = 0;
+            //
             game.battle.oppPokemon.canMove = true;
             return;
         }
@@ -6513,6 +6537,14 @@ class CatchPokemonWobblesThenCatch extends Action {
                 tile.nameUpper = "";
                 tile.overSprite = null;
                 tile.attrs.put("solid", false);
+                // Have to re-set it's sprite b/c it is using the alternate
+                // 'armored' sprite during battle.
+                if (game.battle.oppPokemon.isShiny) {
+                	game.battle.oppPokemon.sprite = game.battle.oppPokemon.specie.spriteShiny;
+                }
+                else {
+                	game.battle.oppPokemon.sprite = game.battle.oppPokemon.specie.sprite;
+                }
             }
             else if (game.battle.oppPokemon.onTile != null && game.battle.oppPokemon.onTile.nameUpper.contains("revived_")) {
                 game.battle.oppPokemon.onTile.nameUpper = "";
@@ -12943,7 +12975,7 @@ class SpecialBattleMegaGengar extends Action {
                 }
             }
 
-            // need bg under the animation
+            // Need bg under the animation
             this.bgSprite.draw(game.uiBatch);
 
             // TODO: this needs to be above draw enemy sprite
@@ -13239,19 +13271,25 @@ class SpecialBattleMewtwo extends Action {
     @Override
     public void step(Game game) {
         if (this.firstStep) {
-            this.music = Gdx.audio.newMusic(Gdx.files.internal("battle/pokemon_mansion_remix_eq.ogg"));
-            this.music.setLooping(true);
-//            this.music.setVolume(0.9f);
+        	game.currMusic.pause();  // TODO: test
+        	
+        	String musicName = "battle/pokemon_mansion_remix_eq";
+            if (!game.loadedMusic.containsKey(musicName)) {
+            	Music music = Gdx.audio.newMusic(Gdx.files.internal(musicName+".ogg"));
+            	music.setLooping(true);
+                game.loadedMusic.put(musicName, music);
+            }
+            this.music = game.loadedMusic.get(musicName);
             this.music.setVolume(0.7f);
 
             game.currMusic = this.music;
 //            game.currMusic.stop();  // needed? might mess w/ volume
             game.currMusic.play();
-            
-            // debug
+
+            // If already encountered mewtwo, skip forward in the track and skip
+            // dialogue.
             if (SpecialBattleMewtwo.doneYet) {
-                this.timer = 1708;  //1670;  // TODO: this is probably off now
-//                game.currMusic.setPosition(28); // TODO: debug, remove
+                this.timer = 1708;
                 game.currMusic.setPosition(28.55f);
             }
             SpecialBattleMewtwo.doneYet = true;
@@ -13353,7 +13391,11 @@ class SpecialBattleMewtwo extends Action {
                                          new SpecialBattleMewtwo.RocksEffect1(),
                                  new SplitAction(
                                          new SpecialBattleMewtwo.RippleEffect1(),
-                                 new PlaySound(game.battle.oppPokemon.specie.name,  // TODO: cry not working for dex num 150
+                                 null))))))));
+            if (this.mewtwo.isShiny) {
+            	nextAction.append(new Battle.LoadAndPlayAnimation(game, "shiny", game.player.currPokemon, null));
+            }
+            nextAction.append(new PlaySound(game.battle.oppPokemon.specie.name,  // TODO: cry not working for dex num 150
 //                                 new PlaySound(game.battle.oppPokemon,  // TODO: remove
                                  new DisplayText(game, "Wild "+game.battle.oppPokemon.nickname.toUpperCase()+" appeared!", null, null,
                                  new SplitAction(
@@ -13374,7 +13416,7 @@ class SpecialBattleMewtwo extends Action {
                                      triggerAction)
                                  :
                                      triggerAction
-                                 )))))))))))))));
+                                 ))))))));
             game.actionStack.remove(this);
             game.insertAction(nextAction);
         }
@@ -15518,7 +15560,7 @@ class DrawStatsScreen extends MenuAction {
     public void firstStep(Game game) {
         game.battle.oppPokemon = this.pokemon;
         game.insertAction(new WaitFrames(game, 4, new PlaySound(this.pokemon, null)));
-        game.insertAction(intro);
+        game.insertAction(this.intro);
     }
 
     @Override
@@ -15742,7 +15784,7 @@ class DrawStatsScreen extends MenuAction {
         //set Party menu to point at current pokemon
         DrawPokemonMenu.currIndex = newIndex;
         game.actionStack.remove(this);
-        DrawStatsScreen newScreen = new DrawStatsScreen(game,game.player.pokemon.get(newIndex),this.prevMenu);
+        DrawStatsScreen newScreen = new DrawStatsScreen(game,game.player.pokemon.get(newIndex), this.prevMenu);
         //set the new screen to be on the same tab
         newScreen.currIndex = this.currIndex;
         game.insertAction(new DrawStatsScreen.Intro(newScreen));            
