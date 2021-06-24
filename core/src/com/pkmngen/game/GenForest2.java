@@ -1507,6 +1507,9 @@ class GenIsland1 extends Action {
     public static boolean doneRegiDungeon = false;
     public static boolean doneFossilBuilding = false;
     public static int unownCounter = 0;
+    
+
+    ArrayList<Vector2> keystoneSpawns = new ArrayList<Vector2>();
 
     public HashMap<Vector2, Tile> mtnTiles = new HashMap<Vector2, Tile>();
 
@@ -1531,6 +1534,19 @@ class GenIsland1 extends Action {
         int maxDist = this.radius;  // 16*10;
         Tile originTile = new Tile("sand1", this.origin.cpy());
         this.tilesToAdd.put(originTile.position.cpy(), originTile);
+        
+        // TODO: debug, remove
+        // Generates a standalone biome
+//        if (true) {
+//            originTile = new Tile("sand1", this.origin.cpy().add(-256*4, -256*4));
+//            this.tilesToAdd.put(originTile.position.cpy(), originTile);
+//            Route blotchRoute2 = new Route("graveyard1", 22);
+//            ApplyBlotch(game, "graveyard1", originTile, 500, this.tilesToAdd, 0, false, blotchRoute2);
+//            this.edges.add(originTile);
+//            this.bottomLeft = originTile.position.cpy().add(-128, -128);
+//            this.topRight = originTile.position.cpy().add(128, 128);
+//            return;
+//        }
 
 //        Route blotchRoute = new Route("desert1", 40);
 //        ApplyBlotch(game, "desert", originTile, maxDist/36, this.tilesToAdd, 1, false, blotchRoute);
@@ -1543,7 +1559,6 @@ class GenIsland1 extends Action {
         System.out.println("endPoints size");
         System.out.println(endPoints.size());
         for (Tile tile : endPoints) {
-
             if (GenIsland1.doneDesert == 1) {
                 // TODO: seems to be happening near middle of mountain, would like it to be elsewhere.
                 Route blotchRoute = new Route("desert1", 40);
@@ -1612,6 +1627,7 @@ class GenIsland1 extends Action {
             if (tile.name.contains("desert")) {
                 desertTiles.add(tile);
             }
+            //tile.routeBelongsTo != null && tile.routeBelongsTo.name.equals("deep_forest") 
             else if (tile.biome.equals("deep_forest")) {
                 deepForestTiles.add(tile);
             }
@@ -1637,6 +1653,54 @@ class GenIsland1 extends Action {
         // TODO: test
         this.bottomLeft = minPos.cpy();
         this.topRight = maxPos.cpy();
+
+        // Place graveyard biome(s) based on conditions
+        // Needs to happen before regi dungeon and mansion
+        int placeNum = this.rand.nextInt(7) +1;
+        int tries3 = 20;
+        while (deepForestTiles.size() > 0) {
+            System.out.println("hi");
+            Tile originTile2 = deepForestTiles.get(this.rand.nextInt(deepForestTiles.size()));
+            boolean isInForest = originTile2.routeBelongsTo != null && originTile2.routeBelongsTo.name.equals("forest1");
+            boolean nearWater = false;
+            for (Tile newTile : tilesToAdd.values()) {
+                if (newTile.name.contains("water") && newTile.position.dst2(originTile2.position) < 230400) {
+                    nearWater = true;
+                    break;
+                }
+            }
+            if (this.tilesToAdd.get(originTile2.position).biome.equals("graveyard") ||
+                !isInForest ||
+                nearWater) {
+                tries3--;
+                if (tries3 <= 0) {
+                    break;
+                }
+                continue;
+            }
+            HashMap<Vector2, Tile> newTiles = new HashMap<Vector2, Tile>();
+            Route blotchRoute = new Route("graveyard1", 22);
+            ApplyBlotch(game, "graveyard1", originTile2, 300, newTiles, 0, false, blotchRoute);
+            // TODO: large trees issue, maybe
+            for (Vector2 position : newTiles.keySet()) {
+                if (this.mtnTiles.containsKey(position)) {
+                    continue;
+                }
+                this.tilesToAdd.put(position, newTiles.get(position));
+            }
+            // TODO: debug, remove
+            this.tilesToAdd.putAll(newTiles);
+            placeNum--;
+            if (placeNum <= 0) {
+                break;
+            }
+        }
+        // Spawn keystone somewhere
+        Vector2 edge = this.keystoneSpawns.get(this.rand.nextInt(this.keystoneSpawns.size()));
+        Tile newTile4 = tilesToAdd.get(edge);
+        newTile4 = new Tile("green12", "odd_keystone2", edge.cpy(), true, newTile4.routeBelongsTo);
+        newTile4.biome = "graveyard";
+        tilesToAdd.put(edge, newTile4);
 
         // Remove 'stray' overworld pokemon (again, this time from desert)
         // Do this before placing Darmanitan, otherwise it will remove them.
@@ -1691,9 +1755,9 @@ class GenIsland1 extends Action {
             hitBoxes[i].setCenter(origins[i]);
             // Avoid mansion if desert ruins
             if (i == 0) {
-            	if (hitBoxes[i].overlaps(mansionBox)) {
+                if (hitBoxes[i].overlaps(mansionBox)) {
                     continue;
-            	}
+                }
             }
             // Regi dungeon avoids mountains
             if (i > 1) {
@@ -1859,8 +1923,8 @@ class GenIsland1 extends Action {
                     }
                     // If overlaps ruins, retry.
                     mansionBox.setCenter(mansionPos);
-                	if (mansionBox.overlaps(hitBoxes[0])) {
-                		continue;
+                    if (mansionBox.overlaps(hitBoxes[0])) {
+                        continue;
                     }
                     GenIsland1.donePkmnMansion = true;
                     complete = false;
@@ -1988,9 +2052,9 @@ class GenIsland1 extends Action {
                     int level = tile.routeBelongsTo.level +Game.rand.nextInt(3);
                     // If the Pokemon is 'join-able' then nerf it's level.
                     if (name.equals("numel") ||
-                    	name.equals("kangaskhan") ||
-                    	name.equals("cubone")) {
-                    	level = 10;
+                        name.equals("kangaskhan") ||
+                        name.equals("cubone")) {
+                        level = 10;
                     }
                     Pokemon pokemon = new Pokemon(name, level, Pokemon.Generation.CRYSTAL);
                     pokemon.position = tile.position.cpy();
@@ -2020,6 +2084,9 @@ class GenIsland1 extends Action {
             }
             else if (tile.routeBelongsTo.name.contains("beach")) {
                 baseChance = 480;
+            }
+            else if (tile.routeBelongsTo.name.contains("graveyard")) {
+                baseChance = 506;
             }
 
          if (this.rand.nextInt(512) >= baseChance) {
@@ -2070,12 +2137,12 @@ class GenIsland1 extends Action {
 
                 boolean isBaseSpecies = Pokemon.baseSpecies.get(pokemon.specie.name.toLowerCase()).equalsIgnoreCase(pokemon.specie.name);
                 if (isBaseSpecies) {
-                	if (pokemon.level > 10) {
+                    if (pokemon.level > 10) {
                         pokemon.level = 10;
                         pokemon.exp = pokemon.gen2CalcExpForLevel(pokemon.level);
                         pokemon.calcMaxStats();
                         pokemon.currentStats.put("hp", pokemon.maxStats.get("hp"));
-                	}
+                    }
                 }
                 else if (Pokemon.dontAggro.contains(pokemon.specie.name) && pokemon.level > 30) {
                     pokemon.level = 30;
@@ -2099,6 +2166,9 @@ class GenIsland1 extends Action {
                     requirementsMet = hasEvo;  // want wartortle, croconaw, etc to walk around
                 }
                 if (tile.routeBelongsTo.name.contains("ruins")) {
+                    requirementsMet = true;  // yeet everything
+                }
+                if (tile.routeBelongsTo.name.contains("graveyard")) {
                     requirementsMet = true;  // yeet everything
                 }
                 if (tile.routeBelongsTo.name.contains("mountain")) {
@@ -2351,7 +2421,7 @@ class GenIsland1 extends Action {
         
         ArrayList<TrainerTipsTile> signTiles = new ArrayList<TrainerTipsTile>();
         for (Tile tile : this.tilesToAdd.values()) {
-            if (tile.nameUpper.contains("sign")) {
+            if (tile.nameUpper.equals("sign1")) {
                 signTiles.add((TrainerTipsTile)tile);
             }
         }
@@ -2459,6 +2529,7 @@ class GenIsland1 extends Action {
 //        int isMaze = 1; // this.rand.nextInt(2);
         isMaze = 1; // this.rand.nextInt(2);
         HashMap<Vector2, Tile> forestMazeTiles = new HashMap<Vector2, Tile>();
+        ArrayList<Vector2> fenceSpawns = new ArrayList<Vector2>();
 
         //      int newSize = this.rand.nextInt(maxDist + (int)(maxDist/1.5f));  // size varies a lot, but looks good
           // has a tendency to snake, but looks good
@@ -2506,7 +2577,10 @@ class GenIsland1 extends Action {
 //                            shouldPut = ((int)distance < 8*maxDist/16);
                             shouldPut = ((int)distance < 10*maxDist/16);
                         }
-                        if (type.equals("sand_pit1")) {
+                        else if (type.equals("sand_pit1")) {
+                            shouldPut = ((int)distance < 10*maxDist/16);
+                        }
+                        else if (type.equals("graveyard1")) {
                             shouldPut = ((int)distance < 10*maxDist/16);
                         }
 
@@ -2893,6 +2967,11 @@ class GenIsland1 extends Action {
                                 tilesToAdd.put(newTile.position.cpy(), newTile);
                                 edgeTiles.put(newTile.position.cpy(), newTile);
                             }
+                            else if (type.contains("grass_")) {
+                                Tile newTile = new Tile(type, edge, false, currRoute);
+                                tilesToAdd.put(newTile.position.cpy(), newTile);
+                                edgeTiles.put(newTile.position.cpy(), newTile);
+                            }
                             else if (type.equals("sand_pit1")) {
                                 Tile newTile = new Tile("desert4", edge);
                                 if (distance < 2*maxDist/3) {
@@ -3157,7 +3236,100 @@ class GenIsland1 extends Action {
                                 tilesToAdd.put(newTile.position.cpy(), newTile);
                                 edgeTiles.put(newTile.position.cpy(), newTile);
                             }
-                            // foresty blotch
+                            // graveyard
+                            else if (type.equals("graveyard1")) {
+                                String name = "green12";
+                                String nameUpper = "";
+
+                                // TODO/idea: make a generic 'striped patterns' algorithm
+                                // - could have parameters for skew, rotation etc.
+//                                int offsetY = Math.abs(((int)Math.abs(edge.y/16) %10) -5);  // zigzag pattern
+//                                int offsetX = Math.abs((((int)Math.abs(edge.x/16) - offsetY) %10) -5);  // zigzag pattern
+                                Vector2 rotate = edge.cpy().rotate(-15);
+                                int offsetY = ((int)Math.abs(rotate.y/8) %14) -7;
+                                int offsetX = (((int)Math.abs(rotate.x/8) -offsetY*2) %14) -7;  //  -offsetY
+                                offsetX = Math.abs(offsetX);
+                                offsetY = Math.abs(offsetY);
+                                int offset1 = offsetX +offsetY;
+                                offsetY = Math.abs(((int)Math.abs(rotate.y/8) %20) -10);
+                                offsetX = Math.abs((((int)Math.abs(rotate.x/8)) %20) -10);
+                                int offset2 = offsetX +offsetY;
+                                offset2 = offset2/5;
+//                                offset2 = Math.abs((offset -20) % 10);
+
+//                                if (this.rand.nextInt(offset+1) +offset > 4+offsetY) {  // very even stripes
+//                                if (this.rand.nextInt(offset+1) +offset > 6) {  // old ver
+//                                int offset = offsetX*offsetX +offsetY*offsetY;  // made edges 'circular'
+                                if (offset1*offset2 > 6) {  // this.rand.nextInt(offset*2 +1)
+                                    name = "green11";
+                                    if (this.rand.nextInt(5) == 0) {
+                                        if (this.rand.nextBoolean()) {
+                                            name = "green10";
+                                        }
+                                        else {
+                                            name = "green9";
+                                        }
+                                    }
+                                }
+                                else {
+                                    if (offset1 < 2) {
+                                        if (this.rand.nextInt(256) < 80) {
+                                            name = "flower5";
+                                        }
+                                    }
+                                    else if (this.rand.nextInt(15) == 0) {
+                                        name = "flower5";
+                                    }
+                                }
+                                // Chance to put withered tree
+                                // TODO: remove, didn't look that good
+                                // Needs to be a 32x32 tree
+//                                if (!name.equals("flower5") && this.rand.nextInt(110) == 0) {
+//                                    nameUpper = "cactus11";
+//                                }
+
+                                // If this is a gravestone, follow new rules
+                                if (edge.y/16 % 2  == (int)((edge.y/32 % 11)/5) &&
+                                    // 11)/3 - slightly thinner
+                                    // (edge.x/16) % 2  == (int)((((edge.x/16)+(edge.y/((edge.y/32 % 5)/3 +1))) % 11)/4)) { <-- prev ver, very good
+                                    (edge.x/16) % 2  == (int)((((edge.x/16)+(edge.y/2)) % 13)/5)) {
+                                    int scale = 16;
+                                    rotate = edge.cpy().rotate(0);
+                                    offsetY = ((int)Math.abs(rotate.y/scale) %14) -7;
+                                    offsetX = (((int)Math.abs(rotate.x/scale - rotate.y/scale)) %14) -7;
+                                    offsetX = Math.abs(offsetX);
+                                    offsetY = Math.abs(offsetY);
+                                    offset1 = offsetX +offsetY;
+                                    offsetY = Math.abs(((int)Math.abs(rotate.y/scale) %20) -10);
+                                    offsetX = Math.abs((((int)Math.abs(rotate.x/scale)) %20) -10);
+                                    offset2 = offsetX +offsetY;
+                                    offset2 = offset2/5;
+                                    if (offset1*offset2 > 9) {
+                                        name = "green12";
+                                        nameUpper = "gravestone2";
+                                    }
+                                }
+                                Tile newTile = new Tile(name, nameUpper, edge, true, currRoute);
+                                // Chance to spawn grass
+                                boolean putGrass = this.rand.nextInt(90) < 1;
+                                if (distance > maxDist/2) {
+                                    putGrass = this.rand.nextInt(40) < 1;
+                                }
+                                if (putGrass) {
+                                    int nextSize = 40;
+                                    ApplyBlotch(game, "grass_graveyard1", newTile, nextSize, grassTiles, 0, false, currRoute);
+                                }
+                                //
+                                newTile.biome = "graveyard";
+                                tilesToAdd.put(newTile.position.cpy(), newTile);
+                                edgeTiles.put(newTile.position.cpy(), newTile);
+
+                                // Save potential fence locations
+                                if (offset1 < 1) {
+                                    fenceSpawns.add(edge.cpy());
+                                }
+                            }
+                            // Foresty blotch
                             else if (type.equals("mtn_green1") || type.equals("mtn_snow1")) {
                                 Tile newTile;
                                 if (this.rand.nextInt(5) == 0) {
@@ -3283,7 +3455,7 @@ class GenIsland1 extends Action {
             }
         }
 
-        // create forest maze if applicable
+        // Create forest maze if applicable
         // get bl/tr
         if (isMaze != 0 && forestMazeTiles.size() > 0) {
             Vector2 bl = null;
@@ -3344,7 +3516,7 @@ class GenIsland1 extends Action {
                 temp.step(game);
             }
 
-            // post-process - add continuation to ledges
+            // Post-process - add continuation to ledges
             for (Tile tile : new ArrayList<Tile>(tilesToAdd.values())) {
                 if ((tile.name.equals("ledge_grass_down") || tile.name.equals("ledge_ramp_down")) &&
                     tilesToAdd.containsKey(tile.position.cpy().add(16,0)) && !tilesToAdd.get(tile.position.cpy().add(16,0)).attrs.get("solid") && !tilesToAdd.get(tile.position.cpy().add(16,0)).attrs.get("ledge")) {
@@ -3382,6 +3554,122 @@ class GenIsland1 extends Action {
                         }
                         upTiles.put(tile.position.cpy().add(-16, i), new Tile("ledge1_left", tile.position.cpy().add(-16, i), true));
                         leftTiles.put(tile.position.cpy().add(-16-i, 0), new Tile("ledge_grass_down", tile.position.cpy().add(-16-i, 0), true));
+                    }
+                }
+            }
+        }
+        
+        // Add fenced-in areas in graveyards
+        if (type.equals("graveyard1")) {
+            String name, nameUpper;
+            Tile newTile;
+            Vector2 edge;
+            for (int numFences = this.rand.nextInt(4) +1; numFences > 0 && !fenceSpawns.isEmpty(); numFences--) {
+                boolean doneDoll = false;
+                edge = fenceSpawns.remove(this.rand.nextInt(fenceSpawns.size()));
+                int size = 4 +this.rand.nextInt(3);
+                int left = this.rand.nextInt(size);
+                int doorOffset = this.rand.nextInt(2)*16;
+                int numDoors = this.rand.nextInt(4) +1;
+//                boolean hasGravestones = this.rand.nextBoolean();
+                Vector2 bl = edge.cpy().add(-16*(left), -16*(left));
+                //edge.y/16 % 2 == ((int)((edge.y/32 % 11)/5)
+                bl.x += bl.x % 32;
+                bl.y += ((bl.y/16 % 2) +((int)((bl.y/32 % 11)/5))) *16;  // forces row to fall in line with gravestones
+
+                Vector2 tr = bl.cpy().add(16*size, 16*size);
+                tr.x += tr.x % 32;
+                tr.y += ((tr.y/16 % 2) +((int)((tr.y/32 % 11)/5))) *16;  // forces row to fall in line with gravestones
+                for (Vector2 currPos = bl.cpy(); currPos.y <= tr.y;) {
+                    name = "flower5";
+                    nameUpper = "";
+                    boolean replace = true;
+                    if (currPos.x == bl.x && currPos.y == bl.y) {
+                        name = "green12";
+                        nameUpper = "fence1_NE";
+                    }
+                    else if (currPos.x == tr.x && currPos.y == tr.y) {
+                        name = "green12";
+                        nameUpper = "fence1_SW";
+                    }
+                    else if (currPos.x == bl.x && currPos.y == tr.y) {
+                        name = "green12";
+                        nameUpper = "fence1_SE";
+                    }
+                    else if (currPos.x == tr.x && currPos.y == bl.y) {
+                        name = "green12";
+                        nameUpper = "fence1_NW";
+                    }
+                    else if (currPos.y == bl.y || currPos.y == tr.y) {
+                        name = "green12";
+                        nameUpper = "fence1";
+                        if (numDoors > 0 && currPos.x == bl.x + (size/2)*16 +doorOffset) {
+                            nameUpper = "house5_door1";
+                            numDoors--;
+                        }
+                    }
+                    else if (currPos.x == bl.x || currPos.x == tr.x) {
+                        name = "green12";
+                        nameUpper = "fence1_NS";
+                        if (this.rand.nextBoolean() && numDoors > 0 && currPos.y == bl.y + (size/2)*16 +doorOffset) {
+                            nameUpper = "house5_door1";
+                            numDoors--;
+                        }
+                    }
+                    else  {
+                        if (tilesToAdd.get(currPos) != null) {
+                            if (!tilesToAdd.get(currPos).nameUpper.equals("") &&
+                                currPos.y != bl.y+16) {
+                                replace = false;
+                            }
+                            if (tilesToAdd.get(currPos).nameUpper.contains("fence")) {
+                                replace = true;
+                            }
+                        }
+                        //
+                        if (replace &&
+//                            hasGravestones &&
+//                            currPos.y/16 % 2 == ((int)((currPos.y/32 % 11)/5)) &&
+                            currPos.y % 32 == 0 &&
+                            currPos.x != bl.x +16 &&
+                            currPos.x != tr.x -16 &&
+                            currPos.y != bl.y +16
+//                            currPos.y != tr.y -16
+//                            currPos.y != bl.y + (size/2)*16 +doorOffset
+//                            currPos.x != bl.x + (size/2)*16 +doorOffset
+                            ) {
+                            keystoneSpawns.add(currPos.cpy());
+                            if (this.rand.nextInt(3) == 0) {
+                                name = "green12";
+                                nameUpper = "gravestone2";
+                            }
+
+                            // TODO: test
+                            if (!doneDoll && (size <= 5 || this.rand.nextInt(3) == 0)) {
+                                doneDoll = true;
+                                int randInt = this.rand.nextInt(3);
+                                nameUpper = "pokedoll1";
+                                if (randInt == 0) {
+                                    nameUpper = "pokedoll1_mimikyu";
+                                }
+                                else if (randInt == 1) {
+                                    nameUpper = "pokedoll1_banette";
+                                }
+                            }
+                            // 
+                        }
+                    }
+                    if (replace) {
+                        newTile = new Tile(name, nameUpper, currPos.cpy(), true, currRoute);
+                        newTile.biome = "graveyard";
+                        tilesToAdd.put(currPos.cpy(), newTile);
+                        game.map.adjustSurroundingTiles(newTile, tilesToAdd, true);
+                    }
+                    //
+                    currPos.x += 16;
+                    if (currPos.x > tr.x) {
+                        currPos.x = bl.x;
+                        currPos.y += 16;
                     }
                 }
             }

@@ -1,6 +1,6 @@
 	db CHIMECHO
 	db 65, 50, 70, 65, 95, 80
-	db PSYCHIC, SOUND
+	db PSYCHIC, PSYCHIC
 	db 45 ;catch rate
 	db 147 ;exp rate
 	db NO_ITEM
@@ -12,6 +12,6 @@
 	dn 7, 7 ;picture dimensions
 	db ABILITY_LEVITATE, ABILITY_LEVITATE ;abilities
 	db 0, 0 ;padding
-	db SLOW ;growth rate
-	dn AMORPHOUS, AMORPHOUS ;egg groups
+	db FAST ;growth rate
+	dn EGG_AMORPHOUS, EGG_AMORPHOUS ;egg groups
 

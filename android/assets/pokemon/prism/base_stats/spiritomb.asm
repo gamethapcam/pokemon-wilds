@@ -13,5 +13,5 @@
 	db ABILITY_PRESSURE, ABILITY_PRESSURE ;abilities
 	db 0, 0 ;padding
 	db MEDIUM_FAST ;growth rate
-	dn AMORPHOUS, AMORPHOUS ;egg groups
+	dn EGG_AMORPHOUS, EGG_AMORPHOUS ;egg groups
 

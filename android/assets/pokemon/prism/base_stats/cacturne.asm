@@ -13,5 +13,5 @@
 	db ABILITY_SAND_VEIL, ABILITY_SAND_VEIL ;abilities
 	db 0, 0 ;padding
 	db MEDIUM_SLOW ;growth rate
-	dn HUMANSHAPE, PLANT ;egg groups
+	dn EGG_HUMANSHAPE, EGG_PLANT ;egg groups
 

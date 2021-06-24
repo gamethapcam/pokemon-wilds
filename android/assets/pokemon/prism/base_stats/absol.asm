@@ -13,5 +13,5 @@
 	db ABILITY_PRESSURE, ABILITY_SUPER_LUCK ;abilities
 	db 0, 0 ;padding
 	db MEDIUM_SLOW ;growth rate
-	dn FIELD, FIELD ;egg groups
+	dn EGG_GROUND, EGG_GROUND ;egg groups
 

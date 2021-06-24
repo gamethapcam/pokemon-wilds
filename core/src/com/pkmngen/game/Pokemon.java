@@ -406,14 +406,13 @@ public class Pokemon {
             // TODO: prism
             for (String path : new String[]{"prism/", "", "nuuk/"}) {
                 if (path.equals("prism/")) {
-                    FileHandle file2 = Gdx.files.internal("crystal_pokemon/prism/pokemon_names.asm");
+                    FileHandle file2 = Gdx.files.internal("pokemon/prism/pokemon_names.asm");
                     Reader reader2 = file2.reader();
                     BufferedReader br2 = new BufferedReader(reader2);
                     String line2;
                     String currPokemonName = null;
                     int dexNumber = 0;
                     while ((line2 = br2.readLine()) != null)   {
-                        
                         // No need to do lower case b/c file names use capital first letter.
                         currPokemonName = line2.split("db \"")[1].split("\"")[0].replace("@", "");
                         if (currPokemonName.equals("Egg") ||
@@ -426,7 +425,7 @@ public class Pokemon {
                             continue;
                         }
                         currPokemonName = currPokemonName.replace("-", "");
-                        FileHandle file = Gdx.files.internal("crystal_pokemon/prism/movesets/"+currPokemonName+".asm");
+                        FileHandle file = Gdx.files.internal("pokemon/prism/movesets/"+currPokemonName+".asm");
                         Reader reader = file.reader();
                         BufferedReader br = new BufferedReader(reader);
                         String line;
@@ -469,7 +468,7 @@ public class Pokemon {
                     }
                 }
                 else {
-                    FileHandle file = Gdx.files.internal("crystal_pokemon/"+path+"evos_attacks.asm");
+                    FileHandle file = Gdx.files.internal("pokemon/"+path+"evos_attacks.asm");
                     Reader reader = file.reader();
                     BufferedReader br = new BufferedReader(reader);
                     String line;
@@ -529,7 +528,7 @@ public class Pokemon {
                 }
                 
                 // Load egg moves
-                FileHandle file = Gdx.files.internal("crystal_pokemon/"+path+"egg_moves.asm");
+                FileHandle file = Gdx.files.internal("pokemon/"+path+"egg_moves.asm");
                 Reader reader = file.reader();
                 BufferedReader br = new BufferedReader(reader);
                 String line;
@@ -599,7 +598,7 @@ public class Pokemon {
 
         int lineNum = 1;
         try {
-            FileHandle file = Gdx.files.internal("crystal_pokemon/pokemon_to_index.txt");
+            FileHandle file = Gdx.files.internal("pokemon/pokemon_to_index.txt");
             Reader reader = file.reader();
             BufferedReader br = new BufferedReader(reader);
             String line;
@@ -947,7 +946,7 @@ public class Pokemon {
 
         // TODO: individual avatars
         // TODO: remove if unused
-        //        Texture avatarText = new Texture(Gdx.files.internal("pokemon_menu/avatars1.png"));
+        //        Texture avatarText = new Texture(Gdx.files.internal("menu/avatars1.png"));
         //        this.avatarSprites = new ArrayList<Sprite>();
         //        this.avatarSprites.add(new Sprite(avatarText, 16*0, 16*0, 16, 16));
         //        this.avatarSprites.add(new Sprite(avatarText, 16*1, 16*0, 16, 16));
@@ -1283,7 +1282,11 @@ public class Pokemon {
      * Called when Silph Scope is used
      * */
     public Pokemon revealGhost() {
-        this.isGhost = false;
+        if (this.types.contains("GHOST")) {
+            // If revealed pokemon isn't ghost type (ie cubone, or something)
+            // then player still shouldn't be able to catch it.
+            this.isGhost = false;
+        }
         this.loadOverworldSprites();
         this.nickname = this.specie.name;
         //need to store these as the Sprite will be reset once the ghost is revealed
@@ -1577,7 +1580,8 @@ public class Pokemon {
                                   new WaitFrames(game, 3,
                                   new PlaySound("error1",
                                   new DisplayText(game, "Not enough room in your party!", null, null,
-                                  this.nextAction)))));
+                                  new WaitFrames(game, 6,
+                                  this.nextAction))))));
                 return;
             }
             Action newAction;
@@ -1619,8 +1623,8 @@ public class Pokemon {
                     for (String group1 : pokemon.eggGroups) {
                         for (String group2 : Pokemon.this.eggGroups) {
                             if (group1.equals(group2)) {
-                            	shareEggGroup = true;
-                            	break;
+                                shareEggGroup = true;
+                                break;
                             }
                         }
                     }
@@ -1914,8 +1918,8 @@ public class Pokemon {
             }
             if (!this.isFollowing) {
                 if (Game.staticGame.map.pokemon.containsKey(Pokemon.this.position) &&
-                	Game.staticGame.map.pokemon.get(Pokemon.this.position).equals(Pokemon.this)) {
-                	Game.staticGame.map.pokemon.remove(Pokemon.this.position);
+                    Game.staticGame.map.pokemon.get(Pokemon.this.position).equals(Pokemon.this)) {
+                    Game.staticGame.map.pokemon.remove(Pokemon.this.position);
                 }
                 Game.staticGame.map.pokemon.put(this.targetPos.cpy(), Pokemon.this);
             }
@@ -2347,6 +2351,200 @@ public class Pokemon {
     }
 
     /**
+     * Gengar sneaking around as a shadow.
+     */
+    public class Shadowed extends Action {
+        public int layer = 108;
+        public int timer = 0;
+        public int timesMoved = 0;
+        boolean checkEncounter = false;
+
+        public Shadowed(Action nextAction) {
+            this.nextAction = nextAction;
+        }
+
+        public String getCamera() {
+            return "map";
+        }
+
+        public int getLayer(){
+            return this.layer;
+        }
+
+        @Override
+        public void firstStep(Game game) {
+//            game.map.pokemon.put(Pokemon.this.position.cpy(), Pokemon.this);
+            Pokemon.this.standingAction = this;
+            Pokemon.this.currOwSprite = Pokemon.this.standingSprites.get(Pokemon.this.dirFacing);
+            game.insertAction(this.new DrawShadow());
+        }
+
+        @Override
+        public void step(Game game) {
+            if (!game.playerCanMove) {
+                return;
+            }
+            if (!game.player.isSleeping) {
+                game.actionStack.remove(this);
+                Pokemon.this.removeDrawActions(game);
+                return;
+            }
+
+            if (this.checkEncounter) {
+                this.checkEncounter = false;
+                float dst2 = Pokemon.this.position.dst2(game.player.position);
+                // If standing on top of player, then initiate battle.
+                if (dst2 < 64 &&
+                    !game.player.currFieldMove.equals("FLY") &&
+                    game.playerCanMove) {
+                    game.playerCanMove = false;
+                    // Required so that musicController sets inBattle = true
+                    game.battle.oppPokemon = Pokemon.this;
+                    game.player.setCurrPokemon();
+//                    game.musicController.startBattle = "wild";
+//                    game.insertAction(Battle.getIntroAction(game));
+//                    game.player.isSleeping = false;
+//                    game.player.acceptInput = true;
+//                    game.player.drawSleepingBag = false;
+                    
+                    game.insertAction(//new SplitAction(
+                                      //    new PlaySound("ledge2", null),
+                                      //game.player.new Emote("!",
+                                      new WaitFrames(game, 16,
+                                      new SetField(game.musicController, "startBattle", "wild",
+                                      Battle.getIntroAction(game))));
+                    game.insertAction(new WaitFrames(game, 500,
+                                       new SetField(game.player, "isSleeping", false,
+                                      new SetField(game.player, "acceptInput", true,
+                                      new SetField(game.player, "drawSleepingBag", false,
+                                      null)))));
+                    return;
+                }
+            }
+
+            this.timer--;
+            if (this.timer > 0) {
+                return;
+            }
+            this.timer = (Game.rand.nextInt(2) +3)*60;
+            if (this.timesMoved < 3) {
+                this.timesMoved++;
+            }
+            else if (this.timesMoved < 5) {
+                this.timer = 30;
+            }
+            else {
+                this.timer = 10;
+            }
+            // Get dir towards player
+            ArrayList<String> preferredMoves = new ArrayList<String>();
+
+            float dx = Pokemon.this.position.x - game.player.position.x;
+            float dy = Pokemon.this.position.y - game.player.position.y;
+            if (dx < dy) {
+                if (game.player.position.y < Pokemon.this.position.y) {
+                    preferredMoves.add("down");
+                    preferredMoves.add("right");
+                }
+                else {
+                    preferredMoves.add("right");
+                    preferredMoves.add("up");
+                }
+            }
+            else {
+                if (game.player.position.x < Pokemon.this.position.x) {
+                    preferredMoves.add("left");
+                    preferredMoves.add("down");
+                }
+                else {
+                    preferredMoves.add("up");
+                    preferredMoves.add("left");
+                }
+            }
+
+            for (String move : preferredMoves) {
+                // TODO: remove
+//                Vector2 newPos = Pokemon.this.facingPos(move);
+//                Tile facingTile = Pokemon.this.mapTiles.get(newPos);
+//                Tile currTile = Pokemon.this.mapTiles.get(Pokemon.this.position);
+
+                // Find out if near campfire
+                Vector2 startPos = Pokemon.this.position.cpy().add(-80, -80);
+                startPos.x = (int)startPos.x - (int)startPos.x % 16;
+                startPos.y = (int)startPos.y - (int)startPos.y % 16;
+                Vector2 endPos = Pokemon.this.position.cpy().add(80, 80);
+                endPos.x = (int)endPos.x - (int)endPos.x % 16;
+                endPos.y = (int)endPos.y - (int)endPos.y % 16;
+                for (Vector2 currPos = new Vector2(startPos.x, startPos.y); currPos.y < endPos.y;) {
+                    Tile tile = game.map.tiles.get(currPos);
+                    currPos.x += 16;
+                    if (currPos.x > endPos.x) {
+                        currPos.x = startPos.x;
+                        currPos.y += 16;
+                    }
+                    if (tile == null) {
+                        continue;
+                    }
+                    if (tile.nameUpper.contains("campfire")) {
+                        return;
+                    }
+                    else if (tile.items != null && tile.items.containsKey("torch") &&
+                             Pokemon.this.position.dst2(tile.position) < 1024) {
+                        // TODO: probably only check if within small radius
+                        return;
+                    }
+                    else if (game.map.pokemon.containsKey(tile.position)) {  // !game.map.timeOfDay.equals("day")&& 
+                        Pokemon pokemon = game.map.pokemon.get(tile.position);
+                        if (pokemon.hms.contains("FLASH")) {
+                            return;
+                        }
+                    }
+                    else if (game.player.hmPokemon != null && 
+                             Pokemon.this.position.dst2(game.player.position) < 4096 &&
+                             game.player.hmPokemon.hms.contains("FLASH")) {
+                        return;
+                    }
+                }
+                // Move like normal if didn't find a campfire
+                Pokemon.this.dirFacing = move;
+                game.actionStack.remove(this);
+                Action action = Pokemon.this.new Moving(Pokemon.this.dirFacing, 1, 1.5f, true, true, this);
+                game.insertAction(action);
+                Pokemon.this.standingAction = action;
+                this.checkEncounter = true;
+                break;
+            }
+
+            // end step fn
+        }
+
+        /**
+         */
+        class DrawShadow extends Action {
+            Texture texture;
+            public int layer = 130;
+
+            public String getCamera() {
+                return "map";
+            }
+
+            public int getLayer(){
+                return this.layer;
+            }
+
+            public DrawShadow() {
+                Pokemon.this.drawUpper = this;
+                this.texture = TextureCache.get(Gdx.files.internal("shadow1.png"));
+            }
+
+            @Override
+            public void step(Game game) {
+                game.mapBatch.draw(this.texture, Pokemon.this.position.x, Pokemon.this.position.y -1);
+            }
+        }
+    }
+
+    /**
      * Cacturne when it's mad.
      */
     public class Cacturnt extends Action {
@@ -2387,7 +2585,7 @@ public class Pokemon {
             if (!game.playerCanMove) {
                 return;
             }
-            
+
             // Despawn if cacturne was near a campfire
             if (this.campfireDespawn > 0) {
                 if (this.campfireDespawn == 60) {
@@ -2411,7 +2609,7 @@ public class Pokemon {
                     game.actionStack.remove(this);
                     game.map.pokemon.remove(Pokemon.this.position);
                     Pokemon.this.removeDrawActions(game);
-                    
+
                     // If no other cacturne, then 
                     boolean foundCacturnt = false;
                     for (Action action : game.actionStack) {
@@ -2425,11 +2623,9 @@ public class Pokemon {
                         game.musicController.resumeOverworldMusic = true;
                     }
                 }
-
                 this.campfireDespawn--;
                 return;
             }
-            
 
             if (game.map.timeOfDay.equals("day")) {
                 this.campfireDespawn = 60;
@@ -2760,7 +2956,7 @@ public class Pokemon {
                     this.jumpTimer++;
 
                     if (this.jumpTimer % 8 == 0) {
-                        game.insertAction(new PlaySound("sounds/move_object", 0.6f, true, null));
+                        game.insertAction(new PlaySound("move_object", 0.6f, true, null));
                     }
                 }
                 else if (this.jumpTimer < 33 +20) {
@@ -2794,7 +2990,7 @@ public class Pokemon {
                             this.trapinchSprite.setRegion(16, 0, 16, 16);
                         }
                         if (this.jumpTimer % 8 == 0) {
-                            game.insertAction(new PlaySound("sounds/move_object", 0.6f, true, null));
+                            game.insertAction(new PlaySound("move_object", 0.6f, true, null));
                         }
                         if (this.jumpTimer >= 81+60) {
                             this.offsetY--;
@@ -3091,7 +3287,7 @@ public class Pokemon {
                     // Play skull emote + pokemon cry every so often
                     if (this.aggroTimer == 1) {
                         if (Pokemon.this.specie.name.equals("dusclops")) {
-                            game.insertAction(new PlaySound("crystal_pokemon/cries/" + Pokemon.this.dexNumber, .2f, null));
+                            game.insertAction(new PlaySound("pokemon/cries/" + Pokemon.this.dexNumber, .2f, null));
                         }
                         else {
                             game.insertAction(new PlaySound(Pokemon.this, null));
@@ -3780,7 +3976,7 @@ class SpecialMewtwo1 extends Pokemon {
     Tile tile;
 
     public SpecialMewtwo1(int level, Tile tile) {
-    	// TODO: revert
+        // TODO: revert
         super("mewtwo", level);  //, Pokemon.Generation.CRYSTAL, true, false
         this.tile = tile;
         // gen I properties

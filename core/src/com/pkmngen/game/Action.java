@@ -287,7 +287,7 @@ class DisplayText extends Action {
 
 //        text = new Texture(Gdx.files.internal("text_helper1.png")); // battle_bg1
         // text = new Texture(Gdx.files.internal("battle/battle_bg1.png"));
-        // Texture text = new Texture(Gdx.files.internal("throw_rock_anim/helper12.png"));
+        // Texture text = new Texture(Gdx.files.internal("helper12.png"));
 //        this.helperSprite = new Sprite(text, 0, 0, 160, 144);
         // this.helperSprite.setPosition(16*10,16*9);
         // this.helperSprite.setScale(3);
@@ -528,44 +528,32 @@ class DisplayText extends Action {
         public PlaySoundText(String sound, Action nextAction) {
             this.nextAction = nextAction;
             this.playedYet = false;
-            if (sound.equals("fanfare1")) {
-                this.music = Gdx.audio.newMusic(Gdx.files.internal("catch_fanfare.mp3")); // use this
-                this.music.setLooping(false);
+            String path = "";
+            float volume = 1f;
+            if (sound.contains("cries")) {
+                volume = 0.5f;
             }
-            else if (sound == "Raikou") {
-                this.music = Gdx.audio.newMusic(Gdx.files.internal("pokemon/cries/243Cry.ogg")); // use this
-                this.music.setLooping(false);
-            }
-            else if (sound == "Entei") {
-                this.music = Gdx.audio.newMusic(Gdx.files.internal("pokemon/cries/244Cry.ogg")); // use this
-                this.music.setLooping(false);
-            }
-            else if (sound == "Suicune") {
-                this.music = Gdx.audio.newMusic(Gdx.files.internal("pokemon/cries/245Cry.ogg"));
-                this.music.setLooping(false);
+            else if (sound.contains("attacks")) {
+                //
             }
             else {
-                this.music = Gdx.audio.newMusic(Gdx.files.internal(sound)); // use this
-                this.music.setLooping(false);
-                if (sound.contains("cries")) {
-                    this.music.setVolume(0.5f);
-                }
+                path = "sounds/";
             }
+            this.music = Gdx.audio.newMusic(Gdx.files.internal(path+sound));
+            this.music.setLooping(false);
+            this.music.setVolume(volume);
         }
 
         @Override
         public void step(Game game) {
-            // play the sound
+            // Play the sound
             if (this.music != null && !this.playedYet) {
-                // game.battle.music.setVolume(0f); // TODO - use this?
                 this.initialVolume = game.currMusic.getVolume();
                 game.currMusic.setVolume(0f);
                 this.music.play();
                 this.playedYet = true;
             }
-
             if (!this.music.isPlaying()) {
-                // game.battle.music.setVolume(0.3f);
                 game.currMusic.setVolume(this.initialVolume);
                 game.actionStack.remove(this);
                 game.insertAction(this.nextAction);
@@ -705,7 +693,7 @@ class DisplayTextIntro extends Action {
         this.spritesBeingDrawn = new ArrayList<Sprite>();
 
         if (playSound != null) {
-            this.playSoundAction = new DisplayTextIntro.PlaySound_Text(playSound, null);
+            this.playSoundAction = new DisplayTextIntro.PlaySoundText(playSound, null);
             this.playSound = true;
         }
         else {
@@ -780,7 +768,7 @@ class DisplayTextIntro extends Action {
 
 //        text = new Texture(Gdx.files.internal("text_helper1.png")); // battle_bg1
         // text = new Texture(Gdx.files.internal("battle/battle_bg1.png"));
-        // Texture text = new Texture(Gdx.files.internal("throw_rock_anim/helper12.png"));
+        // Texture text = new Texture(Gdx.files.internal("helper12.png"));
 //        this.helperSprite = new Sprite(text, 0, 0, 160, 144);
         // this.helperSprite.setPosition(16*10,16*9);
         // this.helperSprite.setScale(3);
@@ -789,6 +777,7 @@ class DisplayTextIntro extends Action {
         text = new Texture(Gdx.files.internal("textbox_bg1.png")); // textbox bg1
         this.bgSprite = new Sprite(text, 0, 0, 160, 144);
     }
+
     public String getCamera() {return "gui";}
 
     public int getLayer(){return this.layer;}
@@ -930,52 +919,39 @@ class DisplayTextIntro extends Action {
         }
     }
 
-    // play a sound, ie victory fanfare
-     // unique b/c need to mute battle music
-    class PlaySound_Text extends Action {
+    /**
+     * TODO: I don't think this is used and realistically won't be used ever.
+     */
+    class PlaySoundText extends Action {
         Music music;
         float initialVolume; // different tracks have diff volume
 
         boolean playedYet; // do music.play on first step
-        public PlaySound_Text(String sound, Action nextAction) {
+        public PlaySoundText(String sound, Action nextAction) {
             this.nextAction = nextAction;
             this.playedYet = false;
-
-            if (sound == "fanfare1") {
-                this.music = Gdx.audio.newMusic(Gdx.files.internal("catch_fanfare.mp3")); // use this
-                this.music.setLooping(false);
+            String path = "";
+            float volume = 1f;
+            if (!sound.contains("cries")) {
+                path = "sounds/";
             }
-
-            else if (sound == "Raikou") {
-                this.music = Gdx.audio.newMusic(Gdx.files.internal("pokemon/cries/243Cry.ogg")); // use this
-                this.music.setLooping(false);
+            else {
+                volume = 0.5f;
             }
-            else if (sound == "Entei") {
-                this.music = Gdx.audio.newMusic(Gdx.files.internal("pokemon/cries/244Cry.ogg")); // use this
-                this.music.setLooping(false);
-            }
-            else if (sound == "Suicune") {
-                this.music = Gdx.audio.newMusic(Gdx.files.internal("pokemon/cries/245Cry.ogg"));
-                this.music.setLooping(false);
-            }
+            this.music = Gdx.audio.newMusic(Gdx.files.internal(path+sound));
+            this.music.setLooping(false);
+            this.music.setVolume(volume);
         }
 
         @Override
         public void step(Game game) {
-            // play the sound
+            // Play the sound
             if (this.music != null && !this.playedYet) {
-                // TODO - use this probably in the future
-//                this.initialVolume = game.currMusic.getVolume();
-//                game.currMusic.setVolume(0f);
-
                 this.music.play();
                 this.playedYet = true;
             }
-
             if (!this.music.isPlaying()) {
-//                game.currMusic.setVolume(this.initialVolume);
                 game.actionStack.remove(this);
-
                 game.insertAction(this.nextAction);
             }
         }
@@ -1034,7 +1010,6 @@ class DisplayTextIntro extends Action {
                     this.text.remove(0);
                 }
                 game.actionStack.remove(this);
-
                 return;
             }
         }
@@ -1425,7 +1400,7 @@ class DrawSetupMenu extends Action {
     @Override
     public void step(Game game) {
 //        this.bgSprite.draw(game.uiBatch);  // TODO: remove
-        newPos = this.arrowCoords.get(DrawSetupMenu.currIndex);
+        this.newPos = this.arrowCoords.get(DrawSetupMenu.currIndex);
 
         for (int j=0; j < 8; j++) {
             if (j == 0) {
@@ -2506,9 +2481,12 @@ class MusicController extends Action {
 
         if (this.startBattle != null && !this.inBattle) {
             System.out.println("startBattle");
+
+//            boolean isGraveyard = game.map.currRoute != null &&
+//                                  game.map.currRoute.type().equals("graveyard");
             // TODO: needs to trigger in regi cave even if it's night
             // probably check currRoute or something
-            if (isDungeon || (!this.currDayTime.equals("night") && !this.unownMusic)) {
+            if (isDungeon || (!this.currDayTime.equals("night") && !this.unownMusic)) {  //  && !isGraveyard
 
                 game.currMusic.pause();
                 if (this.startBattle.equals("wild")) {
@@ -2549,6 +2527,12 @@ class MusicController extends Action {
         }
         if (this.battleFadeOut && this.inBattle) {
             System.out.println("battleFadeOut");
+//            boolean isGraveyard = game.map.currRoute != null &&
+//                                  game.map.currRoute.type().equals("graveyard");
+//            if (isGraveyard) {
+//                // no fade out
+//            }
+//            else 
             if (isDungeon ||
                 !this.currDayTime.equals("night") ||
                 game.map.timeOfDay.equals("day") ||
@@ -2566,7 +2550,7 @@ class MusicController extends Action {
         }
         if (this.startEvolveMusic) {
             game.currMusic.pause();
-            game.currMusic = Gdx.audio.newMusic(Gdx.files.internal("evolution1.ogg"));
+            game.currMusic = Gdx.audio.newMusic(Gdx.files.internal("sounds/evolution1.ogg"));
             game.currMusic.play();
             this.evolving = true;
             this.startEvolveMusic = false;
@@ -2589,7 +2573,10 @@ class MusicController extends Action {
                 boolean isDesert = game.map.currRoute != null &&
                                    game.map.currRoute.type().equals("desert") &&
                                    !this.currDayTime.equals("night");
-                if (isDungeon || isDesert) {
+                boolean isGraveyard = game.map.currRoute != null &&
+                                      game.map.currRoute.type().equals("graveyard") &&
+                                      !this.currDayTime.equals("night");
+                if (isDungeon || isDesert || isGraveyard) {
                     String musicName = game.map.currRoute.getNextMusic(true);
                     if (!game.loadedMusic.containsKey(musicName)) {
                         Music music;
@@ -2685,7 +2672,7 @@ class MusicController extends Action {
         if (this.startNightAlert != null) {
             game.currMusic.pause();
             if (!game.loadedMusic.containsKey(this.startNightAlert)) {
-                game.loadedMusic.put(this.startNightAlert, Gdx.audio.newMusic(Gdx.files.internal(this.startNightAlert+".ogg")));
+                game.loadedMusic.put(this.startNightAlert, Gdx.audio.newMusic(Gdx.files.internal("music/"+this.startNightAlert+".ogg")));
             }
             Music music = game.loadedMusic.get(this.startNightAlert);
             music.stop();
@@ -2830,7 +2817,7 @@ class MusicController extends Action {
                 game.currMusic.stop();
 //                    game.actionStack.remove(game.fadeMusicAction);
                 if (!game.loadedMusic.containsKey("night1")) {
-                    game.loadedMusic.put("night1", Gdx.audio.newMusic(Gdx.files.internal("night1.ogg")));
+                    game.loadedMusic.put("night1", Gdx.audio.newMusic(Gdx.files.internal("music/night1.ogg")));
                 }
                 Music music = game.loadedMusic.get("night1");
                 music.setLooping(true);
@@ -2859,36 +2846,24 @@ class PlaySound extends Action {
     public PlaySound(Pokemon pokemon, Action nextAction) {
         this(pokemon, false, nextAction);
     }
-    // for playing pokemon cry
+    // For playing pokemon cry
     public PlaySound(Pokemon pokemon, boolean cached, Action nextAction) {
         this.nextAction = nextAction;
         this.playedYet = false;
         this.sound = pokemon.specie.name;
         this.music = null;
         this.cached = cached;
-        // Don't play cry if this is an egg
+        // Don't play cry if the Pokemon is an egg
         if (pokemon.isEgg) {
-            this.music = Gdx.audio.newMusic(Gdx.files.internal("egg_noise1.ogg"));
+            this.music = Gdx.audio.newMusic(Gdx.files.internal("sounds/egg_noise1.ogg"));
             this.music.setLooping(false);
         }
-        // if it's crystal pokemon, load from crystal dir
+        // If it's crystal pokemon, load from crystal dir
         else if (pokemon.generation == Pokemon.Generation.CRYSTAL) {
-            
-            // TODO: remove
-//            if (pokemon.isGhost) {
-//                this.music = Gdx.audio.newMusic(Gdx.files.internal("crystal_pokemon/cries/000.ogg"));
-//                this.music.setVolume(0.9f);
-//            }
-//            else {
-//                // TODO: this doesn't do anything.
-//                this.music = Gdx.audio.newMusic(Gdx.files.internal("crystal_pokemon/cries/" + pokemon.dexNumber + ".ogg"));
-//                this.music.setVolume(0.5f);                
-//            }
-
             // Check for modded cry
             FileHandle file = Gdx.files.local("mods/pokemon/"+pokemon.specie.name+"/cry.ogg");
             if (!file.exists()) {
-                file = Gdx.files.internal("crystal_pokemon/cries/" + pokemon.dexNumber + ".ogg");
+                file = Gdx.files.internal("pokemon/cries/" + pokemon.dexNumber + ".ogg");
             }
 
             if (cached) {
@@ -2902,10 +2877,8 @@ class PlaySound extends Action {
                 return;
             }
 
-            // TODO: remove
-//            this.music = Gdx.audio.newMusic(Gdx.files.internal("crystal_pokemon/cries/" + pokemon.dexNumber + ".ogg"));
             if (pokemon.isGhost) {
-                this.music = Gdx.audio.newMusic(Gdx.files.internal("crystal_pokemon/cries/000.ogg"));
+                this.music = Gdx.audio.newMusic(Gdx.files.internal("pokemon/cries/000.ogg"));
                 this.music.setVolume(0.9f);
             }
             else {
@@ -2930,10 +2903,9 @@ class PlaySound extends Action {
         this.sound = sound;
         this.music = null;
         this.cached = cached;
-
         if (cached) {
             if (!Game.staticGame.loadedMusic.containsKey(sound)) {
-                Game.staticGame.loadedMusic.put(sound, Gdx.audio.newMusic(Gdx.files.internal(sound+".ogg")));
+                Game.staticGame.loadedMusic.put(sound, Gdx.audio.newMusic(Gdx.files.internal("sounds/"+sound+".ogg")));
             }
             this.music = Game.staticGame.loadedMusic.get(sound);
             this.music.stop();
@@ -2941,263 +2913,9 @@ class PlaySound extends Action {
             this.music.setLooping(false);
             return;
         }
-
-        if (sound == "laser1") {
-            this.music = Gdx.audio.newMusic(Gdx.files.internal("data/laser1.wav")); // use this
-            this.music.setLooping(false);
-        }
-
-        else if (sound == "laser2") {
-            this.music = Gdx.audio.newMusic(Gdx.files.internal("data/laser2.wav")); // use this
-            this.music.setLooping(false);
-        }
-
-        else if (sound == "laser3") {
-            this.music = Gdx.audio.newMusic(Gdx.files.internal("data/laser3.wav")); // use this
-            this.music.setLooping(false);
-        }
-
-        else if (sound == "laser4") {
-            this.music = Gdx.audio.newMusic(Gdx.files.internal("data/laser4.wav")); // use this
-            this.music.setLooping(false);
-        }
-
-        else if (sound == "laser5") {
-            this.music = Gdx.audio.newMusic(Gdx.files.internal("data/laser6.mp3")); // use this
-            this.music.setLooping(false);
-        }
-
-        else if (sound == "bump2") {
-            this.music = Gdx.audio.newMusic(Gdx.files.internal("bump2.wav")); // use this
-            this.music.setLooping(false);
-        }
-        else if (sound == "ledge1") {
-            this.music = Gdx.audio.newMusic(Gdx.files.internal("ledge1.wav")); // use this
-            this.music.setLooping(false);
-        }
-        else if ("menu_open1".equals(sound)) {
-            this.music = Gdx.audio.newMusic(Gdx.files.internal("attack_menu/menu_open1.ogg")); // use this
-            this.music.setLooping(false);
-        }
-
-        else if (sound == "wild_battle") {
-            this.music = Gdx.audio.newMusic(Gdx.files.internal("battle/battle-vs-wild-pokemon.wav")); // use this
-            this.music.setLooping(false);
-            this.music.setVolume(0.3f);
-        }
-
-        // pkmn
-        else if (sound == "Zubat") {
-            this.music = Gdx.audio.newMusic(Gdx.files.internal("pokemon/cries/041Cry.ogg"));
-            this.music.setLooping(false);
-        }
-        else if (sound == "Oddish") {
-            this.music = Gdx.audio.newMusic(Gdx.files.internal("pokemon/cries/043Cry.ogg"));
-            this.music.setLooping(false);
-        }
-        else if (sound == "Gloom") {
-            this.music = Gdx.audio.newMusic(Gdx.files.internal("pokemon/cries/044Cry.ogg"));
-            this.music.setLooping(false);
-        }
-        else if (sound == "Cloyster") {
-            this.music = Gdx.audio.newMusic(Gdx.files.internal("pokemon/cries/091Cry.ogg"));
-            this.music.setLooping(false);
-            this.music.setVolume(0.6f);
-        }
-        else if (sound == "Electabuzz") {
-            this.music = Gdx.audio.newMusic(Gdx.files.internal("pokemon/electabuzz.mp3")); // use this
-            this.music.setLooping(false);
-        }
-        else if (sound == "Scyther") {
-            this.music = Gdx.audio.newMusic(Gdx.files.internal("pokemon/cries/123Cry.ogg"));
-            this.music.setLooping(false);
-        }
-        else if (sound == "Tauros") {
-            this.music = Gdx.audio.newMusic(Gdx.files.internal("pokemon/cries/128Cry.mp3"));
-            this.music.setLooping(false);
-        }
-        else if (sound.equals("mewtwo")) {
-            this.music = Gdx.audio.newMusic(Gdx.files.internal("pokemon/cries/150Cry.ogg"));
-            this.music.setLooping(false);
-            this.music.setVolume(0.8f);
-        }
-        else if (sound.equals("Mega Gengar")) {
-            this.music = Gdx.audio.newMusic(Gdx.files.internal("pokemon/cries/m_gengar_cry1.ogg"));
-            this.music.setLooping(false);
-            this.music.setVolume(0.5f);
-        }
-        else if (sound == "Spinarak") {
-            this.music = Gdx.audio.newMusic(Gdx.files.internal("pokemon/cries/167Cry.ogg"));
-            this.music.setLooping(false);
-        }
-        else if (sound == "Mareep") {
-            this.music = Gdx.audio.newMusic(Gdx.files.internal("pokemon/cries/179Cry.wav"));
-            this.music.setVolume(0.7f);
-            this.music.setLooping(false);
-        }
-        else if (sound == "Flaaffy") {
-            this.music = Gdx.audio.newMusic(Gdx.files.internal("pokemon/cries/180Cry.ogg"));
-            this.music.setLooping(false);
-        }
-        else if (sound == "Steelix") {
-            this.music = Gdx.audio.newMusic(Gdx.files.internal("pokemon/cries/208Cry.mp3")); // use this
-            this.music.setLooping(false);
-        }
-        else if (sound == "Sneasel") {
-            this.music = Gdx.audio.newMusic(Gdx.files.internal("pokemon/cries/215Cry.ogg"));
-            this.music.setVolume(0.7f);
-            this.music.setLooping(false);
-        }
-        else if (sound == "Raikou") {
-            this.music = Gdx.audio.newMusic(Gdx.files.internal("pokemon/cries/243Cry.ogg")); // use this
-            this.music.setLooping(false);
-        }
-        else if (sound == "Entei") {
-            this.music = Gdx.audio.newMusic(Gdx.files.internal("pokemon/cries/244Cry.ogg")); // use this
-            this.music.setLooping(false);
-        }
-        else if (sound == "Suicune") {
-            this.music = Gdx.audio.newMusic(Gdx.files.internal("pokemon/cries/245Cry.ogg")); // use this
-            this.music.setLooping(false);
-        }
-
-        else if (sound == "Wurmple") {
-            this.music = Gdx.audio.newMusic(Gdx.files.internal("pokemon/cries/265Cry.ogg"));
-            this.music.setLooping(false);
-        }
-        else if (sound == "Makuhita") {
-            this.music = Gdx.audio.newMusic(Gdx.files.internal("pokemon/cries/296Cry.mp3"));
-            this.music.setLooping(false);
-        }
-        else if (sound == "Hariyama") {
-            this.music = Gdx.audio.newMusic(Gdx.files.internal("pokemon/cries/297Cry.mp3"));
-            this.music.setLooping(false);
-        }
-        else if (sound == "Skitty") {
-            this.music = Gdx.audio.newMusic(Gdx.files.internal("pokemon/cries/300Cry.ogg"));
-            this.music.setLooping(false);
-        }
-        else if (sound == "Sableye") {
-            this.music = Gdx.audio.newMusic(Gdx.files.internal("pokemon/cries/302Cry.ogg"));
-            this.music.setLooping(false);
-        }
-        else if (sound == "Lairon") {
-            this.music = Gdx.audio.newMusic(Gdx.files.internal("pokemon/cries/305Cry.ogg"));
-            this.music.setLooping(false);
-        }
-        else if (sound == "Cacnea") {
-            this.music = Gdx.audio.newMusic(Gdx.files.internal("pokemon/cries/331Cry.ogg"));
-            this.music.setLooping(false);
-        }
-        else if (sound == "Shuppet") {
-            this.music = Gdx.audio.newMusic(Gdx.files.internal("pokemon/cries/353Cry.ogg"));
-            this.music.setLooping(false);
-        }
-        else if (sound == "Starly") {
-            this.music = Gdx.audio.newMusic(Gdx.files.internal("pokemon/cries/396Cry.ogg"));
-            this.music.setLooping(false);
-        }
-        else if (sound == "Shinx") {
-            this.music = Gdx.audio.newMusic(Gdx.files.internal("pokemon/cries/403Cry.ogg"));
-            this.music.setLooping(false);
-        }
-        else if (sound == "Gardevoir") {
-            this.music = Gdx.audio.newMusic(Gdx.files.internal("pokemon/cries/282Cry.ogg"));
-            this.music.setLooping(false);
-        }
-        else if (sound == "Claydol") {
-            this.music = Gdx.audio.newMusic(Gdx.files.internal("pokemon/cries/344Cry.ogg"));
-            this.music.setLooping(false);
-        }
-        else if (sound == "Machop") {
-            this.music = Gdx.audio.newMusic(Gdx.files.internal("pokemon/cries/066Cry.ogg"));
-            this.music.setLooping(false);
-            this.music.setVolume(0.5f);
-        }
-
-        else if (sound == "throw_rock1") {
-            this.music = Gdx.audio.newMusic(Gdx.files.internal("throw_rock_anim/rock_throw1.mp3"));
-            this.music.setLooping(false);
-        }
-        else if (sound == "throw_pokeball1") {
-            this.music = Gdx.audio.newMusic(Gdx.files.internal("throw_pokeball_anim/pkball1.mp3"));
-            this.music.setLooping(false);
-        }
-        else if (sound == "poof1") {
-            this.music = Gdx.audio.newMusic(Gdx.files.internal("throw_pokeball_anim/poof1.mp3"));
-            this.music.setLooping(false);
-        }
-        else if (sound == "pokeball_wiggle1") {
-            this.music = Gdx.audio.newMusic(Gdx.files.internal("throw_pokeball_anim/wiggle1.mp3"));
-            this.music.setLooping(false);
-        }
-        else if (sound == "click1") {
-            this.music = Gdx.audio.newMusic(Gdx.files.internal("click1.mp3"));
-            this.music.setLooping(false);
-        }
-        else if (sound == "fanfare1") {
-            this.music = Gdx.audio.newMusic(Gdx.files.internal("catch_fanfare.mp3"));
-            this.music.setLooping(false);
-        }
-        else if (sound == "run1") {
-            this.music = Gdx.audio.newMusic(Gdx.files.internal("run1.mp3"));
-            this.music.setLooping(false);
-        }
-
-        // attacks
-        else if (sound == "hyperbeam1") {
-            this.music = Gdx.audio.newMusic(Gdx.files.internal("hyper_beam_anim/hyperbeam1.ogg"));
-            this.music.setLooping(false);
-        }
-        else if (sound == "harden1") {
-            this.music = Gdx.audio.newMusic(Gdx.files.internal("attacks/harden1.ogg"));
-            this.music.setLooping(false);
-        }
-        else if (sound == "tackle1") {
-            this.music = Gdx.audio.newMusic(Gdx.files.internal("attacks/tackle1.ogg"));
-            this.music.setLooping(false);
-        }
-        else if (sound.equals("psychic1")) {
-            this.music = Gdx.audio.newMusic(Gdx.files.internal("attacks/psychic1.ogg"));
-            this.music.setLooping(false);
-        }
-        else if (sound.equals("night_shade1")) {
-            this.music = Gdx.audio.newMusic(Gdx.files.internal("attacks/night_shade1.ogg"));
-            this.music.setLooping(false);
-        }
-        else if (sound.equals("lick1")) {
-            this.music = Gdx.audio.newMusic(Gdx.files.internal("attacks/lick1.ogg"));
-            this.music.setLooping(false);
-        }
-        else if (sound.equals("slash1")) {
-            this.music = Gdx.audio.newMusic(Gdx.files.internal("attacks/slash1.ogg"));
-            this.music.setLooping(false);
-        }
-        else if (sound.equals("hit_normal1")) {
-            this.music = Gdx.audio.newMusic(Gdx.files.internal("attacks/hit_normal1.ogg"));
-            this.music.setLooping(false);
-        }
-        else if (sound == "Mewtwo_Special1") {
-            this.music = Gdx.audio.newMusic(Gdx.files.internal("attacks/Mewtwo_Special1.ogg"));
-            this.music.setLooping(false);
-            this.music.setVolume(1.5f);
-        }
-        else if (sound == "ghost1") {
-            this.music = Gdx.audio.newMusic(Gdx.files.internal("ghost1.ogg"));
-            this.music.setLooping(false);
-        }
-        else if (sound == "cut1") {
-            this.music = Gdx.audio.newMusic(Gdx.files.internal("cut1.ogg"));
-            this.music.setLooping(false);
-        }
-        else if (sound == "strength1") {
-            this.music = Gdx.audio.newMusic(Gdx.files.internal("strength1.ogg"));
-            this.music.setLooping(false);
-        }
-        else {
-            this.music = Gdx.audio.newMusic(Gdx.files.internal(sound+".ogg"));
-            this.music.setLooping(false);
-        }
+        //
+        this.music = Gdx.audio.newMusic(Gdx.files.internal("sounds/"+sound+".ogg"));
+        this.music.setLooping(false);
         this.music.setVolume(volume);
     }
 
@@ -3218,7 +2936,7 @@ class PlaySound extends Action {
             game.insertAction(this.nextAction);
             return;
         }
-        // play the sound
+        // Play the sound
         if (!this.playedYet) {
             this.music.play();
             this.playedYet = true;
@@ -3438,11 +3156,11 @@ class ChangePlayerCharacter extends Action {
  * Just an experiment for drawing tiles.
  */
 class TileEditor extends Action {
-
     Vector3 touchPos = new Vector3();
     boolean justTouched = false;
     public int timer = 0;
     public int brushSize = 1;
+    public Tile newTile = null;
 
     // List of pokemon, list of overtiles, list of undertiles
     ArrayList<String> overTiles = new ArrayList<String>();
@@ -3457,17 +3175,25 @@ class TileEditor extends Action {
     ArrayList<String> underTiles = new ArrayList<String>();
     {
         underTiles.add("green1");
+        underTiles.add("green9");
+        underTiles.add("green10");
+        underTiles.add("green11");
+        underTiles.add("green12");
         underTiles.add("sand1");
         underTiles.add("sand2");
         underTiles.add("sand3");
+        underTiles.add("mountain1");
         underTiles.add("flower2");
         underTiles.add("flower3");
         underTiles.add("flower4");
+        underTiles.add("flower5");  // graveyard
         underTiles.add("grass2");
         underTiles.add("grass3");
         underTiles.add("grass4");
+        underTiles.add("grass_graveyard1");
         underTiles.add("water2");
 
+        underTiles.add("grass_sand1");
         underTiles.add("grass_sand2");
         underTiles.add("grass_sand3");
         underTiles.add("desert1");
@@ -3484,14 +3210,14 @@ class TileEditor extends Action {
         underTiles.add("ruins1_pillar1");
         underTiles.add("ruins_floor2");
         //
-        underTiles.add("ledge2_down");
-        underTiles.add("ledge2_br");
-        underTiles.add("ledge2_bl");
-        underTiles.add("ledge2_tr");
-        underTiles.add("ledge2_tl");
-        underTiles.add("ledge2_left");
-        underTiles.add("ledge2_right");
-        underTiles.add("ledge2_top");
+//        underTiles.add("ledge2_down");
+//        underTiles.add("ledge2_br");
+//        underTiles.add("ledge2_bl");
+//        underTiles.add("ledge2_tr");
+//        underTiles.add("ledge2_tl");
+//        underTiles.add("ledge2_left");
+//        underTiles.add("ledge2_right");
+//        underTiles.add("ledge2_top");
 
         // Ruins
         underTiles.add("ruins2_floor");
@@ -3513,11 +3239,24 @@ class TileEditor extends Action {
         overTiles.add("cactus4");
         overTiles.add("cactus5");
         overTiles.add("cactus6");
+        //
+        overTiles.add("gravestone1");
+        overTiles.add("gravestone2");
 
         //
         overTiles.add("stairs_down2");
         //
+        overTiles.add("rock1");
+        overTiles.add("rock5");
+        overTiles.add("ledges3_N");
+        overTiles.add("ledges3_S");
+        overTiles.add("ledges3_E");
+        overTiles.add("ledges3_W");
+        overTiles.add("black1");
+        //
         underTiles.add("grass3");
+        //
+        
         
 
         underTiles.addAll(this.overTiles);
@@ -3642,7 +3381,6 @@ class TileEditor extends Action {
             }
         }
         
-
         if (Gdx.input.isTouched()) {
 //            this.justTouched = true;
             Vector2 position = new Vector2();
@@ -3650,20 +3388,28 @@ class TileEditor extends Action {
                 for (int j = 0; j < this.brushSize; j++) {
                     position.set(this.currTile.sprite.getX() -16*i, this.currTile.sprite.getY() -16*j);
                     Tile currTile = game.map.tiles.remove(position);
-                    Tile newTile = new Tile(this.underTiles.get(this.currIndex), position.cpy(), true, null);
-                    if (this.overTiles.contains(this.currTile.name)) {
-                        newTile = new Tile(currTile.name, this.underTiles.get(this.currIndex), position.cpy(), true, null);
+                    this.newTile = new Tile(this.underTiles.get(this.currIndex), position.cpy(), true, null);
+                    if (!this.currTile.name.equals("black1")) {
+                        if (this.overTiles.contains(this.currTile.name)) {
+                            this.newTile = new Tile(currTile.name, this.underTiles.get(this.currIndex), position.cpy(), true, null);
+                        }
+                        // allows placement under stuff
+//                        else if (!currTile.nameUpper.equals("")) {
+//                            this.newTile = new Tile(this.underTiles.get(this.currIndex), currTile.nameUpper, position.cpy(), true, null);
+//                        }
                     }
+
+                    game.map.tiles.put(newTile.position.cpy(), this.newTile);
                     
-                    game.map.tiles.put(newTile.position.cpy(), newTile);
                 }
             }
         }
         else {
-//            if (this.justTouched) {
-//                PlayerStanding.adjustSurroundingTiles(newTile);
-//            }
-            this.justTouched = false;
+            if (this.newTile != null) {
+                game.map.adjustSurroundingTiles(this.newTile);
+                this.newTile = null;
+            }
+//            this.justTouched = false;
         }
         
 

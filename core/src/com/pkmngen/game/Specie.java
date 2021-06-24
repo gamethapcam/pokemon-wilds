@@ -106,10 +106,10 @@ public class Specie {
         // Load sprite and animation data (cached)
         if (!Specie.textures.containsKey("egg_front")) {
             // Load front sprite
-            text = TextureCache.get(Gdx.files.internal("crystal_pokemon/pokemon/egg/front.png"));
+            text = TextureCache.get(Gdx.files.internal("pokemon/pokemon/egg/front.png"));
             Specie.textures.put("egg_front", text);
             // back sprites
-            text = TextureCache.get(Gdx.files.internal("crystal_pokemon/pokemon/egg/back.png"));
+            text = TextureCache.get(Gdx.files.internal("pokemon/pokemon/egg/back.png"));
             Specie.textures.put("egg_back", text);
 
         }
@@ -117,7 +117,7 @@ public class Specie {
         // Load sprite and animation data (cached)
         if (!Specie.textures.containsKey("ghost_front")) {
             // Load front sprite
-            text = TextureCache.get(Gdx.files.internal("crystal_pokemon/prism/pics/ghost/front.png"));
+            text = TextureCache.get(Gdx.files.internal("pokemon/prism/pics/ghost/front.png"));
             Specie.textures.put("ghost_front", text);
         }
 
@@ -138,7 +138,7 @@ public class Specie {
         introAnimGhost = new ArrayList<SpriteProxy>();
         introAnimEgg = new ArrayList<SpriteProxy>();
         try {
-            FileHandle file = Gdx.files.internal("crystal_pokemon/prism/pics/ghost/anim0.asm");
+            FileHandle file = Gdx.files.internal("pokemon/prism/pics/ghost/anim0.asm");
             Reader reader = file.reader();
             BufferedReader br = new BufferedReader(reader);
             String line;
@@ -171,7 +171,7 @@ public class Specie {
             }
             reader.close();
             //Why yes, this *IS* kinda stupid
-            file = Gdx.files.internal("crystal_pokemon/pokemon/egg/anim.asm");
+            file = Gdx.files.internal("pokemon/pokemon/egg/anim.asm");
             reader = file.reader();
             br = new BufferedReader(reader);
             setrepeat = 0;
@@ -251,7 +251,7 @@ public class Specie {
 
         // TODO: individual avatars
         // TODO: remove if unused
-        //        Texture avatarText = new Texture(Gdx.files.internal("pokemon_menu/avatars1.png"));
+        //        Texture avatarText = new Texture(Gdx.files.internal("menu/avatars1.png"));
         //        this.avatarSprites = new ArrayList<Sprite>();
         //        this.avatarSprites.add(new Sprite(avatarText, 16*0, 16*0, 16, 16));
         //        this.avatarSprites.add(new Sprite(avatarText, 16*1, 16*0, 16, 16));
@@ -278,7 +278,7 @@ public class Specie {
 
             // Custom attributes - better way to handle this?
             if (name.equals("sneasel") ||
-            	name.equals("weavile") || 
+                name.equals("weavile") || 
                     name.equals("scyther") ||
                     name.equals("scizor") ||
                     name.equals("krabby") ||
@@ -343,61 +343,61 @@ public class Specie {
 //                name.equals("kangaskhan") ||
 //                name.equals("ursaring")) {
             if (name.equals("squirtle") ||
-        		name.equals("wartortle") ||
-        		name.equals("blastoise") ||
-        		name.equals("slowpoke") ||
-        		name.equals("slowbro") ||
-        		name.equals("slowking") ||
-        		name.equals("seel") ||
-        		name.equals("dewgong") ||
-        		name.equals("drowzee") ||
-        		name.equals("hypno") ||
-        		name.equals("cubone") ||
-        		name.equals("marowak") ||
-        		name.equals("kangaskhan") ||
-        		name.equals("munchlax") ||
-        		name.equals("snorlax") ||
-        		name.equals("snubbull") ||
-        		name.equals("granbull") ||
-        		name.equals("miltank") ||
-        		name.equals("aron") ||
-        		name.equals("lairon") ||
-        		name.equals("aggron") ||
-        		name.equals("bagon") ||
-        		name.equals("shelgon") ||
-        		name.equals("salamence") ||
-        		name.equals("bidoof") ||
-        		name.equals("bibarel") ||
-        		name.equals("cranidos") ||
-        		name.equals("rampardos") ||
-        		name.equals("darumaka") ||
-        		name.equals("darmanitan") ||
-        		name.equals("darmanitanzen") ||
-        		name.equals("scraggy") ||
-        		name.equals("scrafty") ||
-        		name.equals("elgyem") ||
-        		name.equals("beheeyem") ||
-        		name.equals("scorbunny") ||
-        		name.equals("raboot") ||
-        		name.equals("cinderace") ||
-        		name.equals("wooloo") ||
-        		name.equals("dubwool") ||
-        		name.equals("obstagoon") ||
-        		name.equals("nidoran_m") ||
-        		name.equals("nidoran_f") ||
-        		name.equals("nidorina") ||
-        		name.equals("nidorino") ||
-        		name.equals("nidoking") ||
-        		name.equals("nidoqueen") ||
-        		name.equals("whismur") ||
-        		name.equals("loudred") ||
-        		name.equals("exploud") ||
-        		name.equals("heracross") ||
-        		name.equals("shieldon") ||
-        		name.equals("bastiodon") ||
-        		name.equals("teddiursa") ||
-        		name.equals("ursaring") ||
-        		name.equals("tauros")) {
+                name.equals("wartortle") ||
+                name.equals("blastoise") ||
+                name.equals("slowpoke") ||
+                name.equals("slowbro") ||
+                name.equals("slowking") ||
+                name.equals("seel") ||
+                name.equals("dewgong") ||
+                name.equals("drowzee") ||
+                name.equals("hypno") ||
+                name.equals("cubone") ||
+                name.equals("marowak") ||
+                name.equals("kangaskhan") ||
+                name.equals("munchlax") ||
+                name.equals("snorlax") ||
+                name.equals("snubbull") ||
+                name.equals("granbull") ||
+                name.equals("miltank") ||
+                name.equals("aron") ||
+                name.equals("lairon") ||
+                name.equals("aggron") ||
+                name.equals("bagon") ||
+                name.equals("shelgon") ||
+                name.equals("salamence") ||
+                name.equals("bidoof") ||
+                name.equals("bibarel") ||
+                name.equals("cranidos") ||
+                name.equals("rampardos") ||
+                name.equals("darumaka") ||
+                name.equals("darmanitan") ||
+                name.equals("darmanitanzen") ||
+                name.equals("scraggy") ||
+                name.equals("scrafty") ||
+                name.equals("elgyem") ||
+                name.equals("beheeyem") ||
+                name.equals("scorbunny") ||
+                name.equals("raboot") ||
+                name.equals("cinderace") ||
+                name.equals("wooloo") ||
+                name.equals("dubwool") ||
+                name.equals("obstagoon") ||
+                name.equals("nidoran_m") ||
+                name.equals("nidoran_f") ||
+                name.equals("nidorina") ||
+                name.equals("nidorino") ||
+                name.equals("nidoking") ||
+                name.equals("nidoqueen") ||
+                name.equals("whismur") ||
+                name.equals("loudred") ||
+                name.equals("exploud") ||
+                name.equals("heracross") ||
+                name.equals("shieldon") ||
+                name.equals("bastiodon") ||
+                name.equals("teddiursa") ||
+                name.equals("ursaring") ||
+                name.equals("tauros")) {
                 this.hms.add("HEADBUTT");
             }
 
@@ -505,7 +505,7 @@ public class Specie {
 
         // Load base stats
         try {
-            FileHandle file = Gdx.files.internal("crystal_pokemon/"+path+"base_stats/" + newName + ".asm");
+            FileHandle file = Gdx.files.internal("pokemon/"+path+"base_stats/" + newName + ".asm");
             Reader reader = file.reader();
             BufferedReader br = new BufferedReader(reader);
             String line;
@@ -576,9 +576,9 @@ public class Specie {
                     //       Likely going to move to alternate form of stat-loading in
                     //       the future, which deprecates this.
                     for (int i=0; i < this.eggGroups.length; i++) {
-                    	if (this.eggGroups[i].equals("EGG_GROUND")) {
-                    		this.eggGroups[i] = "EGG_FIELD";
-                    	}
+                        if (this.eggGroups[i].equals("EGG_GROUND")) {
+                            this.eggGroups[i] = "EGG_FIELD";
+                        }
                     }
                 }
                 // TODO: other stats
@@ -601,7 +601,7 @@ public class Specie {
             // Load front sprite
             FileHandle file = Gdx.files.local("mods/pokemon/" + name + "/front.png");
             if (!file.exists()) {
-                file = Gdx.files.internal("crystal_pokemon/"+path+"pokemon/" + name + "/front.png");
+                file = Gdx.files.internal("pokemon/"+path+"pokemon/" + name + "/front.png");
             }
             Texture text = TextureCache.get(file);
 
@@ -643,7 +643,7 @@ public class Specie {
                 // This is for modded shiny palettes.
                 file = Gdx.files.local("mods/pokemon/" + newName + "/shiny.pal");
                 if (!file.exists()) {
-                    file = Gdx.files.internal("crystal_pokemon/"+path+"pokemon/" + newName + "/shiny.pal");
+                    file = Gdx.files.internal("pokemon/"+path+"pokemon/" + newName + "/shiny.pal");
                 }
                 // TODO: debug, remove
                 else {
@@ -673,10 +673,10 @@ public class Specie {
                 // TODO: there were occasoinally bugs with this (charizard, charmander)
                 // TODO: remove
 //                if (name.contains("unown")) {
-//                    file = Gdx.files.internal("crystal_pokemon/"+path+"pokemon/" + newName + "/normal.pal");
+//                    file = Gdx.files.internal("pokemon/"+path+"pokemon/" + newName + "/normal.pal");
 //                }
 //                else {
-//                    file = Gdx.files.internal("crystal_pokemon/"+path+"pokemon/" + name + "/front.pal");
+//                    file = Gdx.files.internal("pokemon/"+path+"pokemon/" + name + "/front.pal");
 //                }
 //                // TODO: don't really need anymore b/c SpriteProxy knows color1/color2
 //                if (file.exists()) {
@@ -757,7 +757,7 @@ public class Specie {
             // back sprites
             file = Gdx.files.local("mods/pokemon/" + name + "/back.png");
             if (!file.exists()) {
-                file = Gdx.files.internal("crystal_pokemon/"+path+"pokemon/" + name + "/back.png");
+                file = Gdx.files.internal("pokemon/"+path+"pokemon/" + name + "/back.png");
             }
             text = TextureCache.get(file);
             Specie.textures.put(name+"_back", text);
@@ -807,7 +807,7 @@ public class Specie {
         try {
             FileHandle file = Gdx.files.local("mods/pokemon/" + name + "/anim.asm");
             if (!file.exists()) {
-                file = Gdx.files.internal("crystal_pokemon/"+path+"pokemon/" + name + "/anim.asm");
+                file = Gdx.files.internal("pokemon/"+path+"pokemon/" + name + "/anim.asm");
             }
             
             Reader reader = file.reader();
@@ -827,7 +827,7 @@ public class Specie {
                     int numFrames = Integer.valueOf(vals[1].trim());
                     int frame = Integer.valueOf(vals[0]);
                     for (int j=0; j < numFrames; j++) {
-                        //                        pokemonText = new Texture(Gdx.files.internal("crystal_pokemon/pokemon/" + name + "/front.png"));
+                        //                        pokemonText = new Texture(Gdx.files.internal("pokemon/pokemon/" + name + "/front.png"));
                         pokemonText = Specie.textures.get(name+"_front");
                         SpriteProxy sprite = new SpriteProxy(pokemonText, 0, height*frame, height, height);
                         this.introAnim.add(sprite);
@@ -864,7 +864,7 @@ public class Specie {
             Map<String, String> evos = new HashMap<String, String>();
 
             try {
-                FileHandle file = Gdx.files.internal("crystal_pokemon/"+path+"evos_attacks.asm");
+                FileHandle file = Gdx.files.internal("pokemon/"+path+"evos_attacks.asm");
                 Reader reader = file.reader();
                 BufferedReader br = new BufferedReader(reader);
                 String line;
@@ -944,7 +944,7 @@ public class Specie {
 
         // TODO: unify with the below
         // Try to load from mods directory
-    	// TODO: need way to denote flipped or not. 
+        // TODO: need way to denote flipped or not. 
         FileHandle filehandle = Gdx.files.local("mods/pokemon/" + this.name + "/overworld.png");
         if (filehandle.exists()) {
             boolean flip = true;
@@ -996,14 +996,14 @@ public class Specie {
         
         // unown overworld sprites handled differently
         if (this.name.contains("unown")) {
-            Texture text = TextureCache.get(Gdx.files.internal("crystal_pokemon/unown_ow.png"));
+            Texture text = TextureCache.get(Gdx.files.internal("pokemon/unown_ow.png"));
             // These aren't consistent because sprite sheet is also inconsistent in ordering
             String alphabet_lower = "abcdefghijklmnopqrstuvwxyz!";
             String suffix = this.name.split("_")[1];
             int col = alphabet_lower.indexOf(suffix);
             int row = 0;
             if (suffix.equals("qmark")) {
-            	col = 27;
+                col = 27;
             }
             this.standingSprites.put("down", new Sprite(text, col*16, row*16, 16, 16));
             this.movingSprites.put("down", new Sprite(text, col*16, row*16, 16, 16));
@@ -1041,7 +1041,7 @@ public class Specie {
 
         // Load overworld sprites from file
         try {
-            FileHandle file = Gdx.files.internal("crystal_pokemon/prism/pokemon_names.asm");
+            FileHandle file = Gdx.files.internal("pokemon/prism/pokemon_names.asm");
             Reader reader = file.reader();
             BufferedReader br = new BufferedReader(reader);
             String line;
@@ -1357,7 +1357,7 @@ public class Specie {
                 if (currName.equals(name) || found) {
                     found = true;
                     // TODO: Credits to Megaman-Omega on Deviantart for prism overworld sprites
-                    Texture text = TextureCache.get(Gdx.files.internal("crystal_pokemon/prism-overworld-sprites2.png"));
+                    Texture text = TextureCache.get(Gdx.files.internal("pokemon/prism-overworld-sprites2.png"));
                     // These aren't consistent because sprite sheet is also inconsistent in ordering
                     int col = (i*6) % 156;
                     int row = (int)((i*6) / 156);
@@ -1415,14 +1415,14 @@ public class Specie {
                 path = "nuuk/";
             }
 
-            this.loadEggTextures("crystal_pokemon/"+path+"pokemon/" + this.name + "/back.png");
+            this.loadEggTextures("pokemon/"+path+"pokemon/" + this.name + "/back.png");
             //            }
             if (found) {
                 return;
             }
 
             // Try to load from directory
-            filehandle = Gdx.files.internal("crystal_pokemon/"+path+"pokemon/" + this.name + "/overworld.png");
+            filehandle = Gdx.files.internal("pokemon/"+path+"pokemon/" + this.name + "/overworld.png");
             if (filehandle.exists()) {
                 flip = false;
                 // Treating flip as special case for now, would need to
@@ -1484,7 +1484,7 @@ public class Specie {
             // else, load from crystal overworld sprite sheet
             //            else {
             // If failed to load from prism animations, load from crystal
-            Texture text = TextureCache.get(Gdx.files.internal("crystal_pokemon/crystal-overworld-sprites1.png"));
+            Texture text = TextureCache.get(Gdx.files.internal("pokemon/crystal-overworld-sprites1.png"));
             int dexNumber = Integer.valueOf(this.dexNumber)-1;
             // TODO: no honchkrow o/w sprite that I know of, just make it equal to murkrow's for now
             // TODO: could check  C:\cygwin64\home\Evan\polishedcrystal\gfx\icon if that exists
@@ -1535,10 +1535,10 @@ public class Specie {
         //        }
 
         // TODO: if can't find prism path, check other paths
-        //        String path = "crystal_pokemon/prism/";
+        //        String path = "pokemon/prism/";
         //        FileHandle file = Gdx.files.internal(path+"base_stats/" + name + ".asm");
         //        if (!file.exists()) {
-        //            path = "crystal_pokemon/nuuk/";
+        //            path = "pokemon/nuuk/";
         //        }
 
         // Load base stats
@@ -1547,7 +1547,7 @@ public class Specie {
             // TODO: each time you use new prism mons you have to check these and edit to have 'EGG_' prepended
             //       to the egg groups.
             // TODO: growth rate was also often wrong (beldum)
-            FileHandle file = Gdx.files.internal("crystal_pokemon/prism/base_stats/" + name + ".asm");
+            FileHandle file = Gdx.files.internal("pokemon/prism/base_stats/" + name + ".asm");
             Reader reader = file.reader();
             BufferedReader br = new BufferedReader(reader);
             String line;
@@ -1632,7 +1632,7 @@ public class Specie {
         if (!Specie.textures.containsKey(name+"_front")) {
             FileHandle file = Gdx.files.local("mods/pokemon/" + name + "/front.png");
             if (!file.exists()) {
-                file = Gdx.files.internal("crystal_pokemon/prism/pics/" + name + "/front.png");
+                file = Gdx.files.internal("pokemon/prism/pics/" + name + "/front.png");
             }
             else {
                 System.out.println("Found mods for: " + name);
@@ -1659,7 +1659,7 @@ public class Specie {
             try {
                 file = Gdx.files.local("mods/pokemon/" + name + "/shiny.pal");
                 if (!file.exists()) {
-                    file = Gdx.files.internal("crystal_pokemon/prism/pics/" + name + "/shiny.pal");
+                    file = Gdx.files.internal("pokemon/prism/pics/" + name + "/shiny.pal");
                 }
                 Reader reader = file.reader();
                 BufferedReader br = new BufferedReader(reader);
@@ -1686,7 +1686,7 @@ public class Specie {
                 //
                 file = Gdx.files.local("mods/pokemon/" + name + "/normal.pal");
                 if (!file.exists()) {
-                    file = Gdx.files.internal("crystal_pokemon/prism/pics/" + name + "/normal.pal");
+                    file = Gdx.files.internal("pokemon/prism/pics/" + name + "/normal.pal");
                 }
                 
                 reader = file.reader();
@@ -1748,13 +1748,13 @@ public class Specie {
             // Back sprites
             file = Gdx.files.local("mods/pokemon/" + name + "/back.png");
             if (!file.exists()) {
-                file = Gdx.files.internal("crystal_pokemon/prism/pics/" + name + "/back.png");
+                file = Gdx.files.internal("pokemon/prism/pics/" + name + "/back.png");
             }
             text = TextureCache.get(file);
             SpriteProxy shinySprite = new SpriteProxy(text, 0, 0, text.getWidth(), text.getHeight());
 
             //also try to load Egg textures
-            loadEggTextures("crystal_pokemon/prism/pics/" + name + "/back.png");
+            loadEggTextures("pokemon/prism/pics/" + name + "/back.png");
 
 
             Specie.textures.put(name+"_back_shiny", text);
@@ -1794,7 +1794,7 @@ public class Specie {
             text = TextureCache.get(newPixmap);
             Specie.textures.put(name+"_back", text);
         }
-        //        Texture pokemonText = new Texture(Gdx.files.internal("crystal_pokemon/prism/pics/" + name + "/front.png"));  // TODO: remove
+        //        Texture pokemonText = new Texture(Gdx.files.internal("pokemon/prism/pics/" + name + "/front.png"));  // TODO: remove
 
         Texture pokemonText = Specie.textures.get(name+"_front");
         // height and width are the same for these sprites
@@ -1805,9 +1805,9 @@ public class Specie {
         height = pokemonText.getWidth();
         this.spriteShiny = new SpriteProxy(pokemonText, 0, 0, height, height);
         //        if (!Specie.textures.containsKey(name+"_back")) {
-        //            Specie.textures.put(name+"_back", new Texture(Gdx.files.internal("crystal_pokemon/prism/pics/" + name + "/back.png")));
+        //            Specie.textures.put(name+"_back", new Texture(Gdx.files.internal("pokemon/prism/pics/" + name + "/back.png")));
         //        }
-        //        pokemonText = new Texture(Gdx.files.internal("crystal_pokemon/prism/pics/" + name + "/back.png"));  // TODO: remove
+        //        pokemonText = new Texture(Gdx.files.internal("pokemon/prism/pics/" + name + "/back.png"));  // TODO: remove
         pokemonText = Specie.textures.get(name+"_back");
         this.backSprite = new SpriteProxy(pokemonText, 0, 0, 48, 48);
         pokemonText = Specie.textures.get(name+"_back_shiny");
@@ -1819,7 +1819,7 @@ public class Specie {
         try {
             FileHandle file = Gdx.files.local("mods/pokemon/" + name + "/anim.asm");
             if (!file.exists()) {
-                file = Gdx.files.internal("crystal_pokemon/prism/pics/" + name + "/anim0.asm");
+                file = Gdx.files.internal("pokemon/prism/pics/" + name + "/anim0.asm");
             }
             Reader reader = file.reader();
             BufferedReader br = new BufferedReader(reader);
@@ -1838,7 +1838,7 @@ public class Specie {
                     int numFrames = Integer.valueOf(vals[1]);
                     int frame = Integer.valueOf(vals[0]);
                     for (int j=0; j < numFrames; j++) {
-                        //                        pokemonText = new Texture(Gdx.files.internal("crystal_pokemon/prism/pics/" + name + "/front.png")
+                        //                        pokemonText = new Texture(Gdx.files.internal("pokemon/prism/pics/" + name + "/front.png")
                         pokemonText = Specie.textures.get(name+"_front");
                         SpriteProxy sprite = new SpriteProxy(pokemonText, 0, height*frame, height, height);
                         this.introAnim.add(sprite);
@@ -1870,7 +1870,7 @@ public class Specie {
             Map<String, String> evos = new HashMap<String, String>();
 
             try {
-                FileHandle file = Gdx.files.internal("crystal_pokemon/prism/movesets/"+name.substring(0,1).toUpperCase()+name.substring(1)+".asm");
+                FileHandle file = Gdx.files.internal("pokemon/prism/movesets/"+name.substring(0,1).toUpperCase()+name.substring(1)+".asm");
                 Reader reader = file.reader();
                 BufferedReader br = new BufferedReader(reader);
                 String line;
@@ -1942,7 +1942,7 @@ public class Specie {
             //            System.out.println(tempSprite.color1);
             //            System.out.println(tempSprite.color2);
             // Replace colors in egg icon
-            text = TextureCache.get(Gdx.files.internal("crystal_pokemon/egg1.png"));
+            text = TextureCache.get(Gdx.files.internal("pokemon/egg1.png"));
             SpriteProxy tempEggSprite = new SpriteProxy(text, 0, 0, text.getWidth(), text.getHeight());
             //
             TextureData temp = text.getTextureData();
@@ -2043,7 +2043,8 @@ public class Specie {
             this.harvestables.add("dark energy");
         }
         if (this.types.contains("GHOST")) {
-            this.harvestables.add("spell tag");
+            this.habitats.add("gravestone");
+            this.harvestables.add("life force");
         }
 //        if (this.types.contains("DRAGON")) {
         if (name.equals("dratini") || name.equals("dragonair") || name.equals("dragonite")) {
@@ -2103,10 +2104,9 @@ public class Specie {
             this.harvestables.add("berry juice");
             this.harvestables.add("soft sand");
             this.harvestables.add("nevermeltice");
-            this.harvestables.add("spell tag");
             this.harvestables.add("dragon fang");
             this.harvestables.add("dragon scale");
-            this.harvestables.add("spell tag");
+            this.harvestables.add("life force");
             this.harvestables.add("psi energy");
             this.harvestables.add("dark energy");
             this.harvestables.add("metal coat");
@@ -2145,10 +2145,10 @@ public class Specie {
         else if (name.equals("sableye")) {
             this.harvestables.clear();
             for (String itemName : Game.evoStones) {
-            	// Keep even ratio of stones to other items
+                // Keep even ratio of stones to other items
                 this.harvestables.add(itemName);
                 this.harvestables.add("dark energy");
-                this.harvestables.add("spell tag");
+                this.harvestables.add("life force");
             }
         }
         // Fill in with defaults

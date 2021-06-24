@@ -412,7 +412,15 @@ public class Game extends ApplicationAdapter {
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.I)) {
             for (Tile tile : this.map.overworldTiles.values()) {
-                if (tile.nameUpper.equals("pokemon_mansion_key")) {
+                // TODO: enable
+//                if (tile.nameUpper.equals("pokemon_mansion_key")) {
+//                    System.out.println(this.cam.position);
+//                    System.out.println(tile.position);
+//                    this.cam.position.set(tile.position.x, tile.position.y, 1.0f);
+//                    break;
+//                }
+                // TODO: debug, remove
+                if (tile.nameUpper.equals("odd_keystone2")) {
                     System.out.println(this.cam.position);
                     System.out.println(tile.position);
                     this.cam.position.set(tile.position.x, tile.position.y, 1.0f);
@@ -917,11 +925,15 @@ public class Game extends ApplicationAdapter {
 //        this.insertAction(new DrawSpecialMewtwoBg());
 
         this.insertAction(new CycleDayNight(this));
+        // TODO: test
+        this.insertAction(new FogEffect());
 
         // If you join a game as a Client, these go away, so only affects local play.
         this.player.pokemon.add(new Pokemon("machop", 6));
         if (this.debugInputEnabled) {
             // Some starting pokemon used for debugging
+            this.player.pokemon.clear();
+            this.player.pokemon.add(new Pokemon("breloom", 60));
             this.player.pokemon.add(new Pokemon("rapidash", 60));
             this.player.pokemon.add(new Pokemon("pidgeot", 60, Pokemon.Generation.CRYSTAL));
 //            this.player.pokemon.add(new Pokemon("golem", 60, Pokemon.Generation.CRYSTAL));

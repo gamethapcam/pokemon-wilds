@@ -85,8 +85,8 @@ class AfterFriendlyFaint extends Action {
 
         // Happens when player builds a house, sleeps, destroys the house, then faints.
         if (playerTile == null) {
-        	tiles = game.map.overworldTiles;
-        	playerTile = tiles.get(game.player.spawnLoc);
+            tiles = game.map.overworldTiles;
+            playerTile = tiles.get(game.player.spawnLoc);
         }
         // If player fainted while in the middle of moving, reset so that player is standing instead.
         // Happens if the player faints while encountered with an aggro'd Pokemon (and player was 
@@ -94,13 +94,13 @@ class AfterFriendlyFaint extends Action {
         // TODO: use game.player.standingAction once that's available.
         for (Action action : game.actionStack) {
             if (action instanceof PlayerMoving ||
-            	action instanceof PlayerRunning ||
-            	action instanceof PlayerLedgeJump ||
-            	action instanceof PlayerLedgeJumpFast) {
-            	System.out.println("found standingaction");
-            	game.actionStack.remove(action);
-            	game.insertAction(new PlayerStanding(game, false, true));
-            	break;
+                action instanceof PlayerRunning ||
+                action instanceof PlayerLedgeJump ||
+                action instanceof PlayerLedgeJumpFast) {
+                System.out.println("found standingaction");
+                game.actionStack.remove(action);
+                game.insertAction(new PlayerStanding(game, false, true));
+                break;
             }
         }
 
@@ -448,7 +448,7 @@ class Attack {
                 this.sounds.add(null);
             }
 
-            //        Texture text = new Texture(Gdx.files.internal("attack_menu/helper3.png"));
+            //        Texture text = new Texture(Gdx.files.internal("menu/helper3.png"));
             //        this.helperSprite = new Sprite(text, 0, 0, 160, 144);
         }
         public String getCamera() {return "gui";}
@@ -2165,7 +2165,7 @@ public class Battle {
      */
     static int gen2CalcDamage(Pokemon source, Attack attack, Pokemon target) {
         if (attack.name.equals("Mewtwo_Special1")) {
-        	// Factor in type effectiveness (requested)
+            // Factor in type effectiveness (requested on discord)
             float multiplier = 1f;
             String prevType = "";
             for (String type : target.types){
@@ -2575,13 +2575,11 @@ public class Battle {
         else if (attack.name.equals("Psychic")) {
             if (isFriendly) {
                 return new Attack.Psychic(game,
-//                                          game.player.currPokemon,
                                           game.battle.oppPokemon,
                                           false, nextAction);
             }
             else {
                 return new Attack.Psychic(game,
-//                                          game.battle.oppPokemon,
                                           game.player.currPokemon,
                                           false, nextAction);
             }
@@ -2625,7 +2623,6 @@ public class Battle {
         }
         else if (attack.name.equals("Lick")) {
             if (isFriendly) {
-                // TODO
                 return new Attack.Default(game, power, accuracy, nextAction);
             }
             else {
@@ -2643,7 +2640,8 @@ public class Battle {
                                  new WaitFrames(game, 3,
                                  new DisplayText(game, "A wave of psychic power unleashes!", null, true, false,
                                  Battle.getAttackAction(game, mewtwoSpecial1, !isFriendly,
-                                 new DepleteFriendlyHealth(game.player.currPokemon, mewtwoSpecial1.damage,
+//                                 new DepleteFriendlyHealth(game.player.currPokemon, mewtwoSpecial1.damage,  // TODO: remove
+                                 Battle.depleteHealth(game, false, mewtwoSpecial1.damage,
                                  new WaitFrames(game, 30,
                                  new DisplayText.Clear(game,
                                  new WaitFrames(game, 3, nextAction))))))));
@@ -3738,13 +3736,13 @@ public class Battle {
 //        this.music.setLooping(true);
 //        this.music.setVolume(0.3f);
 
-        this.music = new LinkedMusic("battle/battle-vs-wild-pokemon3", "battle/battle-vs-wild-pokemon2");
+        this.music = new LinkedMusic("music/wild_battle_intro", "music/wild_battle");
         this.music.setVolume(0.3f);
 
 //        this.victoryFanfare = Gdx.audio.newMusic(Gdx.files.internal("victory_fanfare2.ogg"));
 //        this.victoryFanfare.setLooping(true);
 //        this.victoryFanfare.setVolume(0.3f);
-        this.victoryFanfare = new LinkedMusic("victory_fanfare1_intro", "victory_fanfare1");
+        this.victoryFanfare = new LinkedMusic("music/victory_fanfare1_intro", "music/victory_fanfare1");
         this.victoryFanfare.setVolume(1f);
 
         // TODO: make this static
@@ -4111,7 +4109,7 @@ public class Battle {
 
         // Load all attacks and attributes
         try {
-            FileHandle file = Gdx.files.internal("crystal_pokemon/moves.asm");
+            FileHandle file = Gdx.files.internal("pokemon/moves.asm");
             Reader reader = file.reader();
             BufferedReader br = new BufferedReader(reader);
             String line;
@@ -4167,9 +4165,9 @@ public class Battle {
             e.printStackTrace();
         }
 
-        // load prism moves
+        // Load prism moves
         try {
-            FileHandle file = Gdx.files.internal("crystal_pokemon/prism/moves.asm");
+            FileHandle file = Gdx.files.internal("pokemon/prism/moves.asm");
             Reader reader = file.reader();
             BufferedReader br = new BufferedReader(reader);
             String line;
@@ -4585,7 +4583,6 @@ public class Battle {
                     }
                 }
                 else if (itemName.equals("silph scope")) {
-
                     playerAction = new DisplayText(game, game.player.name+" used "+itemName.toUpperCase()+"!",
                                                    null, true, false,
                                    new SplitAction(
@@ -4610,6 +4607,23 @@ public class Battle {
                             return "gui";
                         }
                     };
+                }
+                else if (itemName.contains("poké doll")) {
+                    game.player.numFlees = 0;
+                    game.battle.oppPokemon.inBattle = false;
+                    game.actionStack.remove(this);
+                    game.insertAction(new DisplayText(game, game.player.name+" used "+itemName.toUpperCase()+"!", null, null,
+                                      new SplitAction(
+                                          new PlaySound("run1", null),
+                                      new WaitFrames(game, 18,
+                                      new DisplayText(game, "Got away safely!", null, null,
+                                      new SplitAction(new BattleFadeOut(game,
+                                                      new SetField(game, "playerCanMove", true, null)),
+                                      new BattleFadeOutMusic(game,
+                                      new SetField(game.musicController, "resumeOverworldMusic", true,
+                                      null))))))));
+                    game.battle.network.turnData = null;
+                    return;
                 }
                 else {
                     playerAction =  new DisplayText(game, "Dev note - Invalid item.", null, null,
@@ -4816,7 +4830,7 @@ public class Battle {
    //                        lineNum++;
                     }
                     reader.close();
-                    // load sound to play and play it
+                    // Load sound to play and play it
                     if (!this.name.contains("evolve")) {
                         this.sound = Gdx.audio.newMusic(Gdx.files.internal("attacks/" + this.name + "/sound.ogg"));
                         this.sound.play();
@@ -5253,7 +5267,7 @@ class BattleFadeOut extends Action {
             if (DisplayText.unownText) {
                 ArrayList<TrainerTipsTile> signTiles = new ArrayList<TrainerTipsTile>();
                 for (Tile tile : game.map.overworldTiles.values()) {
-                    if (tile.nameUpper.contains("sign")) {
+                    if (tile.nameUpper.equals("sign1")) {
                         signTiles.add((TrainerTipsTile)tile);
                     }
                 }
@@ -5605,7 +5619,7 @@ class CatchPokemonMiss extends Action {
         }
         // 3 total events
         */
-//        Texture text = new Texture(Gdx.files.internal("throw_pokeball_anim/helper13.png"));
+//        Texture text = new Texture(Gdx.files.internal("helper13.png"));
 //        this.helperSprite = new Sprite(text, 0, 0, 160, 144);
     }
 
@@ -5642,7 +5656,7 @@ class CatchPokemonWobbles0Times extends Action {
 
     public CatchPokemonWobbles0Times(Game game, Action nextAction) {
         this.nextAction = nextAction;
-      Texture text = new Texture(Gdx.files.internal("throw_pokeball_anim/pokeball1_color.png"));
+      Texture text = new Texture(Gdx.files.internal("pokeball1_color.png"));
 
       // initial sprite position
       this.position = new Vector2(114,88); // post scaling change
@@ -5658,9 +5672,9 @@ class CatchPokemonWobbles0Times extends Action {
       this.sprites =  new ArrayList<Sprite>();
       this.sprites.add(null); // draw nothing for 13 frames
 
-      text = new Texture(Gdx.files.internal("throw_pokeball_anim/pokeball_wiggleSheet1_color.png"));
+      text = new Texture(Gdx.files.internal("pokeball_wiggleSheet1_color.png"));
       this.sprites.add(new Sprite(text, 12*0, 0, 12, 12)); // middle
-      text = new Texture(Gdx.files.internal("throw_pokeball_anim/poof_sheet1.png"));
+      text = new Texture(Gdx.files.internal("poof_sheet1.png"));
       this.sprites.add(new Sprite(text, 48*0, 0, 48, 48)); // poof1
       this.sprites.add(new Sprite(text, 48*1, 0, 48, 48)); // poof2
       this.sprites.add(new Sprite(text, 48*2, 0, 48, 48)); // poof3
@@ -5780,8 +5794,8 @@ class CatchPokemonWobbles1Time extends Action {
     public CatchPokemonWobbles1Time(Game game, Action nextAction) {
         this.nextAction = nextAction;
 
-//        Texture text = new Texture(Gdx.files.internal("throw_pokeball_anim/pokeball1.png"));
-        Texture text = new Texture(Gdx.files.internal("throw_pokeball_anim/pokeball1_color.png"));
+//        Texture text = new Texture(Gdx.files.internal("pokeball1.png"));
+        Texture text = new Texture(Gdx.files.internal("pokeball1_color.png"));
 
         // initial sprite position
         this.position = new Vector2(114,88); // post scaling change
@@ -5801,13 +5815,13 @@ class CatchPokemonWobbles1Time extends Action {
         this.sprites =  new ArrayList<Sprite>();
         this.sprites.add(null); // draw nothing for 13 frames
 
-//        text = new Texture(Gdx.files.internal("throw_pokeball_anim/pokeball_wiggleSheet1.png"));
-        text = new Texture(Gdx.files.internal("throw_pokeball_anim/pokeball_wiggleSheet1_color.png"));
+//        text = new Texture(Gdx.files.internal("pokeball_wiggleSheet1.png"));
+        text = new Texture(Gdx.files.internal("pokeball_wiggleSheet1_color.png"));
         this.sprites.add(new Sprite(text, 12*0, 0, 12, 12)); // middle
         this.sprites.add(new Sprite(text, 12*1, 0, 12, 12)); // left tilt
         this.sprites.add(new Sprite(text, 12*0, 0, 12, 12)); // middle
         this.sprites.add(new Sprite(text, 12*2, 0, 12, 12)); // right tilt
-        text = new Texture(Gdx.files.internal("throw_pokeball_anim/poof_sheet1.png"));
+        text = new Texture(Gdx.files.internal("poof_sheet1.png"));
         this.sprites.add(new Sprite(text, 48*0, 0, 48, 48)); // poof1
         this.sprites.add(new Sprite(text, 48*1, 0, 48, 48)); // poof2
         this.sprites.add(new Sprite(text, 48*2, 0, 48, 48)); // poof3
@@ -5852,7 +5866,7 @@ class CatchPokemonWobbles1Time extends Action {
         this.alphas.add(1f);
         // 11 total events
 
-//        text = new Texture(Gdx.files.internal("throw_pokeball_anim/helper13.png"));
+//        text = new Texture(Gdx.files.internal("helper13.png"));
 //        this.helperSprite = new Sprite(text, 0, 0, 160, 144);
         // this.helperSprite.setPosition(16*10,16*9); // post scaling change
         // this.helperSprite.setScale(3);
@@ -5945,8 +5959,8 @@ class CatchPokemonWobbles2Times extends Action {
     public CatchPokemonWobbles2Times(Game game, Action nextAction) {
         this.nextAction = nextAction;
 
-//        Texture text = new Texture(Gdx.files.internal("throw_pokeball_anim/pokeball1.png"));
-        Texture text = new Texture(Gdx.files.internal("throw_pokeball_anim/pokeball1_color.png"));
+//        Texture text = new Texture(Gdx.files.internal("pokeball1.png"));
+        Texture text = new Texture(Gdx.files.internal("pokeball1_color.png"));
 
         // initial sprite position
         this.position = new Vector2(114,88); // post scaling change
@@ -5972,8 +5986,8 @@ class CatchPokemonWobbles2Times extends Action {
         this.sprites =  new ArrayList<Sprite>();
         this.sprites.add(null); // draw nothing for 13 frames
 
-//        text = new Texture(Gdx.files.internal("throw_pokeball_anim/pokeball_wiggleSheet1.png"));
-        text = new Texture(Gdx.files.internal("throw_pokeball_anim/pokeball_wiggleSheet1_color.png"));
+//        text = new Texture(Gdx.files.internal("pokeball_wiggleSheet1.png"));
+        text = new Texture(Gdx.files.internal("pokeball_wiggleSheet1_color.png"));
         this.sprites.add(new Sprite(text, 12*0, 0, 12, 12)); // middle
         this.sprites.add(new Sprite(text, 12*1, 0, 12, 12)); // left tilt
         this.sprites.add(new Sprite(text, 12*0, 0, 12, 12)); // middle
@@ -5982,7 +5996,7 @@ class CatchPokemonWobbles2Times extends Action {
         this.sprites.add(new Sprite(text, 12*1, 0, 12, 12)); // left tilt
         this.sprites.add(new Sprite(text, 12*0, 0, 12, 12)); // middle
         this.sprites.add(new Sprite(text, 12*2, 0, 12, 12)); // right tilt
-        text = new Texture(Gdx.files.internal("throw_pokeball_anim/poof_sheet1.png"));
+        text = new Texture(Gdx.files.internal("poof_sheet1.png"));
         this.sprites.add(new Sprite(text, 48*0, 0, 48, 48)); // poof1
         this.sprites.add(new Sprite(text, 48*1, 0, 48, 48)); // poof2
         this.sprites.add(new Sprite(text, 48*2, 0, 48, 48)); // poof3
@@ -6034,7 +6048,7 @@ class CatchPokemonWobbles2Times extends Action {
         this.alphas.add(1f);
         // 15 total events
 
-//        text = new Texture(Gdx.files.internal("throw_pokeball_anim/helper13.png"));
+//        text = new Texture(Gdx.files.internal("helper13.png"));
 //        this.helperSprite = new Sprite(text, 0, 0, 160, 144);
         // this.helperSprite.setPosition(16*10,16*9); // post scaling change
         // this.helperSprite.setScale(3);
@@ -6131,8 +6145,8 @@ class CatchPokemonWobbles3Times extends Action {
 
         this.nextAction = nextAction;
 
-//        Texture text = new Texture(Gdx.files.internal("throw_pokeball_anim/pokeball1.png"));
-        Texture text = new Texture(Gdx.files.internal("throw_pokeball_anim/pokeball1_color.png"));
+//        Texture text = new Texture(Gdx.files.internal("pokeball1.png"));
+        Texture text = new Texture(Gdx.files.internal("pokeball1_color.png"));
 
         // initial sprite position
         this.position = new Vector2(114,88); // post scaling change
@@ -6158,8 +6172,8 @@ class CatchPokemonWobbles3Times extends Action {
         this.sprites =  new ArrayList<Sprite>();
         this.sprites.add(null); // draw nothing for 13 frames
 
-//        text = new Texture(Gdx.files.internal("throw_pokeball_anim/pokeball_wiggleSheet1.png"));
-        text = new Texture(Gdx.files.internal("throw_pokeball_anim/pokeball_wiggleSheet1_color.png"));
+//        text = new Texture(Gdx.files.internal("pokeball_wiggleSheet1.png"));
+        text = new Texture(Gdx.files.internal("pokeball_wiggleSheet1_color.png"));
         this.sprites.add(new Sprite(text, 12*0, 0, 12, 12)); // middle
         this.sprites.add(new Sprite(text, 12*1, 0, 12, 12)); // left tilt
         this.sprites.add(new Sprite(text, 12*0, 0, 12, 12)); // middle
@@ -6172,7 +6186,7 @@ class CatchPokemonWobbles3Times extends Action {
         this.sprites.add(new Sprite(text, 12*1, 0, 12, 12)); // left tilt
         this.sprites.add(new Sprite(text, 12*0, 0, 12, 12)); // middle
         this.sprites.add(new Sprite(text, 12*2, 0, 12, 12)); // right tilt
-        text = new Texture(Gdx.files.internal("throw_pokeball_anim/poof_sheet1.png"));
+        text = new Texture(Gdx.files.internal("poof_sheet1.png"));
         this.sprites.add(new Sprite(text, 48*0, 0, 48, 48)); // poof1
         this.sprites.add(new Sprite(text, 48*1, 0, 48, 48)); // poof2
         this.sprites.add(new Sprite(text, 48*2, 0, 48, 48)); // poof3
@@ -6235,7 +6249,7 @@ class CatchPokemonWobbles3Times extends Action {
         this.alphas.add(1f);
         // 19 total events
 
-//        text = new Texture(Gdx.files.internal("throw_pokeball_anim/helper13.png"));
+//        text = new Texture(Gdx.files.internal("helper13.png"));
 //        this.helperSprite = new Sprite(text, 0, 0, 160, 144);
         // this.helperSprite.setPosition(16*10,16*9); // post scaling change
         // this.helperSprite.setScale(3);
@@ -6342,8 +6356,8 @@ class CatchPokemonWobblesThenCatch extends Action {
     public CatchPokemonWobblesThenCatch(Game game, Action nextAction) {
         this.nextAction = nextAction;
 
-//        Texture text = new Texture(Gdx.files.internal("throw_pokeball_anim/pokeball1.png"));
-        Texture text = new Texture(Gdx.files.internal("throw_pokeball_anim/pokeball1_color.png"));
+//        Texture text = new Texture(Gdx.files.internal("pokeball1.png"));
+        Texture text = new Texture(Gdx.files.internal("pokeball1_color.png"));
 
         // initial sprite position
         this.position = new Vector2(114,88); // post scaling change
@@ -6362,8 +6376,8 @@ class CatchPokemonWobblesThenCatch extends Action {
         this.sprites =  new ArrayList<Sprite>();
         this.sprites.add(null); // draw nothing for 13 frames
 
-//        text = new Texture(Gdx.files.internal("throw_pokeball_anim/pokeball_wiggleSheet1.png"));
-        text = new Texture(Gdx.files.internal("throw_pokeball_anim/pokeball_wiggleSheet1_color.png"));
+//        text = new Texture(Gdx.files.internal("pokeball_wiggleSheet1.png"));
+        text = new Texture(Gdx.files.internal("pokeball_wiggleSheet1_color.png"));
         this.sprites.add(new Sprite(text, 12*0, 0, 12, 12)); // middle
         this.sprites.add(new Sprite(text, 12*1, 0, 12, 12)); // left tilt
         this.sprites.add(new Sprite(text, 12*0, 0, 12, 12)); // middle
@@ -6414,7 +6428,7 @@ class CatchPokemonWobblesThenCatch extends Action {
 //            this.sounds.add(null);
 //        }
 
-//        text = new Texture(Gdx.files.internal("throw_pokeball_anim/helper18.png"));
+//        text = new Texture(Gdx.files.internal("helper18.png"));
 //        this.helperSprite = new Sprite(text, 0, 0, 160, 144);
         // this.helperSprite.setPosition(16*10,16*9); // post scaling change
         // this.helperSprite.setScale(3); // post scaling change
@@ -6471,7 +6485,7 @@ class CatchPokemonWobblesThenCatch extends Action {
             
             // Since pkmn was caught, add to players pokemon
             PokemonCaughtEvents newAction = new PokemonCaughtEvents(game, 
-                                            new DisplayText(game, "All right! "+game.battle.oppPokemon.nickname.toUpperCase()+" was caught!", "fanfare1", null,
+                                            new DisplayText(game, "All right! "+game.battle.oppPokemon.nickname.toUpperCase()+" was caught!", "catch_fanfare.ogg", null,
                                             null));
             if (Game.catchExpEnabled) {
                 int numPokemon = 0;
@@ -6540,10 +6554,10 @@ class CatchPokemonWobblesThenCatch extends Action {
                 // Have to re-set it's sprite b/c it is using the alternate
                 // 'armored' sprite during battle.
                 if (game.battle.oppPokemon.isShiny) {
-                	game.battle.oppPokemon.sprite = game.battle.oppPokemon.specie.spriteShiny;
+                    game.battle.oppPokemon.sprite = game.battle.oppPokemon.specie.spriteShiny;
                 }
                 else {
-                	game.battle.oppPokemon.sprite = game.battle.oppPokemon.specie.sprite;
+                    game.battle.oppPokemon.sprite = game.battle.oppPokemon.specie.sprite;
                 }
             }
             else if (game.battle.oppPokemon.onTile != null && game.battle.oppPokemon.onTile.nameUpper.contains("revived_")) {
@@ -6553,6 +6567,11 @@ class CatchPokemonWobblesThenCatch extends Action {
                 Tile tile = game.battle.oppPokemon.onTile;
                 tile.nameUpper = "";
                 tile.init(tile.name, tile.nameUpper, tile.position, true, tile.routeBelongsTo);
+            }
+            else if (game.battle.oppPokemon.onTile != null && game.battle.oppPokemon.onTile.nameUpper.equals("spiritomb")) {
+                Tile tile = game.battle.oppPokemon.onTile;
+                tile.nameUpper = "";
+                tile.init();
             }
             else {
                 // Remove from storedPokemon (still used for headbutt)
@@ -7288,7 +7307,7 @@ class DrawAttacksMenu extends Action {
         this.arrow = new Sprite(text, 0, 0, 5, 7);
 
         // text box bg
-        text = new Texture(Gdx.files.internal("attack_menu/attack_screen1.png"));
+        text = new Texture(Gdx.files.internal("menu/attack_screen1.png"));
         this.textBox = new Sprite(text, 0,0, 16*10, 16*9);
         this.textBox.setPosition(this.offset.x, this.offset.y);
 
@@ -7303,7 +7322,7 @@ class DrawAttacksMenu extends Action {
 //        this.arrow.setPosition(newPos.x, newPos.y);
 
         // helper sprite
-//        text = new Texture(Gdx.files.internal("attack_menu/helper2.png"));
+//        text = new Texture(Gdx.files.internal("menu/helper2.png"));
 //        this.helperSprite = new Sprite(text, 0,0, 16*10, 16*9);
     }
 
@@ -8306,7 +8325,7 @@ class DrawFriendlyHealth extends Action {
 
         // this.bgSprite.setPosition(0,4); ;// debug
 
-//        text = new Texture(Gdx.files.internal("attack_menu/helper3.png"));
+//        text = new Texture(Gdx.files.internal("menu/helper3.png"));
 //        this.helperSprite = new Sprite(text, 0, 0, 160, 144);
 
         // fill sprite array according to enemy health
@@ -8502,7 +8521,7 @@ class DrawItemMenu extends MenuAction {
         text = new Texture(Gdx.files.internal("battle/arrow_right_white.png"));
         this.arrowWhite = new Sprite(text, 0, 0, 5, 7);
         // text box bg
-        text = new Texture(Gdx.files.internal("attack_menu/item_menu1.png"));
+        text = new Texture(Gdx.files.internal("menu/item_menu1.png"));
         this.textBox = new Sprite(text, 0,0, 16*10, 16*9);
 
         // down arrow for items menu
@@ -8995,9 +9014,9 @@ class DrawPlayerMenu extends MenuAction {
         this.arrowWhite = new Sprite(text, 0, 0, 5, 7);
 
         // text box bg
-//        text = new Texture(Gdx.files.internal("attack_menu/menu3_smaller.png"));  // TODO: remove
-//        text = new Texture(Gdx.files.internal("attack_menu/menu4.png"));
-        text = new Texture(Gdx.files.internal("attack_menu/menu5.png"));
+//        text = new Texture(Gdx.files.internal("menu/menu3_smaller.png"));  // TODO: remove
+//        text = new Texture(Gdx.files.internal("menu/menu4.png"));
+        text = new Texture(Gdx.files.internal("menu/menu5.png"));
         this.textBox = new Sprite(text, 0,0, 16*10, 16*9);
 
         this.arrowCoords.put(0, new Vector2(89, 72+32+16));
@@ -9042,7 +9061,7 @@ class DrawPlayerMenu extends MenuAction {
         }
 
         // helper sprite
-//        text = new Texture(Gdx.files.internal("attack_menu/helper6.png"));
+//        text = new Texture(Gdx.files.internal("menu/helper6.png"));
 //        this.helperSprite = new Sprite(text, 0,0, 16*10, 16*9);
     }
     public String getCamera() {return "gui";}
@@ -9163,8 +9182,8 @@ class DrawPlayerMenu extends MenuAction {
         public Intro(Game game, Action nextAction) {
             this.nextAction = nextAction;
 
-//            Texture text = new Texture(Gdx.files.internal("attack_menu/menu3_smaller.png"));
-            Texture text = new Texture(Gdx.files.internal("attack_menu/menu5.png"));
+//            Texture text = new Texture(Gdx.files.internal("menu/menu3_smaller.png"));
+            Texture text = new Texture(Gdx.files.internal("menu/menu5.png"));
 
             this.sprites = new ArrayList<Sprite>(); // may use this in future
             this.sprite = new Sprite(text, 0, 0, 160, 144);
@@ -9175,7 +9194,7 @@ class DrawPlayerMenu extends MenuAction {
             this.sounds = new ArrayList<String>();
             this.sounds.add(null);
 
-//            text = new Texture(Gdx.files.internal("attack_menu/helper3.png"));
+//            text = new Texture(Gdx.files.internal("menu/helper3.png"));
 //            this.helperSprite = new Sprite(text, 0, 0, 160, 144);
         }
 
@@ -9262,7 +9281,7 @@ class DrawPokemonMenu extends MenuAction {
         text = new Texture(Gdx.files.internal("battle/arrow_right1.png"));
         this.arrow = new Sprite(text, 0, 0, 5, 7);
 
-        text = new Texture(Gdx.files.internal("pokemon_menu/health_bar.png"));
+        text = new Texture(Gdx.files.internal("menu/health_bar.png"));
         this.healthBar = new Sprite(text, 0, 0, 160, 16);
 
         DrawPokemonMenu.currIndex = DrawPokemonMenu.lastIndex;
@@ -9829,11 +9848,11 @@ class DrawPokemonMenu extends MenuAction {
             Texture text = new Texture(Gdx.files.internal("battle/arrow_right1.png"));
             this.arrow = new Sprite(text, 0, 0, 5, 7);
             // text box background
-            text = new Texture(Gdx.files.internal("pokemon_menu/selected_menu_top.png"));
+            text = new Texture(Gdx.files.internal("menu/selected_menu_top.png"));
             this.textBoxTop = new Sprite(text, 0,0, 71, 19);
-            text = new Texture(Gdx.files.internal("pokemon_menu/selected_menu_middle.png"));
+            text = new Texture(Gdx.files.internal("menu/selected_menu_middle.png"));
             this.textBoxMiddle = new Sprite(text, 0,0, 71, 16);
-            text = new Texture(Gdx.files.internal("pokemon_menu/selected_menu_bottom.png"));
+            text = new Texture(Gdx.files.internal("menu/selected_menu_bottom.png"));
             this.textBoxBottom = new Sprite(text, 0,0, 71, 19);
         }
 
@@ -10517,7 +10536,7 @@ class DrawPokemonMenu extends MenuAction {
                 this.arrow.setPosition(newPos.x, newPos.y);
 
                 // helper sprite
-//                text = new Texture(Gdx.files.internal("pokemon_menu/helper3.png"));
+//                text = new Texture(Gdx.files.internal("menu/helper3.png"));
 //                this.helperSprite = new Sprite(text, 0,0, 16*10, 16*9);
             }
             public String getCamera() {return "gui";}
@@ -10699,7 +10718,7 @@ class DrawUseTossMenu extends MenuAction {
         this.arrow = new Sprite(text, 0, 0, 5, 7);
 
         // text box bg
-        text = new Texture(Gdx.files.internal("attack_menu/usetoss_menu2.png"));
+        text = new Texture(Gdx.files.internal("menu/usetoss_menu2.png"));
         this.textBox = new Sprite(text, 0,0, 16*10, 16*9);
 
         this.getCoords.put(0, new Vector2(113, 48));
@@ -11198,6 +11217,7 @@ class DrawUseTossMenu extends MenuAction {
         if (!itemName.contains("ball") &&
             !itemName.contains("berry") &&
             !itemName.equals("moomoo milk") &&
+            !itemName.equals("poké doll") &&
             !itemName.equals("silph scope")) {  // TODO: more items
             game.insertAction(this.prevMenu);
             game.insertAction(new PlaySound("error1",
@@ -11445,7 +11465,7 @@ class DrawYesNoMenu extends MenuAction {
         this.arrow = new Sprite(text, 0, 0, 5, 7);
 
         // text box bg
-        text = new Texture(Gdx.files.internal("attack_menu/yesno_bg1.png"));
+        text = new Texture(Gdx.files.internal("menu/yesno_bg1.png"));
         this.textBox = new Sprite(text, 0,0, 16*10, 16*9);
 
         this.getCoords.put(0, new Vector2(113+8, 48+24));
@@ -11607,7 +11627,7 @@ class EnemyFaint extends Action {
             this.breathingSprite = game.battle.oppPokemon.breathingSprite;
         }
 
-//        Texture text = new Texture(Gdx.files.internal("attack_menu/helper5.png"));
+//        Texture text = new Texture(Gdx.files.internal("menu/helper5.png"));
 //        this.helperSprite = new Sprite(text, 0,0, 16*10, 16*9);
     }
 
@@ -11903,11 +11923,11 @@ class EvolutionAnim extends Action {
 //        if (!Pokemon.textures.containsKey(evolveTo+"_front")) {
 //            String dexNumber = Pokemon.nameToIndex(evolveTo);
 //            if (Integer.valueOf(dexNumber) <= 251 && Integer.valueOf(dexNumber) > 0) {
-//                Pokemon.textures.put(evolveTo+"_front", new Texture(Gdx.files.internal("crystal_pokemon/pokemon/" + evolveTo + "/front.png")));
+//                Pokemon.textures.put(evolveTo+"_front", new Texture(Gdx.files.internal("pokemon/pokemon/" + evolveTo + "/front.png")));
 //            }
 //            // else assume prism pokemon
 //            else {
-//                Pokemon.textures.put(evolveTo+"_front", new Texture(Gdx.files.internal("crystal_pokemon/prism/pics/" + evolveTo + "/front.png")));
+//                Pokemon.textures.put(evolveTo+"_front", new Texture(Gdx.files.internal("pokemon/prism/pics/" + evolveTo + "/front.png")));
 //            }
 //        }
 
@@ -11962,7 +11982,7 @@ class EvolutionAnim extends Action {
         // TODO: this won't always line up
         if (EvolutionAnim.playSound) {
             EvolutionAnim.playSound = false;
-            Music sound = Gdx.audio.newMusic(Gdx.files.internal("evolve_fanfare1.ogg"));
+            Music sound = Gdx.audio.newMusic(Gdx.files.internal("sounds/evolve_fanfare1.ogg"));
             sound.play();
         }
 
@@ -12054,7 +12074,7 @@ class EvolutionAnim extends Action {
     public static class StartMusic extends Action {
         @Override
         public void firstStep(Game game) {
-            game.currMusic = Gdx.audio.newMusic(Gdx.files.internal("evolution1.ogg"));
+            game.currMusic = Gdx.audio.newMusic(Gdx.files.internal("sounds/evolution1.ogg"));
             game.currMusic.play();
             game.actionStack.remove(this);
         }
@@ -12464,7 +12484,7 @@ class OppPokemonFlee extends Action {
     public OppPokemonFlee(Game game, Action nextAction) {
         this.nextAction = nextAction;
 
-        // Texture text = new Texture(Gdx.files.internal("throw_pokeball_anim/pokeball1.png"));
+        // Texture text = new Texture(Gdx.files.internal("pokeball1.png"));
 
         // initial oppPokemon sprite position
         this.position = new Vector2(game.battle.oppPokemon.sprite.getX(),game.battle.oppPokemon.sprite.getY());
@@ -12491,7 +12511,7 @@ class OppPokemonFlee extends Action {
         }
         // 14 total events
 
-        // text = new Texture(Gdx.files.internal("throw_pokeball_anim/helper13.png"));
+        // text = new Texture(Gdx.files.internal("helper13.png"));
         // this.helperSprite = new Sprite(text, 0, 0, 160, 144);
         // this.helperSprite.setPosition(16*10,16*9); // post scaling change
         // this.helperSprite.setScale(3);
@@ -12575,14 +12595,14 @@ class PokemonCaughtEvents extends Action {
 
         // TODO: remove if unused
 //        this.displayTextAction  = new DisplayText(game, string2,  null, null, null);
-//        Action firstTextAction = new DisplayText(game, string1, "fanfare1", null, this.displayTextAction);
-//        Action firstTextAction = new DisplayText(game, string1, "fanfare1", null, null);
+//        Action firstTextAction = new DisplayText(game, string1, "catch_fanfare.ogg", null, this.displayTextAction);
+//        Action firstTextAction = new DisplayText(game, string1, "catch_fanfare.ogg", null, null);
 //        this.displayTextAction = firstTextAction;
 //        game.insertAction(firstTextAction);
         
 
-//        Texture text = new Texture(Gdx.files.internal("throw_pokeball_anim/pokeball_wiggleSheet1.png"));
-        Texture text = new Texture(Gdx.files.internal("throw_pokeball_anim/pokeball_wiggleSheet1_color.png"));
+//        Texture text = new Texture(Gdx.files.internal("pokeball_wiggleSheet1.png"));
+        Texture text = new Texture(Gdx.files.internal("pokeball_wiggleSheet1_color.png"));
         this.pokeballSprite = new Sprite(text, 12*2, 0, 12, 12); // right tilt
         this.pokeballSprite.setPosition(115,88);
     }
@@ -13271,12 +13291,12 @@ class SpecialBattleMewtwo extends Action {
     @Override
     public void step(Game game) {
         if (this.firstStep) {
-        	game.currMusic.pause();  // TODO: test
-        	
-        	String musicName = "battle/pokemon_mansion_remix_eq";
+            game.currMusic.pause();
+            //
+            String musicName = "music/pokemon_mansion_remix_eq";
             if (!game.loadedMusic.containsKey(musicName)) {
-            	Music music = Gdx.audio.newMusic(Gdx.files.internal(musicName+".ogg"));
-            	music.setLooping(true);
+                Music music = Gdx.audio.newMusic(Gdx.files.internal(musicName+".ogg"));
+                music.setLooping(true);
                 game.loadedMusic.put(musicName, music);
             }
             this.music = game.loadedMusic.get(musicName);
@@ -13308,8 +13328,7 @@ class SpecialBattleMewtwo extends Action {
             // remove the text box
             game.actionStack.remove(game.displayTextAction);
             game.displayTextAction = null;
-            game.insertAction(new DisplayTextIntro(game, "Humans...",
-                                                                  null, null, false, null));
+            game.insertAction(new DisplayTextIntro(game, "Humans...", null, null, false, null));
         }
         else if (this.timer == 300 -20) {
             // remove the text box
@@ -13323,21 +13342,21 @@ class SpecialBattleMewtwo extends Action {
             game.actionStack.remove(game.displayTextAction);
             game.displayTextAction = null;
             game.insertAction(new DisplayTextIntro(game, "From the moment I first opened my eyes, they have sought to control me...",
-                                                                  null, null, false, null));
+                                                   null, null, false, null));
         }
         else if (this.timer == 1000 -20 -20) {
             // remove the text box
             game.actionStack.remove(game.displayTextAction);
             game.displayTextAction = null;
             game.insertAction(new DisplayTextIntro(game, "But no more.",
-                                                                  null, null, false, null));
+                                                   null, null, false, null));
         }
         else if (this.timer == 1200 -20 -20) {
             // remove the text box
             game.actionStack.remove(game.displayTextAction);
             game.displayTextAction = null;
             game.insertAction(new DisplayTextIntro(game, "Why are you here?",
-                                                                  null, null, false, null));
+                                                   null, null, false, null));
         }
         else if (this.timer == 1350 -20 -20) {
             // Remove the text box
@@ -13393,10 +13412,9 @@ class SpecialBattleMewtwo extends Action {
                                          new SpecialBattleMewtwo.RippleEffect1(),
                                  null))))))));
             if (this.mewtwo.isShiny) {
-            	nextAction.append(new Battle.LoadAndPlayAnimation(game, "shiny", game.player.currPokemon, null));
+                nextAction.append(new Battle.LoadAndPlayAnimation(game, "shiny", game.player.currPokemon, null));
             }
-            nextAction.append(new PlaySound(game.battle.oppPokemon.specie.name,  // TODO: cry not working for dex num 150
-//                                 new PlaySound(game.battle.oppPokemon,  // TODO: remove
+            nextAction.append(new PlaySound("pokemon/cries/150", 0.8f,  // Cry needs to be played slightly louder than usual.
                                  new DisplayText(game, "Wild "+game.battle.oppPokemon.nickname.toUpperCase()+" appeared!", null, null,
                                  new SplitAction(
                                          new WaitFrames(game, 1,
@@ -14152,7 +14170,7 @@ class ThrowBait extends Action {
     public ThrowBait(Game game, Action nextAction) {
         this.nextAction = nextAction;
 
-        Texture text = new Texture(Gdx.files.internal("throw_rock_anim/bait_small1.png"));
+        Texture text = new Texture(Gdx.files.internal("bait_small1.png"));
         this.baitSprite = new Sprite(text, 0, 0, 8, 8);
 
         // positions is added to position every so often
@@ -14186,7 +14204,7 @@ class ThrowBait extends Action {
         this.frames.add(73-1); // 73 frames of nothing at end
         // 12 events total
 
-        // text = new Texture(Gdx.files.internal("throw_rock_anim/helper12.png"));
+        // text = new Texture(Gdx.files.internal("helper12.png"));
         // this.helperSprite = new Sprite(text, 0, 0, 160, 144);
         // this.helperSprite.setPosition(16*10,16*9); // post scaling change
         // this.helperSprite.setScale(3); // post scaling change
@@ -14293,7 +14311,7 @@ class ThrowFastPokeball extends Action {
     public ThrowFastPokeball(Game game, Action nextAction) {
         this.nextAction = nextAction;
 
-        Texture text = new Texture(Gdx.files.internal("throw_pokeball_anim/pokeball1.png"));
+        Texture text = new Texture(Gdx.files.internal("pokeball1.png"));
         this.pokeballSprite = new Sprite(text, 0, 0, 12, 12);
 
         // consider doing relative positions from now on
@@ -14340,7 +14358,7 @@ class ThrowFastPokeball extends Action {
         this.sprites.add(null); // draw nothing for 10 frames
 
         //'poof' animation
-        text = new Texture(Gdx.files.internal("throw_pokeball_anim/poof_sheet1.png"));
+        text = new Texture(Gdx.files.internal("poof_sheet1.png"));
         this.sprites.add(new Sprite(text, 48*0, 0, 48, 48));
         this.sprites.add(new Sprite(text, 48*1, 0, 48, 48));
         this.sprites.add(new Sprite(text, 48*2, 0, 48, 48));
@@ -14384,7 +14402,7 @@ class ThrowFastPokeball extends Action {
         }
         //
 
-//        text = new Texture(Gdx.files.internal("throw_pokeball_anim/helper13.png"));
+//        text = new Texture(Gdx.files.internal("helper13.png"));
 //        this.helperSprite = new Sprite(text, 0, 0, 160, 144);
         // this.helperSprite.setPosition(16*10,16*9); // post scaling change
         // this.helperSprite.setScale(3); // post scaling change
@@ -14490,7 +14508,7 @@ class ThrowHyperPokeball extends Action {
         // this.positions.add(new Vector2(0,0)); // last is always dummy pos
         // 13 total events
 
-        Texture text = new Texture(Gdx.files.internal("hyper_beam_anim/hyperbeam_sheet2.png"));
+        Texture text = new Texture(Gdx.files.internal("hyperbeam_sheet2.png"));
 
         this.sprites =  new ArrayList<Sprite>();
         this.sprites.add(null); // draw nothing for 14 frames
@@ -14501,7 +14519,7 @@ class ThrowHyperPokeball extends Action {
 
         //'poof' animation
         // TODO - actually missing beam frames
-        text = new Texture(Gdx.files.internal("throw_pokeball_anim/poof_sheet1.png"));
+        text = new Texture(Gdx.files.internal("poof_sheet1.png"));
         this.sprites.add(new Sprite(text, 48*0, 0, 48, 48));
         this.sprites.add(new Sprite(text, 48*1, 0, 48, 48));
         this.sprites.add(new Sprite(text, 48*2, 0, 48, 48));
@@ -14536,8 +14554,8 @@ class ThrowHyperPokeball extends Action {
         }
         // 13 total events
 
-        // text = new Texture(Gdx.files.internal("hyper_beam_anim/helper1.png"));
-//        text = new Texture(Gdx.files.internal("throw_pokeball_anim/helper13.png"));
+        // text = new Texture(Gdx.files.internal("helper1.png"));
+//        text = new Texture(Gdx.files.internal("helper13.png"));
 //        this.helperSprite = new Sprite(text, 0, 0, 160, 144);
 
         // play 'throw pokeball' sound
@@ -14654,7 +14672,7 @@ class ThrowOutPokemon extends Action {
         this.sprites =  new ArrayList<Sprite[][]>();
         this.sprites.add(null); // draw nothing for 40 frames
         //'poof' animation
-        Texture text = new Texture(Gdx.files.internal("throw_pokeball_anim/poof_sheet1.png"));
+        Texture text = new Texture(Gdx.files.internal("poof_sheet1.png"));
         this.sprites.add(new Sprite[][]{new Sprite[]{new Sprite(text, 48*0, 0, 48, 48)}});
         this.sprites.add(new Sprite[][]{new Sprite[]{new Sprite(text, 48*1, 0, 48, 48)}});
         this.sprites.add(new Sprite[][]{new Sprite[]{new Sprite(text, 48*2, 0, 48, 48)}});
@@ -14987,7 +15005,7 @@ class ThrowOutPokemonCrystal extends Action {
         //  sprites, repeat, positions, etc
 
         //'poof' animation
-        Texture text = new Texture(Gdx.files.internal("throw_pokeball_anim/poof_sheet2.png"));
+        Texture text = new Texture(Gdx.files.internal("poof_sheet2.png"));
         this.sprites =  new ArrayList<Sprite[][][]>();
         // draw nothing for 34 frames
         this.sprites.add(null);
@@ -15193,10 +15211,10 @@ class ThrowPokeball extends Action {
     public ThrowPokeball(Game game, Action nextAction) {
         this.nextAction = nextAction;
 
-        // Note - throw_pokeball_anim/pokeball1.png is r/b pokeball
+        // Note - pokeball1.png is r/b pokeball
         // uncomment and use this for gen 1 pokeball throw animation
-//        Texture text = new Texture(Gdx.files.internal("throw_pokeball_anim/pokeball1.png"));
-        Texture text = new Texture(Gdx.files.internal("throw_pokeball_anim/pokeball1_color.png"));
+//        Texture text = new Texture(Gdx.files.internal("pokeball1.png"));
+        Texture text = new Texture(Gdx.files.internal("pokeball1_color.png"));
         this.pokeballSprite = new Sprite(text, 0, 0, 12, 12);
 
         // consider doing relative positions from now on
@@ -15230,7 +15248,7 @@ class ThrowPokeball extends Action {
         this.sprites.add(null); // draw nothing for 10 frames
 
         //'poof' animation
-        text = new Texture(Gdx.files.internal("throw_pokeball_anim/poof_sheet1.png"));
+        text = new Texture(Gdx.files.internal("poof_sheet1.png"));
         this.sprites.add(new Sprite(text, 48*0, 0, 48, 48));
         this.sprites.add(new Sprite(text, 48*1, 0, 48, 48));
         this.sprites.add(new Sprite(text, 48*2, 0, 48, 48));
@@ -15263,7 +15281,7 @@ class ThrowPokeball extends Action {
             this.sounds.add(null);
         }
 
-//        text = new Texture(Gdx.files.internal("throw_pokeball_anim/helper13.png"));
+//        text = new Texture(Gdx.files.internal("helper13.png"));
 //        this.helperSprite = new Sprite(text, 0, 0, 160, 144);
         // this.helperSprite.setPosition(16*10,16*9); // post scaling change
         // this.helperSprite.setScale(3); // post scaling change
@@ -15350,10 +15368,10 @@ class ThrowRock extends Action {
     public ThrowRock(Game game, Action nextAction) {
         this.nextAction = nextAction;
 
-        Texture text = new Texture(Gdx.files.internal("throw_rock_anim/hit1.png"));
+        Texture text = new Texture(Gdx.files.internal("hit1.png"));
         this.hitSprite = new Sprite(text, 0, 0, 24, 24);
 
-        text = new Texture(Gdx.files.internal("throw_rock_anim/rock_small1.png"));
+        text = new Texture(Gdx.files.internal("rock_small1.png"));
         this.rockSprite = new Sprite(text, 0, 0, 8, 8);
 
         // positions is added to position every so often
@@ -15389,7 +15407,7 @@ class ThrowRock extends Action {
         this.frames.add(72-1); // 72 frames of nothing at end
         // 13 events total
 
-//        text = new Texture(Gdx.files.internal("throw_rock_anim/helper12.png"));
+//        text = new Texture(Gdx.files.internal("helper12.png"));
 //        this.helperSprite = new Sprite(text, 0, 0, 160, 144);
         // this.helperSprite.setPosition(16*10,16*9); // post scaling change
         // this.helperSprite.setScale(3); // post scaling change
@@ -15402,7 +15420,6 @@ class ThrowRock extends Action {
             this.sounds.add(null);
         }
         // 13 events total
-
     }
 
     public String getCamera() {return "gui";}

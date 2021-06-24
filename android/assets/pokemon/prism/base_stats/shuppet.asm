@@ -12,6 +12,6 @@
 	dn 5, 5 ;picture dimensions
 	db ABILITY_INSOMNIA, ABILITY_FRISK ;abilities
 	db 0, 0 ;padding
-	db SLOW ;growth rate
-	dn AMORPHOUS, AMORPHOUS ;egg groups
+	db FAST ;growth rate
+	dn EGG_AMORPHOUS, EGG_AMORPHOUS ;egg groups
 

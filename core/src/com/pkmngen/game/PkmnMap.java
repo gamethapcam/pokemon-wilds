@@ -45,6 +45,7 @@ import com.pkmngen.game.Player.Flying;
 import com.pkmngen.game.Pokemon.Generation;
 import com.pkmngen.game.SpecialBattleMewtwo.RocksEffect1;
 import com.pkmngen.game.SpecialBattleMewtwo.RocksEffect2;
+import com.pkmngen.game.util.Direction;
 import com.pkmngen.game.util.LinkedMusic;
 import com.pkmngen.game.util.SpriteProxy;
 import com.pkmngen.game.util.TextureCache;
@@ -194,7 +195,7 @@ class DrawMap extends Action {
                 game.mapBatch.draw((SpriteProxy)tile.sprite, tile.sprite.getX(), tile.sprite.getY());
             }
             else {
-            	game.mapBatch.draw(tile.sprite, tile.sprite.getX(), tile.sprite.getY());
+                game.mapBatch.draw(tile.sprite, tile.sprite.getX(), tile.sprite.getY());
             }
 
             if (tile.drawUpperBelowPlayer) {
@@ -637,8 +638,8 @@ class LightningFlash extends Action {
     public void step(Game game) {
 //        if (this.timer % 4 < 2) {  // TODO: remove, too much strobe
         if (this.timer % 14 < 7) {
-        	this.color = game.uiBatch.getColor();
-        	game.uiBatch.setColor(.5f, .5f, .5f, 1f);
+            this.color = game.uiBatch.getColor();
+            game.uiBatch.setColor(.5f, .5f, .5f, 1f);
             for (int i = -1; i < 2; i+= 1) {
                 for (int j = -1; j < 2; j+= 1) {
                     game.uiBatch.draw(this.sprite, 160*i, 144*j);
@@ -727,6 +728,7 @@ class EscapeRope extends Action {
                 else {
                     // Is night, so set to night color
                     game.mapBatch.setColor(new Color(0.08f, 0.08f, 0.3f, 1.0f));
+                    
                 }
             }
             this.sprite.draw(game.uiBatch, 1f);
@@ -921,9 +923,19 @@ class EnterBuilding extends Action {
                         game.map.currRoute = newRoute;
                     }
                     // Used for desert music transition atm
+                    // TODO: I think this is for doors, not when game is loaded (?)
                     else if (newRoute != null && newRoute.type().equals("desert") && !game.map.timeOfDay.equals("night")) {
                         game.musicController.fadeToDungeon = true;
                         game.map.currRoute = newRoute;
+                    }
+                    // If player starts in graveyard, fade to correct music when game loads
+                    else if (newRoute != null && newRoute.type().equals("graveyard") && !game.map.timeOfDay.equals("night")) {
+                        // This had to be separate from batch color change below,
+                        // was causing music issues.
+                        game.musicController.fadeToDungeon = true;
+                        game.map.currRoute = newRoute;
+                        FogEffect.active = true;
+                        FogEffect.refresh = true;
                     }
 
                     if (newRoute != null && newRoute.name.contains("pkmnmansion")) {
@@ -960,11 +972,13 @@ class EnterBuilding extends Action {
                         else {
                             game.mapBatch.setColor(new Color(0.02f, 0.02f, 0.05f, 1.0f));  // Somewhat hard to see
                         }
-                        
                     }
                     else if (newRoute != null && newRoute.name.equals("regi_cave1")) {
 //                        game.mapBatch.setColor(new Color(0.08f, 0.08f, 0.3f, 1.0f));
 //                        game.mapBatch.setColor(new Color(0.2f, 0.2f, 0.5f, 1.0f));  // TODO: re-enable?
+                    }
+                    else if (newRoute != null && newRoute.type().equals("graveyard") && !game.map.timeOfDay.equals("night")) {
+                        game.mapBatch.setColor(new Color(.9f, .9f, 1f, 1f));
                     }
                     else if (!game.map.timeOfDay.equals("night")) {
                         // TODO: remove
@@ -974,10 +988,16 @@ class EnterBuilding extends Action {
 //                        else {
                             game.mapBatch.setColor(new Color(1f, 1f, 1f, 1f));
 //                        }
+                            
+                        // TODO: debug, remove
+//                        game.mapBatch.setColor(new Color(.7f, .7f, 1f, 1f));
                     }
                     else {
                         // Is night, so set to night color
                         game.mapBatch.setColor(new Color(0.08f, 0.08f, 0.3f, 1.0f));
+                        
+//                        // This is a lighter version of night used for recording video
+//                        game.mapBatch.setColor(new Color(0.3f, 0.3f, 0.7f, 1.0f));  // TODO: debug, remove
                     }
                 }
             }
@@ -1426,6 +1446,7 @@ class MoveWater extends Action {
                 }
                 game.mapBatch.draw(Specie.species.get(name).avatarSprites.get(index), tile.position.x+8, tile.position.y+8);
             }
+            // TODO: make generic? (somehow would have to know to trigger campfire aura)
             else if (tile.nameUpper.equals("volcarona")) {
 //            else if (tile.is(Tile.Type.VOLCARONA)) {
                 // Campfire aura
@@ -1436,6 +1457,17 @@ class MoveWater extends Action {
                         this.pixmap.drawPixmap(currPixmap, xPos, yPos);
                     }
                 }
+                String name = tile.nameUpper;
+                if (!Specie.species.containsKey(name)) {
+                    Specie.species.put(name, new Specie(name));
+                }
+                int index = 0;
+                if (this.avatarTimer < 60) {
+                    index = 1;
+                }
+                game.mapBatch.draw(Specie.species.get(name).avatarSprites.get(index), tile.position.x, tile.position.y+4);
+            }
+            else if (tile.nameUpper.equals("spiritomb")) {
                 String name = tile.nameUpper;
                 if (!Specie.species.containsKey(name)) {
                     Specie.species.put(name, new Specie(name));
@@ -1665,7 +1697,7 @@ class MoveWater extends Action {
 //                    }
 //                }
             }
-            game.insertAction(new PlaySound("sounds/sand1", .5f, true, null));
+            game.insertAction(new PlaySound("sand1", .5f, true, null));
             this.placeWater.clear();
         }
         
@@ -1733,6 +1765,9 @@ public class PkmnMap {
     public Pixmap minimap;
     // Tiles queued to be drawn to the minimap
     public ArrayList<Tile> minimapQueue = new ArrayList<Tile>();
+    
+    //
+    public ShadeEffect shadeEffect;
 
     // TODO: test
 //    Synced.HashMap<Vector2, Tile> testTiles = new Synced.HashMap<Vector2, Tile>("game.map.tiles");
@@ -1923,12 +1958,18 @@ public class PkmnMap {
     /**
      * Fix surrounding tiles based on the tile just added
      * Ex: fence tile touching another fence above and below
+     * 
+     * TODO: remove the isoverworld flag (refactor)
      */
     public void adjustSurroundingTiles(Tile currTile) {
         this.adjustSurroundingTiles(currTile, this.tiles);
     }
-
+    
     public void adjustSurroundingTiles(Tile currTile, Map<Vector2, Tile> currTiles) {
+        this.adjustSurroundingTiles(currTile, currTiles, currTiles == this.overworldTiles);
+    }
+
+    public void adjustSurroundingTiles(Tile currTile, Map<Vector2, Tile> currTiles, boolean isOverworld) {
         Vector2 pos = new Vector2();
         Tile tile;
         for (int i = -16; i < 17; i+=16) {
@@ -1938,16 +1979,20 @@ public class PkmnMap {
                 if (tile == null) {
                     continue;
                 }
-                this.adjustTile(tile, currTiles);
+                this.adjustTile(tile, currTiles, isOverworld);
             }
         }
+    }
+
+    public void adjustTile(Tile currTile, Map<Vector2, Tile> currTiles) {
+        this.adjustTile(currTile, currTiles, currTiles == this.overworldTiles);
     }
 
     /**
      * Find which sides surrounded on. Replace overSprite based on that.
      * Ex: fence surrounded by 4 fence posts becomes a 4-cross fence.
      */
-    public void adjustTile(Tile currTile, Map<Vector2, Tile> currTiles) {
+    public void adjustTile(Tile currTile, Map<Vector2, Tile> currTiles, boolean isOverworld) {
         Tile up = currTiles.get(currTile.position.cpy().add(0, 16));
         Tile down = currTiles.get(currTile.position.cpy().add(0, -16));
         Tile right = currTiles.get(currTile.position.cpy().add(16, 0));
@@ -1972,7 +2017,50 @@ public class PkmnMap {
         String ext = "_";
         HashMap<Vector2, Tile> interiorTiles = this.interiorTiles.get(this.interiorTilesIndex);
 
-        if (currTiles == this.overworldTiles) {
+        if (isOverworld) {
+
+            // Ledge stuff
+            if (up != null && up.nameUpper.equals("ledges3_E") && 
+                right != null && right.nameUpper.equals("ledges3_N")) {
+                Tile newTile = new Tile(currTile.name, "ledges3_NE", 
+                                        currTile.position.cpy(), true,
+                                        currTile.routeBelongsTo);
+                newTile.items = currTile.items;
+                newTile.hasItem = currTile.hasItem;
+                newTile.hasItemAmount = currTile.hasItemAmount;
+                currTiles.put(currTile.position.cpy(), newTile);
+            }
+            else if (up != null && up.nameUpper.equals("ledges3_W") && 
+                     left != null && left.nameUpper.equals("ledges3_N")) {
+                Tile newTile = new Tile(currTile.name, "ledges3_NW", 
+                                        currTile.position.cpy(), true,
+                                        currTile.routeBelongsTo);
+                newTile.items = currTile.items;
+                newTile.hasItem = currTile.hasItem;
+                newTile.hasItemAmount = currTile.hasItemAmount;
+                currTiles.put(currTile.position.cpy(), newTile);
+            }
+            else if (down != null && down.nameUpper.equals("ledges3_W") && 
+                     left != null && left.nameUpper.equals("ledges3_S")) {
+               Tile newTile = new Tile(currTile.name, "ledges3_SW", 
+                                       currTile.position.cpy(), true,
+                                       currTile.routeBelongsTo);
+               newTile.items = currTile.items;
+               newTile.hasItem = currTile.hasItem;
+               newTile.hasItemAmount = currTile.hasItemAmount;
+               currTiles.put(currTile.position.cpy(), newTile);
+           }
+            else if (down != null && down.nameUpper.equals("ledges3_E") && 
+                     right != null && right.nameUpper.equals("ledges3_S")) {
+                Tile newTile = new Tile(currTile.name, "ledges3_SE", 
+                                        currTile.position.cpy(), true,
+                                        currTile.routeBelongsTo);
+                newTile.items = currTile.items;
+                newTile.hasItem = currTile.hasItem;
+                newTile.hasItemAmount = currTile.hasItemAmount;
+                currTiles.put(currTile.position.cpy(), newTile);
+            }
+            
             if (currTile.nameUpper.contains("picture")) {
                 return;
             }
@@ -2046,6 +2134,9 @@ public class PkmnMap {
                 currTiles.put(currTile.position.cpy(), newTile);
             }
             else if (currTile.nameUpper.contains("fence") && !currTile.nameUpper.contains("house")) {
+                if (up == null || down == null || right == null || left == null) {
+                    return;
+                }
                 // Bend fences towards houses?
                 if (down.nameUpper.contains("house")) {  // && !down.nameUpper.contains("roof")
                     touchDown = true;
@@ -2286,125 +2377,129 @@ public class PkmnMap {
                 }
             }
             else if (currTile.nameUpper.contains("door")) {
-                // Handle case where player puts a door on the roof, which should
-                // make a 'back door' (red carpet on back of house that acts as door).
-                if ((left.nameUpper.contains("roof") || left.nameUpper.contains("door")) &&
-                    (right.nameUpper.contains("roof") || right.nameUpper.contains("door")) &&
-                    !(left.nameUpper.contains("door") && right.nameUpper.contains("door"))) {
-                    String name2 = "house5_roof_middle1";
-                    if (currTile.nameUpper.contains("house6")) {
-                        name2 = "house6_roof_middle1";
-                    }
-                    else if (currTile.nameUpper.contains("house7")) {
-                        name2 = "house7_roof_S";
-                    }
-                    Tile newTile =  new Tile(currTile.name, name2, 
-                                             currTile.position.cpy(), true,
-                                             currTile.routeBelongsTo);
-                    newTile.items = currTile.items;
-                    currTiles.put(currTile.position.cpy(), newTile);
-                    this.adjustSurroundingTiles(currTile, currTiles);
-                    if (!up.attrs.get("solid")) {
-                        currTiles.put(up.position.cpy(),
-                                           new Tile("rug2", "", up.position.cpy(), true, up.routeBelongsTo));
-                        // Add to interiors
-                        if (!interiorTiles.containsKey(up.position) ||
-                            interiorTiles.get(up.position).name.contains("wall")) {
-                            Tile interiorTile = new Tile("house5_door1", up.position.cpy());
-                            interiorTiles.put(up.position.cpy(), interiorTile);
+                if (right != null && left != null) {
+                    // Handle case where player puts a door on the roof, which should
+                    // make a 'back door' (red carpet on back of house that acts as door).
+                    if ((left.nameUpper.contains("roof") || left.nameUpper.contains("door")) &&
+                        (right.nameUpper.contains("roof") || right.nameUpper.contains("door")) &&
+                        !(left.nameUpper.contains("door") && right.nameUpper.contains("door"))) {
+                        String name2 = "house5_roof_middle1";
+                        if (currTile.nameUpper.contains("house6")) {
+                            name2 = "house6_roof_middle1";
                         }
-                    }
-                    // Remove indoor rug if it exists
-                    if (interiorTiles.containsKey(currTile.position) &&
-                        interiorTiles.get(currTile.position).name.contains("rug")) {
-                        Tile interiorTile = new Tile("house5_floor1", currTile.position.cpy());
-                        interiorTiles.put(currTile.position.cpy(), interiorTile);
-                    }
-                    return;
-                }
-                // If player builds next to fences, turn the door into a 'gate'
-                if ((left.nameUpper.contains("fence") || left.nameUpper.contains("door")) &&
-                    (right.nameUpper.contains("fence") || right.nameUpper.contains("door"))) {
-                    String fenceName = "fence1";
-                    if (name.contains("house6")) {
-                        fenceName = "fence2";
-                    }
-                    Tile newTile =  new Tile(currTile.name, fenceName+"gate1", 
-                                             currTile.position.cpy(), true,
-                                             currTile.routeBelongsTo);
-                    newTile.items = currTile.items;
-                    currTiles.put(currTile.position.cpy(), newTile);
-                    this.adjustSurroundingTiles(currTile, currTiles);
-                    return;
-                }
-                if ((up.nameUpper.contains("fence") || up.nameUpper.contains("door")) &&
-                    (down.nameUpper.contains("fence") || down.nameUpper.contains("door"))) {
-                    String fenceName = "fence1";
-                    if (name.contains("house6")) {
-                        fenceName = "fence2";
-                    }
-                    Tile newTile =  new Tile(currTile.name, fenceName+"gate1_NS",
-                                             currTile.position.cpy(), true,
-                                             currTile.routeBelongsTo);
-                    newTile.items = currTile.items;
-                    currTiles.put(currTile.position.cpy(), newTile);
-                    this.adjustSurroundingTiles(currTile, currTiles);
-                    return;
-                }
-                // Side doors
-                if ((up.nameUpper.contains("roof") || up.nameUpper.contains("E") || up.nameUpper.contains("W") || up.nameUpper.contains("left") || up.nameUpper.contains("right") || up.nameUpper.contains("door")) &&
-                    (down.nameUpper.contains("roof") || down.nameUpper.contains("E") || down.nameUpper.contains("W") || down.nameUpper.contains("left") || down.nameUpper.contains("right") || down.nameUpper.contains("door")) &&
-                    !(up.nameUpper.contains("door") && down.nameUpper.contains("door"))) {
-                    //
-                    int roofCount = 0;
-                    if (right != null && right.nameUpper.contains("roof")) {
-                        roofCount++;
-                    }
-                    if (left != null && left.nameUpper.contains("roof")) {
-                        roofCount++;
-                    }
-                    String name2 = "house5_middle1";
-                    if (roofCount > 0) {
-                        name2 = "house5_roof_middle1";
-                    }
-                    if (name.contains("house6")) {
-                        name2 = "house6_NS";
-                        if (roofCount > 0) {
-                            name2 = "house6_roof_NS";
+                        else if (currTile.nameUpper.contains("house7")) {
+                            name2 = "house7_roof_S";
                         }
-                    }
-                    else if (name.contains("house7")) {
-                        name2 = "house7_wall_NS";
-                        if (roofCount > 0) {
-                            name2 = "house7_roof_NS";
+                        Tile newTile =  new Tile(currTile.name, name2, 
+                                                 currTile.position.cpy(), true,
+                                                 currTile.routeBelongsTo);
+                        newTile.items = currTile.items;
+                        currTiles.put(currTile.position.cpy(), newTile);
+                        this.adjustSurroundingTiles(currTile, currTiles);
+                        if (!up.attrs.get("solid")) {
+                            currTiles.put(up.position.cpy(),
+                                               new Tile("rug2", "", up.position.cpy(), true, up.routeBelongsTo));
+                            // Add to interiors
+                            if (!interiorTiles.containsKey(up.position) ||
+                                interiorTiles.get(up.position).name.contains("wall")) {
+                                Tile interiorTile = new Tile("house5_door1", up.position.cpy());
+                                interiorTiles.put(up.position.cpy(), interiorTile);
+                            }
                         }
-                    }
-                    Tile newTile =  new Tile(currTile.name, name2, 
-                                             currTile.position.cpy(), true,
-                                             currTile.routeBelongsTo);
-                    newTile.items = currTile.items;
-                    this.tiles.put(currTile.position.cpy(), newTile);
-                    this.adjustSurroundingTiles(currTile);
-                    //
-                    if (!left.attrs.get("solid")) {
-                        this.tiles.put(left.position.cpy(), new Tile("rug2_right", "", left.position.cpy(), true, left.routeBelongsTo));
-                        // Add to interiors
-                        Tile interiorTile = interiorTiles.get(currTile.position);
-                        if (interiorTile != null && interiorTile.name.contains("floor")) {
-                            interiorTile = new Tile("rug2_left", currTile.position.cpy());
+                        // Remove indoor rug if it exists
+                        if (interiorTiles.containsKey(currTile.position) &&
+                            interiorTiles.get(currTile.position).name.contains("rug")) {
+                            Tile interiorTile = new Tile("house5_floor1", currTile.position.cpy());
                             interiorTiles.put(currTile.position.cpy(), interiorTile);
                         }
+                        return;
                     }
-                    else if (!right.attrs.get("solid")) {
-                        this.tiles.put(right.position.cpy(), new Tile("rug2_left", "", right.position.cpy(), true, right.routeBelongsTo));
-                        // Add to interiors
-                        Tile interiorTile = interiorTiles.get(currTile.position);
-                        if (interiorTile != null && interiorTile.name.contains("floor")) {
-                            interiorTile = new Tile("rug2_right", currTile.position.cpy());
-                            interiorTiles.put(currTile.position.cpy(), interiorTile);
+                    // If player builds next to fences, turn the door into a 'gate'
+                    if ((left.nameUpper.contains("fence") || left.nameUpper.contains("door")) &&
+                        (right.nameUpper.contains("fence") || right.nameUpper.contains("door"))) {
+                        String fenceName = "fence1";
+                        if (name.contains("house6")) {
+                            fenceName = "fence2";
                         }
+                        Tile newTile =  new Tile(currTile.name, fenceName+"gate1", 
+                                                 currTile.position.cpy(), true,
+                                                 currTile.routeBelongsTo);
+                        newTile.items = currTile.items;
+                        currTiles.put(currTile.position.cpy(), newTile);
+                        this.adjustSurroundingTiles(currTile, currTiles);
+                        return;
                     }
-                    return;
+                }
+                if (up != null && down != null) {
+                    if ((up.nameUpper.contains("fence") || up.nameUpper.contains("door")) &&
+                            (down.nameUpper.contains("fence") || down.nameUpper.contains("door"))) {
+                            String fenceName = "fence1";
+                            if (name.contains("house6")) {
+                                fenceName = "fence2";
+                            }
+                            Tile newTile =  new Tile(currTile.name, fenceName+"gate1_NS",
+                                                     currTile.position.cpy(), true,
+                                                     currTile.routeBelongsTo);
+                            newTile.items = currTile.items;
+                            currTiles.put(currTile.position.cpy(), newTile);
+                            this.adjustSurroundingTiles(currTile, currTiles);
+                            return;
+                        }
+                        // Side doors
+                        if ((up.nameUpper.contains("roof") || up.nameUpper.contains("E") || up.nameUpper.contains("W") || up.nameUpper.contains("left") || up.nameUpper.contains("right") || up.nameUpper.contains("door")) &&
+                            (down.nameUpper.contains("roof") || down.nameUpper.contains("E") || down.nameUpper.contains("W") || down.nameUpper.contains("left") || down.nameUpper.contains("right") || down.nameUpper.contains("door")) &&
+                            !(up.nameUpper.contains("door") && down.nameUpper.contains("door"))) {
+                            //
+                            int roofCount = 0;
+                            if (right != null && right.nameUpper.contains("roof")) {
+                                roofCount++;
+                            }
+                            if (left != null && left.nameUpper.contains("roof")) {
+                                roofCount++;
+                            }
+                            String name2 = "house5_middle1";
+                            if (roofCount > 0) {
+                                name2 = "house5_roof_middle1";
+                            }
+                            if (name.contains("house6")) {
+                                name2 = "house6_NS";
+                                if (roofCount > 0) {
+                                    name2 = "house6_roof_NS";
+                                }
+                            }
+                            else if (name.contains("house7")) {
+                                name2 = "house7_wall_NS";
+                                if (roofCount > 0) {
+                                    name2 = "house7_roof_NS";
+                                }
+                            }
+                            Tile newTile =  new Tile(currTile.name, name2, 
+                                                     currTile.position.cpy(), true,
+                                                     currTile.routeBelongsTo);
+                            newTile.items = currTile.items;
+                            this.tiles.put(currTile.position.cpy(), newTile);
+                            this.adjustSurroundingTiles(currTile);
+                            //
+                            if (!left.attrs.get("solid")) {
+                                this.tiles.put(left.position.cpy(), new Tile("rug2_right", "", left.position.cpy(), true, left.routeBelongsTo));
+                                // Add to interiors
+                                Tile interiorTile = interiorTiles.get(currTile.position);
+                                if (interiorTile != null && interiorTile.name.contains("floor")) {
+                                    interiorTile = new Tile("rug2_left", currTile.position.cpy());
+                                    interiorTiles.put(currTile.position.cpy(), interiorTile);
+                                }
+                            }
+                            else if (!right.attrs.get("solid")) {
+                                this.tiles.put(right.position.cpy(), new Tile("rug2_left", "", right.position.cpy(), true, right.routeBelongsTo));
+                                // Add to interiors
+                                Tile interiorTile = interiorTiles.get(currTile.position);
+                                if (interiorTile != null && interiorTile.name.contains("floor")) {
+                                    interiorTile = new Tile("rug2_right", currTile.position.cpy());
+                                    interiorTiles.put(currTile.position.cpy(), interiorTile);
+                                }
+                            }
+                            return;
+                        }
                 }
                 
                 // Add to interiors
@@ -2522,7 +2617,7 @@ public class PkmnMap {
 
     public void loadFromFile(Game game) {
         // If map exists as file, load it
-//    	System.out.println(this.id);
+//        System.out.println(this.id);
         try {
             // TODO: tile Route is not saved here.
             // Should be able to serialize route pokemon and save. Although might be ineffecient to save all
@@ -2757,6 +2852,52 @@ public class PkmnMap {
 
         } catch (FileNotFoundException e) {
             System.out.println("No save file found for map: " + this.id);
+        }
+    }
+    
+    /**
+     * Change the map batch color after a period of time.
+     */
+    public class ShadeEffect extends Action {
+        int timer = 0;
+        Color color;
+        String type;
+        
+        public ShadeEffect(String type) {
+            this(type, 30);
+        }
+        
+        public ShadeEffect(String type, int timer) {
+            this.color = new Color(1f, 1f, 1f, 1f);
+            if (type.equals("graveyard")) {
+//                this.color = new Color(.8f, .8f, 1f, 1f);
+                this.color = new Color(.9f, .9f, 1f, 1f);
+//                this.color = new Color(1f, 1f, 1f, 1f);
+            }
+            this.type = type;
+            this.timer = timer;
+        }
+
+        @Override
+        public void firstStep(Game game) {
+            game.actionStack.remove(PkmnMap.this.shadeEffect);
+            PkmnMap.this.shadeEffect = this;
+        }
+
+        @Override
+        public void step(Game game) {
+            this.timer--;
+            if (this.timer < 0) {
+                game.mapBatch.setColor(this.color);
+                if (this.type.equals("graveyard")) {
+                    FogEffect.active = true;
+                    FogEffect.refresh = true;
+                }
+                else {
+                    FogEffect.active = false;
+                }
+                game.actionStack.remove(this);
+            }
         }
     }
 
@@ -3021,6 +3162,9 @@ class Route {
             this.name.equals("sand_pit1")) {
             return "desert";
         }
+        if (this.name.equals("graveyard1")) {
+            return "graveyard";
+        }
         return "";
     }
 
@@ -3035,6 +3179,12 @@ class Route {
             else if (this.name.equals("fossil_lab1")) {
                 musics.add("silence1");
                 musics.add("silence1");
+            }
+            else if (this.name.equals("graveyard1")) {
+//                musics.add("silence1");
+//                musics.add("silence1");
+                musics.add("old_chateau3");
+                musics.add("old_chateau3");
             }
             else if (this.name.equals("pkmnmansion1")) {
                 musics.add("pkmnmansion");
@@ -3237,6 +3387,23 @@ class Route {
 //                allowedPokemon.add("drapion");    // high-level
 //                allowedPokemon.add("trapinch");  // TODO: was prism, remove
 //                allowedPokemon.add("vibrava");
+            }
+            else if (this.name.equals("graveyard1")) {
+                allowedPokemon.add("gastly");
+                allowedPokemon.add("litwick");
+                allowedPokemon.add("murkrow");
+                allowedPokemon.add("drifloon");
+                allowedPokemon.add("misdreavus");
+                allowedPokemon.add("zubat");
+                // TODO
+                allowedPokemon.add("chingling");
+                allowedPokemon.add("chimecho");
+                allowedPokemon.add("cubone");
+                allowedPokemon.add("houndour");
+                allowedPokemon.add("hoothoot");
+                allowedPokemon.add("spinarak");
+                allowedPokemon.add("absol");
+                allowedPokemon.add("duskull");
             }
             // 
             else if (this.name.equals("sand_pit1")) {
@@ -3617,7 +3784,6 @@ class SuicuneTile extends Tile {
 }
 
 class Tile {
-    
     // Idea: name() property that will get Tile's enum name, and convert it to string.
 
     Map<String, Boolean> attrs;
@@ -3628,9 +3794,9 @@ class Tile {
     public Vector2 position;
     public Sprite sprite;
     public Sprite overSprite; // ledges
-    // if not null, has item on this square that can be pick up by pressing A on the tile
-    String hasItem;  
-    int hasItemAmount = 0;
+    // If not null, has item on this square that can be pick up by pressing A on the tile
+    public String hasItem;
+    public int hasItemAmount = 0;
 
     // route that this tile belongs to
     // used to signal movement to new routes
@@ -3683,30 +3849,30 @@ class Tile {
 
     // TODO: this didn't really increase performance, remove probably
 //    public static enum Type {
-//    	FLOWER,
-//    	CAMPFIRE,
-//    	REVIVED,
-//    	VOLCARONA,
+//        FLOWER,
+//        CAMPFIRE,
+//        REVIVED,
+//        VOLCARONA,
 //    }
 //    public static HashMap<String, ArrayList<Type>> types = new HashMap<String, ArrayList<Type>>();
 //    public boolean is(Type type) {
-//    	if (!Tile.types.containsKey(this.name+this.nameUpper)) {
-//    		ArrayList<Type> types = new ArrayList<Type>();
-//    		if (this.name.contains("flower")) {
-//    			types.add(Type.FLOWER);
-//    		}
-//    		if (this.nameUpper.equals("campfire1")) {
-//    			types.add(Type.CAMPFIRE);
-//    		}
-//    		if (this.nameUpper.contains("revived_")) {
-//    			types.add(Type.REVIVED);
-//    		}
-//    		if (this.nameUpper.equals("volcarona")) {
-//    			types.add(Type.VOLCARONA);
-//    		}
-//    		Tile.types.put(this.name+this.nameUpper, types);
-//    	}
-//    	return Tile.types.get(this.name+this.nameUpper).contains(type);
+//        if (!Tile.types.containsKey(this.name+this.nameUpper)) {
+//            ArrayList<Type> types = new ArrayList<Type>();
+//            if (this.name.contains("flower")) {
+//                types.add(Type.FLOWER);
+//            }
+//            if (this.nameUpper.equals("campfire1")) {
+//                types.add(Type.CAMPFIRE);
+//            }
+//            if (this.nameUpper.contains("revived_")) {
+//                types.add(Type.REVIVED);
+//            }
+//            if (this.nameUpper.equals("volcarona")) {
+//                types.add(Type.VOLCARONA);
+//            }
+//            Tile.types.put(this.name+this.nameUpper, types);
+//        }
+//        return Tile.types.get(this.name+this.nameUpper).contains(type);
 //    }
 
     /**
@@ -3734,6 +3900,9 @@ class Tile {
                 this.items.put("grass", 1);
             }
             else if (this.name.equals("grass_sand3")) {
+                this.items.put("grass", 2);
+            }
+            else if (this.name.equals("grass_graveyard1")) {
                 this.items.put("grass", 2);
             }
             else if (this.name.equals("tree5")) {
@@ -3778,7 +3947,8 @@ class Tile {
                     !this.nameUpper.equals("grass_planted") &&
                     !this.nameUpper.contains("campfire") &&
                     !this.nameUpper.contains("fence") &&
-                    !this.nameUpper.contains("house")) {
+                    !this.nameUpper.contains("house") &&
+                    !this.nameUpper.contains("gravestone")) {
                     this.items.put("grass", 1);
                     this.items.put("log", 1);
                 }
@@ -3788,6 +3958,10 @@ class Tile {
                     if (Game.rand.nextInt(10) == 0) {
                         this.items.put("moon stone", 1);
                     }
+                }
+                else if (this.nameUpper.equals("gravestone2")) {
+                    this.items.put("hard stone", 1);
+                    this.items.put("life force", 1);
                 }
             }
         }
@@ -3802,7 +3976,7 @@ class Tile {
      * added TrainerTipsTile fields here and called it good.
      */
     public static Tile get(Network.TileData tileData, Route routeBelongsTo) {
-        if (tileData.tileNameUpper.contains("sign")) {
+        if (tileData.tileNameUpper.equals("sign1")) {
             return new TrainerTipsTile(tileData.pos.cpy(), routeBelongsTo, tileData.isUnown, tileData.message);
         }
         Tile tile = new Tile(tileData.tileName, tileData.tileNameUpper, tileData.pos.cpy(), true, routeBelongsTo);
@@ -3823,6 +3997,10 @@ class Tile {
     }
     public Tile(String tileName, String nameUpper, Vector2 pos, boolean color, Route routeBelongsTo) {
         this.init(tileName, nameUpper, pos, color, routeBelongsTo);
+    }
+
+    public void init() {
+        this.init(this.name, this.nameUpper, this.position, true, this.routeBelongsTo);
     }
     
     /**
@@ -4311,6 +4489,11 @@ class Tile {
         } else if (tileName.equals("rock4")) {
             Texture playerText = TextureCache.get(Gdx.files.internal("tiles/rock4.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
+        } else if (tileName.equals("rock5")) {
+            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/sand1.png"));
+            this.sprite = new Sprite(playerText, 0, 0, 16, 16);
+            this.name = "sand1";
+            this.nameUpper = tileName;
         } else if (tileName.equals("sand1")) {
             Texture playerText = TextureCache.get(Gdx.files.internal("tiles/sand1.png"));
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
@@ -4680,6 +4863,14 @@ class Tile {
             this.attrs.put("grass", true);
             this.attrs.put("cuttable", true);
         } 
+        else if (tileName.equals("grass_graveyard1")) {
+            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/green11.png"));
+            this.sprite = new Sprite(playerText, 0, 0, 16, 16);
+            playerText = TextureCache.get(Gdx.files.internal("tiles/grass6_over.png"));
+            this.overSprite = new Sprite(playerText, 0, 0, 16, 16);
+            this.attrs.put("grass", true);
+            this.attrs.put("cuttable", true);
+        }
         else if (tileName.contains("house6")) {
             // Don't do any work here; buildings always have something ground-related as
             // the lower name.
@@ -4743,6 +4934,21 @@ class Tile {
             this.sprite = new Sprite(playerText, 0, 0, 16, 16);
             this.nameUpper = tileName;
         }
+        else if (tileName.contains("gravestone")) {
+            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/blank.png"));
+            this.sprite = new Sprite(playerText, 0, 0, 16, 16);
+            this.nameUpper = tileName;
+        }
+        else if (tileName.contains("sign_")) {
+            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/blank.png"));
+            this.sprite = new Sprite(playerText, 0, 0, 16, 16);
+            this.nameUpper = tileName;
+        }
+        else if (tileName.contains("ledges3")) {
+            Texture playerText = TextureCache.get(Gdx.files.internal("tiles/blank.png"));
+            this.sprite = new Sprite(playerText, 0, 0, 16, 16);
+            this.nameUpper = tileName;
+        }
         else {
             // just load from image file
             Texture playerText = TextureCache.get(Gdx.files.internal("tiles/buildings/"+tileName+".png"));
@@ -4785,6 +4991,24 @@ class Tile {
                 else if (this.nameUpper.equals("REGISTEEL")) {
                     this.overSprite = new Sprite(text, 80, 0, 16, 16);
                 }
+            }
+            else if (this.nameUpper.contains("ledges3")) {
+                text = TextureCache.get(Gdx.files.internal("tiles/ledges3.png"));
+                int offsetX = 8;
+                int offsetY = 8;
+                if (this.nameUpper.contains("E")) {
+                    offsetX -= 8;
+                }
+                if (this.nameUpper.contains("W")) {
+                    offsetX += 8;
+                }
+                if (this.nameUpper.contains("N")) {
+                    offsetY += 8;
+                }
+                if (this.nameUpper.contains("S")) {
+                    offsetY -= 8;
+                }
+                this.overSprite = new Sprite(text, offsetX, offsetY, 16, 16);
             }
             else if (this.nameUpper.contains("house6")) {
                 // TODO: move to fn
@@ -5000,6 +5224,9 @@ class Tile {
             else if (this.nameUpper.contains("volcarona")) {
                 text = TextureCache.get(Gdx.files.internal("tiles/blank3.png"));
             }
+            else if (this.nameUpper.contains("spiritomb")) {
+                text = TextureCache.get(Gdx.files.internal("tiles/blank3.png"));
+            }
             else if (this.nameUpper.contains("hole1_water")) {
                 if (!Tile.dynamicTexts.containsKey(this.nameUpper)) {
                     String[] names = this.nameUpper.split("_");
@@ -5206,6 +5433,10 @@ class Tile {
                 text = TextureCache.get(Gdx.files.internal("tiles/tree_large1_color.png"));
                 this.overSprite = new Sprite(text, 0, 0, 32, 32);
             }
+            else if (this.nameUpper.contains("pokedoll1")) {
+                text = TextureCache.get(Gdx.files.internal("tiles/pokedoll1.png"));
+                this.overSprite = new Sprite(text, 0, 0, 16, 16);
+            }
             else {
                 text = TextureCache.get(Gdx.files.internal("tiles/"+this.nameUpper+".png"));
                 this.overSprite = new Sprite(text, 0, 0, 16, 16);
@@ -5303,17 +5534,11 @@ class Tile {
                 this.attrs.put("cuttable", false);  // ruins unown spawns otherwise
             }
             if (this.nameUpper.equals("rock1") ||
-                this.nameUpper.equals("rock1_color")) {
+                this.nameUpper.equals("rock1_color") ||
+                this.nameUpper.equals("rock5") ||
+                this.nameUpper.contains("gravestone")) {
                 this.attrs.put("smashable", true);
                 this.attrs.put("cuttable", false);  // not sure why but cuttable can be true here.
-                
-                // TODO: this could get me into trouble if I need to save items
-                // TODO: test
-//                this.items.clear();
-//                this.items.put("hard stone", 1);
-//                if (this.items.isEmpty()) {
-//                    this.items.put("hard stone", 1);
-//                }
             }
             
             // TODO: test
@@ -5371,6 +5596,15 @@ class Tile {
 
     public Tile(String tileName, Vector2 pos, boolean color, Route routeBelongsTo) {
         this(tileName, "", pos, color, routeBelongsTo);
+    }
+    
+    /**
+     * Used to know whether or not player can set the text on this tile.
+     */
+    public boolean isSign() {
+        return this.nameUpper.equals("gravestone3") ||
+               this.nameUpper.equals("sign_built1") ||
+               this.nameUpper.equals("sign_desert1");
     }
     
     /**
@@ -5492,8 +5726,52 @@ class Tile {
         }
     }
 
+    /**
+     * 
+     */
+    public class Moving extends Action {
+        int timer = 0;
+        Tile target;
+        Vector2 currPos;
+        Vector2 offset = new Vector2();
+        Sprite overSprite;
+
+        public Moving(Tile target, Vector2 position, Action nextAction) {
+            this.target = target;
+            this.offset = position.cpy().sub(Tile.this.position);
+            this.offset.x /= 16;
+            this.offset.y /= 16;
+            this.nextAction = nextAction;
+        }
+
+        @Override
+        public void firstStep(Game game) {
+            this.overSprite = Tile.this.overSprite;
+            Tile.this.drawUpperBelowPlayer = false;
+            Tile.this.overSprite = null;
+            this.currPos = Tile.this.position.cpy();
+        }
+
+        @Override
+        public void step(Game game) {
+            this.currPos.add(this.offset);
+            game.mapBatch.draw(this.overSprite, this.currPos.x, this.currPos.y);
+            //
+            this.timer++;
+            if (this.timer >= 16) {
+                this.target.nameUpper = Tile.this.nameUpper;
+                this.target.init();
+                Tile.this.nameUpper = "";
+                Tile.this.init();
+                game.actionStack.remove(this);
+                game.insertAction(this.nextAction);
+            }
+        }
+    }
+
     public void onPressA(Game game) {
-        if (this.hasItem != null) {
+        // signs store text in this.hasItem
+        if (this.hasItem != null && !this.isSign()) {
             if (game.type == Game.Type.CLIENT) {
                 game.client.sendTCP(new Network.PickupItem(game.player.network.id, game.player.dirFacing));
             }
@@ -5516,7 +5794,7 @@ class Tile {
             }
         }
         else if (game.map.pokemon.containsKey(this.position) &&
-        		 game.map.pokemon.get(this.position).mapTiles == game.map.tiles) {
+                 game.map.pokemon.get(this.position).mapTiles == game.map.tiles) {
             Pokemon pokemon = game.map.pokemon.get(this.position);
             if (game.type == Game.Type.CLIENT) {
                 // Server will send a PausePokemon back if this succeeds.
@@ -5732,6 +6010,349 @@ class Tile {
                               null)))))));
             game.insertAction(nextAction);
         }
+
+        // Spiritomb stuff
+        else if (this.nameUpper.equals("odd_keystone2")) {
+            game.playerCanMove = false;
+            int amountLeft = 107-this.hasItemAmount;
+            String text = "A voice whispers from within... "+String.valueOf(amountLeft)+"... bring "+String.valueOf(amountLeft)+"...";
+            if (amountLeft == 69) {
+                text = "A voice whispers from within... bring 69... Nice...";
+            }
+            Action nextAction = new DisplayText(game, text, null, null, null);
+            //
+            if (game.player.itemsDict.containsKey("life force")) {
+                //
+                // Variable input version
+                Craft craft = new Craft("life force", 1);
+                craft.requirements.add(new Craft("life force", 1));
+                // TODO: there needs to be a better way to do this.
+                class ChoiceAction extends Action {
+                    Player.Craft craft;
+                    public ChoiceAction(Player.Craft craft, Action nextAction) {
+                        this.craft = craft;
+                        this.nextAction = nextAction;
+                    };
+                    @Override
+                    public void step(Game game) {
+                        Tile.this.hasItemAmount += this.craft.amount;
+                        // Prevent player from using too much
+                        if (Tile.this.hasItemAmount > 107) {
+                            this.craft.amount -= Tile.this.hasItemAmount -107;
+                        }
+                        //
+                        if (Tile.this.hasItemAmount >= 107) {
+                            this.nextAction = new WaitFrames(game, 20,
+                                              new SetField(Tile.this, "nameUpper", "spiritomb",
+                                              new CallMethod(Tile.this, "init", new Object[]{},
+                                              new PokemonFrame(new Pokemon("spiritomb", 2, Pokemon.Generation.CRYSTAL, false, false),
+                                              this.nextAction))));
+                        }
+                        if (this.craft.amount == 69) {
+                            this.nextAction = new DisplayText(game, "69... Nice...", null, null,
+                                              this.nextAction);
+                        }
+                        game.actionStack.remove(this);
+                        game.insertAction(game.player.new RemoveFromInventory(this.craft.name, this.craft.amount,
+                                          new DisplayText(game, "The spirits entered into the keystone...", "attacks/hypnosis_player_gsc/sound.ogg", null,
+                                          this.nextAction)));
+                    }
+                };
+                nextAction.append(new DisplayText(game, "Use life force?", null, true, false,
+                                  new SelectAmount(craft,
+                                      new DisplayText.Clear(game,
+                                      new WaitFrames(game, 10,
+                                      new SetField(game, "playerCanMove", true,
+                                      null))),
+                                  new DisplayText.Clear(game,
+                                  new WaitFrames(game, 6,
+                                  new ChoiceAction(craft,
+                                  new WaitFrames(game, 10,
+                                  new SetField(game, "playerCanMove", true,
+                                  null))))))));
+
+              // This version didn't have variable input
+//            if (game.player.itemsDict.containsKey("life force") && game.player.itemsDict.get("life force") >= 107) {
+//                nextAction.append(new DisplayText(game, "Use life force?", null, true, false,
+//                                  new DrawYesNoMenu(null,
+//                                      new DisplayText.Clear(game,
+//                                      new WaitFrames(game, 6,
+//                                      game.player.new RemoveFromInventory("life force", 107,
+//                                      new DisplayText(game, "The spirits entered into the keystone...", "attacks/hypnosis_player_gsc/sound.ogg", null,
+//                                      new WaitFrames(game, 20,
+//                                      // Immediate encounter version
+////                                      new SetField(game.battle, "oppPokemon", new Pokemon("spiritomb", 25, Pokemon.Generation.CRYSTAL),
+////                                      new CallMethod(game.player, "setCurrPokemon", new Object[]{},
+////                                      new SetField(game.musicController, "startBattle", "wild",
+////                                      new Battle.GetIntroAction(null)))))))),
+//                                      new SetField(this, "nameUpper", "spiritomb",
+//                                      new CallMethod(this, "init", new Object[]{},
+//                                      new PokemonFrame(new Pokemon("spiritomb", 2, Pokemon.Generation.CRYSTAL, false, false),
+//                                      new WaitFrames(game, 6,
+//                                      new SetField(game, "playerCanMove", true,
+//                                      null)))))))))),
+//                                      //
+//                                  new DisplayText.Clear(game,
+//                                  new WaitFrames(game, 10,
+//                                  new SetField(game, "playerCanMove", true, 
+//                                  null))))));
+            }
+            else {
+                nextAction.append(new WaitFrames(game, 10,
+                                  new SetField(game, "playerCanMove", true,
+                                  null)));
+            }
+            game.insertAction(nextAction);
+        }
+        //
+        else if (this.isSign() && game.player.dirFacing.equals("up")) {
+
+            game.playerCanMove = false;
+            if (this.hasItem == null) {
+
+                /**
+                 * TODO: move somewhere
+                 */
+                class SetSignText extends Action {
+                    Texture bgTexture;
+                    Color prevColor;
+                    int avatarAnimCounter = 0;
+                    HashMap<Integer, Character> alphanumericKeys = new HashMap<Integer, Character>();
+                    HashMap<Integer, Character> alphanumericKeysShift = new HashMap<Integer, Character>();
+                    ArrayList<Character> text = new ArrayList<Character>();
+                    int backspaceTimer = 0;
+                    public boolean done = false;
+                    public boolean disabled = false;
+                    public SetSignText(Action nextAction) {
+                        this.bgTexture = TextureCache.get(Gdx.files.internal("battle/battle_bg3.png"));
+
+                        char[] textArray = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".toCharArray();
+                        for (int i=0; i < textArray.length; i++) {
+                            this.alphanumericKeys.put(Input.Keys.valueOf(String.valueOf(textArray[i])),
+                                                      String.valueOf(textArray[i]).toLowerCase().charAt(0));
+                            this.alphanumericKeysShift.put(Input.Keys.valueOf(String.valueOf(textArray[i])),textArray[i]);
+                        }
+                        textArray = "1234567890".toCharArray();
+                        for (int i=0; i < textArray.length; i++) {
+                            this.alphanumericKeys.put(Input.Keys.valueOf(String.valueOf(textArray[i])), textArray[i]);
+                            this.alphanumericKeysShift.put(Input.Keys.valueOf(String.valueOf(textArray[i])), textArray[i]);
+                        }
+                        this.alphanumericKeys.put(Input.Keys.PERIOD, '.');
+                        this.alphanumericKeysShift.put(Input.Keys.SLASH, '?');
+                        this.alphanumericKeysShift.put(Input.Keys.NUM_1, '!');
+                        
+                        this.nextAction = nextAction;
+                    };
+                    public String getCamera() {
+                        return "gui";
+                    }
+                    public int getLayer() {
+                        return 107;
+                    }
+                    @Override
+                    public void firstStep(Game game) {
+                        game.insertAction(new DisplayText(game, "Press Enter to set text", null, true, false, null));
+                    }
+                    @Override
+                    public void step(Game game) {
+                        this.prevColor = game.mapBatch.getColor();
+                        game.uiBatch.setColor(1f, 1f, 1f, 1f);
+//                        for (i = -1; i < 1; i+= 1) {
+//                            for (j = -1; j < 1; j+= 1) {
+//                                game.uiBatch.draw(this.bgTexture, 256*i, 256*j);
+//                            }
+//                        }
+                        game.uiBatch.draw(this.bgTexture, -8, -8);
+                        game.uiBatch.setColor(this.prevColor);
+                        
+                        Sprite letterSprite;
+                        // Draw text
+                        int i = 0;
+                        int j = 0;
+                        for (int k=0; k < this.text.size(); k++) {
+                            char character = this.text.get(k);
+                            if (character == ' ' && k+1 < this.text.size()) {
+                                int length = 1;
+                                char nextChar = this.text.get(k+length);
+                                while (nextChar != ' ' && k+length < this.text.size()) {
+                                    nextChar = this.text.get(k+length++);
+                                }
+                                if (i+length > 20 && j < 5) {
+                                    i = -1;
+                                    j++;
+                                }
+                            }
+                            letterSprite = game.textDict.get(character);
+                            letterSprite.setPosition(8*i, 128 -16*j);
+                            letterSprite.draw(game.uiBatch, 1f);
+                            i++;
+                            if (i > 20) {
+                                i = 0;
+                                j++;
+                            }
+                        }
+                        // Draw cursor
+                        if (this.avatarAnimCounter >= 12) {
+                            letterSprite = game.textDict.get('_');
+                            game.uiBatch.draw(letterSprite, 8*i, 128 -16*j);
+                        }
+
+                        if (this.done) {
+                            game.actionStack.remove(this);
+                        }
+                        if (this.disabled) {
+                            return;
+                        }
+
+                        // Accept input
+                        if (Gdx.input.isKeyPressed(Input.Keys.BACKSPACE)) {
+                            if (this.backspaceTimer < 30) {
+                                this.backspaceTimer++;
+                            }
+                        }
+                        else {
+                            this.backspaceTimer = 0;
+                        }
+                        if ((this.backspaceTimer >= 30 || Gdx.input.isKeyJustPressed(Input.Keys.BACKSPACE)) && this.text.size() > 0) {
+                            this.text.remove(this.text.size()-1);
+                        }
+                        //
+                        if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
+                            this.disabled = true;
+                            String allText = "";
+                            for (char c : this.text) {
+                                allText += c;
+                            }
+                            game.insertAction(new DisplayText.Clear(game,
+                                              new WaitFrames(game, 3,
+                                              new DisplayText(game, "Keep changes?", null, true, false,
+                                              new DrawYesNoMenu(null,
+                                                  new DisplayText.Clear(game,
+                                                  new WaitFrames(game, 3,
+                                                  new SetField(Tile.this, "hasItem", allText,
+                                                  new WaitFrames(game, 10,
+                                                  new SetField(this, "done", true,
+                                                  new SetField(game, "playerCanMove", true,
+                                                  null)))))),
+                                              new DisplayText.Clear(game,
+                                              new WaitFrames(game, 10,
+                                              new SetField(this, "done", true,
+                                              new SetField(game, "playerCanMove", true,
+                                              null)))))))));
+                        }
+
+                        if (i >= 20 && j >= 5) {
+                            return;
+                        }
+                        
+                        if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
+                            this.text.add(' ');
+                        }
+                        //
+                        if (Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT) || Gdx.input.isKeyPressed(Input.Keys.SHIFT_RIGHT)) {
+                            for (Integer key : this.alphanumericKeysShift.keySet()) {
+                                if (Gdx.input.isKeyJustPressed(key)) {
+                                    this.text.add(this.alphanumericKeysShift.get(key));
+                                }
+                            }
+                        }
+                        else {
+                            for (Integer key : this.alphanumericKeys.keySet()) {
+                                if (Gdx.input.isKeyJustPressed(key)) {
+                                    this.text.add(this.alphanumericKeys.get(key));
+                                }
+                            }
+                        }
+
+
+                        this.avatarAnimCounter--;
+                        if (this.avatarAnimCounter <= 0) {
+                            this.avatarAnimCounter = 24;
+                        }
+                    }
+                    
+                }
+
+                Action nextAction = new SetSignText(
+                                    new WaitFrames(game, 10,
+                                      new SetField(game, "playerCanMove", true,
+                                      null)));
+                game.insertAction(nextAction);
+                
+            }
+            else {
+                Action nextAction = new DisplayText(game, this.hasItem, null, null,
+                                    new WaitFrames(game, 10,
+                                      new SetField(game, "playerCanMove", true,
+                                      null)));
+                game.insertAction(nextAction);
+            }
+        }
+                
+        else if (this.nameUpper.equals("gravestone2") && game.player.dirFacing.equals("up")) {
+            game.playerCanMove = false;
+            Action nextAction = new DisplayText(game, "The text is too faded to make out...", null, null,
+                                new WaitFrames(game, 10,
+                                  new SetField(game, "playerCanMove", true,
+                                  null)));
+            Tile down = game.map.tiles.get(this.position.cpy().add(0, -32));
+            Tile right = game.map.tiles.get(this.position.cpy().add(16, -16));
+            if (Game.rand.nextInt(128) == 0 &&
+                ((down != null && !down.attrs.get("solid")) || (right != null && !right.attrs.get("solid")))) {
+//            if (true) {  // debug
+                class DrawMysteryNPC extends Action {
+                    Texture texture;
+                    Vector2 position;
+                    public boolean stop = false;
+                    public DrawMysteryNPC(Action nextAction) {
+                        this.texture = TextureCache.get(Gdx.files.internal("npc1.png"));
+                        this.nextAction = nextAction;
+                    };
+                    public String getCamera() {
+                        return "map";
+                    }
+                    public int getLayer() {
+                        return 114;
+                    }
+                    @Override
+                    public void firstStep(Game game) {
+                        game.insertAction(this.nextAction);
+                        Vector3 worldCoords = game.cam.unproject(new Vector3(0f, 0f, 0f));
+                        // -16 b/c will draw starting at top of screen
+                        this.position = new Vector2(worldCoords.x, worldCoords.y -16);
+                    }
+                    @Override
+                    public void step(Game game) {
+                        game.mapBatch.draw(this.texture, this.position.x, this.position.y+1);
+                        if (this.stop) {
+                            game.actionStack.remove(this);
+                        }
+                    }
+                };
+                game.playerCanMove = true;
+                game.player.acceptInput = false;
+                DrawMysteryNPC drawMysteryNPC = new DrawMysteryNPC(null);
+                drawMysteryNPC.append(new DisplayText(game, "The text is too faded to make out...", null, null,
+                                      null));
+                if (down != null && !down.attrs.get("solid")) {
+                    drawMysteryNPC.append(new SetField(game.player, "dirFacing", "down",
+                                          new SetField(game.player, "currSprite", game.player.standingSprites.get("down"),
+                                          null)));
+                }
+                else {
+                    drawMysteryNPC.append(new SetField(game.player, "dirFacing", "right",
+                    new SetField(game.player, "currSprite", game.player.standingSprites.get("right"),
+                    null)));
+                }
+                drawMysteryNPC.append(new PlayerMoving(game, game.player, false,
+                                      new WaitFrames(game, 10,
+                                      new SetField(game.player, "acceptInput", true,
+                                      new SetField(drawMysteryNPC, "stop", true,
+                                      null)))));
+                nextAction = drawMysteryNPC;
+            }
+            game.insertAction(nextAction);
+        }
         else if (this.name.equals("cave1_regi5")) {
             // Just copy what the tile next to it will do.
             Tile leftTile = game.map.tiles.get(this.position.cpy().add(-16, 0));
@@ -5763,7 +6384,7 @@ class Tile {
             game.battle.oppPokemon.position = this.position.cpy();
             game.player.setCurrPokemon();
             game.insertAction(//new WaitFrames(game, 40,
-                              new DisplayText(game, "...Zut zutt!", "crystal_pokemon/cries/486.ogg", null,
+                              new DisplayText(game, "...Zut zutt!", "pokemon/cries/486.ogg", null,
                               new SetField(game.musicController, "startBattle", "regi_battle1",
                               new SplitAction(
                                   new CallMethod(game.uiBatch, "setColor", new Object[]{new Color(1f, 1f, 1f, 1.0f)}, null),
@@ -5806,7 +6427,7 @@ class Tile {
 //            game.uiBatch.setColor(new Color(1f, 1f, 1f, 1.0f));
 //            game.mapBatch.setColor(new Color(0.6f, 0.6f, 0.6f, 1.0f));
             
-            game.insertAction(new DisplayText(game, cryText, "crystal_pokemon/cries/" + regi.dexNumber + ".ogg", null,
+            game.insertAction(new DisplayText(game, cryText, "pokemon/cries/" + regi.dexNumber + ".ogg", null,
                               new SetField(game.musicController, "startBattle", "regi_battle1",
                               new SplitAction(
                                   new CallMethod(game.uiBatch, "setColor", new Object[]{new Color(1f, 1f, 1f, 1.0f)}, null),
@@ -5898,12 +6519,12 @@ class Tile {
             }
             game.player.isCrafting = true;
             Action nextAction = new FossilMachinePowerUp(false,
-                                new PlaySound("sounds/pc_on1",
+                                new PlaySound("pc_on1",
                                 new DisplayText(game, game.player.hmPokemon.nickname.toUpperCase()+" powered up the machine!", null, false, true,
                                 new DrawCraftsMenu.Intro(null, 9,
                                 new DrawCraftsMenu(game, game.player.fossilCrafts,
                                 new FossilMachinePowerUp(true,
-                                new PlaySound("sounds/pc_off1",
+                                new PlaySound("pc_off1",
                                 new SetField(game, "playerCanMove", true,
                                 new SetField(game.player, "isCrafting", false,
                                 null)))))))));
@@ -5962,7 +6583,7 @@ class Tile {
             game.player.setCurrPokemon();
 //            pokemon.position = this.position.cpy().add(8, 8);  // TODO: not working
 //            game.insertAction(pokemon.new Emote("!", null));  // TODO: not working
-            game.insertAction(new DisplayText(game, pokemon.nickname.toUpperCase()+" attacked!", "crystal_pokemon/cries/" + pokemon.dexNumber + ".ogg", null,
+            game.insertAction(new DisplayText(game, pokemon.nickname.toUpperCase()+" attacked!", "pokemon/cries/" + pokemon.dexNumber + ".ogg", null,
                               //new PlaySound(pokemon,
                               new WaitFrames(game, 10,
                               new SetField(game.musicController, "startBattle", "wild",
@@ -5980,11 +6601,78 @@ class Tile {
             game.battle.oppPokemon = pokemon;
             pokemon.onTile = this;
             game.player.setCurrPokemon();
-            game.insertAction(new DisplayText(game, "Vraahhbrbrbr!", "crystal_pokemon/cries/" + pokemon.dexNumber + ".ogg", null,
+            game.insertAction(new DisplayText(game, "Vraahhbrbrbr!", "pokemon/cries/" + pokemon.dexNumber + ".ogg", null,
                               new WaitFrames(game, 10,
                               new SetField(game.musicController, "startBattle", "bw_legendary_theme3",
                               new WaitFrames(game, 80,
                               Battle.getIntroAction(game))))));
+        }
+        else if (this.nameUpper.equals("spiritomb")) {
+            String name = this.nameUpper;
+            Pokemon pokemon = new Pokemon(name, 25, Pokemon.Generation.CRYSTAL);
+            game.playerCanMove = false;
+            game.battle.oppPokemon = pokemon;
+            pokemon.onTile = this;
+            game.player.setCurrPokemon();
+            game.insertAction(new DisplayText(game, "Yulaaah!", "pokemon/cries/" + pokemon.dexNumber + ".ogg", null,
+                              new WaitFrames(game, 10,
+                              new SetField(game.musicController, "startBattle", "wild",
+                              Battle.getIntroAction(game)))));
+        }
+        
+        else if (this.nameUpper.equals("pokedoll1")) {
+            // TODO: this could be handled via hasItem, maybe.
+            String name = "poké doll";
+            game.playerCanMove = false;
+            // SplitAction part is just to simulate delay present in console games
+            game.insertAction(new SplitAction(
+                                  new WaitFrames(game, 15,
+                                  new SetField(this, "nameUpper", "",
+                                  new SetField(this, "overSprite", null,
+                                  new CallMethod(this, "init", new Object[] {},
+                                  null)))),
+                              new DisplayText(game, "Found a "+name.toUpperCase()+"!", "fanfare1.ogg", null,
+                              new WaitFrames(game, 6,
+                              new SetField(game, "playerCanMove", true,
+                              null)))));
+            int amount = 1;
+            if (game.player.itemsDict.containsKey(name)) {
+                amount += game.player.itemsDict.get(name);
+            }
+            game.player.itemsDict.put(name, amount);
+            // TODO: remove
+//            this.nameUpper = "";
+//            this.overSprite = null;
+//            this.init();
+        }
+        else if (this.nameUpper.equals("pokedoll1_banette") ||
+                 this.nameUpper.equals("pokedoll1_mimikyu")) {
+            String name = "banette";
+            if (this.nameUpper.equals("pokedoll1_mimikyu")) {
+                name = "mimikyu";
+            }
+            // ! Pop up, then text
+            game.playerCanMove = false;
+            game.battle.oppPokemon = new Pokemon(name, 24, Pokemon.Generation.CRYSTAL);
+            game.battle.oppPokemon.mapTiles = game.map.overworldTiles;
+            game.battle.oppPokemon.position = this.position.cpy();
+            game.battle.oppPokemon.canMove = false;
+            game.battle.oppPokemon.aggroPlayer = true;
+            game.player.setCurrPokemon();
+            // TODO/idea: play the ding noise
+            game.insertAction(new SplitAction(
+                                  new PlaySound("ledge2", null),
+                              game.player.new Emote("!",
+                              new DisplayText(game, "The doll became animated... and attacked!", null, null,
+                              new SplitAction(
+                                  new WaitFrames(game, 400,
+                                  new SetField(this, "nameUpper", "",
+                                  new SetField(this, "overSprite", null,
+                                  new CallMethod(this, "init", new Object[] {}, 
+                                  game.battle.oppPokemon.new Standing())))),
+                              new WaitFrames(game, 10,
+                              new SetField(game.musicController, "startBattle", "wild",
+                              Battle.getIntroAction(game))))))));
         }
 
         // Pokemon mansion (dungeon) door
@@ -6090,62 +6778,62 @@ class Tile {
             game.insertAction(nextAction);
         }
         else if (this.nameUpper.contains("onpress_above")) {
-    		Tile down = game.map.tiles.get(this.position.cpy().add(0, -16));
-    		String name = this.name;
-    		String nameUpper = this.nameUpper;
-    		this.name = down.name;
-    		this.nameUpper = down.nameUpper;
-    		this.onPressA(game);
-    		this.name = name;
-    		this.nameUpper = nameUpper;
+            Tile down = game.map.tiles.get(this.position.cpy().add(0, -16));
+            String name = this.name;
+            String nameUpper = this.nameUpper;
+            this.name = down.name;
+            this.nameUpper = down.nameUpper;
+            this.onPressA(game);
+            this.name = name;
+            this.nameUpper = nameUpper;
         }
         else if (this.nameUpper.contains("onpress_left")) {
-        	Tile left = game.map.tiles.get(this.position.cpy().add(-16, 0));
-    		String name = this.name;
-    		String nameUpper = this.nameUpper;
-    		this.name = left.name;
-    		this.nameUpper = left.nameUpper;
-    		this.onPressA(game);
-    		this.name = name;
-    		this.nameUpper = nameUpper;
+            Tile left = game.map.tiles.get(this.position.cpy().add(-16, 0));
+            String name = this.name;
+            String nameUpper = this.nameUpper;
+            this.name = left.name;
+            this.nameUpper = left.nameUpper;
+            this.onPressA(game);
+            this.name = name;
+            this.nameUpper = nameUpper;
         }
         else if (this.nameUpper.contains("house_couch")) {
             game.playerCanMove = false;
             game.insertAction(new WaitFrames(game, 30,
-            			      game.player.new Sitting(this)));
+                              game.player.new Sitting(this)));
         }
         else if (this.nameUpper.equals("house_window1")) {
-        	game.insertAction(new PlaySound("seed1", null));
-        	if (this.overSprite.getRegionX() == 0) {
-        		this.overSprite.setRegion(16, 0, 16, 16);
-        	}
-        	else if (this.overSprite.getRegionX() == 16) {
-        		this.overSprite.setRegion(32, 0, 16, 16);
-        	}
-        	else {
-        		this.overSprite.setRegion(0, 0, 16, 16);
-        	}
+            game.insertAction(new PlaySound("seed1", null));
+            if (this.overSprite.getRegionX() == 0) {
+                this.overSprite.setRegion(16, 0, 16, 16);
+            }
+            else if (this.overSprite.getRegionX() == 16) {
+                this.overSprite.setRegion(32, 0, 16, 16);
+            }
+            else {
+                this.overSprite.setRegion(0, 0, 16, 16);
+            }
         }
         else if (this.nameUpper.equals("house_window2")) {
-        	game.insertAction(new PlaySound("seed1", null));
-        	if (this.overSprite.getRegionX() == 0) {
-        		this.overSprite.setRegion(16, 0, 16, 16);
-        	}
-        	else {
-        		this.overSprite.setRegion(0, 0, 16, 16);
-        	}
+            game.insertAction(new PlaySound("seed1", null));
+            if (this.overSprite.getRegionX() == 0) {
+                this.overSprite.setRegion(16, 0, 16, 16);
+            }
+            else {
+                this.overSprite.setRegion(0, 0, 16, 16);
+            }
         }
         else if (this.nameUpper.contains("_plush")) {
-        	String name = "";
-        	String[] names = this.nameUpper.split("_plush");
-        	if (names.length > 1) {
-        		name = names[1];
-        	}
+            String name = "";
+            String[] names = this.nameUpper.split("_plush");
+            if (names.length > 1) {
+                name = names[1];
+            }
             game.playerCanMove = false;
             game.insertAction(new DisplayText(game, "A "+name.toUpperCase()+" doll. Cute!", null, null,
-				              new WaitFrames(game, 3, 
-				              new SetField(game, "playerCanMove", true,
-				              null))));
+                              new WaitFrames(game, 3, 
+                              new SetField(game, "playerCanMove", true,
+                              null))));
         }
         else if (this.nameUpper.equals("mewtwo_overworld")) {
             game.playerCanMove = false;
@@ -6314,8 +7002,8 @@ class Tile {
                 game.player.setCurrPokemon();
                 game.battle.oppPokemon = pokemon;
                 nextAction.append(new WaitFrames(game, 120, //  90,
-                                    game.player.new CaughtFishAnim(
-                                      game.player.new Emote("!",
+                                  game.player.new CaughtFishAnim(
+                                  game.player.new Emote("!",
                                   new DisplayText(game, huh+"A bite!", null, null,
                                   new WaitFrames(game, 30,
                                     new SplitAction(
@@ -6494,7 +7182,7 @@ class RegigigasOutroAnim extends Action {
             }
         }
         // TODO: check that I call dispose on this later.
-//        this.soundEffect = Gdx.audio.newMusic(Gdx.files.internal("sounds/eq3.ogg"));
+//        this.soundEffect = Gdx.audio.newMusic(Gdx.files.internal("eq3.ogg"));
         // TODO: dispose
         this.soundEffect2 = Gdx.audio.newMusic(Gdx.files.internal("sounds/splash1.ogg"));
         this.soundEffect2.setLooping(false);
@@ -6639,11 +7327,11 @@ class FossilMachinePowerUp extends Action {
             return;
         }
 
-//        this.soundEffect = Gdx.audio.newMusic(Gdx.files.internal("sounds/para1.ogg"));
+//        this.soundEffect = Gdx.audio.newMusic(Gdx.files.internal("para1.ogg"));
 //        this.soundEffect.setLooping(false);
 //        this.soundEffect.setVolume(0.7f);
 //        this.soundEffect.stop();
-        game.loadedMusic.put("sounds/para1", Gdx.audio.newMusic(Gdx.files.internal("sounds/para1.ogg")));
+        game.loadedMusic.put("para1", Gdx.audio.newMusic(Gdx.files.internal("sounds/para1.ogg")));
     }
 
     @Override
@@ -6658,7 +7346,7 @@ class FossilMachinePowerUp extends Action {
                     game.mapBatch.setColor(new Color(0.8f, 0.8f, 0.8f, 1f));
                 }
                 if (this.timer % 16 == 13) {
-                    game.insertAction(new PlaySound("sounds/para1", .7f, true, null));
+                    game.insertAction(new PlaySound("para1", .7f, true, null));
                     tile.sprite.setRegion((int)tile.sprite.getHeight(), 0, (int)tile.sprite.getHeight(), (int)tile.sprite.getHeight());
                     if (tile.overSprite != null) {
                         tile.overSprite.setRegion((int)tile.sprite.getHeight(), 0, (int)tile.sprite.getHeight(), (int)tile.overSprite.getHeight());
@@ -6918,7 +7606,7 @@ class FossilMachinePowerUp extends Action {
                 }
             }
 
-//            this.soundEffect = Gdx.audio.newMusic(Gdx.files.internal("sounds/stomp1.ogg"));
+//            this.soundEffect = Gdx.audio.newMusic(Gdx.files.internal("stomp1.ogg"));
             this.soundEffect = Gdx.audio.newMusic(Gdx.files.internal("sounds/machine1.ogg"));
             this.soundEffect.setLooping(true);
             this.soundEffect.setVolume(0.7f);
@@ -6979,7 +7667,7 @@ class FossilMachinePowerUp extends Action {
                         this.fossilSprite.setRegion(16, this.regionOffsetY, 16, 16);
                     }
                     if (this.timer % 16 == 0) {
-                        game.insertAction(new PlaySound("sounds/teleport1", .5f, true, null));
+                        game.insertAction(new PlaySound("teleport1", .5f, true, null));
                     }
                 }
                 else {
@@ -6991,7 +7679,7 @@ class FossilMachinePowerUp extends Action {
                     this.machineTile.nameUpper = "revived_"+this.pokemonName;
                     game.actionStack.remove(this);
                     game.insertAction(this.nextAction);
-//                    game.insertAction(new PlaySound("sounds/dingdong1", .5f, false,
+//                    game.insertAction(new PlaySound("dingdong1", .5f, false,
 //                                      new FossilMachinePowerUp(true, null)));
 
                     // TODO: ideally this would be shiny if mon is shiny
@@ -7001,9 +7689,9 @@ class FossilMachinePowerUp extends Action {
                                       new WaitFrames(game, 20,
                                       new SplitAction(
                                           new LightFlicker(null),                
-                                      new PlaySound("sounds/heal1_downshift",
+                                      new PlaySound("heal1_downshift",
                                       new SplitAction(
-                                          new PlaySound("sounds/stomp1", null),
+                                          new PlaySound("stomp1", null),
                                       new FossilMachinePowerUp(true,
                                       new SetField(game, "playerCanMove", true,
                                       new SetField(game.player, "isCrafting", false,
@@ -7057,7 +7745,7 @@ class RegigigasIntroAnim extends Action {
             }
         }
         // TODO: check that I call dispose on this later.
-//        this.soundEffect = Gdx.audio.newMusic(Gdx.files.internal("sounds/eq3.ogg"));
+//        this.soundEffect = Gdx.audio.newMusic(Gdx.files.internal("eq3.ogg"));
         // TODO: dispose
         this.soundEffect2 = Gdx.audio.newMusic(Gdx.files.internal("sounds/splash1.ogg"));
         this.soundEffect2.setLooping(false);
@@ -7122,7 +7810,7 @@ class RegigigasIntroAnim extends Action {
             if (this.timer == 1) {
                 this.soundEffect.stop();
                 this.soundEffect.dispose();
-//                this.soundEffect = Gdx.audio.newMusic(Gdx.files.internal("sounds/gigas_noises12.ogg"));
+//                this.soundEffect = Gdx.audio.newMusic(Gdx.files.internal("gigas_noises12.ogg"));
                 this.soundEffect = Gdx.audio.newMusic(Gdx.files.internal("sounds/gigas_noises14.ogg"));
                 this.soundEffect.setVolume(1f);
                 this.soundEffect.play();
@@ -7973,7 +8661,423 @@ class OverworldAnimation extends Action {
     }
 }
 
+class FogEffect extends Action {
+    public static boolean active = false;
+    public static boolean refresh = true;
+    Texture fogTexture1;
+    Texture fogTexture2;
+    Texture shadeTexture1;
+    Texture shadeTexture2;
+    Pixmap shadePixmap1;
+    Pixmap shadePixmap2;
+    ArrayList<Vector2> fogPositions1 = new ArrayList<Vector2>();
+    ArrayList<Vector2> fogPositions2 = new ArrayList<Vector2>();
+    Vector2 startPos;
+    Vector2 endPos;
+    int timer = 0;
+//    Vector3 worldCoordsTL;
+//    Vector3 worldCoordsBR;
+    Color prevColor;
+    Vector2 currOffset = new Vector2();
+    Pixmap pixmap;
+    Texture texture;
+    Vector2 prevPos = new Vector2();
+    
+    public FogEffect() {
+        this.fogTexture1 = TextureCache.get(Gdx.files.internal("fog1.png"));
+        this.fogTexture2 = TextureCache.get(Gdx.files.internal("fog2.png"));
+//        this.shadeTexture1 = TextureCache.get(Gdx.files.internal("shade3.png"));
+//        this.shadeTexture2 = TextureCache.get(Gdx.files.internal("shade4.png"));
+        this.shadeTexture1 = TextureCache.get(Gdx.files.internal("shade5.png"));
+        this.shadeTexture2 = TextureCache.get(Gdx.files.internal("shade6.png"));
+        TextureData temp = this.shadeTexture1.getTextureData();
+        if (!temp.isPrepared()) {
+            temp.prepare();
+        }
+        this.shadePixmap1 = temp.consumePixmap();
+        temp = this.shadeTexture2.getTextureData();
+        if (!temp.isPrepared()) {
+            temp.prepare();
+        }
+        this.shadePixmap2 = temp.consumePixmap();
 
+        this.pixmap = new Pixmap(160*4, 144*3, Pixmap.Format.RGBA8888);
+        this.pixmap.setColor(new Color(1f, 1f, 1f, 0f));
+        this.texture = TextureCache.get(this.pixmap);
+    }
+    
+    @Override
+    public String getCamera() {
+        return "map";
+    }
+
+    @Override
+    public int getLayer() {
+        return 0;
+    }
+
+    @Override
+    public void firstStep(Game game) {
+//        game.insertAction(this.new LightenScreen());
+    }
+
+
+    @Override
+    public void step(Game game) {
+        if (!FogEffect.active ||
+            game.map.timeOfDay.equals("night") ||
+            game.map.tiles != game.map.overworldTiles) {
+            return;
+        }
+        
+        // TODO: trying out a 'deep forest' overlay
+
+        // TODO: probably a better way
+        if (FogEffect.refresh) {
+            this.pixmap.fill();
+            this.prevPos.set(game.player.position.x, game.player.position.y);
+            FogEffect.refresh = false;
+            this.fogPositions1.clear();
+            this.fogPositions2.clear();
+            //
+            this.startPos = game.player.position.cpy().add(-64*6, -64*5);
+            this.startPos.x -= this.startPos.x % 16;
+            this.startPos.y -= this.startPos.y % 16;
+            this.endPos = game.player.position.cpy().add(64*6, 64*5);
+            this.endPos.x -= this.endPos.x % 16;
+            this.endPos.y -= this.endPos.y % 16;
+            int scale = 12;  // 16 looked pretty good too
+            Vector2 rotate;
+            int offsetX, offsetY, offset1, offset2;
+            //
+            for (Vector2 currPos = this.startPos.cpy(); currPos.y <= this.endPos.y;) {
+                // 
+                if (currPos.x/4 % 2 == currPos.y/8 % 2) {
+//                if (currPos.x/8 % 2 == 0) {
+                    rotate = currPos.cpy().sub(this.currOffset).rotate(0);
+                    offsetY = ((int)Math.abs(rotate.y/scale) %14) -7;
+                    offsetX = (((int)Math.abs(rotate.x/scale)) %14) -7;  //  - rotate.y/scale
+                    offsetX = Math.abs(offsetX);
+                    offsetY = Math.abs(offsetY);
+                    offset1 = offsetX +offsetY;
+                    offsetY = Math.abs(((int)Math.abs(rotate.y/scale) %20) -10);
+                    offsetX = Math.abs((((int)Math.abs(rotate.x/scale)) %20) -10);
+                    offset2 = offsetX +offsetY;
+                    offset2 = offset2/5;
+                    if (offset1*offset2 > 7) {
+                        this.fogPositions1.add(currPos.cpy());
+                    }
+                    else if (offset1*offset2 > 4) {
+                        this.fogPositions2.add(currPos.cpy());
+                    }
+                }
+
+                currPos.x += 4;
+                if (currPos.x > endPos.x) {
+                    currPos.x = startPos.x;
+                    currPos.y += 8;
+                }
+            }
+
+            for (Vector2 currPos : this.fogPositions1) {
+                this.pixmap.drawPixmap(this.shadePixmap1, (int)(currPos.x -this.startPos.x), (int)(currPos.y -this.startPos.y));
+            }
+            for (Vector2 currPos : this.fogPositions2) {
+                this.pixmap.drawPixmap(this.shadePixmap2, (int)(currPos.x -this.startPos.x), (int)(currPos.y -this.startPos.y));
+            }
+        }
+        //
+        Color tempColor = game.mapBatch.getColor();
+        game.mapBatch.setColor(new Color(1f, 1f, 1f, .4f));
+        this.texture.draw(this.pixmap, 0, 0);
+        game.mapBatch.draw(this.texture, this.prevPos.x +8 -320, this.prevPos.y +8 -216);
+        game.mapBatch.setColor(tempColor);
+    }
+
+    public void oldStep(Game game) {
+        if (!FogEffect.active ||
+            game.map.timeOfDay.equals("night") ||
+            game.map.tiles != game.map.overworldTiles) {
+            return;
+        }
+
+        // TODO: probably a better way
+        if (FogEffect.refresh) {
+            FogEffect.refresh = false;
+            this.fogPositions1.clear();
+            this.fogPositions2.clear();
+            //
+            this.startPos = game.player.position.cpy().add(-64*6, -64*4);
+            this.startPos.x -= this.startPos.x % 16;
+            this.startPos.y -= this.startPos.y % 16;
+            this.endPos = game.player.position.cpy().add(64*6, 64*4);
+            this.endPos.x -= this.endPos.x % 16;
+            this.endPos.y -= this.endPos.y % 16;
+            int scale = 16;
+            Vector2 rotate;
+            int offsetX, offsetY, offset1, offset2;
+            //
+            for (Vector2 currPos = this.startPos.cpy(); currPos.y <= this.endPos.y;) {
+                // 
+                if (currPos.x/8 % 2 == currPos.y/16 % 2) {
+                    rotate = currPos.cpy().sub(this.currOffset).rotate(0);
+                    offsetY = ((int)Math.abs(rotate.y/scale) %14) -7;
+                    offsetX = (((int)Math.abs(rotate.x/scale - rotate.y/scale)) %14) -7;
+                    offsetX = Math.abs(offsetX);
+                    offsetY = Math.abs(offsetY);
+                    offset1 = offsetX +offsetY;
+                    offsetY = Math.abs(((int)Math.abs(rotate.y/scale) %20) -10);
+                    offsetX = Math.abs((((int)Math.abs(rotate.x/scale)) %20) -10);
+                    offset2 = offsetX +offsetY;
+                    offset2 = offset2/5;
+//                    if (offset1*offset2 > 10) {
+//                        if (Game.rand.nextInt(3) == 0) {
+//                            this.fogPositions2.add(currPos.cpy().add(Game.rand.nextInt(3)-1, Game.rand.nextInt(3)-1));
+//                        }
+//                        else {
+//                            this.fogPositions1.add(currPos.cpy().add(Game.rand.nextInt(3)-1, Game.rand.nextInt(3)-1));
+//                        }
+//                    }
+//                    else 
+                    if (offset1*offset2 > 9) {
+                        this.fogPositions2.add(currPos.cpy().add((Game.rand.nextInt(3)-1), (Game.rand.nextInt(3)-1)));
+                    }
+                    if (offset1*offset2 > 11) {
+                        this.fogPositions1.add(currPos.cpy().add((Game.rand.nextInt(3)-1), (Game.rand.nextInt(3)-1)));
+                    }
+                    if (offset1*offset2 > 13) {
+//                        if (Game.rand.nextInt(3) == 0) {
+                            this.fogPositions1.add(currPos.cpy().add((Game.rand.nextInt(3)-1), (Game.rand.nextInt(3)-1)));
+//                            this.fogPositions1.add(currPos.cpy().add((Game.rand.nextInt(3)-1), (Game.rand.nextInt(5)-2)));
+//                            offset2 = 3;
+//                            if (Game.rand.nextBoolean()) {
+//                                offset2 = -3;
+//                            }
+                            this.fogPositions1.add(currPos.cpy().add((Game.rand.nextInt(3)-1), 4));
+                            
+//                            this.fogPositions1.add(currPos.cpy());
+//                        }
+//                        else {
+//                            this.fogPositions2.add(currPos.cpy().add(Game.rand.nextInt(3)-1, Game.rand.nextInt(3)-1));
+//                        }
+                    }
+                }
+
+                currPos.x += 4;
+                if (currPos.x > endPos.x) {
+                    currPos.x = startPos.x;
+                    currPos.y += 8;
+                }
+            }
+        }
+
+        this.prevColor = game.mapBatch.getColor();
+//        game.mapBatch.setColor(1f, 1f, 1f, .3f);
+        game.mapBatch.setColor(1f, 1f, 1f, .2f);
+        this.timer++;
+        for (Vector2 currPos : this.fogPositions1) {
+            game.mapBatch.draw(this.fogTexture1, currPos.x +this.currOffset.x, currPos.y +this.currOffset.y);
+        }
+        for (Vector2 currPos : this.fogPositions2) {
+            game.mapBatch.draw(this.fogTexture2, currPos.x +this.currOffset.x, currPos.y +this.currOffset.y);
+        }
+        if (this.timer >= 151) {
+            this.currOffset.add(-2, 0);
+            this.timer = 0;
+        }
+        game.mapBatch.setColor(this.prevColor);
+    }
+    
+    
+    /**
+     * Could add movement. Looked pretty good.
+     */
+    public void coolCloudsEffect(Game game) {
+        if (!FogEffect.active ||
+            game.map.timeOfDay.equals("night") ||
+            game.map.tiles != game.map.overworldTiles) {
+            return;
+        }
+        
+        // TODO: trying out a 'deep forest' overlay
+
+        // TODO: probably a better way
+        if (FogEffect.refresh) {
+            this.pixmap.fill();
+            this.prevPos.set(game.player.position.x, game.player.position.y);
+            FogEffect.refresh = false;
+            this.fogPositions1.clear();
+            this.fogPositions2.clear();
+            //
+            this.startPos = game.player.position.cpy().add(-64*6, -64*4);
+            this.startPos.x -= this.startPos.x % 16;
+            this.startPos.y -= this.startPos.y % 16;
+            this.endPos = game.player.position.cpy().add(64*6, 64*4);
+            this.endPos.x -= this.endPos.x % 16;
+            this.endPos.y -= this.endPos.y % 16;
+            int scale = 16;
+            Vector2 rotate;
+            int offsetX, offsetY, offset1, offset2;
+            //
+            for (Vector2 currPos = this.startPos.cpy(); currPos.y <= this.endPos.y;) {
+                // 
+                if (currPos.x/8 % 2 == currPos.y/16 % 2) {
+                    rotate = currPos.cpy().sub(this.currOffset).rotate(0);
+                    offsetY = ((int)Math.abs(rotate.y/scale) %14) -7;
+                    offsetX = (((int)Math.abs(rotate.x/scale - rotate.y/scale)) %14) -7;
+                    offsetX = Math.abs(offsetX);
+                    offsetY = Math.abs(offsetY);
+                    offset1 = offsetX +offsetY;
+                    offsetY = Math.abs(((int)Math.abs(rotate.y/scale) %20) -10);
+                    offsetX = Math.abs((((int)Math.abs(rotate.x/scale)) %20) -10);
+                    offset2 = offsetX +offsetY;
+                    offset2 = offset2/5;
+                    if (offset1*offset2 > 9) {
+                        this.fogPositions2.add(currPos.cpy().add((Game.rand.nextInt(3)-1), (Game.rand.nextInt(3)-1)));
+                    }
+                    if (offset1*offset2 > 11) {
+                        this.fogPositions1.add(currPos.cpy().add((Game.rand.nextInt(3)-1), (Game.rand.nextInt(3)-1)));
+                    }
+                    if (offset1*offset2 > 13) {
+                        this.fogPositions1.add(currPos.cpy().add((Game.rand.nextInt(3)-1), (Game.rand.nextInt(3)-1)));
+                        this.fogPositions1.add(currPos.cpy().add((Game.rand.nextInt(3)-1), 4));
+                    }
+                }
+
+                currPos.x += 4;
+                if (currPos.x > endPos.x) {
+                    currPos.x = startPos.x;
+                    currPos.y += 8;
+                }
+            }
+
+            for (Vector2 currPos : this.fogPositions1) {
+                this.pixmap.drawPixmap(this.shadePixmap1, (int)(currPos.x -this.startPos.x), (int)(currPos.y -this.startPos.y));
+            }
+            for (Vector2 currPos : this.fogPositions2) {
+                this.pixmap.drawPixmap(this.shadePixmap2, (int)(currPos.x -this.startPos.x), (int)(currPos.y -this.startPos.y));
+            }
+        }
+        //
+        Color tempColor = game.mapBatch.getColor();
+        game.mapBatch.setColor(new Color(1f, 1f, 1f, .4f));
+        this.texture.draw(this.pixmap, 0, 0);
+        game.mapBatch.draw(this.texture, this.prevPos.x +8 -320, this.prevPos.y +8 -216);
+        game.mapBatch.setColor(tempColor);
+    }
+
+    public void coolSmokeEffect(Game game) {
+        if (!FogEffect.active ||
+            game.map.timeOfDay.equals("night") ||
+            game.map.tiles != game.map.overworldTiles) {
+            return;
+        }
+        
+        // TODO: trying out a 'deep forest' overlay
+
+        // TODO: probably a better way
+        if (FogEffect.refresh) {
+            FogEffect.refresh = false;
+            this.fogPositions1.clear();
+            this.fogPositions2.clear();
+            //
+            this.startPos = game.player.position.cpy().add(-64*6, -64*4);
+            this.startPos.x -= this.startPos.x % 16;
+            this.startPos.y -= this.startPos.y % 16;
+            this.endPos = game.player.position.cpy().add(64*6, 64*4);
+            this.endPos.x -= this.endPos.x % 16;
+            this.endPos.y -= this.endPos.y % 16;
+            int scale = 16;
+            Vector2 rotate;
+            int offsetX, offsetY, offset1, offset2;
+            //
+            for (Vector2 currPos = this.startPos.cpy(); currPos.y <= this.endPos.y;) {
+                // 
+                if (currPos.x/8 % 2 == currPos.y/16 % 2) {
+                    rotate = currPos.cpy().sub(this.currOffset).rotate(0);
+                    offsetY = ((int)Math.abs(rotate.y/scale) %14) -7;
+                    offsetX = (((int)Math.abs(rotate.x/scale - rotate.y/scale)) %14) -7;
+                    offsetX = Math.abs(offsetX);
+                    offsetY = Math.abs(offsetY);
+                    offset1 = offsetX +offsetY;
+                    offsetY = Math.abs(((int)Math.abs(rotate.y/scale) %20) -10);
+                    offsetX = Math.abs((((int)Math.abs(rotate.x/scale)) %20) -10);
+                    offset2 = offsetX +offsetY;
+                    offset2 = offset2/5;
+                    if (offset1*offset2 > 9) {
+                        this.fogPositions2.add(currPos.cpy().add((Game.rand.nextInt(3)-1), (Game.rand.nextInt(3)-1)));
+                    }
+                    if (offset1*offset2 > 11) {
+                        this.fogPositions1.add(currPos.cpy().add((Game.rand.nextInt(3)-1), (Game.rand.nextInt(3)-1)));
+                    }
+                    if (offset1*offset2 > 13) {
+                        this.fogPositions1.add(currPos.cpy().add((Game.rand.nextInt(3)-1), (Game.rand.nextInt(3)-1)));
+                        this.fogPositions1.add(currPos.cpy().add((Game.rand.nextInt(3)-1), 4));
+                    }
+                }
+
+                currPos.x += 4;
+                if (currPos.x > endPos.x) {
+                    currPos.x = startPos.x;
+                    currPos.y += 8;
+                }
+            }
+        }
+
+        this.prevColor = game.mapBatch.getColor();
+        game.mapBatch.setColor(1f, 1f, 1f, .2f);
+        this.timer++;
+        for (Vector2 currPos : this.fogPositions1) {
+            game.mapBatch.draw(this.shadeTexture1, currPos.x +this.currOffset.x, currPos.y +this.currOffset.y);
+        }
+        for (Vector2 currPos : this.fogPositions2) {
+            game.mapBatch.draw(this.shadeTexture2, currPos.x +this.currOffset.x, currPos.y +this.currOffset.y);
+        }
+        if (this.timer >= 151) {
+            this.currOffset.add(-2, 0);
+            this.timer = 0;
+        }
+        game.mapBatch.setColor(this.prevColor);
+    }
+    
+
+    /**
+     * I'm sure there's an opengl way to do this but I couldn't figure it out.
+     */
+    class LightenScreen extends Action {
+        Texture texture;
+        Color prevColor;
+        
+        public LightenScreen() {
+            this.texture = TextureCache.get(Gdx.files.internal("battle/intro_frame6.png"));
+        }
+
+        @Override
+        public String getCamera() {
+            return "gui";
+        }
+
+        @Override
+        public int getLayer() {
+            return 0;
+        }
+        
+        @Override
+        public void step(Game game) {
+            if (!FogEffect.active || game.map.timeOfDay.equals("night")) {
+                return;
+            }
+            this.prevColor = game.mapBatch.getColor();
+            game.uiBatch.setColor(1f, 1f, 1f, .2f);
+            for (int i = -1; i < 1; i+= 1) {
+                for (int j = -1; j < 1; j+= 1) {
+                    game.uiBatch.draw(this.texture, 256*i, 256*j);
+                }
+            }
+            game.uiBatch.setColor(this.prevColor);
+        }
+    }
+}
 
 
 
